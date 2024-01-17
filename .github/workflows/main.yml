@@ -1,0 +1,35 @@
+---
+name: CI
+
+on:
+  push:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          python-version: "3.11"
+          install-just: true
+      - name: Set default environment variables
+        run: cp dotenv-sample .env
+      - name: Check formatting and linting rules
+        run: just check
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          python-version: "3.11"
+          install-just: true
+      - name: Set default environment variables
+        run: cp dotenv-sample .env
+      - name: Run tests
+        run: |
+          just test-all
