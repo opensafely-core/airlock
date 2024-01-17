@@ -1,0 +1,5 @@
+# Ensure that production versions are always respected even when these files
+# are compiled separately
+--constraint requirements.prod.txt
+
+pip-tools
