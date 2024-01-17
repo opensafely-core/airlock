@@ -1,0 +1,18 @@
+# We ignore all hidden files/directories in the project root. Specific
+# exceptions to this can be added as negated patterns below.
+/.*
+
+# Backup files
+**/*~
+**/*#
+**/.#*
+
+# Python files
+**/__pycache__
+**/*.pyc
+
+# Tooling effluent
+/htmlcov
+
+# Local application state
+/workdir
