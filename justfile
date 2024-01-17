@@ -122,3 +122,8 @@ check: devenv
 fix: devenv
     $BIN/ruff format .
     $BIN/ruff --fix .
+
+
+# run Django's manage.py entrypoint
+manage *ARGS: devenv
+    $BIN/python manage.py {{ ARGS }}
