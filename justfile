@@ -131,4 +131,16 @@ manage *ARGS: devenv
 
 # run tests
 test *ARGS: devenv
-    $BIN/pytest {{ ARGS }}
+    $BIN/python -m pytest {{ ARGS }}
+
+
+# run tests as they will be in run CI (checking code coverage etc)
+@test-all: devenv
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    $BIN/python -m pytest \
+      --cov=airlock \
+      --cov=tests \
+      --cov-report=html \
+      --cov-report=term-missing:skip-covered

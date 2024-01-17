@@ -17,3 +17,18 @@ lines-after-imports = 2
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "airlock.settings"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+skip_covered = true
+exclude_also = [
+    # this indicates that the line should never be hit
+    "assert False",
+    # this condition is only true when a module is run as a script
+    'if __name__ == "__main__":',
+    # this indicates that a method should be defined in a subclass
+    "raise NotImplementedError",
+]
