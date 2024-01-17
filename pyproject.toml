@@ -14,3 +14,6 @@ extend-ignore = [
 
 [tool.ruff.isort]
 lines-after-imports = 2
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "airlock.settings"

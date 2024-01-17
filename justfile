@@ -127,3 +127,8 @@ fix: devenv
 # run Django's manage.py entrypoint
 manage *ARGS: devenv
     $BIN/python manage.py {{ ARGS }}
+
+
+# run tests
+test *ARGS: devenv
+    $BIN/pytest {{ ARGS }}
