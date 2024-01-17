@@ -2,4 +2,5 @@
 # are compiled separately
 --constraint requirements.prod.txt
 
+ruff
 pip-tools

@@ -85,3 +85,40 @@ devenv: virtualenv
         cp "$req_file" "$record_file"
       fi
     done
+
+
+# lint and check formatting but don't modify anything
+check: devenv
+    #!/usr/bin/env bash
+
+    failed=0
+
+    check() {
+      # Display the command we're going to run, in bold and with the "$BIN/"
+      # prefix removed if present
+      echo -e "\e[1m=> ${1#"$BIN/"}\e[0m"
+      # Run it
+      eval $1
+      # Increment the counter on failure
+      if [[ $? != 0 ]]; then
+        failed=$((failed + 1))
+        # Add spacing to separate the error output from the next check
+        echo -e "\n"
+      fi
+    }
+
+    check "$BIN/ruff format --diff --quiet ."
+    check "$BIN/ruff check --show-source ."
+
+    if [[ $failed > 0 ]]; then
+      echo -en "\e[1;31m"
+      echo "   $failed checks failed"
+      echo -e "\e[0m"
+      exit 1
+    fi
+
+
+# fix formatting and import sort ordering
+fix: devenv
+    $BIN/ruff format .
+    $BIN/ruff --fix .
