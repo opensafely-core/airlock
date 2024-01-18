@@ -66,6 +66,11 @@ INSTALLED_APPS = [
     # "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # requirements for assets library
+    "django.contrib.humanize",
+    "django_vite",
+    "slippers",
+    "assets",
 ]
 
 MIDDLEWARE = [
@@ -91,6 +96,9 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 # "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+            ],
+            "builtins": [
+                "slippers.templatetags.slippers",  # required for assets library
             ],
         },
     },
@@ -145,6 +153,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+ASSETS_DIST = Path(os.environ.get("ASSETS_DIST", BASE_DIR / "assets/dist"))
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
+STATICFILES_DIRS = [str(ASSETS_DIST)]
+
+ASSETS_DEV_MODE = os.environ.get("ASSETS_DEV_MODE") == "true"
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": ASSETS_DEV_MODE,
+        "manifest_path": ASSETS_DIST / ".vite" / "manifest.json",
+    }
+}
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

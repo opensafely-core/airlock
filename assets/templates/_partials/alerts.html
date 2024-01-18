@@ -1,0 +1,49 @@
+{% if messages or disable_creating_jobs %}
+  <div class="max-w-screen-md mx-auto pt-3 pb-6">
+    {% if disable_creating_jobs %}
+      {% #alert variant="warning" title="Job creation issue" %}
+        Creating jobs is temporarily unavailable, please try again later.
+      {% /alert %}
+    {% endif %}
+
+    {% if messages %}
+      <div class="grid gap-y-3">
+        {% for message in messages %}
+          {% if message.tags == "alert-info" %}
+            {% #alert variant="info" dismissible=True %}
+              {{ message|safe }}
+            {% /alert %}
+          {% elif message.tags == "alert-success" %}
+            {% #alert variant="success" dismissible=True %}
+              {{ message|safe }}
+            {% /alert %}
+          {% elif message.tags == "alert-warning" %}
+            {% #alert variant="warning" dismissible=True %}
+              {{ message|safe }}
+            {% /alert %}
+          {% elif message.tags == "alert-danger" %}
+            {% #alert variant="danger" dismissible=True %}
+              {{ message|safe }}
+            {% /alert %}
+          {% elif message.tags == "codelist_out_of_date" %}
+            {% #alert variant="warning" title="Codelists for this workspace are out of date." %}
+              <p class="mb-3">
+                This will cause actions that use the backend database to fail.
+                You can fix this issue by re-running
+                {% #code %}opensafely codelists update{% /code %}.
+              </p>
+              <p>
+                For more details, please see the documentation on
+                {% link href="https://docs.opensafely.org/codelist-updating/" text="keeping codelists up to date" append_after="." %}
+              </p>
+            {% /alert %}
+          {% else %}
+            {% #alert variant="info" dismissible=True %}
+              {{ message|safe }}
+            {% /alert %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

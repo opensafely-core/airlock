@@ -17,8 +17,10 @@ Including another URLconf
 from django.urls import path
 
 import airlock.views
+from assets.views import components
 
 
 urlpatterns = [
     path("", airlock.views.index, name="home"),
+    path("ui-components/", components),
 ]

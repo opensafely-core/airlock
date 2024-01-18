@@ -73,3 +73,27 @@ activating a virtual environment and running something like:
 ```bash
 set -a; source .env; set +a
 ```
+
+
+## Front-end Assets
+
+All tooling and ui components are in the assets/ django application.
+
+ - `assets/src contains the js/css sources
+ - `assets/templates` contains shared templates, include UI components
+ - `assets/dist` contains the built assets
+
+`just assets/` will list commands
+
+### Developing assets
+
+When developing css and js assets, you can use Vite's dev mode to do this w/o
+needing to rebuild.
+
+
+ * edit .env to set `ASSETS_DEV_MODE=true`
+ * in a separate terminal, run `just assets/run`. This will run the Vite dev
+   server.
+ * run the app as normal, but now the assets will be loaded from the dev
+   server, and dynamically update.
+

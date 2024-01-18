@@ -1,5 +1,6 @@
 set dotenv-load := true
 
+
 export VIRTUAL_ENV  := env_var_or_default("VIRTUAL_ENV", ".venv")
 
 export BIN := VIRTUAL_ENV + if os_family() == "unix" { "/bin" } else { "/Scripts" }
