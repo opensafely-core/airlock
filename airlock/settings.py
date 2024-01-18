@@ -17,6 +17,10 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Working directory for application state. Note that this is not necessarily relative to
+# BASE_DIR: if AIRLOCK_WORK_DIR is an absolute path it can point anywhere.
+WORK_DIR = BASE_DIR / os.environ["AIRLOCK_WORK_DIR"]
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -78,7 +82,7 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": WORK_DIR / "db.sqlite3",
     }
 }
 
