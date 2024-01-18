@@ -14,22 +14,45 @@ import os
 from pathlib import Path
 
 
+def get_env_var(name):
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise RuntimeError(
+            f"Missing environment variable: {name}\n"
+            f"\n"
+            f"If you are running commands locally outside of `just` then you should\n"
+            f"make sure that your `.env` file is being loaded into the environment,\n"
+            f"which you can do in Bash using:\n"
+            f"\n"
+            f"    set -a; source .env; set +a\n"
+            f"\n"
+            f"If you are seeing this error when running via `just` (which should\n"
+            f"automatically load variables from `.env`) then you should check that\n"
+            f"`.env` contains all the variables listed in `dotenv-sample` (which may\n"
+            f"have been updated since `.env` was first created).\n"
+            f"\n"
+            f"If you are seeing this error in production then you haven't configured\n"
+            f"things properly."
+        )
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Working directory for application state. Note that this is not necessarily relative to
 # BASE_DIR: if AIRLOCK_WORK_DIR is an absolute path it can point anywhere.
-WORK_DIR = BASE_DIR / os.environ["AIRLOCK_WORK_DIR"]
+WORK_DIR = BASE_DIR / get_env_var("AIRLOCK_WORK_DIR")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = get_env_var("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ["DJANGO_DEBUG"] == "True"
+DEBUG = get_env_var("DJANGO_DEBUG") == "True"
 
 ALLOWED_HOSTS = []
 
