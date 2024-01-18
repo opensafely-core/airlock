@@ -61,6 +61,11 @@ run: install
 
     npm run dev
 
+lint: install
+    npm run lint
+
+fix: install
+    npm run lint:fix
 
 test: install
     npm run test:coverage

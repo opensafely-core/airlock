@@ -116,6 +116,7 @@ check: devenv
     check "$BIN/ruff format --diff --quiet ."
     check "$BIN/ruff check --show-source ."
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < Dockerfile"
+    check "{{ just_executable() }} assets/lint"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
@@ -129,6 +130,7 @@ check: devenv
 fix: devenv
     $BIN/ruff format .
     $BIN/ruff --fix .
+    {{ just_executable() }} assets/fix
 
 
 # run Django's manage.py entrypoint
