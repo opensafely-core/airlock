@@ -1,0 +1,9 @@
+/.env
+
+# Python
+__pycache__/
+*.pyc
+/.venv/
+
+# Tooling effluent
+/.coverage

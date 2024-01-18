@@ -1,0 +1,7 @@
+# Default environment variables for local development
+
+DJANGO_DEBUG=True
+
+DJANGO_SECRET_KEY="INSECURE-if-you-use-this-in-prod-you-will-have-a-bad-day"
+
+AIRLOCK_WORK_DIR=workdir/
