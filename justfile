@@ -102,7 +102,7 @@ check: devenv
 
     check "$BIN/ruff format --diff --quiet ."
     check "$BIN/ruff check --show-source ."
-    check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < Dockerfile"
+    check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
