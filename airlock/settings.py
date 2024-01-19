@@ -60,6 +60,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "airlock",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
