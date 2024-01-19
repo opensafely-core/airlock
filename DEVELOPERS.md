@@ -79,7 +79,7 @@ set -a; source .env; set +a
 
 All tooling and ui components are in the assets/ django application.
 
- - `assets/src contains the js/css sources
+ - `assets/src` contains the js/css sources
  - `assets/templates` contains shared templates, include UI components
  - `assets/dist` contains the built assets
 

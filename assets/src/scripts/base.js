@@ -13,5 +13,4 @@ import "../styles/base.css";
 // Custom JS
 import "./_alert";
 import "./_expand-list";
-import "./_plausible";
 import "./utils/double-click";
