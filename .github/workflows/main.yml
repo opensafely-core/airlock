@@ -33,3 +33,38 @@ jobs:
       - name: Run tests
         run: |
           just test-all
+
+  docker-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          install-just: true
+
+      - name: Build docker image for both prod and dev
+        run: |
+            just docker/build prod
+            just docker/build dev
+
+      - name: Run unit tests on docker dev image
+        run: |
+          # build docker and run test
+          just docker/test
+
+      - name: Run smoke test on prod
+        run: |
+          just docker/serve prod -d
+          sleep 5
+          just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
+
+      - name: Save docker image
+        run: |
+          docker save airlock | gzip > /tmp/airlock.tar.gz
+
+      - name: Upload docker image
+        uses: actions/upload-artifact@v4
+        with:
+            name: airlock-image
+            path: /tmp/airlock.tar.gz
