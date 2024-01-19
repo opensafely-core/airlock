@@ -40,8 +40,13 @@ virtualenv: ensure-env
 
     # create venv and upgrade pip
     if [[ ! -d $VIRTUAL_ENV ]]; then
+      # Collapse output when running in Github Actions
+      [[ -v CI ]] && echo "::group::Setting up venv (click to view)" || true
+
       $PYTHON_VERSION -m venv $VIRTUAL_ENV
       $PIP install --upgrade pip
+
+      [[ -v CI ]]  && echo "::endgroup::" || true
     fi
 
 
