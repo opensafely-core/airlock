@@ -25,8 +25,8 @@ install *args="":
     touch node_modules/.written
 
 
-# Build the Node.js assets
-build:
+# Build npm/static assets
+build: install
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -44,11 +44,8 @@ build:
     touch $ASSETS_DIST/.written
 
 
-# install npm toolchaing, build and collect assets
-ci: install build 
-
-# rebuild all npm/static assets
-rebuild: clean ci
+# Rebuild all npm/static assets
+rebuild: clean build
 
 run: install
     #!/usr/bin/env bash
@@ -61,11 +58,14 @@ run: install
 
     npm run dev
 
+# Run js linter
 lint: install
     npm run lint
 
+# Formt/fix js/css
 fix: install
     npm run lint:fix
 
+# run tests
 test: install
     npm run test:coverage

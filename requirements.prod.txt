@@ -13,8 +13,13 @@ django==5.0.1 \
     --hash=sha256:f47a37a90b9bbe2c8ec360235192c7fddfdc832206fcf618bb849b39256affc1
     # via
     #   -r requirements.prod.in
+    #   django-extensions
     #   django-vite
     #   slippers
+django-extensions==3.2.3 \
+    --hash=sha256:44d27919d04e23b3f40231c4ab7af4e61ce832ef46d610cc650d53e68328410a \
+    --hash=sha256:9600b7562f79a92cbf1fde6403c04fee314608fefbb595502e34383ae8203401
+    # via -r requirements.prod.in
 django-vite==3.0.2 \
     --hash=sha256:368f9e65f95abef05c5b95dde78a6597dfeefdb4be9c43167227b8ed1fd2c586 \
     --hash=sha256:635a3d6b68fccd5c2ff9bdea195dd002bce509c90e18b3a9e71ece5e9514cc39

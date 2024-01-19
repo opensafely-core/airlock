@@ -133,6 +133,16 @@ fix: devenv
     {{ just_executable() }} assets/fix
 
 
+# Ensure django's collectstatic is run if needed
+collectstatic: devenv
+    {{ just_executable() }} assets/build  # sadly in-file dependencies cannot be in subdir justfiles, so we manually depend
+    ./scripts/collect-me-maybe.sh $BIN/python
+
+
+run *ARGS:  collectstatic
+    $BIN/python manage.py runserver {{ ARGS }}
+    
+
 # run Django's manage.py entrypoint
 manage *ARGS: devenv
     $BIN/python manage.py {{ ARGS }}
