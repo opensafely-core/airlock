@@ -149,12 +149,12 @@ manage *ARGS: devenv
 
 
 # run tests
-test *ARGS: devenv
+test *ARGS: collectstatic
     $BIN/python -m pytest {{ ARGS }}
 
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: devenv
+@test-all: collectstatic
     #!/usr/bin/env bash
     set -euo pipefail
 
