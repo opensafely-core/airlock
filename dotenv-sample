@@ -5,5 +5,3 @@ DJANGO_SECRET_KEY="INSECURE-if-you-use-this-in-prod-you-will-have-a-bad-day"
 DJANGO_ALLOWED_HOSTS="*"
 
 AIRLOCK_WORK_DIR=workdir/
-
-ASSETS_DEV_MODE="false"

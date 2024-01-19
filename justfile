@@ -131,12 +131,7 @@ fix: devenv
     $BIN/ruff --fix .
 
 
-# Ensure django's collectstatic is run if needed
-collectstatic: devenv
-    ./scripts/collect-me-maybe.sh $BIN/python
-
-
-run *ARGS:  collectstatic
+run *ARGS: devenv
     $BIN/python manage.py runserver {{ ARGS }}
     
 
@@ -146,12 +141,12 @@ manage *ARGS: devenv
 
 
 # run tests
-test *ARGS: collectstatic
+test *ARGS: devenv
     $BIN/python -m pytest {{ ARGS }}
 
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: collectstatic
+@test-all: devenv
     #!/usr/bin/env bash
     set -euo pipefail
 

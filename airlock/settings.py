@@ -60,6 +60,9 @@ ALLOWED_HOSTS = get_env_var("DJANGO_ALLOWED_HOSTS").split(",")
 # Application definition
 
 INSTALLED_APPS = [
+    # ensure whitenoise serves files when using runserver
+    # https://whitenoise.readthedocs.io/en/latest/django.html#using-whitenoise-in-development
+    "whitenoise.runserver_nostatic",
     "airlock",
     # "django.contrib.auth",
     # "django.contrib.contenttypes",
@@ -76,6 +79,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -156,19 +160,20 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 ASSETS_DIST = Path(os.environ.get("ASSETS_DIST", BASE_DIR / "assets/dist"))
-STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
 STATICFILES_DIRS = [str(ASSETS_DIST)]
 
-ASSETS_DEV_MODE = os.environ.get("ASSETS_DEV_MODE") == "true"
+# Serve files from static dirs directly. This removes the need to run collectstatic
+# https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_USE_FINDERS
+WHITENOISE_USE_FINDERS = True
 
 DJANGO_VITE = {
     "default": {
-        "dev_mode": ASSETS_DEV_MODE,
-        "manifest_path": ASSETS_DIST / ".vite" / "manifest.json",
-    }
+        # vite assumes collectstatic, so tell it where the manifest is directly
+        "manifest_path": "assets/dist/.vite/manifest.json",
+    },
 }
 
-
+#
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
