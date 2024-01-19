@@ -11,61 +11,15 @@ clean:
     rm -rf $ASSETS_DIST
 
 
-# Install the Node.js dependencies
-install *args="":
-    #!/usr/bin/env bash
+update:
+    #!/bin/bash
     set -euo pipefail
+    tmpdir=$(mktemp -d)
+    git clone --depth=1 https://github.com/opensafely-core/job-server $tmpdir
+    env -C $tmpdir just assets-install
+    env -C $tmpdir just assets-build
+    cp -r $tmpdir/templates/_components/* ./templates/_components/
+    cp $tmpdir/templates/components.yaml* ./templates/
+    cp -r $tmpdir/assets/dist/* ./dist/
+    cp -r $tmpdir/assets/dist/.vite ./dist/
 
-
-    # exit if lock file has not changed since we installed them. -nt == "newer than",
-    # but we negate with || to avoid error exit code
-    test package-lock.json -nt node_modules/.written || exit 0
-
-    npm ci {{ args }}
-    touch node_modules/.written
-
-
-# Build npm/static assets
-build: install
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-
-    # find files which are newer than dist/.written in the src directory. grep
-    # will exit with 1 if there are no files in the result.  We negate this
-    # with || to avoid error exit code
-    # we wrap the find in an if in case dist/.written is missing so we don't
-    # trigger a failure prematurely
-    if test -f $ASSETS_DIST/.written; then
-        find $ASSETS_SRC -type f -newer $ASSETS_DIST/.written | grep -q . || exit 0
-    fi
-
-    npm run build
-    touch $ASSETS_DIST/.written
-
-
-# Rebuild all npm/static assets
-rebuild: clean build
-
-run: install
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [ "${ASSETS_DEV_MODE:-}" == "False" ]; then
-        echo "Set ASSETS_DEV_MODE to a truthy value to run this command"
-        exit 1
-    fi
-
-    npm run dev
-
-# Run js linter
-lint: install
-    npm run lint
-
-# Formt/fix js/css
-fix: install
-    npm run lint:fix
-
-# run tests
-test: install
-    npm run test:coverage

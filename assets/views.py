@@ -41,7 +41,7 @@ def components(request):
 
     return TemplateResponse(
         request,
-        "_components/index.html",
+        "components.html",
         context={
             "example_date": example_date,
             "example_form_email": example_form_email,

@@ -19,7 +19,7 @@
           OpenSAFELY
         </span>
         <span class="transition-colors ease-in duration-300 text-oxford-600 group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
-          Release Thingy
+          Jobs
         </span>
       </a>
     </p>
@@ -151,8 +151,27 @@
                 Logged in as:
                 <span class="block">
                   <strong class="break-words">{{ request.user.username }}</strong>
+                  {% if request.user.uses_social_auth %}
+                  via GitHub
+                  {% endif %}
                 </span>
               </p>
+              <ul class="border-t">
+                {% var link_class="block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-oxford-50 focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-inset" %}
+                {% if user_can_view_staff_area %}
+                <li class="-mt-[1px]">
+                  <a class="{{ link_class }} bg-bn-ribbon-100" href="{% url 'staff:index' %}" >
+                    Staff Area
+                  </a>
+                </li>
+                {% endif %}
+                <li><a class="{{ link_class }}" href="{% url 'settings' %}">Settings</a></li>
+                <li><a class="{{ link_class }}" href="{% url 'applications:list' %}">Applications</a></li>
+                <form action="{% url 'logout' %}" method="POST">
+                  {% csrf_token %}
+                  <button class="{{ link_class }} w-full text-left" type="submit">Logout</button>
+                </form>
+              </ul>
             </div>
           </details>
         </details-utils>
