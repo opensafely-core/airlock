@@ -133,6 +133,7 @@ test *ARGS: devenv
 
     $BIN/python -m pytest \
       --cov=airlock \
+      --cov=assets \
       --cov=tests \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
