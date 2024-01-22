@@ -1,0 +1,25 @@
+export ASSETS_SRC := "src"
+export ASSETS_DIST := "dist"
+
+
+default:
+    just --list
+    
+
+# Remove built assets and collected static files
+clean:
+    rm -rf $ASSETS_DIST
+
+
+update:
+    #!/bin/bash
+    set -euo pipefail
+    tmpdir=$(mktemp -d)
+    git clone --depth=1 https://github.com/opensafely-core/job-server $tmpdir
+    env -C $tmpdir just assets-install
+    env -C $tmpdir just assets-build
+    cp -r $tmpdir/templates/_components/* ./templates/_components/
+    cp $tmpdir/templates/components.yaml* ./templates/
+    cp -r $tmpdir/assets/dist/* ./dist/
+    cp -r $tmpdir/assets/dist/.vite ./dist/
+

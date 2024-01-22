@@ -1,0 +1,1 @@
+const o=[...document.querySelectorAll("[data-modal]")],a=[...document.querySelectorAll("dialog")];o.map(e=>{const t=document.getElementById(e.dataset.modal);return e==null||e.addEventListener("click",l=>{l.preventDefault(),t.showModal()}),!0});a.map(e=>{const t=e.querySelector('[type="cancel"]');return t==null||t.addEventListener("click",l=>{l.preventDefault(),e.close()}),!1});
