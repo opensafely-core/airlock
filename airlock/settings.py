@@ -159,8 +159,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-ASSETS_DIST = Path(os.environ.get("ASSETS_DIST", BASE_DIR / "assets/dist"))
-STATICFILES_DIRS = [str(ASSETS_DIST)]
+ASSETS_DIST = BASE_DIR / "assets/dist"
+STATICFILES_DIRS = [
+    ASSETS_DIST,
+]
 
 # Serve files from static dirs directly. This removes the need to run collectstatic
 # https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_USE_FINDERS
@@ -169,7 +171,7 @@ WHITENOISE_USE_FINDERS = True
 DJANGO_VITE = {
     "default": {
         # vite assumes collectstatic, so tell it where the manifest is directly
-        "manifest_path": "assets/dist/.vite/manifest.json",
+        "manifest_path": ASSETS_DIST / ".vite/manifest.json",
     },
 }
 
