@@ -14,8 +14,8 @@ jobs:
         with:
           python-version: "3.11"
           install-just: true
-      - name: Set default environment variables
-        run: cp dotenv-sample .env
+      - name: Set up development environment
+        run: just devenv
       - name: Check formatting and linting rules
         run: just check
 
@@ -28,8 +28,8 @@ jobs:
         with:
           python-version: "3.11"
           install-just: true
-      - name: Set default environment variables
-        run: cp dotenv-sample .env
+      - name: Set up development environment
+        run: just devenv
       - name: Run tests
         run: |
           just test-all

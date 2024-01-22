@@ -15,25 +15,8 @@ default:
     @{{ just_executable() }} --list
 
 
-# ensure that a '.env` file exists
-ensure-env:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ ! -f .env ]]; then
-      echo "No '.env' file found; creating a default '.env' from 'dotenv-sample'"
-      cp dotenv-sample .env
-      # Unfortunately if the '.env' file didn't exist at the start of the run I
-      # don't see a way to get the variables loaded into the environment; so we
-      # have to fail the task and force the user to run it again. This is
-      # annoying but should only happen once.
-      echo "If you re-attempt the previous command it should now pick up the default environment variables"
-      exit 1
-    fi
-
-
 # ensure valid virtualenv
-virtualenv: ensure-env
+virtualenv:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -64,6 +47,11 @@ pip-compile *args: devenv
 devenv: virtualenv
     #!/usr/bin/env bash
     set -euo pipefail
+
+    if [[ ! -f .env ]]; then
+      echo "No '.env' file found; creating a default '.env' from 'dotenv-sample'"
+      cp dotenv-sample .env
+    fi
 
     for req_file in requirements.dev.txt requirements.prod.txt; do
       # If we've installed this file before and the original hasn't been
