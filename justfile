@@ -25,13 +25,8 @@ virtualenv:
 
     # create venv and upgrade pip
     if [[ ! -d $VIRTUAL_ENV ]]; then
-      # Collapse output when running in Github Actions
-      [[ -v CI ]] && echo "::group::Setting up venv (click to view)" || true
-
       $PYTHON_VERSION -m venv $VIRTUAL_ENV
       $PIP install --upgrade pip
-
-      [[ -v CI ]]  && echo "::endgroup::" || true
     fi
 
 
@@ -68,13 +63,10 @@ devenv: virtualenv
       else
         # Otherwise actually install the requirements
 
-        # Collapse output when running in Github Actions
-        [[ -v CI ]] && echo "::group::Install $req_file (click to view)" || true
         # --no-deps is recommended when using hashes, and also works around a
         # bug with constraints and hashes. See:
         # https://pip.pypa.io/en/stable/topics/secure-installs/#do-not-use-setuptools-directly
         $PIP install --no-deps -r "$req_file"
-        [[ -v CI ]]  && echo "::endgroup::" || true
 
         # Make a record of what we just installed
         cp "$req_file" "$record_file"
