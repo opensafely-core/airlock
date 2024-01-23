@@ -1,4 +1,5 @@
 set dotenv-load := true
+set positional-arguments
 
 
 export VIRTUAL_ENV  := env_var_or_default("VIRTUAL_ENV", ".venv")
@@ -132,17 +133,17 @@ fix: devenv
 
 
 run *ARGS: devenv
-    $BIN/python manage.py runserver {{ ARGS }}
-    
+    $BIN/python manage.py runserver "$@"
+
 
 # run Django's manage.py entrypoint
 manage *ARGS: devenv
-    $BIN/python manage.py {{ ARGS }}
+    $BIN/python manage.py "$@"
 
 
 # run tests
 test *ARGS: devenv
-    $BIN/python -m pytest {{ ARGS }}
+    $BIN/python -m pytest "$@"
 
 
 # run tests as they will be in run CI (checking code coverage etc)
