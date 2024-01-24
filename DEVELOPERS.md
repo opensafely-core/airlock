@@ -41,11 +41,6 @@ Set up a local development environment with:
 just devenv
 ```
 
-You'll probably find you need to run this twice. The first time it will
-complain that you don't have a `.env` environment file and will create
-one for you. Then you'll need to run the command again with the `.env`
-file in place.
-
 Check that Django is configured correctly with:
 ```
 just manage check

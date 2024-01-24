@@ -1,4 +1,5 @@
 set dotenv-load := true
+set positional-arguments
 
 
 export VIRTUAL_ENV  := env_var_or_default("VIRTUAL_ENV", ".venv")
@@ -14,25 +15,8 @@ default:
     @{{ just_executable() }} --list
 
 
-# ensure that a '.env` file exists
-ensure-env:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ ! -f .env ]]; then
-      echo "No '.env' file found; creating a default '.env' from 'dotenv-sample'"
-      cp dotenv-sample .env
-      # Unfortunately if the '.env' file didn't exist at the start of the run I
-      # don't see a way to get the variables loaded into the environment; so we
-      # have to fail the task and force the user to run it again. This is
-      # annoying but should only happen once.
-      echo "If you re-attempt the previous command it should now pick up the default environment variables"
-      exit 1
-    fi
-
-
 # ensure valid virtualenv
-virtualenv: ensure-env
+virtualenv:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -41,13 +25,8 @@ virtualenv: ensure-env
 
     # create venv and upgrade pip
     if [[ ! -d $VIRTUAL_ENV ]]; then
-      # Collapse output when running in Github Actions
-      [[ -v CI ]] && echo "::group::Setting up venv (click to view)" || true
-
       $PYTHON_VERSION -m venv $VIRTUAL_ENV
       $PIP install --upgrade pip
-
-      [[ -v CI ]]  && echo "::endgroup::" || true
     fi
 
 
@@ -64,6 +43,11 @@ devenv: virtualenv
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if [[ ! -f .env ]]; then
+      echo "No '.env' file found; creating a default '.env' from 'dotenv-sample'"
+      cp dotenv-sample .env
+    fi
+
     for req_file in requirements.dev.txt requirements.prod.txt; do
       # If we've installed this file before and the original hasn't been
       # modified since then bail early
@@ -79,13 +63,10 @@ devenv: virtualenv
       else
         # Otherwise actually install the requirements
 
-        # Collapse output when running in Github Actions
-        [[ -v CI ]] && echo "::group::Install $req_file (click to view)" || true
         # --no-deps is recommended when using hashes, and also works around a
         # bug with constraints and hashes. See:
         # https://pip.pypa.io/en/stable/topics/secure-installs/#do-not-use-setuptools-directly
         $PIP install --no-deps -r "$req_file"
-        [[ -v CI ]]  && echo "::endgroup::" || true
 
         # Make a record of what we just installed
         cp "$req_file" "$record_file"
@@ -132,17 +113,17 @@ fix: devenv
 
 
 run *ARGS: devenv
-    $BIN/python manage.py runserver {{ ARGS }}
-    
+    $BIN/python manage.py runserver "$@"
+
 
 # run Django's manage.py entrypoint
 manage *ARGS: devenv
-    $BIN/python manage.py {{ ARGS }}
+    $BIN/python manage.py "$@"
 
 
 # run tests
 test *ARGS: devenv
-    $BIN/python -m pytest {{ ARGS }}
+    $BIN/python -m pytest "$@"
 
 
 # run tests as they will be in run CI (checking code coverage etc)
