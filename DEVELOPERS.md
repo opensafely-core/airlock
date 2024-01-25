@@ -79,3 +79,22 @@ activating a virtual environment and running something like:
 ```bash
 set -a; source .env; set +a
 ```
+
+## Testing
+
+### Test categories
+
+Tests are divided into the following categories.
+
+<dl>
+   <dt>unit</dt><dd>fast tests of small code units</dd>
+   <dt>integration</dt><dd>tests of components working together (e.g. views)</dd>
+   <dt>functional</dt><dd>end-to-end [Playwright](https://playwright.dev/docs/intro) tests</dd>
+</dl>
+
+Each category lives in its own directory (for example `tests/unit`) and can be run with
+`just test -k <category>` (for example `just test -k unit`).
+
+Additional arguments passed to `just test` are passed on to pytest. For example, to
+run all the tests _except_ the functional tests, run `just test -k 'not functional'`,
+or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`.
