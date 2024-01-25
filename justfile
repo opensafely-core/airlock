@@ -38,8 +38,8 @@ pip-compile *args: devenv
     $BIN/pip-compile --allow-unsafe --generate-hashes --strip-extras {{ args }}
 
 
-# ensure dev and prod requirements installed and up to date
-devenv: virtualenv
+# create a valid .env if none exists
+_dotenv:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -47,6 +47,12 @@ devenv: virtualenv
       echo "No '.env' file found; creating a default '.env' from 'dotenv-sample'"
       cp dotenv-sample .env
     fi
+
+
+# ensure dev and prod requirements installed and up to date
+devenv: virtualenv _dotenv
+    #!/usr/bin/env bash
+    set -euo pipefail
 
     for req_file in requirements.dev.txt requirements.prod.txt; do
       # If we've installed this file before and the original hasn't been
