@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from django.template.response import TemplateResponse
 
 
-def components(request):
+def components(request):  # pragma: no cover
     example_date = datetime.fromtimestamp(1667317153, tz=UTC)
     example_form_email = {
         "auto_id": "id_email",

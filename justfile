@@ -133,6 +133,33 @@ test *ARGS: devenv
 
     $BIN/python -m pytest \
       --cov=airlock \
+      --cov=assets \
       --cov=tests \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
+
+
+# load example data so there's something to look at in development
+load-example-data: devenv
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ "$DJANGO_DEBUG" != "True" ]]; then
+      echo "DJANGO_DEBUG env var is not set to 'True'."
+      echo "Exiting in case this is a production environment."
+      exit 1
+    fi
+
+    # This is where we'd set up the database, load fixtures etc. if we had any
+
+    # Use a loop to create a bunch of workspace files. In future we'll probably
+    # bundle a more sensible set of example files which we can copy over.
+    workspace="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_WORKSPACE_DIR%/}/example-workspace"
+    for i in {1..2}; do
+      subdir="$workspace/sub_dir_$i"
+      mkdir -p "$subdir"
+      for j in {1..5}; do
+        echo "I am file $i$j" > "$subdir/file_$i$j.txt"
+      done
+    done
+    mkdir -p "$workspace/sub_dir_empty"

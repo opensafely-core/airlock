@@ -51,6 +51,17 @@ You can run all the tests with:
 just test
 ```
 
+To load some initial data for playing with the app locally use:
+```
+just load-example-data
+```
+
+To start the app use:
+```
+just run
+```
+
+
 ### Running commands without using `just`
 
 `just` automatically takes care of a few things:

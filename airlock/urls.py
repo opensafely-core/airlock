@@ -17,10 +17,12 @@ Including another URLconf
 from django.urls import path
 
 import airlock.views
-from assets.views import components
+import assets.views
 
 
 urlpatterns = [
     path("", airlock.views.index, name="home"),
-    path("ui-components/", components),
+    path("ui-components/", assets.views.components),
+    path("file-browser/", airlock.views.file_browser, name="file_browser_home"),
+    path("file-browser/<path:path>", airlock.views.file_browser, name="file_browser"),
 ]
