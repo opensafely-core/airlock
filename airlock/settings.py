@@ -180,3 +180,7 @@ DJANGO_VITE = {
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# In production we'd expect AIRLOCK_WORKSPACE_DIR to be an absolute path pointing
+# somewhere outside of WORK_DIR
+WORKSPACE_DIR = WORK_DIR / get_env_var("AIRLOCK_WORKSPACE_DIR")
