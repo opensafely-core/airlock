@@ -1,17 +1,6 @@
 # note: we do not run prod service with docker-compose, we use it just for
 # configuring the production build
 services:
-  db:
-    image: "postgres:13"
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: airlock
-    ports:
-      - "6543:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-
   # base service, exists to hold common config, but is not actually used directly
   base:
     build:
@@ -26,9 +15,6 @@ services:
         # env vars supplied by just
         - BUILD_DATE
         - GITREF
-    environment:
-      # anything we run using this docker-compose file is in development, and thus we force the use of the db service.
-      - DATABASE_URL=postgres://user:pass@db:5432/airlock
     # use dockers builitin PID daemon
     init: true
     ports:
@@ -40,7 +26,6 @@ services:
     image: airlock
     extends:
       service: base
-    depends_on: [db]
     volumes:
       # use the default dev workdir
       - ../workdir:/workdir
@@ -78,7 +63,6 @@ services:
   dev:
     extends:
       service: dev-base
-    depends_on: [db]
     # override command
     command: /app/manage.py runserver 0.0.0.0:8000
 
@@ -86,11 +70,7 @@ services:
   test:
     extends:
       service: dev-base
-    depends_on: [db]
     # different default test env
     env_file:
       - ../.test.env
     command: pytest
-
-volumes:
-  postgres_data:
