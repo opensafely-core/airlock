@@ -16,8 +16,8 @@ update:
     set -euo pipefail
     tmpdir=$(mktemp -d)
     git clone --depth=1 https://github.com/opensafely-core/job-server $tmpdir
-    env -C $tmpdir just assets-install
-    env -C $tmpdir just assets-build
+    just -d $tmpdir --justfile $tmpdir/justfile assets-install
+    just -d $tmpdir --justfile $tmpdir/justfile assets-build
     cp -r $tmpdir/templates/_components/* ./templates/_components/
     cp $tmpdir/templates/components.yaml* ./templates/
     cp -r $tmpdir/assets/dist/* ./dist/
