@@ -1,0 +1,24 @@
+import dataclasses
+from typing import Tuple
+
+
+@dataclasses.dataclass(frozen=True)
+class User:
+    """
+    A datastructure to manage users.
+    Information about a user is stored on the session. This
+    is a convenience for passing that information around.
+    """
+
+    id: int
+    workspaces: Tuple = dataclasses.field(default_factory=tuple)
+    is_output_checker: bool = dataclasses.field(default=False)
+
+    @classmethod
+    def from_session(cls, session_data):
+        user = session_data.get("user")
+        if user is None:
+            return
+        workspaces = tuple(user.get("workspaces", tuple()))
+        is_output_checker = user.get("is_output_checker", False)
+        return cls(user["id"], workspaces, is_output_checker)
