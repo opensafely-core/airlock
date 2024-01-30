@@ -3,3 +3,4 @@ django-vite
 slippers
 django-extensions
 whitenoise
+gunicorn
