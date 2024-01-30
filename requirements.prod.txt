@@ -20,9 +20,9 @@ django-extensions==3.2.3 \
     --hash=sha256:44d27919d04e23b3f40231c4ab7af4e61ce832ef46d610cc650d53e68328410a \
     --hash=sha256:9600b7562f79a92cbf1fde6403c04fee314608fefbb595502e34383ae8203401
     # via -r requirements.prod.in
-django-vite==3.0.2 \
-    --hash=sha256:368f9e65f95abef05c5b95dde78a6597dfeefdb4be9c43167227b8ed1fd2c586 \
-    --hash=sha256:635a3d6b68fccd5c2ff9bdea195dd002bce509c90e18b3a9e71ece5e9514cc39
+django-vite==3.0.3 \
+    --hash=sha256:0738e6fe49ed097ab8e9e22ac78776584735948e118d3875817f78a87acaac82 \
+    --hash=sha256:3efe96d93cd77dfca4d8274c49db9dd43c545c95daab3c6b1e3dabf2236df943
     # via -r requirements.prod.in
 pyyaml==6.0.1 \
     --hash=sha256:04ac92ad1925b2cff1db0cfebffb6ffc43457495c9b3c39d3fcae417d7125dc5 \
