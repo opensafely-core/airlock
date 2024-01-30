@@ -1,6 +1,11 @@
 ---
 name: CI
 
+env:
+  IMAGE_NAME: airlock
+  PUBLIC_IMAGE_NAME: ghcr.io/opensafely-core/airlock
+  REGISTRY: ghcr.io
+
 on:
   push:
 
@@ -68,3 +73,43 @@ jobs:
         with:
             name: airlock-image
             path: /tmp/airlock.tar.gz
+
+  docker-publish:
+    needs: [check, test, docker-test, lint-dockerfile]
+
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read
+      packages: write
+
+    if: github.ref == 'refs/heads/main'
+
+    concurrency: deploy-production
+
+    steps:
+     - uses: actions/checkout@v4
+     - uses: "opensafely-core/setup-action@v1"
+       with:
+         install-just: true
+
+     - name: Download docker image
+       uses: actions/download-artifact@v4
+       with:
+           name: airlock-image
+           path: /tmp/image
+
+     - name: Import docker image
+       run: gunzip -c /tmp/image/airlock.tar.gz | docker load
+
+     - name: Test image we imported from previous job works
+       run: |
+           SKIP_BUILD=1 just docker/serve prod -d
+           sleep 5
+           just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
+
+     - name: Publish image
+       run: |
+           echo ${{ secrets.GITHUB_TOKEN }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+           docker tag $IMAGE_NAME $PUBLIC_IMAGE_NAME:latest
+           docker push $PUBLIC_IMAGE_NAME:latest
