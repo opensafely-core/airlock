@@ -5,6 +5,38 @@ from django.conf import settings
 from django.urls import reverse
 
 
+class Container:
+    def root(self):
+        """Return root directory"""
+        raise NotImplementedError()
+
+    def get_url(self, relpath):
+        """Return url for relpath"""
+        raise NotImplementedError()
+
+    def exists(self):
+        root = self.root()
+        return root.exists() and root.is_dir()
+
+    def get_path(self, relpath):
+        return PathItem(self, pathlib.Path(relpath))
+
+
+@dataclasses.dataclass(frozen=True)
+class Workspace(Container):
+    """These are container that must live under the settings.WORKSPACE_DIR"""
+
+    name: str
+
+    def root(self):
+        return settings.WORKSPACE_DIR / self.name
+
+    def get_url(self, relpath):
+        return reverse(
+            "workspace_view", kwargs={"workspace_name": self.name, "path": relpath}
+        )
+
+
 @dataclasses.dataclass(frozen=True)
 class PathItem:
     """
@@ -19,18 +51,17 @@ class PathItem:
            something which is not tied to concrete filesystem paths.
     """
 
+    container: Container
     relpath: pathlib.Path
 
-    @classmethod
-    def from_relative_path(cls, path: str | pathlib.Path):
-        return cls._from_absolute_path(settings.WORKSPACE_DIR / path)
-
-    @classmethod
-    def _from_absolute_path(cls, path: pathlib.Path):
-        return cls(path.resolve().relative_to(settings.WORKSPACE_DIR))
+    def __post_init__(self):
+        # ensure relpath is a Path
+        object.__setattr__(self, "relpath", pathlib.Path(self.relpath))
+        # ensure path is within container
+        self._absolute_path().resolve().relative_to(self.container.root())
 
     def _absolute_path(self):
-        return settings.WORKSPACE_DIR / self.relpath
+        return self.container.root() / self.relpath
 
     def exists(self):
         return self._absolute_path().exists()
@@ -43,15 +74,16 @@ class PathItem:
 
     def url(self):
         suffix = "/" if self.is_directory() else ""
-        return reverse("file_browser", kwargs={"path": f"{self.relpath}{suffix}"})
+        return self.container.get_url(f"{self.relpath}{suffix}")
 
     def parent(self):
         if self.relpath.parents:
-            return PathItem(self.relpath.parent)
+            return PathItem(self.container, self.relpath.parent)
 
     def children(self):
+        root = self.container.root()
         return [
-            PathItem._from_absolute_path(child)
+            PathItem(self.container, child.relative_to(root))
             for child in self._absolute_path().iterdir()
         ]
 
