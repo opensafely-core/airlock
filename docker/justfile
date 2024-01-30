@@ -34,16 +34,10 @@ test *pytest_args="": _dotenv build
     docker compose run --rm test pytest -m "not playwright" {{ pytest_args }}
 
 
-# run server in dev|prod container
-serve env="dev" *args="": _dotenv
-    {{ just_executable() }} build {{ env }}
-    docker compose up {{ args }} {{ env }}
-
-
-# run command in dev|prod container
+# run in dev|prod container
 run env="dev" *args="": _dotenv
     {{ just_executable() }} build {{ env }}
-    docker compose run --rm {{ env }} {{ args }}
+    docker compose run --rm --service-ports {{ env }} {{ args }}
 
 
 # exec command in existing dev|prod container
