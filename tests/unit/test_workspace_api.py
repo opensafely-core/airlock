@@ -1,6 +1,20 @@
+import dataclasses
+from pathlib import Path
+
 import pytest
 
-from airlock.workspace_api import PathItem
+from airlock.workspace_api import Container, PathItem
+
+
+@dataclasses.dataclass(frozen=True)
+class DummyContainer(Container):
+    path: Path
+
+    def root(self):
+        return self.path
+
+    def get_url(self, relpath):
+        return f"/test/{relpath}"
 
 
 @pytest.fixture(scope="module")
@@ -14,8 +28,8 @@ def tmp_files(tmp_path_factory):
 
 
 @pytest.fixture
-def workspace_files(tmp_files, settings):
-    settings.WORKSPACE_DIR = tmp_files
+def container(tmp_files):
+    return DummyContainer(tmp_files)
 
 
 @pytest.mark.parametrize(
@@ -27,8 +41,8 @@ def workspace_files(tmp_files, settings):
         ("empty_dir/not_a_file.txt", False),
     ],
 )
-def test_exists(workspace_files, path, exists):
-    assert PathItem.from_relative_path(path).exists() == exists
+def test_exists(container, path, exists):
+    assert PathItem(container, path).exists() == exists
 
 
 @pytest.mark.parametrize(
@@ -38,12 +52,12 @@ def test_exists(workspace_files, path, exists):
         ("some_dir/file_a.txt", False),
     ],
 )
-def test_is_directory(workspace_files, path, is_directory):
-    assert PathItem.from_relative_path(path).is_directory() == is_directory
+def test_is_directory(container, path, is_directory):
+    assert PathItem(container, path).is_directory() == is_directory
 
 
-def test_name(workspace_files):
-    assert PathItem.from_relative_path("some_dir/file_a.txt").name() == "file_a.txt"
+def test_name(container):
+    assert PathItem(container, "some_dir/file_a.txt").name() == "file_a.txt"
 
 
 @pytest.mark.parametrize(
@@ -53,8 +67,8 @@ def test_name(workspace_files):
         ("some_dir/file_a.txt", "/some_dir/file_a.txt"),
     ],
 )
-def test_url(workspace_files, path, url):
-    assert PathItem.from_relative_path(path).url().endswith(url)
+def test_url(container, path, url):
+    assert PathItem(container, path).url().endswith(url)
 
 
 @pytest.mark.parametrize(
@@ -65,12 +79,12 @@ def test_url(workspace_files, path, url):
         ("some_dir/file_a.txt", "some_dir"),
     ],
 )
-def test_parent(workspace_files, path, parent_path):
-    parent = PathItem.from_relative_path(path).parent()
+def test_parent(container, path, parent_path):
+    parent = PathItem(container, path).parent()
     if parent_path is None:
         assert parent is None
     else:
-        assert parent == PathItem.from_relative_path(parent_path)
+        assert parent == PathItem(container, parent_path)
 
 
 @pytest.mark.parametrize(
@@ -90,11 +104,9 @@ def test_parent(workspace_files, path, parent_path):
         ),
     ],
 )
-def test_children(workspace_files, path, child_paths):
-    children = PathItem.from_relative_path(path).children()
-    assert set(children) == {
-        PathItem.from_relative_path(child) for child in child_paths
-    }
+def test_children(container, path, child_paths):
+    children = PathItem(container, path).children()
+    assert set(children) == {PathItem(container, Path(child)) for child in child_paths}
 
 
 @pytest.mark.parametrize(
@@ -104,11 +116,9 @@ def test_children(workspace_files, path, child_paths):
         ("empty_dir", ["empty_dir", "some_dir"]),
     ],
 )
-def test_siblings(workspace_files, path, sibling_paths):
-    siblings = PathItem.from_relative_path(path).siblings()
-    assert set(siblings) == {
-        PathItem.from_relative_path(sibling) for sibling in sibling_paths
-    }
+def test_siblings(container, path, sibling_paths):
+    siblings = PathItem(container, path).siblings()
+    assert set(siblings) == {PathItem(container, sibling) for sibling in sibling_paths}
 
 
 @pytest.mark.parametrize(
@@ -118,8 +128,8 @@ def test_siblings(workspace_files, path, sibling_paths):
         ("some_dir/file_b.txt", "file_b"),
     ],
 )
-def test_contents(workspace_files, path, contents):
-    assert PathItem.from_relative_path(path).contents() == contents
+def test_contents(container, path, contents):
+    assert PathItem(container, path).contents() == contents
 
 
 @pytest.mark.parametrize(
@@ -129,6 +139,6 @@ def test_contents(workspace_files, path, contents):
         "/tmp/absolute/path",
     ],
 )
-def test_from_relative_path_rejects_path_escape(path):
+def test_from_relative_path_rejects_path_escape(container, path):
     with pytest.raises(ValueError, match="is not in the subpath"):
-        PathItem.from_relative_path(path)
+        PathItem(container, path)
