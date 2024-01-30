@@ -60,7 +60,7 @@ jobs:
 
       - name: Run smoke test on prod
         run: |
-          just docker/serve prod -d
+          just docker/run prod -d
           sleep 5
           just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
 
@@ -75,7 +75,7 @@ jobs:
             path: /tmp/airlock.tar.gz
 
   docker-publish:
-    needs: [check, test, docker-test, lint-dockerfile]
+    needs: [check, test, docker-test]
 
     runs-on: ubuntu-22.04
 
@@ -104,7 +104,7 @@ jobs:
 
      - name: Test image we imported from previous job works
        run: |
-           SKIP_BUILD=1 just docker/serve prod -d
+           SKIP_BUILD=1 just docker/run prod -d
            sleep 5
            just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
 
