@@ -4,6 +4,8 @@ import pathlib
 from django.conf import settings
 from django.urls import reverse
 
+from airlock.users import User
+
 
 class Container:
     def root(self):
@@ -24,9 +26,15 @@ class Container:
 
 @dataclasses.dataclass(frozen=True)
 class Workspace(Container):
-    """These are container that must live under the settings.WORKSPACE_DIR"""
+    """These are containers that must live under the settings.WORKSPACE_DIR"""
 
     name: str
+
+    def has_permission(self, user: User = None):
+        return user is not None and (
+            # Output checkers can view all workspaces
+            user.is_output_checker or self.name in user.workspaces
+        )
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name

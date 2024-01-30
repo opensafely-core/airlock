@@ -1,7 +1,9 @@
+from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
+from airlock.users import User
 from airlock.workspace_api import Workspace
 
 
@@ -10,10 +12,12 @@ def index(request):
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
+    user = User.from_session(request.session)
     workspace = Workspace(workspace_name)
-    # TODO workspace authorization
     if not workspace.exists():
         raise Http404()
+    if not workspace.has_permission(user):
+        raise PermissionDenied()
 
     path_item = workspace.get_path(path)
 
