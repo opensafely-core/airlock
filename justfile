@@ -169,3 +169,8 @@ load-example-data: devenv
       done
     done
     mkdir -p "$workspace/sub_dir_empty"
+
+    tmp=$(mktemp)
+    # grab published database outputs for example csv and html data
+    curl -s https://jobs.opensafely.org/opensafely-internal/tpp-database-schema/outputs/85/download/ --output "$tmp"
+    unzip "$tmp" -d "$workspace"

@@ -55,7 +55,19 @@
     {% else %}
 
       {% #card title=path_item.name %}
-        <pre><code>{{ path_item.contents }}</code></pre>
+
+        {% if path_item.suffix == '.html' %}
+          <iframe
+            srcdoc="{{ path_item.contents }}"
+            title="{{ path_item.relpath }}"
+            frameborder=0
+            height=1000
+            style="width: 100%;"
+          >
+          </iframe>
+        {% else %}
+           <pre><code>{{ path_item.contents }}</code></pre>
+        {% endif %}
       {% /card %}
 
     {% endif %}

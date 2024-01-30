@@ -63,3 +63,7 @@ class PathItem:
 
     def contents(self):
         return self._absolute_path().read_text()
+
+    @property
+    def suffix(self):
+        return self.relpath.suffix
