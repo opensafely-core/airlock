@@ -35,14 +35,12 @@ test *pytest_args="": _dotenv build
 
 
 # run in dev|prod container
-run env="dev" *args="": _dotenv
-    {{ just_executable() }} build {{ env }}
+run env="dev" *args="": _dotenv (build env)
     docker compose run --rm --service-ports {{ env }} {{ args }}
 
 
 # exec command in existing dev|prod container
-exec env="dev" *args="bash": _dotenv
-    {{ just_executable() }} build {{ env }}
+exec env="dev" *args="bash": _dotenv (build env)
     docker compose exec {{ env }} {{ args }}
 
 
