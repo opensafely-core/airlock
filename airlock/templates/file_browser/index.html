@@ -1,9 +1,27 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block full_width_content %}
 
-{% #article_header title="File Browser" %}
-{% /article_header %}
+{% fragment as action_button %}
+  {% if is_author %}
+    <form action="" method="POST">
+    {% csrf_token %}
+    <input type=hidden name="workspace" value="{{ workspace.name }}"/>
+    <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
+    {% #button type="submit" tooltip="This output request is ready to be reviewed" variant="success" %}Submit Output Request For Review{% /button %}
+    </form>
+  {% elif is_output_checker %}
+    <form action="" method="POST">
+    {% csrf_token %}
+    <input type=hidden name="workspace" value="{{ workspace.name }}"/>
+    <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
+    {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="danger" %}Release Files{% /button %}
+    </form>
+  {% endif %}
+{% endfragment %}
+
+{% #card title=title custom_button=action_button %}  
+{% /card %}
 
 <div class="flex flex-row">
 
@@ -38,7 +56,7 @@
 
   </div>
 
-  <div style="flex-basis: 75%">
+  <div style="flex-basis: 75%; max-width: 75%">
     {% if not path_item %}
 
       {% #card title="/" %}
@@ -73,7 +91,27 @@
 
     {% else %}
 
-      {% #card title=path_item.name %}
+      {% fragment as add_button %}
+        {% if context == "workspace" %}
+          <form action="" method="POST">
+            {% csrf_token %}
+            <input type=hidden name="file" value="{{ path_item.relpath }}"/>
+            <input type=hidden name="workspace" value="{{ workspace.name }}"/>
+            {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Output Request{% /button %}
+          </form>
+        {% elif is_author %}
+          <form action="" method="POST">
+            {% csrf_token %}
+            <input type=hidden name="file" value="{{ path_item.relpath }}"/>
+            <input type=hidden name="workspace" value="{{ workspace.name }}"/>
+            <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
+            {% #button type="submit" tooltip="Remove this file from this output request" variant="warning" %}Remove File from Output Request{% /button %}
+          </form>
+ 
+        {% endif %}
+      {% endfragment %}
+
+      {% #card title=path_item.name custom_button=add_button %}
 
         {% if path_item.suffix == '.html' %}
           <iframe
@@ -85,7 +123,9 @@
           >
           </iframe>
         {% else %}
-           <pre><code>{{ path_item.contents }}</code></pre>
+          {% #code %}
+          {{ path_item.contents }}
+          {% /code %}
         {% endif %}
       {% /card %}
 
@@ -95,4 +135,4 @@
 
 </div>
 
-{% endblock content %}
+{% endblock full_width_content %}
