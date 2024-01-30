@@ -38,4 +38,14 @@ urlpatterns = [
         airlock.views.workspace_index_view,
         name="workspace_index",
     ),
+    path(
+        "requests/<str:workspace_name>/<str:request_id>/",
+        airlock.views.request_view,
+        name="request_home",
+    ),
+    path(
+        "requests/<str:workspace_name>/<str:request_id>/<path:path>",
+        airlock.views.request_view,
+        name="request_view",
+    ),
 ]

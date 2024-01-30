@@ -184,3 +184,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # In production we'd expect AIRLOCK_WORKSPACE_DIR to be an absolute path pointing
 # somewhere outside of WORK_DIR
 WORKSPACE_DIR = WORK_DIR / get_env_var("AIRLOCK_WORKSPACE_DIR")
+REQUEST_DIR = WORK_DIR / get_env_var("AIRLOCK_REQUEST_DIR")
