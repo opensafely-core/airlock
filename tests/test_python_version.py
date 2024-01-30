@@ -32,3 +32,14 @@ def test_github_workflows(filename, python_version):
     contents = filename.read_text()
     for match in re.findall(r"python-version:.*?([\d\.]+)", contents):
         assert match == python_version
+
+
+@pytest.mark.parametrize(
+    "filename",
+    BASE_DIR.glob("docker/dependencies*.txt"),
+    ids=lambda path: path.name,
+)
+def test_docker_dependencies(filename, python_version):
+    contents = filename.read_text()
+    for match in re.findall(r"python.*?([\d\.]+)", contents):
+        assert match == python_version

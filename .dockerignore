@@ -10,9 +10,14 @@
 # Python files
 **/__pycache__
 **/*.pyc
+/pyproject.toml
+/tests
 
 # Tooling effluent
 /htmlcov
+/coverage
 
 # Local application state
+/venv
+/node_modules
 /workdir
