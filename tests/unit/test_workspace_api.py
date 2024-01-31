@@ -4,7 +4,41 @@ from pathlib import Path
 import pytest
 
 from airlock.users import User
-from airlock.workspace_api import Container, PathItem, WorkspacesRoot
+from airlock.workspace_api import (
+    Container,
+    PathItem,
+    ReleaseRequest,
+    Workspace,
+    WorkspacesRoot,
+)
+
+
+def test_workspace_container(tmp_path, settings):
+    settings.WORKSPACE_DIR = tmp_path
+
+    workspace = Workspace("test-workspace")
+
+    assert not workspace.exists()
+    assert workspace.root() == tmp_path / "test-workspace"
+    assert workspace.get_url("foo/bar").endswith("foo/bar")
+
+
+def test_request_container(tmp_path, settings):
+    settings.WORKSPACE_DIR = tmp_path / "workspaces"
+    settings.REQUEST_DIR = tmp_path / "requests"
+
+    workspace = Workspace("test-workspace")
+
+    output_request = ReleaseRequest(workspace, "test-request")
+
+    assert not output_request.exists()
+    output_request.create()
+    assert output_request.exists()
+
+    assert output_request.root() == tmp_path / Path(
+        "requests/test-workspace/test-request"
+    )
+    assert output_request.get_url("foo/bar").endswith("foo/bar")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -159,3 +193,11 @@ def test_root_container(tmp_path, settings, is_output_checker, expected_workspac
     user = User(id=1, workspaces=["allowed"], is_output_checker=is_output_checker)
     workspace_root = WorkspacesRoot(user=user)
     assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
+
+
+def test_breadcrumbs(container):
+    assert PathItem(container, "foo/bar/baz").breadcrumbs() == [
+        PathItem(container, "foo"),
+        PathItem(container, "foo/bar"),
+        PathItem(container, "foo/bar/baz"),
+    ]

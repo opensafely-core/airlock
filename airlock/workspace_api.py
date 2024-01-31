@@ -64,6 +64,30 @@ class Workspace(Container):
 
 
 @dataclasses.dataclass(frozen=True)
+class ReleaseRequest(Container):
+    """These are container that must live under the settings.REQUEST_DIR"""
+
+    workspace: Workspace
+    request_id: str
+
+    def root(self):
+        return settings.REQUEST_DIR / self.workspace.name / self.request_id
+
+    def create(self):
+        self.root().mkdir(exist_ok=True, parents=True)
+
+    def get_url(self, relpath):
+        return reverse(
+            "request_view",
+            kwargs={
+                "workspace_name": self.workspace.name,
+                "request_id": self.request_id,
+                "path": relpath,
+            },
+        )
+
+
+@dataclasses.dataclass(frozen=True)
 class PathItem:
     """
     This provides a thin abstraction over `pathlib.Path` objects with two goals:
@@ -125,3 +149,16 @@ class PathItem:
     @property
     def suffix(self):
         return self.relpath.suffix
+
+    def breadcrumbs(self):
+        item = self
+        crumbs = [item]
+
+        parent = item.parent()
+        while parent:
+            if parent.relpath != pathlib.Path("."):
+                crumbs.append(parent)
+            parent = parent.parent()
+
+        crumbs.reverse()
+        return crumbs
