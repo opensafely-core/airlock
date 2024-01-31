@@ -30,12 +30,11 @@ services:
       # use the default dev workdir
       - ../workdir:/workdir
       - ../workspaces:/workspaces
+    # this compose file is only used for production-like testing - so we 
+    # don't worry about potentially leaking dummy env vars into actual prod
+    env_file: ../.env
     environment:
-      - DJANGO_DEBUG=False
-      - DJANGO_SECRET_KEY=12345
-      - DJANGO_ALLOWED_HOSTS=*
       - AIRLOCK_WORK_DIR=/workdir/
-      - AIRLOCK_WORKSPACE_DIR=/workspaces/
 
   # base development service
   # broken out so we can have a common base for dev and test since depends_on
