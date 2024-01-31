@@ -64,7 +64,7 @@ class Workspace(Container):
 
 
 @dataclasses.dataclass(frozen=True)
-class OutputRequest(Container):
+class ReleaseRequest(Container):
     """These are container that must live under the settings.REQUEST_DIR"""
 
     workspace: Workspace

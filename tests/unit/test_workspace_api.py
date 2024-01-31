@@ -6,8 +6,8 @@ import pytest
 from airlock.users import User
 from airlock.workspace_api import (
     Container,
-    OutputRequest,
     PathItem,
+    ReleaseRequest,
     Workspace,
     WorkspacesRoot,
 )
@@ -29,7 +29,7 @@ def test_request_container(tmp_path, settings):
 
     workspace = Workspace("test-workspace")
 
-    output_request = OutputRequest(workspace, "test-request")
+    output_request = ReleaseRequest(workspace, "test-request")
 
     assert not output_request.exists()
     output_request.create()

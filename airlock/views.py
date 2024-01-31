@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
 from airlock.users import User
-from airlock.workspace_api import OutputRequest, Workspace, WorkspacesRoot
+from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
 
 
 def index(request):
@@ -22,7 +22,7 @@ def validate_workspace(user, workspace_name):
 
 
 def validate_output_request(user, workspace, request_id):
-    output_request = OutputRequest(workspace, request_id)
+    output_request = ReleaseRequest(workspace, request_id)
     # TODO output request authorization?
     if not output_request.exists():
         raise Http404()
