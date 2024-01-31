@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 
 
 pytestmark = pytest.mark.django_db
@@ -31,16 +32,14 @@ request_id = "test-request"
 
 
 @pytest.fixture
-def tmp_workspace(tmp_path, settings):
-    settings.WORKSPACE_DIR = tmp_path / "workspaces"
+def tmp_workspace():
     workspace_dir = settings.WORKSPACE_DIR / workspace_name
     workspace_dir.mkdir(parents=True)
     return workspace_dir
 
 
 @pytest.fixture
-def tmp_request(tmp_path, tmp_workspace, settings):
-    settings.REQUEST_DIR = tmp_path / "requests"
+def tmp_request(tmp_workspace):
     request_dir = settings.REQUEST_DIR / workspace_name / request_id
     request_dir.mkdir(parents=True)
     return request_dir

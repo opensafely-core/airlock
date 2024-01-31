@@ -2,6 +2,7 @@ import dataclasses
 from pathlib import Path
 
 import pytest
+from django.conf import settings
 
 from airlock.users import User
 from airlock.workspace_api import (
@@ -13,20 +14,15 @@ from airlock.workspace_api import (
 )
 
 
-def test_workspace_container(tmp_path, settings):
-    settings.WORKSPACE_DIR = tmp_path
-
+def test_workspace_container():
     workspace = Workspace("test-workspace")
 
     assert not workspace.exists()
-    assert workspace.root() == tmp_path / "test-workspace"
+    assert workspace.root() == settings.WORKSPACE_DIR / "test-workspace"
     assert workspace.get_url("foo/bar").endswith("foo/bar")
 
 
-def test_request_container(tmp_path, settings):
-    settings.WORKSPACE_DIR = tmp_path / "workspaces"
-    settings.REQUEST_DIR = tmp_path / "requests"
-
+def test_request_container():
     workspace = Workspace("test-workspace")
 
     output_request = ReleaseRequest(workspace, "test-request")
@@ -35,8 +31,8 @@ def test_request_container(tmp_path, settings):
     output_request.create()
     assert output_request.exists()
 
-    assert output_request.root() == tmp_path / Path(
-        "requests/test-workspace/test-request"
+    assert output_request.root() == settings.REQUEST_DIR / Path(
+        "test-workspace/test-request"
     )
     assert output_request.get_url("foo/bar").endswith("foo/bar")
 
@@ -186,10 +182,9 @@ def test_from_relative_path_rejects_path_escape(container, path):
         (True, {"allowed", "not-allowed"}),
     ],
 )
-def test_root_container(tmp_path, settings, is_output_checker, expected_workspaces):
-    settings.WORKSPACE_DIR = tmp_path
-    (tmp_path / "allowed").mkdir()
-    (tmp_path / "not-allowed").mkdir()
+def test_root_container(is_output_checker, expected_workspaces):
+    (settings.WORKSPACE_DIR / "allowed").mkdir()
+    (settings.WORKSPACE_DIR / "not-allowed").mkdir()
     user = User(id=1, workspaces=["allowed"], is_output_checker=is_output_checker)
     workspace_root = WorkspacesRoot(user=user)
     assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
