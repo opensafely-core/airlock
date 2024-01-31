@@ -11,7 +11,46 @@ from airlock.workspace_api import (
     ReleaseRequest,
     Workspace,
     WorkspacesRoot,
+    get_releases_for_user,
 )
+from tests.factories import WorkspaceFactory
+
+
+@pytest.mark.parametrize(
+    "user_workspaces,output_checker,expected",
+    [
+        ([], False, []),
+        (["allowed"], False, [Workspace("allowed")]),
+        ([], True, [Workspace("allowed"), Workspace("not-allowed")]),
+        (["allowed", "notexist"], False, [Workspace("allowed")]),
+    ],
+)
+def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
+    WorkspaceFactory("allowed")
+    WorkspaceFactory("not-allowed")
+
+    user = User(1, "test", user_workspaces, output_checker)
+    assert set(get_workspaces_for_user(user)) == set(expected)
+
+
+@pytest.mark.parametrize(
+    "workspaces, output_checker, expected",
+    [
+        ([], False, []),
+        (["allowed"], False, [("allowed", "request1")]),
+        ([], True, [("allowed", "request1"), ("not-allowed", "request2")]),
+        (["allowed", "notexist"], False, [("allowed", "request1")]),
+        (["notexist", "notexist"], False, []),
+        (["no-request-dir", "notexist"], False, []),
+    ],
+)
+def test_get_requests_for_user(workspaces, output_checker, expected):
+    WorkspaceFactory("allowed").create_request("request1")
+    WorkspaceFactory("not-allowed").create_request("request2")
+    WorkspaceFactory("no-request-dir")
+    expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
+    user = User(1, "test", workspaces, output_checker)
+    assert set(get_requests_for_user(user)) == expected_requests
 
 
 def test_workspace_container():

@@ -7,7 +7,12 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 
 from airlock import login_api
-from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
+from airlock.workspace_api import (
+    ReleaseRequest,
+    Workspace,
+    WorkspacesRoot,
+    get_releases_for_user,
+)
 
 
 class TokenLoginForm(forms.Form):
@@ -99,13 +104,8 @@ def validate_output_request(user, workspace, request_id):
 
 def workspace_index_view(request):
     user = validate_user(request)
-    return TemplateResponse(
-        request,
-        "file_browser/index.html",
-        {
-            "container": WorkspacesRoot(user=user),
-        },
-    )
+    workspaces = list(WorkspacesRoot(user).workspaces)
+    return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
@@ -130,6 +130,11 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "title": f"{workspace_name} workspace files",
         },
     )
+
+
+def request_index_view(request):
+    requests = list(get_releases_for_user(request.user))
+    return TemplateResponse(request, "requests.html", {"requests": requests})
 
 
 def request_view(request, workspace_name: str, request_id: str, path: str = ""):

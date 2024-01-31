@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% #card title="Workspaces for "|add:request.user.username %}
+  {% #list_group %}
+    {% for workspace in workspaces %} 
+    {% #list_group_item href=workspace.url %}{{ workspace.name }}{% /list_group_item %}
+    {% endfor %}
+  {% /list_group %}
+{% /card %}
+{% endblock content %}

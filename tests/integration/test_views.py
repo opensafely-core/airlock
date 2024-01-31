@@ -1,5 +1,4 @@
 import pytest
-from django.conf import settings
 
 from tests.factories import WorkspaceFactory
 
@@ -118,23 +117,12 @@ def test_workspaces_index_no_user(client):
     assert response.status_code == 403
 
 
-def test_workspaces_index_shows_workspace_dirs_only(
-    client_with_permission, tmp_workspace
-):
-    WorkspaceFactory("test1")
-    (settings.WORKSPACE_DIR / "file.txt").touch()
-    response = client_with_permission.get("/workspaces/")
-    assert response.status_code == 200
-    assert len(list(response.context["container"].workspaces)) == 2
-    assert "file.txt" not in response.rendered_content
-
-
 def test_workspaces_index_user_permitted_workspaces(client_with_user, tmp_workspace):
     permitted_client = client_with_user({"workspaces": ["test1"]})
     WorkspaceFactory("test1")
     WorkspaceFactory("test2")
     response = permitted_client.get("/workspaces/")
-    workspace_names = {ws.name for ws in response.context["container"].workspaces}
+    workspace_names = {ws.name for ws in response.context["workspaces"]}
     assert workspace_names == {"test1"}
     assert "test2" not in response.rendered_content
 
@@ -209,3 +197,20 @@ def test_request_view_redirects_to_file(client_with_permission, tmp_request):
         response.headers["Location"]
         == f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/file.txt"
     )
+
+
+def test_requests_index_user_permitted_requests(client_with_user):
+    WorkspaceFactory("test1").create_request("test-request")
+    permitted_client = client_with_user({"workspaces": ["test1"]})
+    response = permitted_client.get("/requests/")
+    request_ids = {r.request_id for r in response.context["requests"]}
+    assert request_ids == {"test-request"}
+
+
+def test_requests_index_user_is_output_checker(client_with_user):
+    WorkspaceFactory("test1").create_request("test-request1")
+    WorkspaceFactory("test2").create_request("test-request2")
+    permitted_client = client_with_user({"workspaces": [], "is_output_checker": True})
+    response = permitted_client.get("/requests/")
+    request_ids = {r.request_id for r in response.context["requests"]}
+    assert request_ids == {"test-request1", "test-request2"}

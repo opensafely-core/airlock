@@ -37,7 +37,7 @@
     {% #card %}
       {% #list_group %}
         {% if not path_item %}
-          {% list_group_empty icon=True title="Workspace Root" %}   
+          {% list_group_empty icon=True title=context|title|add:" Root" %}   
         
         {% elif not path_item.parent %}
           {% list_group_empty title=path_item.container.name %}   
