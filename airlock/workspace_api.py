@@ -149,3 +149,16 @@ class PathItem:
     @property
     def suffix(self):
         return self.relpath.suffix
+
+    def breadcrumbs(self):
+        item = self
+        crumbs = [item]
+
+        parent = item.parent()
+        while parent:
+            if parent.relpath != pathlib.Path("."):
+                crumbs.append(parent)
+            parent = parent.parent()
+
+        crumbs.reverse()
+        return crumbs

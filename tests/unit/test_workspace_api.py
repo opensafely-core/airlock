@@ -193,3 +193,11 @@ def test_root_container(tmp_path, settings, is_output_checker, expected_workspac
     user = User(id=1, workspaces=["allowed"], is_output_checker=is_output_checker)
     workspace_root = WorkspacesRoot(user=user)
     assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
+
+
+def test_breadcrumbs(container):
+    assert PathItem(container, "foo/bar/baz").breadcrumbs() == [
+        PathItem(container, "foo"),
+        PathItem(container, "foo/bar"),
+        PathItem(container, "foo/bar/baz"),
+    ]

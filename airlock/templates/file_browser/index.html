@@ -21,6 +21,13 @@
 {% endfragment %}
 
 {% #card title=title custom_button=action_button %}  
+{% #breadcrumbs %}
+    {% breadcrumb title=workspace.name %}
+    {% for crumb in path_item.breadcrumbs %}
+        {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
+    {% endfor %}
+{% /breadcrumbs %}
+
 {% /card %}
 
 <div class="flex flex-row">
