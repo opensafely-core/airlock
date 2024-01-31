@@ -22,3 +22,9 @@ class User:
         workspaces = tuple(user.get("workspaces", tuple()))
         is_output_checker = user.get("is_output_checker", False)
         return cls(user["id"], workspaces, is_output_checker)
+
+    def has_permission(self, workspace_name):
+        return (
+            # Output checkers can view all workspaces
+            self.is_output_checker or workspace_name in self.workspaces
+        )

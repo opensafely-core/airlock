@@ -27,7 +27,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = Workspace(workspace_name)
     if not workspace.exists():
         raise Http404()
-    if not workspace.has_permission(user):
+    if user is None or not user.has_permission(workspace_name):
         raise PermissionDenied()
 
     path_item = workspace.get_path(path)

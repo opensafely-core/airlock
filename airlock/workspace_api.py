@@ -35,11 +35,11 @@ class WorkspacesRoot(Container):
 
     @property
     def workspaces(self):
+        if self.user is None:
+            return []
         for child in self.get_path("").children():
-            if child.is_directory():
-                workspace = Workspace(child.name())
-                if workspace.has_permission(self.user):
-                    yield workspace
+            if child.is_directory() and self.user.has_permission(child.name()):
+                yield Workspace(child.name())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -47,12 +47,6 @@ class Workspace(Container):
     """These are containers that must live under the settings.WORKSPACE_DIR"""
 
     name: str
-
-    def has_permission(self, user: User = None):
-        return user is not None and (
-            # Output checkers can view all workspaces
-            user.is_output_checker or self.name in user.workspaces
-        )
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
