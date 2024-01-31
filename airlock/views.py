@@ -3,7 +3,6 @@ from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
-from airlock.users import User
 from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
 
 
@@ -13,10 +12,9 @@ def index(request):
 
 def validate_user(request):
     """Ensure we have a valid user."""
-    user = User.from_session(request.session)
-    if user is None:
+    if request.user is None:
         raise PermissionDenied()
-    return user
+    return request.user
 
 
 def validate_workspace(user, workspace_name):
