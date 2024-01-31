@@ -104,7 +104,7 @@ jobs:
 
      - name: Test image we imported from previous job works
        run: |
-           SKIP_BUILD=1 just docker/serve prod -d
+           just docker/serve prod -d
            sleep 5
            just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
 
