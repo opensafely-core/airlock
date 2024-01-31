@@ -39,68 +39,68 @@ def tmp_workspace(tmp_path, settings):
 
 def test_workspace_view_index(client_with_permission, tmp_workspace):
     (tmp_workspace / "file.txt").touch()
-    response = client_with_permission.get(f"/workspace/{workspace_name}/")
+    response = client_with_permission.get(f"/workspaces/{workspace_name}/")
     assert "file.txt" in response.rendered_content
 
 
 def test_workspace_does_not_exist(client_with_permission):
-    response = client_with_permission.get("/workspace/bad/")
+    response = client_with_permission.get("/workspaces/bad/")
     assert response.status_code == 404
 
 
 def test_workspace_view_with_directory(client_with_permission, tmp_workspace):
     (tmp_workspace / "some_dir").mkdir()
     (tmp_workspace / "some_dir/file.txt").touch()
-    response = client_with_permission.get(f"/workspace/{workspace_name}/some_dir/")
+    response = client_with_permission.get(f"/workspaces/{workspace_name}/some_dir/")
     assert "file.txt" in response.rendered_content
 
 
 def test_workspace_view_with_file(client_with_permission, tmp_workspace):
     (tmp_workspace / "file.txt").write_text("foobar")
-    response = client_with_permission.get(f"/workspace/{workspace_name}/file.txt")
+    response = client_with_permission.get(f"/workspaces/{workspace_name}/file.txt")
     assert "foobar" in response.rendered_content
 
 
 def test_workspace_view_with_404(client_with_permission, tmp_workspace):
     response = client_with_permission.get(
-        f"/workspace/{workspace_name}/no_such_file.txt"
+        f"/workspaces/{workspace_name}/no_such_file.txt"
     )
     assert response.status_code == 404
 
 
 def test_workspace_view_redirects_to_directory(client_with_permission, tmp_workspace):
     (tmp_workspace / "some_dir").mkdir()
-    response = client_with_permission.get(f"/workspace/{workspace_name}/some_dir")
+    response = client_with_permission.get(f"/workspaces/{workspace_name}/some_dir")
     assert response.status_code == 302
-    assert response.headers["Location"] == f"/workspace/{workspace_name}/some_dir/"
+    assert response.headers["Location"] == f"/workspaces/{workspace_name}/some_dir/"
 
 
 def test_workspace_view_redirects_to_file(client_with_permission, tmp_workspace):
     (tmp_workspace / "file.txt").touch()
-    response = client_with_permission.get(f"/workspace/{workspace_name}/file.txt/")
+    response = client_with_permission.get(f"/workspaces/{workspace_name}/file.txt/")
     assert response.status_code == 302
-    assert response.headers["Location"] == f"/workspace/{workspace_name}/file.txt"
+    assert response.headers["Location"] == f"/workspaces/{workspace_name}/file.txt"
 
 
 def test_workspace_view_index_no_user(client, tmp_workspace):
-    response = client.get(f"/workspace/{workspace_name}/")
+    response = client.get(f"/workspaces/{workspace_name}/")
     assert response.status_code == 403
 
 
 def test_workspace_view_with_directory_no_user(client, tmp_workspace):
     (tmp_workspace / "some_dir").mkdir()
-    response = client.get(f"/workspace/{workspace_name}/some_dir/")
+    response = client.get(f"/workspaces/{workspace_name}/some_dir/")
     assert response.status_code == 403
 
 
 def test_workspace_view_index_no_permission(client_with_user, tmp_workspace):
     forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
-    response = forbidden_client.get(f"/workspace/{workspace_name}/")
+    response = forbidden_client.get(f"/workspaces/{workspace_name}/")
     assert response.status_code == 403
 
 
 def test_workspace_view_with_directory_no_permission(client_with_user, tmp_workspace):
     (tmp_workspace / "some_dir").mkdir()
     forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
-    response = forbidden_client.get(f"/workspace/{workspace_name}/some_dir/")
+    response = forbidden_client.get(f"/workspaces/{workspace_name}/some_dir/")
     assert response.status_code == 403
