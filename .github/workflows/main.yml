@@ -79,9 +79,9 @@ jobs:
 
     runs-on: ubuntu-22.04
 
-    permissions:
-      contents: read
-      packages: write
+    # permissions:
+    #   # contents: read
+    #   packages: write
 
     # if: github.ref == 'refs/heads/main'
 
