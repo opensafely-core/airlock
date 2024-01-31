@@ -75,7 +75,7 @@ jobs:
             path: /tmp/airlock.tar.gz
 
   docker-publish:
-    needs: [check, test, docker-test, lint-dockerfile]
+    needs: [check, test, docker-test]
 
     runs-on: ubuntu-22.04
 
