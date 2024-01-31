@@ -162,15 +162,17 @@ load-example-data: devenv
     # bundle a more sensible set of example files which we can copy over.
     workspace="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_WORKSPACE_DIR%/}/example-workspace"
     for i in {1..2}; do
-      subdir="$workspace/sub_dir_$i"
-      mkdir -p "$subdir"
-      for j in {1..5}; do
-        echo "I am file $i$j" > "$subdir/file_$i$j.txt"
+      workspace_dir="${workspace}_$i"
+      for j in {1..2}; do
+        subdir="$workspace_dir/sub_dir_$j"
+        mkdir -p "$subdir"
+        for k in {1..5}; do
+          echo "I am file $j$k" > "$subdir/file_$j$k.txt"
+        done
       done
+      mkdir -p "$workspace_dir/sub_dir_empty"
+      tmp=$(mktemp)
+      # grab published database outputs for example csv and html data
+      curl -s https://jobs.opensafely.org/opensafely-internal/tpp-database-schema/outputs/85/download/ --output "$tmp"
+      unzip "$tmp" -d "$workspace"
     done
-    mkdir -p "$workspace/sub_dir_empty"
-
-    tmp=$(mktemp)
-    # grab published database outputs for example csv and html data
-    curl -s https://jobs.opensafely.org/opensafely-internal/tpp-database-schema/outputs/85/download/ --output "$tmp"
-    unzip "$tmp" -d "$workspace"

@@ -4,6 +4,8 @@ import pathlib
 from django.conf import settings
 from django.urls import reverse
 
+from airlock.users import User
+
 
 class Container:
     def root(self):
@@ -23,13 +25,37 @@ class Container:
 
 
 @dataclasses.dataclass(frozen=True)
+class WorkspacesRoot(Container):
+    """This container represents settings.WORKSPACE_DIR"""
+
+    user: User
+
+    def root(self):
+        return settings.WORKSPACE_DIR
+
+    @property
+    def workspaces(self):
+        if self.user is None:
+            return []
+        for child in self.get_path("").children():
+            if child.is_directory() and self.user.has_permission(child.name()):
+                yield Workspace(child.name())
+
+
+@dataclasses.dataclass(frozen=True)
 class Workspace(Container):
-    """These are container that must live under the settings.WORKSPACE_DIR"""
+    """These are containers that must live under the settings.WORKSPACE_DIR"""
 
     name: str
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
+
+    def index_url(self):
+        return reverse("workspace_index")
+
+    def url(self):
+        return reverse("workspace_home", kwargs={"workspace_name": self.name})
 
     def get_url(self, relpath):
         return reverse(

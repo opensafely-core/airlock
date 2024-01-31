@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from airlock.workspace_api import Container, PathItem
+from airlock.users import User
+from airlock.workspace_api import Container, PathItem, WorkspacesRoot
 
 
 @dataclasses.dataclass(frozen=True)
@@ -142,3 +143,19 @@ def test_contents(container, path, contents):
 def test_from_relative_path_rejects_path_escape(container, path):
     with pytest.raises(ValueError, match="is not in the subpath"):
         PathItem(container, path)
+
+
+@pytest.mark.parametrize(
+    "is_output_checker,expected_workspaces",
+    [
+        (False, {"allowed"}),
+        (True, {"allowed", "not-allowed"}),
+    ],
+)
+def test_root_container(tmp_path, settings, is_output_checker, expected_workspaces):
+    settings.WORKSPACE_DIR = tmp_path
+    (tmp_path / "allowed").mkdir()
+    (tmp_path / "not-allowed").mkdir()
+    user = User(id=1, workspaces=["allowed"], is_output_checker=is_output_checker)
+    workspace_root = WorkspacesRoot(user=user)
+    assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces

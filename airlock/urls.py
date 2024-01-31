@@ -24,13 +24,18 @@ urlpatterns = [
     path("", airlock.views.index, name="home"),
     path("ui-components/", assets.views.components),
     path(
-        "workspace/<str:workspace_name>/",
+        "workspaces/<str:workspace_name>/",
         airlock.views.workspace_view,
         name="workspace_home",
     ),
     path(
-        "workspace/<str:workspace_name>/<path:path>",
+        "workspaces/<str:workspace_name>/<path:path>",
         airlock.views.workspace_view,
         name="workspace_view",
+    ),
+    path(
+        "workspaces/",
+        airlock.views.workspace_index_view,
+        name="workspace_index",
     ),
 ]
