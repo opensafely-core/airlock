@@ -185,7 +185,12 @@ def test_from_relative_path_rejects_path_escape(container, path):
 def test_root_container(is_output_checker, expected_workspaces):
     (settings.WORKSPACE_DIR / "allowed").mkdir()
     (settings.WORKSPACE_DIR / "not-allowed").mkdir()
-    user = User(id=1, workspaces=["allowed"], is_output_checker=is_output_checker)
+    user = User(
+        id=1,
+        username="test",
+        workspaces=["allowed"],
+        is_output_checker=is_output_checker,
+    )
     workspace_root = WorkspacesRoot(user=user)
     assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
 

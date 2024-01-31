@@ -7,6 +7,7 @@ def test_session_user_from_session():
     mock_session = {
         "user": {
             "id": 1,
+            "username": "test",
             "workspaces": ["test-workspace-1", "test_workspace2"],
             "is_output_checker": True,
         }
@@ -17,7 +18,12 @@ def test_session_user_from_session():
 
 
 def test_session_user_with_defaults():
-    mock_session = {"user": {"id": 1}}
+    mock_session = {
+        "user": {
+            "id": 1,
+            "username": "test",
+        }
+    }
     user = User.from_session(mock_session)
     assert user.workspaces == ()
     assert not user.is_output_checker
@@ -42,6 +48,7 @@ def test_session_user_has_permission(is_output_checker, workspaces, has_permissi
     mock_session = {
         "user": {
             "id": 1,
+            "username": "test",
             "workspaces": workspaces,
             "is_output_checker": is_output_checker,
         }
