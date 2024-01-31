@@ -117,8 +117,7 @@ def test_workspace_view_with_directory_no_permission(client_with_user, tmp_works
 
 def test_workspaces_index_no_user(client, tmp_workspace):
     response = client.get("/workspaces/")
-    assert response.status_code == 200
-    assert list(response.context["container"].workspaces) == []
+    assert response.status_code == 403
 
 
 def test_workspaces_index_shows_workspace_dirs_only(

@@ -35,8 +35,6 @@ class WorkspacesRoot(Container):
 
     @property
     def workspaces(self):
-        if self.user is None:
-            return []
         for child in self.get_path("").children():
             if child.is_directory() and self.user.has_permission(child.name()):
                 yield Workspace(child.name())
