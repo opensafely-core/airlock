@@ -62,7 +62,7 @@ jobs:
         run: |
           just docker/serve prod -d
           sleep 5
-          just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
+          just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
 
       - name: Save docker image
         run: |
@@ -106,7 +106,7 @@ jobs:
        run: |
            SKIP_BUILD=1 just docker/serve prod -d
            sleep 5
-           just docker/smoke-test || { docker logs airlock_prod_1; exit 1; }
+           just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
 
      - name: Publish image
        run: |
