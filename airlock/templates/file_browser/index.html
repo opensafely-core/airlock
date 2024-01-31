@@ -11,8 +11,15 @@
 
     {% #card %}
       {% #list_group %}
-        {% if not path_item.parent %}
-          {% list_group_empty icon=True title="Workspace Root" %}
+        {% if not path_item %}
+          {% list_group_empty icon=True title="Workspace Root" %}   
+        
+        {% elif not path_item.parent %}
+          {% list_group_empty title=path_item.container.name %}   
+          {% #list_group_item href=path_item.container.index_url %}
+            ↰ ..
+          {% /list_group_item %}
+
         {% else %}
           {% #list_group_item href=path_item.parent.url %}
             ↰ ..
@@ -32,8 +39,20 @@
   </div>
 
   <div style="flex-basis: 75%">
+    {% if not path_item %}
 
-    {% if path_item.is_directory %}
+      {% #card title="/" %}
+        {% #list_group %}
+            {% for workspace in container.workspaces %}
+              {% #list_group_item href=workspace.url %}
+                {{ workspace.name}}
+                {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
+              {% /list_group_item %}
+            {% endfor %}
+        {% /list_group %}
+      {% /card %}
+
+    {% elif path_item.is_directory %}
 
       {% #card title=path_item.name %}
         {% #list_group %}

@@ -104,3 +104,32 @@ def test_workspace_view_with_directory_no_permission(client_with_user, tmp_works
     forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
     response = forbidden_client.get(f"/workspaces/{workspace_name}/some_dir/")
     assert response.status_code == 403
+
+
+def test_workspaces_index_no_user(client, tmp_workspace):
+    response = client.get("/workspaces/")
+    assert response.status_code == 200
+    assert list(response.context["container"].workspaces) == []
+
+
+def test_workspaces_index_shows_workspace_dirs_only(
+    client_with_permission, settings, tmp_workspace
+):
+    (settings.WORKSPACE_DIR / "test1").mkdir()
+    (settings.WORKSPACE_DIR / "file.txt").touch()
+    response = client_with_permission.get("/workspaces/")
+    assert response.status_code == 200
+    assert len(list(response.context["container"].workspaces)) == 2
+    assert "file.txt" not in response.rendered_content
+
+
+def test_workspaces_index_user_permitted_workspaces(
+    client_with_user, settings, tmp_workspace
+):
+    permitted_client = client_with_user({"id": 1, "workspaces": ["test1"]})
+    (settings.WORKSPACE_DIR / "test1").mkdir()
+    (settings.WORKSPACE_DIR / "file.txt").touch()
+    response = permitted_client.get("/workspaces/")
+    workspace_names = {ws.name for ws in response.context["container"].workspaces}
+    assert workspace_names == {"test1"}
+    assert "file.txt" not in response.rendered_content

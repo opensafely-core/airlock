@@ -4,11 +4,22 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
 from airlock.users import User
-from airlock.workspace_api import Workspace
+from airlock.workspace_api import Workspace, WorkspacesRoot
 
 
 def index(request):
     return TemplateResponse(request, "index.html")
+
+
+def workspace_index_view(request):
+    user = User.from_session(request.session)
+    return TemplateResponse(
+        request,
+        "file_browser/index.html",
+        {
+            "container": WorkspacesRoot(user=user),
+        },
+    )
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):

@@ -25,6 +25,24 @@ class Container:
 
 
 @dataclasses.dataclass(frozen=True)
+class WorkspacesRoot(Container):
+    """This container represents settings.WORKSPACE_DIR"""
+
+    user: User
+
+    def root(self):
+        return settings.WORKSPACE_DIR
+
+    @property
+    def workspaces(self):
+        for child in self.get_path("").children():
+            if child.is_directory():
+                workspace = Workspace(child.name())
+                if workspace.has_permission(self.user):
+                    yield workspace
+
+
+@dataclasses.dataclass(frozen=True)
 class Workspace(Container):
     """These are containers that must live under the settings.WORKSPACE_DIR"""
 
@@ -38,6 +56,12 @@ class Workspace(Container):
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
+
+    def index_url(self):
+        return reverse("workspace_index")
+
+    def url(self):
+        return reverse("workspace_home", kwargs={"workspace_name": self.name})
 
     def get_url(self, relpath):
         return reverse(
