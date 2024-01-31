@@ -6,6 +6,19 @@ from django.template.response import TemplateResponse
 from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
 
 
+def login(request):
+    """
+    Temporary login view that pretends the current user is an
+    output-checker
+    """
+    request.session["user"] = {
+        "id": 1,
+        "username": "temp_output_checker",
+        "is_output_checker": True,
+    }
+    return redirect("workspace_index")
+
+
 def index(request):
     return TemplateResponse(request, "index.html")
 
