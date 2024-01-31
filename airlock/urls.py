@@ -23,6 +23,7 @@ import assets.views
 urlpatterns = [
     path("", airlock.views.index, name="home"),
     path("login/", airlock.views.login, name="login"),
+    path("logout/", airlock.views.logout, name="logout"),
     path("ui-components/", assets.views.components),
     path(
         "workspaces/<str:workspace_name>/",

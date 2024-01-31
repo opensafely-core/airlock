@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
 
 from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
 
@@ -16,7 +17,16 @@ def login(request):
         "username": "temp_output_checker",
         "is_output_checker": True,
     }
-    return redirect("workspace_index")
+    return redirect(reverse("workspace_index"))
+
+
+def logout(request):
+    """
+    User information is held in the session. On logout, remove
+    session data and redirect to the home page.
+    """
+    request.session.flush()
+    return redirect(reverse("home"))
 
 
 def index(request):

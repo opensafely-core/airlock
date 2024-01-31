@@ -43,13 +43,15 @@
         <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
             <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
             {% url 'home' as url %}
+            {% url 'login' as login_url %}
+            {% url 'logout' as logout_url %}
             <a
                 class="
                 group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500
                 after:absolute after:bottom-1 after:h-[2px] after:left-2 after:bg-bn-strawberry-300 after:w-1 after:transition-all after:opacity-0
                 after:hover:w-11/12 after:hover:opacity-100
                 "
-                href="{% url 'home' %}"
+                href="{{ url }}"
             >
                 <span class="transition-colors ease-in duration-150 text-oxford group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
                 OpenSAFELY
@@ -79,7 +81,7 @@
                 </a>
             </li>
             {% endfor %}
-            {% if not user.is_authenticated %}
+            {% if not request.user.is_authenticated %}
             <li>
                 <a
                 class="
@@ -123,6 +125,19 @@
                 </details>
                 </details-utils>
             </li>
+            <li>
+              <a
+              class="
+                  relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
+                  hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
+                  focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
+              "
+              href="{{ logout_url }}"
+              rel="nofollow"
+              >
+              Logout
+              </a>
+          </li>
             {% endif %}
             </ul>
         </nav>
