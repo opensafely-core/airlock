@@ -7,3 +7,6 @@ __pycache__/
 
 # Tooling effluent
 /.coverage
+
+# browser install location in docker
+.playwright-browsers/
