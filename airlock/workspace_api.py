@@ -8,7 +8,7 @@ from django.urls import reverse
 def get_workspaces_for_user(user):
     """Get all Workspaces for user."""
     workspaces = []
-    if user.is_output_checker:
+    if user.output_checker:
         workspace_names = [
             d.name for d in settings.WORKSPACE_DIR.iterdir() if d.is_dir()
         ]
@@ -30,7 +30,7 @@ def get_requests_for_user(user):
 
     requests = []
 
-    if user.is_output_checker:
+    if user.output_checker:
         workspace_names = [d.name for d in settings.REQUEST_DIR.iterdir() if d.is_dir()]
     else:
         workspace_names = user.workspaces

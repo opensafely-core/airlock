@@ -161,7 +161,7 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "title": f"{request_id} request files",
         # TODO file these in from user/models
         "is_author": request.GET.get("is_author", False),
-        "is_output_checker": user.is_output_checker,
+        "output_checker": user.output_checker,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)

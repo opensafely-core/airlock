@@ -25,7 +25,7 @@ def client_with_user(client):
 
 @pytest.fixture
 def client_with_permission(client_with_user):
-    output_checker = {"is_output_checker": True}
+    output_checker = {"output_checker": True}
     yield client_with_user(output_checker)
 
 
@@ -207,10 +207,10 @@ def test_requests_index_user_permitted_requests(client_with_user):
     assert request_ids == {"test-request"}
 
 
-def test_requests_index_user_is_output_checker(client_with_user):
+def test_requests_index_user_output_checker(client_with_user):
     WorkspaceFactory("test1").create_request("test-request1")
     WorkspaceFactory("test2").create_request("test-request2")
-    permitted_client = client_with_user({"workspaces": [], "is_output_checker": True})
+    permitted_client = client_with_user({"workspaces": [], "output_checker": True})
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
     assert request_ids == {"test-request1", "test-request2"}
