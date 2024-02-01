@@ -11,7 +11,16 @@ def index(request):
     return TemplateResponse(request, "index.html")
 
 
+def validate_user(request):
+    """Ensure we have a valid user."""
+    user = User.from_session(request.session)
+    if user is None:
+        raise PermissionDenied()
+    return user
+
+
 def validate_workspace(user, workspace_name):
+    """Ensure the workspace exists and the current user has permissions to access it."""
     workspace = Workspace(workspace_name)
     if not workspace.exists():
         raise Http404()
@@ -22,6 +31,7 @@ def validate_workspace(user, workspace_name):
 
 
 def validate_output_request(user, workspace, request_id):
+    """Ensure the release request exists for this workspace."""
     output_request = ReleaseRequest(workspace, request_id)
     # TODO output request authorization?
     if not output_request.exists():
@@ -31,7 +41,7 @@ def validate_output_request(user, workspace, request_id):
 
 
 def workspace_index_view(request):
-    user = User.from_session(request.session)
+    user = validate_user(request)
     return TemplateResponse(
         request,
         "file_browser/index.html",
@@ -42,7 +52,7 @@ def workspace_index_view(request):
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
-    user = User.from_session(request.session)
+    user = validate_user(request)
     workspace = validate_workspace(user, workspace_name)
     path_item = workspace.get_path(path)
 
@@ -66,7 +76,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
 
 def request_view(request, workspace_name: str, request_id: str, path: str = ""):
-    user = User.from_session(request.session)
+    user = validate_user(request)
     workspace = validate_workspace(user, workspace_name)
     output_request = validate_output_request(user, workspace, request_id)
 

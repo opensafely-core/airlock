@@ -1,4 +1,7 @@
 import pytest
+from django.conf import settings
+
+from tests.factories import WorkspaceFactory
 
 
 pytestmark = pytest.mark.django_db
@@ -31,24 +34,18 @@ request_id = "test-request"
 
 
 @pytest.fixture
-def tmp_workspace(tmp_path, settings):
-    settings.WORKSPACE_DIR = tmp_path / "workspaces"
-    workspace_dir = settings.WORKSPACE_DIR / workspace_name
-    workspace_dir.mkdir(parents=True)
-    return workspace_dir
+def tmp_workspace():
+    return WorkspaceFactory(workspace_name)
 
 
 @pytest.fixture
-def tmp_request(tmp_path, tmp_workspace, settings):
-    settings.REQUEST_DIR = tmp_path / "requests"
-    request_dir = settings.REQUEST_DIR / workspace_name / request_id
-    request_dir.mkdir(parents=True)
-    return request_dir
+def tmp_request(tmp_workspace):
+    return tmp_workspace.create_request(request_id)
 
 
 def test_workspace_view_index(client_with_permission, tmp_workspace):
-    (tmp_workspace / "file.txt").touch()
-    response = client_with_permission.get(f"/workspaces/{workspace_name}/")
+    tmp_workspace.write_file("file.txt")
+    response = client_with_permission.get(f"/workspaces/{tmp_workspace.name}/")
     assert "file.txt" in response.rendered_content
 
 
@@ -58,73 +55,72 @@ def test_workspace_does_not_exist(client_with_permission):
 
 
 def test_workspace_view_with_directory(client_with_permission, tmp_workspace):
-    (tmp_workspace / "some_dir").mkdir()
-    (tmp_workspace / "some_dir/file.txt").touch()
-    response = client_with_permission.get(f"/workspaces/{workspace_name}/some_dir/")
+    tmp_workspace.write_file("some_dir/file.txt")
+    response = client_with_permission.get(f"/workspaces/{tmp_workspace.name}/some_dir/")
     assert "file.txt" in response.rendered_content
 
 
 def test_workspace_view_with_file(client_with_permission, tmp_workspace):
-    (tmp_workspace / "file.txt").write_text("foobar")
-    response = client_with_permission.get(f"/workspaces/{workspace_name}/file.txt")
+    tmp_workspace.write_file("file.txt", "foobar")
+    response = client_with_permission.get(f"/workspaces/{tmp_workspace.name}/file.txt")
     assert "foobar" in response.rendered_content
 
 
 def test_workspace_view_with_404(client_with_permission, tmp_workspace):
     response = client_with_permission.get(
-        f"/workspaces/{workspace_name}/no_such_file.txt"
+        f"/workspaces/{tmp_workspace.name}/no_such_file.txt"
     )
     assert response.status_code == 404
 
 
 def test_workspace_view_redirects_to_directory(client_with_permission, tmp_workspace):
-    (tmp_workspace / "some_dir").mkdir()
-    response = client_with_permission.get(f"/workspaces/{workspace_name}/some_dir")
+    tmp_workspace.mkdir("some_dir")
+    response = client_with_permission.get(f"/workspaces/{tmp_workspace.name}/some_dir")
     assert response.status_code == 302
-    assert response.headers["Location"] == f"/workspaces/{workspace_name}/some_dir/"
+    assert response.headers["Location"] == f"/workspaces/{tmp_workspace.name}/some_dir/"
 
 
 def test_workspace_view_redirects_to_file(client_with_permission, tmp_workspace):
-    (tmp_workspace / "file.txt").touch()
-    response = client_with_permission.get(f"/workspaces/{workspace_name}/file.txt/")
+    tmp_workspace.write_file("file.txt")
+    response = client_with_permission.get(f"/workspaces/{tmp_workspace.name}/file.txt/")
     assert response.status_code == 302
-    assert response.headers["Location"] == f"/workspaces/{workspace_name}/file.txt"
+    assert response.headers["Location"] == f"/workspaces/{tmp_workspace.name}/file.txt"
 
 
 def test_workspace_view_index_no_user(client, tmp_workspace):
-    response = client.get(f"/workspaces/{workspace_name}/")
+    tmp_workspace.mkdir("some_dir")
+    response = client.get(f"/workspaces/{tmp_workspace.name}/")
     assert response.status_code == 403
 
 
 def test_workspace_view_with_directory_no_user(client, tmp_workspace):
-    (tmp_workspace / "some_dir").mkdir()
-    response = client.get(f"/workspaces/{workspace_name}/some_dir/")
+    tmp_workspace.mkdir("some_dir")
+    response = client.get(f"/workspaces/{tmp_workspace.name}/some_dir/")
     assert response.status_code == 403
 
 
 def test_workspace_view_index_no_permission(client_with_user, tmp_workspace):
     forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
-    response = forbidden_client.get(f"/workspaces/{workspace_name}/")
+    response = forbidden_client.get(f"/workspaces/{tmp_workspace.name}/")
     assert response.status_code == 403
 
 
 def test_workspace_view_with_directory_no_permission(client_with_user, tmp_workspace):
-    (tmp_workspace / "some_dir").mkdir()
+    tmp_workspace.mkdir("some_dir")
     forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
-    response = forbidden_client.get(f"/workspaces/{workspace_name}/some_dir/")
+    response = forbidden_client.get(f"/workspaces/{tmp_workspace.name}/some_dir/")
     assert response.status_code == 403
 
 
-def test_workspaces_index_no_user(client, tmp_workspace):
+def test_workspaces_index_no_user(client):
     response = client.get("/workspaces/")
-    assert response.status_code == 200
-    assert list(response.context["container"].workspaces) == []
+    assert response.status_code == 403
 
 
 def test_workspaces_index_shows_workspace_dirs_only(
-    client_with_permission, settings, tmp_workspace
+    client_with_permission, tmp_workspace
 ):
-    (settings.WORKSPACE_DIR / "test1").mkdir()
+    WorkspaceFactory("test1")
     (settings.WORKSPACE_DIR / "file.txt").touch()
     response = client_with_permission.get("/workspaces/")
     assert response.status_code == 200
@@ -132,82 +128,83 @@ def test_workspaces_index_shows_workspace_dirs_only(
     assert "file.txt" not in response.rendered_content
 
 
-def test_workspaces_index_user_permitted_workspaces(
-    client_with_user, settings, tmp_workspace
-):
+def test_workspaces_index_user_permitted_workspaces(client_with_user, tmp_workspace):
     permitted_client = client_with_user({"id": 1, "workspaces": ["test1"]})
-    (settings.WORKSPACE_DIR / "test1").mkdir()
-    (settings.WORKSPACE_DIR / "file.txt").touch()
+    WorkspaceFactory("test1")
+    WorkspaceFactory("test2")
     response = permitted_client.get("/workspaces/")
     workspace_names = {ws.name for ws in response.context["container"].workspaces}
     assert workspace_names == {"test1"}
-    assert "file.txt" not in response.rendered_content
+    assert "test2" not in response.rendered_content
 
 
-def test_request_view_index_no_user(client, tmp_workspace):
-    response = client.get(f"/requests/{workspace_name}/{request_id}/")
+def test_request_view_index_no_user(client, tmp_request):
+    response = client.get(
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/"
+    )
     assert response.status_code == 403
 
 
 def test_request_view_index(client_with_permission, tmp_request):
-    (tmp_request / "file.txt").touch()
-    response = client_with_permission.get(f"/requests/{workspace_name}/{request_id}/")
+    tmp_request.write_file("file.txt")
+    response = client_with_permission.get(
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/"
+    )
     assert "file.txt" in response.rendered_content
 
 
 def test_request_workspace_does_not_exist(client_with_permission):
-    response = client_with_permission.get(f"/requests/bad/{request_id}/")
+    response = client_with_permission.get("/requests/bad/id/")
     assert response.status_code == 404
 
 
 def test_request_id_does_not_exist(client_with_permission, tmp_workspace):
-    response = client_with_permission.get(f"/requests/{workspace_name}/bad_id/")
+    response = client_with_permission.get(f"/requests/{tmp_workspace.name}/bad_id/")
     assert response.status_code == 404
 
 
 def test_request_view_with_directory(client_with_permission, tmp_request):
-    (tmp_request / "some_dir").mkdir()
-    (tmp_request / "some_dir/file.txt").touch()
+    tmp_request.write_file("some_dir/file.txt")
     response = client_with_permission.get(
-        f"/requests/{workspace_name}/{request_id}/some_dir/"
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/some_dir/"
     )
     assert "file.txt" in response.rendered_content
 
 
 def test_request_view_with_file(client_with_permission, tmp_request):
-    (tmp_request / "file.txt").write_text("foobar")
+    tmp_request.write_file("file.txt", "foobar")
     response = client_with_permission.get(
-        f"/requests/{workspace_name}/{request_id}/file.txt"
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/file.txt"
     )
     assert "foobar" in response.rendered_content
 
 
 def test_request_view_with_404(client_with_permission, tmp_request):
     response = client_with_permission.get(
-        f"/requests/{workspace_name}/{request_id}/no_such_file.txt"
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/no_such_file.txt"
     )
     assert response.status_code == 404
 
 
 def test_request_view_redirects_to_directory(client_with_permission, tmp_request):
-    (tmp_request / "some_dir").mkdir()
+    tmp_request.mkdir("some_dir")
     response = client_with_permission.get(
-        f"/requests/{workspace_name}/{request_id}/some_dir"
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/some_dir"
     )
     assert response.status_code == 302
     assert (
         response.headers["Location"]
-        == f"/requests/{workspace_name}/{request_id}/some_dir/"
+        == f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/some_dir/"
     )
 
 
 def test_request_view_redirects_to_file(client_with_permission, tmp_request):
-    (tmp_request / "file.txt").touch()
+    tmp_request.write_file("file.txt")
     response = client_with_permission.get(
-        f"/requests/{workspace_name}/{request_id}/file.txt/"
+        f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/file.txt/"
     )
     assert response.status_code == 302
     assert (
         response.headers["Location"]
-        == f"/requests/{workspace_name}/{request_id}/file.txt"
+        == f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/file.txt"
     )
