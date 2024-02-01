@@ -27,8 +27,6 @@ services:
     extends:
       service: base
     volumes:
-      # use the default dev workdir
-      - ../workdir:/workdir
       - ../workspaces:/workspaces
     # this compose file is only used for production-like testing - so we 
     # don't worry about potentially leaking dummy env vars into actual prod
