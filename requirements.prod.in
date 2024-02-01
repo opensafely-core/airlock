@@ -4,3 +4,4 @@ slippers
 django-extensions
 whitenoise
 gunicorn
+requests

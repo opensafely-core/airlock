@@ -1,0 +1,24 @@
+{
+  "output_checker": {
+    "token": "output_checker",
+    "details": {
+      "username": "output_checker",
+      "fullname": "Output Checker",
+      "output_checker": true,
+      "staff": true,
+      "workspaces": []
+    }
+  },
+  "researcher_1": {
+    "token": "researcher_1",
+    "details": {
+      "username": "researcher_1",
+      "fullname": "Researcher 1",
+      "output_checker": false,
+      "staff": false,
+      "workspaces": [
+        "example-workspace"
+      ]
+    }
+  }
+}

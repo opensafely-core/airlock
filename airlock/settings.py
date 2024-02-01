@@ -14,26 +14,29 @@ import os
 from pathlib import Path
 
 
+_missing_env_var_hint = """\
+If you are running commands locally outside of `just` then you should
+make sure that your `.env` file is being loaded into the environment,
+which you can do in Bash using:
+
+    set -a; source .env; set +a
+
+If you are seeing this error when running via `just` (which should
+automatically load variables from `.env`) then you should check that
+`.env` contains all the variables listed in `dotenv-sample` (which may
+have been updated since `.env` was first created).
+
+If you are seeing this error in production then you haven't configured
+things properly.
+"""
+
+
 def get_env_var(name):
     try:
         return os.environ[name]
     except KeyError:
         raise RuntimeError(
-            f"Missing environment variable: {name}\n"
-            f"\n"
-            f"If you are running commands locally outside of `just` then you should\n"
-            f"make sure that your `.env` file is being loaded into the environment,\n"
-            f"which you can do in Bash using:\n"
-            f"\n"
-            f"    set -a; source .env; set +a\n"
-            f"\n"
-            f"If you are seeing this error when running via `just` (which should\n"
-            f"automatically load variables from `.env`) then you should check that\n"
-            f"`.env` contains all the variables listed in `dotenv-sample` (which may\n"
-            f"have been updated since `.env` was first created).\n"
-            f"\n"
-            f"If you are seeing this error in production then you haven't configured\n"
-            f"things properly."
+            f"Missing environment variable: {name}\n\n{_missing_env_var_hint}"
         )
 
 
@@ -185,4 +188,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # In production we'd expect AIRLOCK_WORKSPACE_DIR to be an absolute path pointing
 # somewhere outside of WORK_DIR
 WORKSPACE_DIR = WORK_DIR / get_env_var("AIRLOCK_WORKSPACE_DIR")
+
 REQUEST_DIR = WORK_DIR / get_env_var("AIRLOCK_REQUEST_DIR")
+
+AIRLOCK_API_ENDPOINT = "https://jobs.opensafely.org/api/v2"
+assert not AIRLOCK_API_ENDPOINT.endswith("/")
+
+AIRLOCK_API_TOKEN = os.environ.get("AIRLOCK_API_TOKEN")
+
+if AIRLOCK_API_TOKEN:  # pragma: no cover
+    AIRLOCK_DEV_USERS_FILE = None
+elif dev_user_file := os.environ.get("AIRLOCK_DEV_USERS_FILE"):
+    AIRLOCK_DEV_USERS_FILE = WORK_DIR / dev_user_file
+else:  # pragma: no cover
+    raise RuntimeError(
+        f"One of AIRLOCK_API_TOKEN or AIRLOCK_DEV_USERS_FILE environment "
+        f"variables must be set.\n\n{_missing_env_var_hint}"
+    )

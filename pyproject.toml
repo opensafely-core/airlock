@@ -17,9 +17,6 @@ lines-after-imports = 2
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "airlock.settings"
-markers = [
-  "playwright: marks tests as using the playwright dependency"
-]
 
 [tool.coverage.run]
 branch = true

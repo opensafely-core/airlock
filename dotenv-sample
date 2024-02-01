@@ -7,3 +7,12 @@ DJANGO_ALLOWED_HOSTS="*"
 AIRLOCK_WORK_DIR=workdir/
 AIRLOCK_WORKSPACE_DIR=workspaces/
 AIRLOCK_REQUEST_DIR=releases/
+
+# This should be set in production but not in development. Job Server staff
+# users can obtain an appropriate token from:
+# https://jobs.opensafely.org/staff/backends/
+AIRLOCK_API_TOKEN=""
+
+# This should be set in development but not in production (and will be ignored
+# in AIRLOCK_API_TOKEN is set)
+AIRLOCK_DEV_USERS_FILE="dev_users.json"
