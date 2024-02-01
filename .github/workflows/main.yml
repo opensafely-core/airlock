@@ -99,12 +99,12 @@ jobs:
             name: airlock-image
             path: /tmp/image
 
-      - name: Import docker image
-        run: gunzip -c /tmp/image/airlock.tar.gz | docker load
+      # - name: Import docker image
+        # run: gunzip -c /tmp/image/airlock.tar.gz | docker load
 
       - name: Build docker image for both prod and dev
         run: |
-            # just docker/build prod
+            just docker/build prod
             # just docker/build dev
 
       - name: Run smoke test on prod
