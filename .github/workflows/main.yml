@@ -39,7 +39,7 @@ jobs:
         run: |
           just test-all
 
-  docker-test:
+  docker-build:
     runs-on: ubuntu-22.04
 
     steps:
@@ -53,29 +53,90 @@ jobs:
             just docker/build prod
             just docker/build dev
 
-      - name: Run unit tests on docker dev image
-        run: |
-          # build docker and run test
-          just docker/test
-
-      - name: Run smoke test on prod
-        run: |
-          just docker/serve prod -d
-          sleep 5
-          just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
-
-      - name: Save docker image
+      - name: Save docker prod image
         run: |
           docker save airlock | gzip > /tmp/airlock.tar.gz
 
-      - name: Upload docker image
+      - name: Upload docker prod image
         uses: actions/upload-artifact@v4
         with:
             name: airlock-image
             path: /tmp/airlock.tar.gz
 
+      - name: Save docker dev image
+        run: |
+          docker save airlock-dev | gzip > /tmp/airlock-dev.tar.gz
+
+      - name: Upload docker dev image
+        uses: actions/upload-artifact@v4
+        with:
+            name: airlock-dev-image
+            path: /tmp/airlock-dev.tar.gz
+
+
+
+  docker-dev-test-all:
+    needs: [docker-build]
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          install-just: true
+
+      - name: Download docker image
+        uses: actions/download-artifact@v4
+        with:
+            name: airlock-dev-image
+            path: /tmp/image
+
+      - name: Import docker image
+        run: gunzip -c /tmp/image/airlock-dev.tar.gz | docker load
+
+      - name: Run unit tests on docker dev image
+        run: |
+          # build docker and run test
+          just docker/test
+
+
+  docker-prod-smoke-test:
+    needs: [docker-build]
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          install-just: true
+ 
+      - name: Download docker image
+        uses: actions/download-artifact@v4
+        with:
+            name: airlock-image
+            path: /tmp/image
+
+      - name: Import docker image
+        run: gunzip -c /tmp/image/airlock.tar.gz | docker load
+
+      - name: create workdir
+        run: |
+            # the prod container is forcibly running as user 10000
+            # so make this world-readable for now so we can unblock next steps
+            sudo touch workdir/db.sqlite3
+            sudo chmod -R ugo+rw workdir/
+
+      - name: Run smoke test on prod
+        run: |
+          SKIP_BUILD=1 just docker/serve prod -d
+          sleep 5
+          just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
+
+
   docker-publish:
-    needs: [check, test, docker-test]
+    needs: [docker-dev-test-all, docker-prod-smoke-test]
 
     runs-on: ubuntu-22.04
 
@@ -101,12 +162,6 @@ jobs:
 
      - name: Import docker image
        run: gunzip -c /tmp/image/airlock.tar.gz | docker load
-
-     - name: Test image we imported from previous job works
-       run: |
-           SKIP_BUILD=1 just docker/serve prod -d
-           sleep 5
-           just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
 
      - name: Publish image
        run: |
