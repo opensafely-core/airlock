@@ -110,5 +110,5 @@ jobs:
       - name: Run smoke test on prod
         run: |
           just docker/serve prod -d
-          # sleep 5
-          # just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
+          sleep 5
+          just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
