@@ -183,3 +183,6 @@ load-example-data: devenv
     request_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_REQUEST_DIR%/}/example-workspace/test-request"
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir
+
+    # Configure user details for local login
+    cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"

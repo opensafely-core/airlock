@@ -18,6 +18,12 @@
   </h1>
 
   {% #card title="Login with Single Use Token" subtitle="Log in from Level 4 environments with a Single Use Token" container=True class="md:col-span-2" %}
+        {% if dev_users_file %}
+          {% #alert variant="warning" title="Development login mode" class="mb-6" dismissible=True %}
+            Use credentials specified in:<br>
+            <small><code>{{ dev_users_file }}</code></small>
+          {% /alert %}
+        {% endif %}
         <form class="gap-2 flex-wrap md:flex-nowrap" method="POST" action="{% url 'login' %}" >
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ next_url }}" />

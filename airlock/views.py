@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
@@ -38,6 +39,7 @@ def login(request):
         {
             "next_url": next_url,
             "token_login_form": token_login_form,
+            "dev_users_file": settings.AIRLOCK_DEV_USERS_FILE,
         },
     )
 

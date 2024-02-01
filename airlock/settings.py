@@ -194,4 +194,14 @@ REQUEST_DIR = WORK_DIR / get_env_var("AIRLOCK_REQUEST_DIR")
 AIRLOCK_API_ENDPOINT = "https://jobs.opensafely.org/api/v2"
 assert not AIRLOCK_API_ENDPOINT.endswith("/")
 
-AIRLOCK_API_TOKEN = get_env_var("AIRLOCK_API_TOKEN")
+AIRLOCK_API_TOKEN = os.environ.get("AIRLOCK_API_TOKEN")
+
+if AIRLOCK_API_TOKEN:  # pragma: no cover
+    AIRLOCK_DEV_USERS_FILE = None
+elif dev_user_file := os.environ.get("AIRLOCK_DEV_USERS_FILE"):
+    AIRLOCK_DEV_USERS_FILE = WORK_DIR / dev_user_file
+else:  # pragma: no cover
+    raise RuntimeError(
+        f"One of AIRLOCK_API_TOKEN or AIRLOCK_DEV_USERS_FILE environment "
+        f"variables must be set.\n\n{_missing_env_var_hint}"
+    )
