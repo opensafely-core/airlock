@@ -93,6 +93,15 @@ jobs:
         with:
           install-just: true
 
+      - name: Download docker image
+        uses: actions/download-artifact@v4
+        with:
+            name: airlock-image
+            path: /tmp/image
+
+      - name: Import docker image
+        run: gunzip -c /tmp/image/airlock.tar.gz | docker load
+
       - name: Build docker image for both prod and dev
         run: |
             just docker/build prod
