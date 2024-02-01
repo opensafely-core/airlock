@@ -10,8 +10,8 @@ from airlock import login_api
 from airlock.workspace_api import (
     ReleaseRequest,
     Workspace,
-    WorkspacesRoot,
-    get_releases_for_user,
+    get_requests_for_user,
+    get_workspaces_for_user,
 )
 
 
@@ -74,6 +74,7 @@ def index(request):
     return TemplateResponse(request, "index.html")
 
 
+# TODO: this should probably be replaced with @login_required's once we have login
 def validate_user(request):
     """Ensure we have a valid user."""
     if request.user is None:
@@ -104,7 +105,7 @@ def validate_output_request(user, workspace, request_id):
 
 def workspace_index_view(request):
     user = validate_user(request)
-    workspaces = list(WorkspacesRoot(user).workspaces)
+    workspaces = get_workspaces_for_user(user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
@@ -133,7 +134,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
 
 def request_index_view(request):
-    requests = list(get_releases_for_user(request.user))
+    user = validate_user(request)
+    requests = get_requests_for_user(user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
 

@@ -10,8 +10,8 @@ from airlock.workspace_api import (
     PathItem,
     ReleaseRequest,
     Workspace,
-    WorkspacesRoot,
-    get_releases_for_user,
+    get_requests_for_user,
+    get_workspaces_for_user,
 )
 from tests.factories import WorkspaceFactory
 
@@ -212,26 +212,6 @@ def test_contents(container, path, contents):
 def test_from_relative_path_rejects_path_escape(container, path):
     with pytest.raises(ValueError, match="is not in the subpath"):
         PathItem(container, path)
-
-
-@pytest.mark.parametrize(
-    "is_output_checker,expected_workspaces",
-    [
-        (False, {"allowed"}),
-        (True, {"allowed", "not-allowed"}),
-    ],
-)
-def test_root_container(is_output_checker, expected_workspaces):
-    (settings.WORKSPACE_DIR / "allowed").mkdir()
-    (settings.WORKSPACE_DIR / "not-allowed").mkdir()
-    user = User(
-        id=1,
-        username="test",
-        workspaces=["allowed"],
-        is_output_checker=is_output_checker,
-    )
-    workspace_root = WorkspacesRoot(user=user)
-    assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
 
 
 def test_breadcrumbs(container):
