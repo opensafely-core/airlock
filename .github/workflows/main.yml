@@ -104,7 +104,7 @@ jobs:
 
       - name: Build docker image for both prod and dev
         run: |
-            just docker/build prod
+            # just docker/build prod
             just docker/build dev
 
       - name: Run unit tests on docker dev image
