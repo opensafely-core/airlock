@@ -14,7 +14,8 @@ def test_index(client):
 
 @pytest.fixture
 def client_with_user(client):
-    def _client(session_user=None):
+    def _client(session_user):
+        session_user = {"id": 1, "username": "test", **session_user}
         session = client.session
         session["user"] = session_user
         session.save()
@@ -25,7 +26,7 @@ def client_with_user(client):
 
 @pytest.fixture
 def client_with_permission(client_with_user):
-    output_checker = {"id": 1, "is_output_checker": True}
+    output_checker = {"is_output_checker": True}
     yield client_with_user(output_checker)
 
 
@@ -100,14 +101,14 @@ def test_workspace_view_with_directory_no_user(client, tmp_workspace):
 
 
 def test_workspace_view_index_no_permission(client_with_user, tmp_workspace):
-    forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
+    forbidden_client = client_with_user({"workspaces": ["another-workspace"]})
     response = forbidden_client.get(f"/workspaces/{tmp_workspace.name}/")
     assert response.status_code == 403
 
 
 def test_workspace_view_with_directory_no_permission(client_with_user, tmp_workspace):
     tmp_workspace.mkdir("some_dir")
-    forbidden_client = client_with_user({"id": 1, "workspaces": ["another-workspace"]})
+    forbidden_client = client_with_user({"workspaces": ["another-workspace"]})
     response = forbidden_client.get(f"/workspaces/{tmp_workspace.name}/some_dir/")
     assert response.status_code == 403
 
@@ -129,7 +130,7 @@ def test_workspaces_index_shows_workspace_dirs_only(
 
 
 def test_workspaces_index_user_permitted_workspaces(client_with_user, tmp_workspace):
-    permitted_client = client_with_user({"id": 1, "workspaces": ["test1"]})
+    permitted_client = client_with_user({"workspaces": ["test1"]})
     WorkspaceFactory("test1")
     WorkspaceFactory("test2")
     response = permitted_client.get("/workspaces/")

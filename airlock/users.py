@@ -11,6 +11,7 @@ class User:
     """
 
     id: int
+    username: str
     workspaces: Tuple = dataclasses.field(default_factory=tuple)
     is_output_checker: bool = dataclasses.field(default=False)
 
@@ -21,10 +22,13 @@ class User:
             return
         workspaces = tuple(user.get("workspaces", tuple()))
         is_output_checker = user.get("is_output_checker", False)
-        return cls(user["id"], workspaces, is_output_checker)
+        return cls(user["id"], user["username"], workspaces, is_output_checker)
 
     def has_permission(self, workspace_name):
         return (
             # Output checkers can view all workspaces
             self.is_output_checker or workspace_name in self.workspaces
         )
+
+    def is_authenticated(self):
+        return True

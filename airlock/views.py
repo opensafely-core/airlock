@@ -2,9 +2,31 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
 
-from airlock.users import User
 from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
+
+
+def login(request):
+    """
+    Temporary login view that pretends the current user is an
+    output-checker
+    """
+    request.session["user"] = {
+        "id": 1,
+        "username": "temp_output_checker",
+        "is_output_checker": True,
+    }
+    return redirect(reverse("workspace_index"))
+
+
+def logout(request):
+    """
+    User information is held in the session. On logout, remove
+    session data and redirect to the home page.
+    """
+    request.session.flush()
+    return redirect(reverse("home"))
 
 
 def index(request):
@@ -13,10 +35,9 @@ def index(request):
 
 def validate_user(request):
     """Ensure we have a valid user."""
-    user = User.from_session(request.session)
-    if user is None:
+    if request.user is None:
         raise PermissionDenied()
-    return user
+    return request.user
 
 
 def validate_workspace(user, workspace_name):
