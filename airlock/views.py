@@ -1,23 +1,57 @@
+from django import forms
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
+from airlock import login_api
 from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
 
 
+class TokenLoginForm(forms.Form):
+    user = forms.CharField()
+    token = forms.CharField()
+
+
 def login(request):
-    """
-    Temporary login view that pretends the current user is an
-    output-checker
-    """
-    request.session["user"] = {
-        "id": 1,
-        "username": "temp_output_checker",
-        "is_output_checker": True,
-    }
-    return redirect(reverse("workspace_index"))
+    default_next_url = reverse("workspace_index")
+
+    if request.method != "POST":
+        next_url = request.GET.get("next", default_next_url)
+        token_login_form = TokenLoginForm()
+    else:
+        next_url = request.POST.get("next", default_next_url)
+        token_login_form = TokenLoginForm(request.POST)
+        user_data = get_user_data_or_set_form_errors(token_login_form)
+        # If `user_data` is None then the form object will have the relevant errors
+        if user_data is not None:
+            # TODO: the current code expects an `id` field but the API doesn't return
+            # one; we should work out what we're doing here
+            user_data["id"] = user_data["username"]
+            request.session["user"] = user_data
+            return redirect(next_url)
+
+    return TemplateResponse(
+        request,
+        "login.html",
+        {
+            "next_url": next_url,
+            "token_login_form": token_login_form,
+        },
+    )
+
+
+def get_user_data_or_set_form_errors(form):
+    if not form.is_valid():
+        return
+    try:
+        return login_api.get_user_data(
+            user=form.cleaned_data["user"],
+            token=form.cleaned_data["token"],
+        )
+    except login_api.LoginError as exc:
+        form.add_error("token", str(exc))
 
 
 def logout(request):
