@@ -77,6 +77,9 @@ class Workspace(Container):
     def root(self):
         return settings.WORKSPACE_DIR / self.name
 
+    def get_id(self):
+        return self.name
+
     def url(self):
         return reverse("workspace_home", kwargs={"workspace_name": self.name})
 
@@ -95,6 +98,9 @@ class ReleaseRequest(Container):
 
     def root(self):
         return settings.REQUEST_DIR / self.workspace.name / self.request_id
+
+    def get_id(self):
+        return self.request_id
 
     def create(self):
         self.root().mkdir(exist_ok=True, parents=True)

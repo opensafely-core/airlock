@@ -22,7 +22,7 @@
 
 {% #card title=title custom_button=action_button %}  
 {% #breadcrumbs %}
-    {% breadcrumb title=workspace.name %}
+    {% breadcrumb title=path_item.container.get_id url=path_item.container.url %}
     {% for crumb in path_item.breadcrumbs %}
         {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
