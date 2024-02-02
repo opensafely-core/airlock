@@ -159,7 +159,7 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "context": "request",
         "title": f"Request {request_id} for workspace {workspace_name}",
         # TODO file these in from user/models
-        "is_author": request.GET.get("is_author", False),
+        "is_author": request_id.endswith(request.user.username),
         "output_checker": request.user.output_checker,
     }
 
@@ -168,13 +168,12 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
 @require_http_methods(["POST"])
 def request_add_file(request, workspace_name):
-    user = validate_user(request)
-    workspace = validate_workspace(user, workspace_name)
+    workspace = validate_workspace(request.user, workspace_name)
     path = workspace.get_path(request.POST["path"])
     if not path.exists():
         raise Http404()
 
-    release_request = workspace.get_current_request(user, create=True)
+    release_request = workspace.get_current_request(request.user, create=True)
     release_request.add_file(path.relpath)
 
     # redirect to this just added file
