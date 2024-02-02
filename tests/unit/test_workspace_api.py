@@ -37,16 +37,25 @@ def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
     "workspaces, output_checker, expected",
     [
         ([], False, []),
-        (["allowed"], False, [("allowed", "request1")]),
-        ([], True, [("allowed", "request1"), ("not-allowed", "request2")]),
-        (["allowed", "notexist"], False, [("allowed", "request1")]),
+        (["allowed"], False, [("allowed", "r1-test")]),
+        (
+            [],
+            True,
+            [
+                ("allowed", "r1-test"),
+                ("not-allowed", "r3-test"),
+                ("allowed", "r2-otheruser"),
+            ],
+        ),
+        (["allowed", "notexist"], False, [("allowed", "r1-test")]),
         (["notexist", "notexist"], False, []),
         (["no-request-dir", "notexist"], False, []),
     ],
 )
 def test_get_requests_for_user(workspaces, output_checker, expected):
-    WorkspaceFactory("allowed").create_request("request1")
-    WorkspaceFactory("not-allowed").create_request("request2")
+    WorkspaceFactory("allowed").create_request("r1-test")
+    WorkspaceFactory("allowed").create_request("r2-otheruser")
+    WorkspaceFactory("not-allowed").create_request("r3-test")
     WorkspaceFactory("no-request-dir")
     expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
     user = User(1, "test", workspaces, output_checker)
@@ -61,13 +70,46 @@ def test_workspace_container():
     assert workspace.get_url("foo/bar").endswith("foo/bar")
 
 
+def test_workspace_get_current_request_for_user():
+    wf = WorkspaceFactory("workspace")
+    workspace = wf.get()
+    user = User(1, "testuser", [], True)
+    other_user = User(2, "otheruser", [], True)
+
+    assert workspace.get_current_request(user) is None
+
+    wf.create_request_for_user(other_user)
+    assert workspace.get_current_request(user) is None
+
+    request = workspace.get_current_request(user, create=True)
+    assert request.workspace.name == "workspace"
+    assert request.request_id.endswith("workspace-test-testuser")
+
+    # reach around an simulate 2 active requests for same user
+    (settings.REQUEST_DIR / "workspace/other-request-testuser").mkdir(parents=True)
+
+    request = workspace.get_current_request(user)
+    assert request.workspace.name == "workspace"
+    assert request.request_id == "other-request-testuser"
+
+
+def test_workspace_create_new_request():
+    wf = WorkspaceFactory("workspace")
+    workspace = wf.get()
+    user = User(1, "testuser", [], True)
+
+    request = workspace.create_new_request(user)
+    assert request.workspace.name == "workspace"
+    assert request.request_id.endswith("testuser")
+
+
 def test_request_container():
     workspace = Workspace("test-workspace")
 
     output_request = ReleaseRequest(workspace, "test-request")
 
     assert not output_request.exists()
-    output_request.create()
+    output_request.ensure_request_dir()
     assert output_request.exists()
 
     assert output_request.root() == settings.REQUEST_DIR / Path(

@@ -18,11 +18,14 @@
     {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="danger" %}Release Files{% /button %}
     </form>
   {% endif %}
+  {% if context == "request" %}
+  {% #button type="link" href=workspace.url variant="success" %}Workspace Home{% /button %}
+  {% endif %}
 {% endfragment %}
 
 {% #card title=title custom_button=action_button %}  
 {% #breadcrumbs %}
-    {% breadcrumb title=workspace.name %}
+    {% breadcrumb title=path_item.container.get_id url=path_item.container.url %}
     {% for crumb in path_item.breadcrumbs %}
         {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
@@ -80,10 +83,9 @@
 
       {% fragment as add_button %}
         {% if context == "workspace" %}
-          <form action="" method="POST">
+          <form action="{{ add_file_url }}" method="POST">
             {% csrf_token %}
-            <input type=hidden name="file" value="{{ path_item.relpath }}"/>
-            <input type=hidden name="workspace" value="{{ workspace.name }}"/>
+            <input type=hidden name="path" value="{{ path_item.relpath }}"/>
             {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Output Request{% /button %}
           </form>
         {% elif is_author %}

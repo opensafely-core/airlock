@@ -1,8 +1,20 @@
 import dataclasses
 import pathlib
+import shutil
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
+
+
+def ensure_parent_dir(path):
+    path.parent.mkdir(exist_ok=True, parents=True)
+
+
+def generate_request_id(workspace_name, user):
+    # attempt globally unique but human readable id
+    ts = timezone.now().strftime("%Y-%m-%d")
+    return f"{ts}-{workspace_name}-{settings.BACKEND}-{user.username}"
 
 
 def get_workspaces_for_user(user):
@@ -26,7 +38,7 @@ def get_workspaces_for_user(user):
 
 
 def get_requests_for_user(user):
-    """Get all ReleaseRequests  for this user"""
+    """Get all ReleaseRequests for this user"""
 
     requests = []
 
@@ -44,9 +56,13 @@ def get_requests_for_user(user):
         if not requests_dir.exists():
             continue
 
-        releases = [r.name for r in requests_dir.iterdir() if r.is_dir()]
-        for release_id in releases:
-            requests.append(ReleaseRequest(workspace, release_id))
+        releases = [r for r in requests_dir.iterdir() if r.is_dir()]
+        if not user.output_checker:
+            # limit to just your requests if not output checker
+            releases = [r for r in releases if r.name.endswith(user.username)]
+
+        for release_dir in releases:
+            requests.append(ReleaseRequest(workspace, release_dir.name))
 
     return requests
 
@@ -77,6 +93,9 @@ class Workspace(Container):
     def root(self):
         return settings.WORKSPACE_DIR / self.name
 
+    def get_id(self):
+        return self.name
+
     def url(self):
         return reverse("workspace_home", kwargs={"workspace_name": self.name})
 
@@ -84,6 +103,39 @@ class Workspace(Container):
         return reverse(
             "workspace_view", kwargs={"workspace_name": self.name, "path": relpath}
         )
+
+    def get_current_request(self, user, create=False):
+        """Get the current request for user.
+
+        If none are found, and create is True, then create one and return it.
+        """
+        releases_root = settings.REQUEST_DIR / self.name
+        releases_root.mkdir(exist_ok=True)
+
+        user_releases = [
+            r
+            for r in releases_root.iterdir()
+            if r.is_dir() and r.name.endswith(user.username)
+            # TODO filter for request status
+        ]
+
+        if len(user_releases) > 1:
+            # TODO: error here. For now, just return the latest request until we've got request status
+            latest = max((r.stat().st_ctime, r) for r in user_releases)
+            return ReleaseRequest(self, latest[1].name)
+        elif len(user_releases) == 1:
+            return ReleaseRequest(self, user_releases[0].name)
+
+        if create:
+            return self.create_new_request(user)
+
+        return None
+
+    def create_new_request(self, user):
+        release_id = generate_request_id(self.name, user)
+        release_request = ReleaseRequest(self, release_id)
+        release_request.ensure_request_dir()
+        return release_request
 
 
 @dataclasses.dataclass(frozen=True)
@@ -96,7 +148,10 @@ class ReleaseRequest(Container):
     def root(self):
         return settings.REQUEST_DIR / self.workspace.name / self.request_id
 
-    def create(self):
+    def get_id(self):
+        return self.request_id
+
+    def ensure_request_dir(self):
         self.root().mkdir(exist_ok=True, parents=True)
 
     def url(self):
@@ -117,6 +172,12 @@ class ReleaseRequest(Container):
                 "path": relpath,
             },
         )
+
+    def add_file(self, relpath):
+        src = self.workspace.get_path(relpath)._absolute_path()
+        dst = self.get_path(relpath)._absolute_path()
+        ensure_parent_dir(dst)
+        shutil.copy(src, dst)
 
 
 @dataclasses.dataclass(frozen=True)

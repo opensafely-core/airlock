@@ -5,6 +5,7 @@ from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
 from airlock.workspace_api import (
@@ -128,7 +129,10 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "workspace": workspace,
             "path_item": path_item,
             "context": "workspace",
-            "title": f"{workspace_name} workspace files",
+            "title": f"Files for workspace {workspace_name}",
+            "add_file_url": reverse(
+                "request_add_file", kwargs={"workspace_name": workspace_name}
+            ),
         },
     )
 
@@ -158,10 +162,25 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "output_request": output_request,
         "path_item": path_item,
         "context": "request",
-        "title": f"{request_id} request files",
+        "title": f"Request {request_id} for workspace {workspace_name}",
         # TODO file these in from user/models
         "is_author": request.GET.get("is_author", False),
         "output_checker": user.output_checker,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
+
+
+@require_http_methods(["POST"])
+def request_add_file(request, workspace_name):
+    user = validate_user(request)
+    workspace = validate_workspace(user, workspace_name)
+    path = workspace.get_path(request.POST["path"])
+    if not path.exists():
+        raise Http404()
+
+    release_request = workspace.get_current_request(user, create=True)
+    release_request.add_file(path.relpath)
+
+    # redirect to this just added file
+    return redirect(release_request.get_url(path.relpath))

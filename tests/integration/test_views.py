@@ -1,5 +1,6 @@
 import pytest
 
+from airlock.users import User
 from tests.factories import WorkspaceFactory
 
 
@@ -200,11 +201,12 @@ def test_request_view_redirects_to_file(client_with_permission, tmp_request):
 
 
 def test_requests_index_user_permitted_requests(client_with_user):
-    WorkspaceFactory("test1").create_request("test-request")
     permitted_client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(permitted_client.session)
+    rf = WorkspaceFactory("test1").create_request_for_user(user)
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
-    assert request_ids == {"test-request"}
+    assert request_ids == {rf.request_id}
 
 
 def test_requests_index_user_output_checker(client_with_user):
@@ -214,3 +216,45 @@ def test_requests_index_user_output_checker(client_with_user):
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
     assert request_ids == {"test-request1", "test-request2"}
+
+
+def test_requests_add_file_creates(client_with_user):
+    client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(client.session)
+
+    wf = WorkspaceFactory("test1")
+    wf.write_file("test/path.txt")
+    workspace = wf.get()
+
+    assert workspace.get_current_request(user) is None
+
+    response = client.post("/requests/test1/add", data={"path": "test/path.txt"})
+    assert response.status_code == 302
+
+    request = workspace.get_current_request(user)
+    assert request.request_id.endswith(user.username)
+    assert request.get_path("test/path.txt").exists()
+
+
+def test_requests_add_file_request_already_exists(client_with_user):
+    client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(client.session)
+
+    wf = WorkspaceFactory("test1")
+    workspace = wf.get()
+    wf.write_file("test/path.txt")
+    request = wf.create_request_for_user(user).get()
+
+    response = client.post("/requests/test1/add", data={"path": "test/path.txt"})
+    assert response.status_code == 302
+    assert workspace.get_current_request(user) == request
+    assert request.get_path("test/path.txt").exists()
+
+
+def test_requests_add_file_request_path_does_not_exist(client_with_user):
+    client = client_with_user({"workspaces": ["test1"]})
+    WorkspaceFactory("test1")
+
+    response = client.post("/requests/test1/add", data={"path": "test/path.txt"})
+
+    assert response.status_code == 404

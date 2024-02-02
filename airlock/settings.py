@@ -206,3 +206,6 @@ else:  # pragma: no cover
         f"One of AIRLOCK_API_TOKEN or AIRLOCK_DEV_USERS_FILE environment "
         f"variables must be set.\n\n{_missing_env_var_hint}"
     )
+
+# BACKEND is global env var on backends
+BACKEND = os.environ.get("BACKEND", "test")
