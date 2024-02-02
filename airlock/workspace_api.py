@@ -4,7 +4,51 @@ import pathlib
 from django.conf import settings
 from django.urls import reverse
 
-from airlock.users import User
+
+def get_workspaces_for_user(user):
+    """Get all Workspaces for user."""
+    workspaces = []
+    if user.output_checker:
+        workspace_names = [
+            d.name for d in settings.WORKSPACE_DIR.iterdir() if d.is_dir()
+        ]
+    else:
+        workspace_names = user.workspaces
+
+    for workspace_name in workspace_names:
+        workspace = Workspace(workspace_name)
+        if not workspace.exists():
+            continue
+
+        workspaces.append(workspace)
+
+    return workspaces
+
+
+def get_requests_for_user(user):
+    """Get all ReleaseRequests  for this user"""
+
+    requests = []
+
+    if user.output_checker:
+        workspace_names = [d.name for d in settings.REQUEST_DIR.iterdir() if d.is_dir()]
+    else:
+        workspace_names = user.workspaces
+
+    for workspace_name in workspace_names:
+        workspace = Workspace(workspace_name)
+        if not workspace.exists():
+            continue
+
+        requests_dir = settings.REQUEST_DIR / workspace_name
+        if not requests_dir.exists():
+            continue
+
+        releases = [r.name for r in requests_dir.iterdir() if r.is_dir()]
+        for release_id in releases:
+            requests.append(ReleaseRequest(workspace, release_id))
+
+    return requests
 
 
 class Container:
@@ -25,22 +69,6 @@ class Container:
 
 
 @dataclasses.dataclass(frozen=True)
-class WorkspacesRoot(Container):
-    """This container represents settings.WORKSPACE_DIR"""
-
-    user: User
-
-    def root(self):
-        return settings.WORKSPACE_DIR
-
-    @property
-    def workspaces(self):
-        for child in self.get_path("").children():
-            if child.is_directory() and self.user.has_permission(child.name()):
-                yield Workspace(child.name())
-
-
-@dataclasses.dataclass(frozen=True)
 class Workspace(Container):
     """These are containers that must live under the settings.WORKSPACE_DIR"""
 
@@ -48,9 +76,6 @@ class Workspace(Container):
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
-
-    def index_url(self):
-        return reverse("workspace_index")
 
     def url(self):
         return reverse("workspace_home", kwargs={"workspace_name": self.name})
@@ -73,6 +98,15 @@ class ReleaseRequest(Container):
 
     def create(self):
         self.root().mkdir(exist_ok=True, parents=True)
+
+    def url(self):
+        return reverse(
+            "request_home",
+            kwargs={
+                "workspace_name": self.workspace.name,
+                "request_id": self.request_id,
+            },
+        )
 
     def get_url(self, relpath):
         return reverse(

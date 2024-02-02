@@ -25,6 +25,12 @@ urlpatterns = [
     path("login/", airlock.views.login, name="login"),
     path("logout/", airlock.views.logout, name="logout"),
     path("ui-components/", assets.views.components),
+    # workspaces
+    path(
+        "workspaces/",
+        airlock.views.workspace_index_view,
+        name="workspace_index",
+    ),
     path(
         "workspaces/<str:workspace_name>/",
         airlock.views.workspace_view,
@@ -35,10 +41,11 @@ urlpatterns = [
         airlock.views.workspace_view,
         name="workspace_view",
     ),
+    # requests
     path(
-        "workspaces/",
-        airlock.views.workspace_index_view,
-        name="workspace_index",
+        "requests/",
+        airlock.views.request_index_view,
+        name="request_index",
     ),
     path(
         "requests/<str:workspace_name>/<str:request_id>/",

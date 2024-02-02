@@ -10,8 +10,47 @@ from airlock.workspace_api import (
     PathItem,
     ReleaseRequest,
     Workspace,
-    WorkspacesRoot,
+    get_requests_for_user,
+    get_workspaces_for_user,
 )
+from tests.factories import WorkspaceFactory
+
+
+@pytest.mark.parametrize(
+    "user_workspaces,output_checker,expected",
+    [
+        ([], False, []),
+        (["allowed"], False, [Workspace("allowed")]),
+        ([], True, [Workspace("allowed"), Workspace("not-allowed")]),
+        (["allowed", "notexist"], False, [Workspace("allowed")]),
+    ],
+)
+def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
+    WorkspaceFactory("allowed")
+    WorkspaceFactory("not-allowed")
+
+    user = User(1, "test", user_workspaces, output_checker)
+    assert set(get_workspaces_for_user(user)) == set(expected)
+
+
+@pytest.mark.parametrize(
+    "workspaces, output_checker, expected",
+    [
+        ([], False, []),
+        (["allowed"], False, [("allowed", "request1")]),
+        ([], True, [("allowed", "request1"), ("not-allowed", "request2")]),
+        (["allowed", "notexist"], False, [("allowed", "request1")]),
+        (["notexist", "notexist"], False, []),
+        (["no-request-dir", "notexist"], False, []),
+    ],
+)
+def test_get_requests_for_user(workspaces, output_checker, expected):
+    WorkspaceFactory("allowed").create_request("request1")
+    WorkspaceFactory("not-allowed").create_request("request2")
+    WorkspaceFactory("no-request-dir")
+    expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
+    user = User(1, "test", workspaces, output_checker)
+    assert set(get_requests_for_user(user)) == expected_requests
 
 
 def test_workspace_container():
@@ -173,26 +212,6 @@ def test_contents(container, path, contents):
 def test_from_relative_path_rejects_path_escape(container, path):
     with pytest.raises(ValueError, match="is not in the subpath"):
         PathItem(container, path)
-
-
-@pytest.mark.parametrize(
-    "is_output_checker,expected_workspaces",
-    [
-        (False, {"allowed"}),
-        (True, {"allowed", "not-allowed"}),
-    ],
-)
-def test_root_container(is_output_checker, expected_workspaces):
-    (settings.WORKSPACE_DIR / "allowed").mkdir()
-    (settings.WORKSPACE_DIR / "not-allowed").mkdir()
-    user = User(
-        id=1,
-        username="test",
-        workspaces=["allowed"],
-        is_output_checker=is_output_checker,
-    )
-    workspace_root = WorkspacesRoot(user=user)
-    assert {ws.name for ws in workspace_root.workspaces} == expected_workspaces
 
 
 def test_breadcrumbs(container):

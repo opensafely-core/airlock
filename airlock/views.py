@@ -7,7 +7,12 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 
 from airlock import login_api
-from airlock.workspace_api import ReleaseRequest, Workspace, WorkspacesRoot
+from airlock.workspace_api import (
+    ReleaseRequest,
+    Workspace,
+    get_requests_for_user,
+    get_workspaces_for_user,
+)
 
 
 class TokenLoginForm(forms.Form):
@@ -69,6 +74,7 @@ def index(request):
     return TemplateResponse(request, "index.html")
 
 
+# TODO: this should probably be replaced with @login_required's once we have login
 def validate_user(request):
     """Ensure we have a valid user."""
     if request.user is None:
@@ -99,13 +105,8 @@ def validate_output_request(user, workspace, request_id):
 
 def workspace_index_view(request):
     user = validate_user(request)
-    return TemplateResponse(
-        request,
-        "file_browser/index.html",
-        {
-            "container": WorkspacesRoot(user=user),
-        },
-    )
+    workspaces = get_workspaces_for_user(user)
+    return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
@@ -132,6 +133,12 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
 
+def request_index_view(request):
+    user = validate_user(request)
+    requests = get_requests_for_user(user)
+    return TemplateResponse(request, "requests.html", {"requests": requests})
+
+
 def request_view(request, workspace_name: str, request_id: str, path: str = ""):
     user = validate_user(request)
     workspace = validate_workspace(user, workspace_name)
@@ -154,7 +161,7 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "title": f"{request_id} request files",
         # TODO file these in from user/models
         "is_author": request.GET.get("is_author", False),
-        "is_output_checker": user.is_output_checker,
+        "output_checker": user.output_checker,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)

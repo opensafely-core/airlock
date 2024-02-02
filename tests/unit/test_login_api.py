@@ -15,7 +15,7 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
                 "test_user": {
                     "token": "foo bar baz",
                     "details": {
-                        "is_output_checker": True,
+                        "output_checker": True,
                     },
                 },
             }
@@ -23,7 +23,7 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
     )
 
     assert login_api.get_user_data("test_user", "foo bar baz") == {
-        "is_output_checker": True
+        "output_checker": True
     }
 
 

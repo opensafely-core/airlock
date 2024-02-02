@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% #card title="Requests for "|add:request.user.username %}
+  {% #list_group %}
+    {% for request in requests %} 
+    {% #list_group_item href=request.url %}{{ request.request_id }} ({{ request.workspace.name }}){% /list_group_item %}
+    {% endfor %}
+  {% /list_group %}
+{% /card %}
+{% endblock content %}
