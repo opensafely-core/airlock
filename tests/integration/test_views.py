@@ -1,5 +1,6 @@
 import pytest
 
+from airlock.users import User
 from tests.factories import WorkspaceFactory
 
 
@@ -200,11 +201,12 @@ def test_request_view_redirects_to_file(client_with_permission, tmp_request):
 
 
 def test_requests_index_user_permitted_requests(client_with_user):
-    WorkspaceFactory("test1").create_request("test-request")
     permitted_client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(permitted_client.session)
+    rf = WorkspaceFactory("test1").create_request_for_user(user)
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
-    assert request_ids == {"test-request"}
+    assert request_ids == {rf.request_id}
 
 
 def test_requests_index_user_output_checker(client_with_user):
