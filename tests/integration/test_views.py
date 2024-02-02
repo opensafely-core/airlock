@@ -90,13 +90,13 @@ def test_workspace_view_redirects_to_file(client_with_permission, tmp_workspace)
 def test_workspace_view_index_no_user(client, tmp_workspace):
     tmp_workspace.mkdir("some_dir")
     response = client.get(f"/workspaces/{tmp_workspace.name}/")
-    assert response.status_code == 403
+    assert response.status_code == 302
 
 
 def test_workspace_view_with_directory_no_user(client, tmp_workspace):
     tmp_workspace.mkdir("some_dir")
     response = client.get(f"/workspaces/{tmp_workspace.name}/some_dir/")
-    assert response.status_code == 403
+    assert response.status_code == 302
 
 
 def test_workspace_view_index_no_permission(client_with_user, tmp_workspace):
@@ -114,7 +114,7 @@ def test_workspace_view_with_directory_no_permission(client_with_user, tmp_works
 
 def test_workspaces_index_no_user(client):
     response = client.get("/workspaces/")
-    assert response.status_code == 403
+    assert response.status_code == 302
 
 
 def test_workspaces_index_user_permitted_workspaces(client_with_user, tmp_workspace):
@@ -131,7 +131,7 @@ def test_request_view_index_no_user(client, tmp_request):
     response = client.get(
         f"/requests/{tmp_request.workspace}/{tmp_request.request_id}/"
     )
-    assert response.status_code == 403
+    assert response.status_code == 302
 
 
 def test_request_view_index(client_with_permission, tmp_request):

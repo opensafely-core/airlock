@@ -15,11 +15,17 @@ from airlock.workspace_api import (
 )
 
 
+def login_exempt(view):
+    view.login_exempt = True
+    return view
+
+
 class TokenLoginForm(forms.Form):
     user = forms.CharField()
     token = forms.CharField()
 
 
+@login_exempt
 def login(request):
     default_next_url = reverse("workspace_index")
 
@@ -70,16 +76,9 @@ def logout(request):
     return redirect(reverse("home"))
 
 
+@login_exempt  # for now
 def index(request):
     return TemplateResponse(request, "index.html")
-
-
-# TODO: this should probably be replaced with @login_required's once we have login
-def validate_user(request):
-    """Ensure we have a valid user."""
-    if request.user is None:
-        raise PermissionDenied()
-    return request.user
 
 
 def validate_workspace(user, workspace_name):
@@ -104,14 +103,12 @@ def validate_output_request(user, workspace, request_id):
 
 
 def workspace_index_view(request):
-    user = validate_user(request)
-    workspaces = get_workspaces_for_user(user)
+    workspaces = get_workspaces_for_user(request.user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
-    user = validate_user(request)
-    workspace = validate_workspace(user, workspace_name)
+    workspace = validate_workspace(request.user, workspace_name)
     path_item = workspace.get_path(path)
 
     if not path_item.exists():
@@ -134,15 +131,13 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
 
 def request_index_view(request):
-    user = validate_user(request)
-    requests = get_requests_for_user(user)
+    requests = get_requests_for_user(request.user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
 
 def request_view(request, workspace_name: str, request_id: str, path: str = ""):
-    user = validate_user(request)
-    workspace = validate_workspace(user, workspace_name)
-    output_request = validate_output_request(user, workspace, request_id)
+    workspace = validate_workspace(request.user, workspace_name)
+    output_request = validate_output_request(request.user, workspace, request_id)
 
     path_item = output_request.get_path(path)
 
@@ -161,7 +156,7 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "title": f"{request_id} request files",
         # TODO file these in from user/models
         "is_author": request.GET.get("is_author", False),
-        "output_checker": user.output_checker,
+        "output_checker": request.user.output_checker,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
