@@ -153,6 +153,13 @@ LABEL org.opencontainers.image.revision=$GITREF
 # 10000 corresponds to jobrunner user in backend-server
 ARG USERID=10000
 ARG GROUPID=10000
+
+# create workdir with permissions that the jobrunner user can access
+# this can be used for prod-like tests, but persistent storage should be 
+# mounted for actual production
+RUN mkdir /workdir \
+ && chown ${USERID}:${GROUPID} /workdir
+
 USER ${USERID}:${GROUPID}
 
 ##################################################
