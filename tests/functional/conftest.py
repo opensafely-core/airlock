@@ -29,51 +29,48 @@ def playwright_install(request):
         subprocess.run(command, check=True)
 
 
-TEST_USERS = {
-    "test_output_checker": {
-        "id": "test_output_checker",
-        "username": "test_output_checker",
-        "workspaces": [],
-        "output_checker": True,
-    },
-    "test_researcher": {
-        "id": "test_researcher",
-        "username": "test_researcher",
-        "workspaces": ["test-dir1"],
-        "output_checker": False,
-    },
-}
-
-
-@pytest.fixture
-def login_as_user(live_server, context):
+def login_as_user(live_server, context, user_dict):
     """
-    Fixture that creates a session with relevant user data and
+    Creates a session with relevant user data and
     sets the session cookie.
     """
-
-    def _login(username):
-        session_store = Session.get_session_store_class()()
-        session_store["user"] = TEST_USERS[username]
-        session_store.save()
-        context.add_cookies(
-            [
-                {
-                    "name": settings.SESSION_COOKIE_NAME,
-                    "value": session_store._session_key,
-                    "url": live_server.url,
-                }
-            ]
-        )
-
-    return _login
+    session_store = Session.get_session_store_class()()
+    session_store["user"] = user_dict
+    session_store.save()
+    context.add_cookies(
+        [
+            {
+                "name": settings.SESSION_COOKIE_NAME,
+                "value": session_store._session_key,
+                "url": live_server.url,
+            }
+        ]
+    )
 
 
 @pytest.fixture
-def output_checker_user(login_as_user):
-    yield login_as_user("test_output_checker")
+def output_checker_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        {
+            "id": "test_output_checker",
+            "username": "test_output_checker",
+            "workspaces": [],
+            "output_checker": True,
+        },
+    )
 
 
 @pytest.fixture
-def researcher_user(login_as_user):
-    yield login_as_user("test_researcher")
+def researcher_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        {
+            "id": "test_researcher",
+            "username": "test_researcher",
+            "workspaces": ["test-dir1"],
+            "output_checker": False,
+        },
+    )
