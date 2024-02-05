@@ -3,6 +3,8 @@ import subprocess
 import sys
 
 import pytest
+from django.conf import settings
+from django.contrib.sessions.models import Session
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,3 +27,50 @@ def playwright_install(request):
         command.extend(["--with-deps"])
     with capmanager.global_and_fixture_disabled():
         subprocess.run(command, check=True)
+
+
+def login_as_user(live_server, context, user_dict):
+    """
+    Creates a session with relevant user data and
+    sets the session cookie.
+    """
+    session_store = Session.get_session_store_class()()
+    session_store["user"] = user_dict
+    session_store.save()
+    context.add_cookies(
+        [
+            {
+                "name": settings.SESSION_COOKIE_NAME,
+                "value": session_store._session_key,
+                "url": live_server.url,
+            }
+        ]
+    )
+
+
+@pytest.fixture
+def output_checker_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        {
+            "id": "test_output_checker",
+            "username": "test_output_checker",
+            "workspaces": [],
+            "output_checker": True,
+        },
+    )
+
+
+@pytest.fixture
+def researcher_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        {
+            "id": "test_researcher",
+            "username": "test_researcher",
+            "workspaces": ["test-dir1"],
+            "output_checker": False,
+        },
+    )
