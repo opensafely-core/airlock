@@ -5,3 +5,4 @@ django-extensions
 whitenoise
 gunicorn
 requests
+pydantic<2.0
