@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 from airlock.users import User
 from tests.factories import WorkspaceFactory
@@ -258,3 +259,46 @@ def test_requests_add_file_request_path_does_not_exist(client_with_user):
     response = client.post("/requests/test1/add", data={"path": "test/path.txt"})
 
     assert response.status_code == 404
+
+
+def test_requests_release_files_success(client_with_permission, release_files_stubber):
+    rf = WorkspaceFactory("workspace").create_request("request_id")
+    rf.write_file("test/file1.txt", "test1")
+    rf.write_file("test/file2.txt", "test2")
+
+    api_responses = release_files_stubber(rf.get())
+    response = client_with_permission.post("/release/workspace/request_id")
+
+    assert response.status_code == 302
+
+    assert api_responses.calls[1].request.body.read() == b"test1"
+    assert api_responses.calls[2].request.body.read() == b"test2"
+
+
+def test_requests_release_files_403(client_with_permission, release_files_stubber):
+    rf = WorkspaceFactory("workspace").create_request("request_id")
+    rf.write_file("test/file.txt", "test")
+
+    response = requests.Response()
+    response.status_code = 403
+    api403 = requests.HTTPError(response=response)
+    release_files_stubber(rf.get(), body=api403)
+
+    # test 403 is handled
+    response = client_with_permission.post("/release/workspace/request_id")
+
+    assert response.status_code == 403
+
+
+def test_requests_release_files_404(client_with_permission, release_files_stubber):
+    rf = WorkspaceFactory("workspace").create_request("request_id")
+    rf.write_file("test/file.txt", "test")
+
+    # test 404 results in 500
+    response = requests.Response()
+    response.status_code = 404
+    api403 = requests.HTTPError(response=response)
+    release_files_stubber(rf.get(), body=api403)
+
+    with pytest.raises(requests.HTTPError):
+        client_with_permission.post("/release/workspace/request_id")

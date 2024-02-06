@@ -11,10 +11,8 @@
     {% #button type="submit" tooltip="This output request is ready to be reviewed" variant="success" %}Submit Output Request For Review{% /button %}
     </form>
   {% elif is_output_checker %}
-    <form action="" method="POST">
+  <form action="{{ release_files_url }}" method="POST">
     {% csrf_token %}
-    <input type=hidden name="workspace" value="{{ workspace.name }}"/>
-    <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
     {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="danger" %}Release Files{% /button %}
     </form>
   {% endif %}

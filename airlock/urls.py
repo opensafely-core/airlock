@@ -62,4 +62,9 @@ urlpatterns = [
         airlock.views.request_add_file,
         name="request_add_file",
     ),
+    path(
+        "release/<str:workspace_name>/<str:request_id>",
+        airlock.views.request_release_files,
+        name="request_release_files",
+    ),
 ]

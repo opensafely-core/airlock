@@ -1,3 +1,4 @@
+import requests
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -152,6 +153,16 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
+    is_author = request_id.endswith(request.user.username)
+    # hack for testing w/o having to switch users
+    if "is_author" in request.GET:  # pragma: nocover
+        is_author = request.GET["is_author"].lower() == "true"
+
+    release_files_url = reverse(
+        "request_release_files",
+        kwargs={"workspace_name": workspace_name, "request_id": request_id},
+    )
+
     context = {
         "workspace": workspace,
         "output_request": output_request,
@@ -159,8 +170,9 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
         "context": "request",
         "title": f"Request {request_id} for workspace {workspace_name}",
         # TODO file these in from user/models
-        "is_author": request_id.endswith(request.user.username),
-        "output_checker": request.user.output_checker,
+        "is_author": is_author,
+        "is_output_checker": request.user.output_checker,
+        "release_files_url": release_files_url,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
@@ -178,3 +190,17 @@ def request_add_file(request, workspace_name):
 
     # redirect to this just added file
     return redirect(release_request.get_url(path.relpath))
+
+
+@require_http_methods(["POST"])
+def request_release_files(request, workspace_name, request_id):
+    workspace = validate_workspace(request.user, workspace_name)
+    output_request = validate_output_request(request.user, workspace, request_id)
+    try:
+        output_request.release_files(request.user)
+    except requests.HTTPError as err:
+        if err.response.status_code == 403:
+            raise PermissionDenied() from None
+        raise
+
+    return redirect(output_request.url())
