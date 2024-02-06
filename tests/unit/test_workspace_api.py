@@ -1,9 +1,12 @@
 import dataclasses
+import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from django.conf import settings
 
+import old_api
 from airlock.users import User
 from airlock.workspace_api import (
     Container,
@@ -116,6 +119,48 @@ def test_request_container():
         "test-workspace/test-request"
     )
     assert output_request.get_url("foo/bar").endswith("foo/bar")
+
+
+@pytest.fixture
+def mock_old_api(monkeypatch):
+    monkeypatch.setattr(
+        old_api, "create_release", MagicMock(autospec=old_api.create_release)
+    )
+    monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
+
+
+def test_request_release_files(mock_old_api):
+    old_api.create_release.return_value = "jobserver_id"
+    user = User(1, "testuser", [], True)
+    rf = WorkspaceFactory("workspace").create_request("request_id")
+    rf.write_file("test/file.txt", "test")
+    request = rf.get()
+
+    request.release_files(user)
+
+    item = request.get_path("test/file.txt")
+    expected_json = {
+        "files": [
+            {
+                "name": "test/file.txt",
+                "url": "test/file.txt",
+                "size": 4,
+                "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+                "date": item.modified_date(),
+                "metadata": {"tool": "airlock"},
+                "review": None,
+            }
+        ],
+        "metadata": {"tool": "airlock"},
+        "review": None,
+    }
+
+    old_api.create_release.assert_called_once_with(
+        "workspace", json.dumps(expected_json), "testuser"
+    )
+    old_api.upload_file.assert_called_once_with(
+        "jobserver_id", item.relpath, item._absolute_path(), "testuser"
+    )
 
 
 @dataclasses.dataclass(frozen=True)

@@ -141,6 +141,7 @@ test *ARGS: devenv
       --cov=airlock \
       --cov=assets \
       --cov=tests \
+      --cov=old_api \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
 
