@@ -1,10 +1,14 @@
 import dataclasses
 import pathlib
 import shutil
+from datetime import datetime
+from datetime import timezone as stdlib_timezone
 
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+
+import old_api
 
 
 def ensure_parent_dir(path):
@@ -82,6 +86,13 @@ class Container:
 
     def get_path(self, relpath):
         return PathItem(self, pathlib.Path(relpath))
+
+    def filelist(self):
+        """List all files recursively."""
+        path = self.root()
+        return list(
+            sorted(p.relative_to(path) for p in path.glob("**/*") if p.is_file())
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -179,6 +190,18 @@ class ReleaseRequest(Container):
         ensure_parent_dir(dst)
         shutil.copy(src, dst)
 
+    def release_files(self, user):
+        filelist = old_api.create_filelist(self)
+        jobserver_release_id = old_api.create_release(
+            self.workspace.name, filelist.json(), user.username
+        )
+
+        for f in filelist.files:
+            relpath = pathlib.Path(f.name)
+            old_api.upload_file(
+                jobserver_release_id, relpath, self.root() / relpath, user.username
+            )
+
 
 @dataclasses.dataclass(frozen=True)
 class PathItem:
@@ -238,6 +261,10 @@ class PathItem:
 
     def contents(self):
         return self._absolute_path().read_text()
+
+    def modified_date(self):
+        mtime = self._absolute_path().stat().st_mtime
+        return datetime.fromtimestamp(mtime, tz=stdlib_timezone.utc).isoformat()
 
     @property
     def suffix(self):
