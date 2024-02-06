@@ -8,14 +8,13 @@ from old_api.schema import FileList, FileMetadata
 
 
 session = requests.Session()
-session.headers["Authorization"] = settings.AIRLOCK_API_TOKEN
 
 
-def create_filelist(request):
+def create_filelist(release_request):
     files = []
-    root = request.root()
+    root = release_request.root()
 
-    for relpath in request.filelist():
+    for relpath in release_request.filelist():
         abspath = root / relpath
         stat = abspath.stat()
         mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
@@ -26,7 +25,7 @@ def create_filelist(request):
                 sha256=hashlib.sha256(abspath.read_bytes()).hexdigest(),
                 date=mtime,
                 url=str(relpath),  # not needed, but has to be set
-                metadata={},  # not needed *yet*, but can't be None
+                metadata={"tool": "airlock"},
             )
         )
 
@@ -42,6 +41,7 @@ def create_release(workspace_name, release_json, username):
             "OS-User": username,
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "Authorization": settings.AIRLOCK_API_TOKEN,
         },
     )
     response.raise_for_status()
@@ -59,6 +59,7 @@ def upload_file(release_id, relpath, abspath, username):
             "Content-Disposition": f'attachment; filename="{relpath}"',
             "Content-Type": "application/octet-stream",
             "Accept": "application/json",
+            "Authorization": settings.AIRLOCK_API_TOKEN,
         },
     )
 
