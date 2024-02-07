@@ -98,3 +98,66 @@ Each category lives in its own directory (for example `tests/unit`) and can be r
 Additional arguments passed to `just test` are passed on to pytest. For example, to
 run all the tests _except_ the functional tests, run `just test -k 'not functional'`,
 or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`.
+
+
+# Local job-server for integration.
+
+## First time set up
+
+This needs some first time setup, but after that is fairly simple to use. You
+will need the Bitwarden cli `bw` installed to pull the dev Github auth
+credentials. You need to run the following command with your github username.
+
+```
+just job-server/configure GHUSERNAME
+```
+
+This will configure and run the latest job-server image at
+http://localhost:9000 to use in integration testing airlock. It will
+automatically point your current .env config to this local instance.
+
+This command is idempotent, and can be safely re-run.
+
+
+In future you can just do the following to start it up:
+
+```
+just job-server/run
+```
+
+## Create workspace
+
+You will need at least one workspace set up in job-server and locally in airlock to test integration:
+
+
+```
+just job-server/create-workspace NAME  # defaults to "airlock-test-workspace"
+
+```
+
+IMPORTANT GOTCHA: The current release API is awkward, and will refuse to upload a file
+that's already been uploaded. This will change, but for now, you can clear the
+state of all releases for a workspace with:
+
+```
+just job-server/remove-releases workspace
+```
+
+## Undoing
+
+To use the dev logins, comment out the `AIRLOCK_API_*` lines in .env. To point
+to a different job-server instance, edit the values in .env. To reset it to
+point to local job-server instance, you can re-run the setup command above.
+
+
+## Cleaning up
+
+By default, the local job-server maintains db and file on a couple of volumes.
+To reset back to a clean slate, you can kill and re-configure, and then add
+workspaces again.
+
+```
+just job-server/clean
+just job-server/configure GHUSERNAME
+just job-server/create-workspace 
+```
