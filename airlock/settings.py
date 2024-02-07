@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
+import django.dispatch
+from django.db.backends.signals import connection_created
+
 
 _missing_env_var_hint = """\
 If you are running commands locally outside of `just` then you should
@@ -124,8 +127,19 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": WORK_DIR / "db.sqlite3",
+        "CONNECTION_INIT_QUERIES": [
+            "PRAGMA journal_mode=wal",
+        ],
     }
 }
+
+
+@django.dispatch.receiver(connection_created)
+def run_connection_init_queries(*, connection, **kwargs):
+    queries = connection.settings_dict.get("CONNECTION_INIT_QUERIES", ())
+    with connection.cursor() as cursor:
+        for query in queries:
+            cursor.execute(query)
 
 
 # Password validation
