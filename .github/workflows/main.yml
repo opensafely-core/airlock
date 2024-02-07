@@ -39,7 +39,26 @@ jobs:
         run: |
           just test-all
 
-  docker-test:
+  docker-test-dev:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          install-just: true
+
+      - name: Build docker image for both prod and dev
+        run: |
+            just docker/build dev
+
+      - name: Run unit tests on docker dev image
+        run: |
+          # build docker and run test
+          just docker/test
+
+
+  docker-test-prod:
     runs-on: ubuntu-22.04
 
     steps:
@@ -51,12 +70,6 @@ jobs:
       - name: Build docker image for both prod and dev
         run: |
             just docker/build prod
-            just docker/build dev
-
-      - name: Run unit tests on docker dev image
-        run: |
-          # build docker and run test
-          just docker/test
 
       - name: Run smoke test on prod
         run: |
@@ -75,7 +88,7 @@ jobs:
             path: /tmp/airlock.tar.gz
 
   docker-publish:
-    needs: [check, test, docker-test]
+    needs: [check, test, docker-test-dev, docker-test-prod]
 
     runs-on: ubuntu-22.04
 
