@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Job Server error</h2>
+<hr/>
+<br/>
+<h4>Response Headers:</h4>
+<ul>
+    {% for header, value in response.headers.items %}
+    <li><pre>{{ header }}: {{ value }}</pre></li>
+    {% endfor %}
+</ul>
+<hr/>
+<br/>
+<h4>Response Body:</h4>
+{% if type == "text/html" %}
+<iframe srcdoc="{{ response.text }}" frameborder=0 style="width: 100%; height: 100%;"></iframe>
+{% else %}
+<pre>{{ response.text }}</pre?>
+{% endif %}
+
+{% endblock content %}
