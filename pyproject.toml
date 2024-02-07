@@ -1,4 +1,4 @@
-[tool.ruff]
+[tool.ruff.lint]
 # See: https://docs.astral.sh/ruff/rules/
 extend-select = [
   "A", # prevent shadowing builtins
@@ -11,9 +11,7 @@ extend-select = [
 extend-ignore = [
   "E501", # ignore line length
 ]
-
-[tool.ruff.isort]
-lines-after-imports = 2
+isort.lines-after-imports = 2
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "airlock.settings"
