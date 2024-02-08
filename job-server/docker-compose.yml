@@ -12,7 +12,7 @@ services:
 
   job-server:
     depends_on: [db]
-    image: ghcr.io/opensafely-core/job-server
+    image: ${JOB_SERVER_IMAGE:-ghcr.io/opensafely-core/job-server}
     env_file: .env.jobserver
     # run as root to avoid messy file permssions management
     user: 0:0

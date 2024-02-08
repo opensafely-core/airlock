@@ -16,8 +16,9 @@ test -f .env.jobserver|| cp .env.jobserver.template .env.jobserver
 ensure_value ADMIN_USERS "" .env.jobserver
 
 # ensure we have a running db and up to date job-server instance we can run stuff in it 
+test -z "${JOB_SERVER_IMAGE:-}" && docker compose pull job-server
 docker compose up -d --wait db
-docker compose up -d --pull=always --wait job-server
+docker compose up -d --wait job-server
 
 # if first time, give some time for the initial migration to complete
 echo "Checking service up..."
@@ -34,8 +35,19 @@ fi
 
 # setup github social logins
 # this only needs to be done very rarely, and bw client is a faff, so add a check to only if needed
-if test "$SOCIAL_AUTH_GITHUB_KEY" = "test"; then
+if test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
     tmp=$(mktemp)
+    if ! command -v bw > /dev/null; then
+        echo "bitwarden client bw not found"
+        exit 1
+    fi
+    if bw status | grep -q unauthenticated; then
+        echo "You are not logged in to bitwarden (org id is bennettinstitute):"
+        echo
+        echo "   bw login --sso"
+        echo
+        exit 1
+    fi
     docker compose exec job-server cat ./scripts/dev-env.sh > "$tmp"
     bash "$tmp" .env.jobserver
     echo "Restarting job-server with new configuration"

@@ -142,12 +142,21 @@ state of all releases for a workspace with:
 ```
 just job-server/remove-releases workspace
 ```
+## Running a custom job-server build
+
+This is useful to test against an development version of job-server.
+
+1. Build the prod image in your job-server checkout: `just docker/build prod`
+2. `export JOB_SERVER_IMAGE=job-server`
+
+Now the configure and run command will use the local job-server image, rather
+than the published one.
+
 
 ## Undoing
 
-To use the dev logins, comment out the `AIRLOCK_API_*` lines in .env. To point
-to a different job-server instance, edit the values in .env. To reset it to
-point to local job-server instance, you can re-run the setup command above.
+To go back to normal, you can use `just job-server/stop`. This will comment out
+the `AIRLOCK_API_*` lines in .env.  `just job-server/run` will uncomment them.
 
 
 ## Cleaning up
