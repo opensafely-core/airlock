@@ -199,6 +199,16 @@ def request_release_files(request, workspace_name, request_id):
     try:
         output_request.release_files(request.user)
     except requests.HTTPError as err:
+        if settings.DEBUG:  # pragma: nocover
+            return TemplateResponse(
+                request,
+                "jobserver-error.html",
+                {
+                    "response": err.response,
+                    "type": err.response.headers["Content-Type"],
+                },
+            )
+
         if err.response.status_code == 403:
             raise PermissionDenied() from None
         raise

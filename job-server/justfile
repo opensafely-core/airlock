@@ -1,0 +1,91 @@
+# Load .env files by default
+set dotenv-load := true
+
+# check that everything local job-server is configured
+check:
+    #!/bin/bash
+    set -euo pipefail
+
+    error() { 
+        echo "${1:-}"
+        echo "You probably to run just job-runner/configure"
+        exit 1
+    }
+
+    test -f .env.jobserver || error
+
+    . .env.jobserver
+    if test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
+         error "SOCIAL_AUTH_GITHUB_KEY not set properly"
+    fi
+    if test "$SOCIAL_AUTH_GITHUB_SECRET" = "test" -o -z "$SOCIAL_AUTH_GITHUB_SECRET"; then
+        error "SOCIAL_AUTH_GITHUB_SECRET not set properly"
+    fi
+
+# enable local airlock config to point to local job-server
+enable: check
+    #!/bin/bash
+    set -euo pipefail
+
+    . lib.sh
+    . .env.jobserver
+
+    # ensure our local airlock config has the correct backend token and endpoint
+    ensure_value "AIRLOCK_API_TOKEN" "$AIRLOCK_API_TOKEN" ../.env
+    ensure_value "AIRLOCK_API_ENDPOINT" "http://localhost:9000/api/v2" ../.env
+
+    # trigger reload of any running dev server
+    touch ../airlock/settings.py
+
+# revert local airlock config changes
+disable:
+    #!/bin/bash
+    set -euo pipefail
+
+    sed -i 's/^AIRLOCK_API_\(.*\)/#AIRLOCK_API_\1/' ../.env
+
+    # trigger reload of any running dev server
+    touch ../airlock/settings.py
+
+    
+# run local job-server for integration testing
+run: enable
+    test -n "${JOB_SERVER_IMAGE:-}" || docker compose pull job-server
+    docker compose up -d job-server
+
+# stop local services
+stop: disable
+    docker compose down
+
+
+# setup configuration and user
+configure ghusername: && run
+    ./local-setup.sh "{{ ghusername }}"
+
+
+# add a new workspace to job-server
+create-workspace name="airlock-test-workspace":
+    #!/bin/bash
+    set -euo pipefail
+
+    . .env.jobserver
+    ghusername="$ADMIN_USERS"  # assumes only one admin user!
+    docker compose exec job-server ./manage.py create_workspace "{{ name }}" "$ghusername"
+
+    # ensure workspace directory exists
+    . ../.env
+    # TODO: make this an airlock command
+    mkdir -p "$AIRLOCK_WORK_DIR/$AIRLOCK_WORKSPACE_DIR/{{ name }}"
+
+
+# remove all releases for a specific workspace
+remove-releases workspace="airlock-test-workspace":  
+    ./remove-releases.sh "{{ workspace }}"
+
+# remove *all* state - db, files
+clean:
+    docker compose down --volumes
+
+# view logs
+logs service="job-server":
+    docker compose logs "{{ service }}"

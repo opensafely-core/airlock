@@ -25,7 +25,7 @@ def test_login(requests_post, client, settings):
     )
 
     requests_post.assert_called_with(
-        "https://jobs.opensafely.org/api/v2/releases/auth",
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/auth",
         headers={"Authorization": "test_api_token"},
         json={"user": "test_user", "token": "foo bar baz"},
     )
@@ -49,7 +49,7 @@ def test_login_invalid_token(requests_post, client, settings):
     )
 
     requests_post.assert_called_with(
-        "https://jobs.opensafely.org/api/v2/releases/auth",
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/auth",
         headers={"Authorization": "test_api_token"},
         json={"user": "test_user", "token": "foo bar baz"},
     )

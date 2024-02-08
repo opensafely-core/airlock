@@ -1,0 +1,33 @@
+# note: we do not run prod service with docker-compose, we use it just for
+# configuring the production build
+services:
+  db:
+    image: "postgres:13"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: jobserver
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  job-server:
+    depends_on: [db]
+    image: ${JOB_SERVER_IMAGE:-ghcr.io/opensafely-core/job-server}
+    env_file: .env.jobserver
+    # run as root to avoid messy file permssions management
+    user: 0:0
+    environment:
+      - BASE_URL=http://localhost:9000
+      - DATABASE_URL=postgres://user:pass@db:5432/jobserver
+      - DEBUG=True
+      - RELEASE_STORAGE=/releases
+    # use dockers builitin PID daemon
+    init: true
+    ports:
+      - "9000:8000"
+    volumes:
+      - release_files:/releases
+ 
+volumes:
+  postgres_data:
+  release_files:
