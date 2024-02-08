@@ -13,6 +13,6 @@ AIRLOCK_REQUEST_DIR=releases/
 AIRLOCK_DEV_USERS_FILE="dev_users.json"
 
 
-# Note: this setting will be automatically updated by `just job-server/setup`
+# Note: these settings will be automatically updated by `just job-server/{run,stop}
 AIRLOCK_API_TOKEN=
 AIRLOCK_API_ENDPOINT="https://localhost:9000/api/v2"

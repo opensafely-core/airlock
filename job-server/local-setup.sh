@@ -6,35 +6,18 @@ workspace="${2:-airlock-test-workspace}"
 backend="airlock-test-backend"
 host="http://localhost:9000"
 
-# make sure a value is set in a .env file
-ensure_value() {
-    local name="$1"
-    local value="$2"
-    local file="$3"
-
-    echo "Setting $name=$value in $file"
-
-    # set naked value
-    if grep -q "^$name=" "$file" 2>/dev/null; then
-        # use '|' sed delimiter as we use '/' in values
-        sed -i "s|^$name=.*|$name=\"$value\"|" "$file"
-    # set and uncomment commented line
-    elif grep -q "^#$name=" "$file" 2>/dev/null; then
-        sed -i "s|^#$name=.*|$name=\"$value\"|" "$file"
-    # append the line as it does not exist
-    else
-        echo "$name=\"$value\"" >> "$file"
-    fi
-}
-
+# load ensure_values function
+# shellcheck disable=SC1091
+. lib.sh
 
 test -f .env.jobserver|| cp .env.jobserver.template .env.jobserver
 
 # this is *horrid*, but the service won't start if the config has ADMIN_USERS that don't exist
 ensure_value ADMIN_USERS "" .env.jobserver
 
-# ensure we have a running db and job-server instance we can run stuff in it 
-docker compose up -d --wait job-server
+# ensure we have a running db and up to date job-server instance we can run stuff in it 
+docker compose up -d --wait db
+docker compose up -d --pull=always --wait job-server
 
 # if first time, give some time for the initial migration to complete
 echo "Checking service up..."
@@ -64,29 +47,30 @@ fi
 # ensure user exists
 docker compose exec job-server ./manage.py create_user "$ghusername" --output-checker --core-developer
 
+# create backend and store token
+echo "Getting AIRLOCK_API_TOKEN for $backend backend"
+token="$(docker compose exec job-server ./manage.py create_backend "$backend" --user "$ghusername" --quiet)"
+
 # now we know the user definitely exists, we can add it to ADMIN_USERS
 ensure_value ADMIN_USERS "$ghusername" .env.jobserver
-# restart to pick up change, sigh
-docker compose up -d
-
-# ensure our local airlock config has the correct backend token and endpoint
-echo "Getting backend token"
-token="$(docker compose exec job-server ./manage.py create_backend "$backend" --user "$ghusername" --quiet)"
-ensure_value "AIRLOCK_API_TOKEN" "$token" ../.env
-ensure_value "AIRLOCK_API_ENDPOINT" "http://localhost:9000/api/v2" ../.env
-
-# trigger reload of any running dev server
-touch ../airlock/settings.py
+# store token in job-server config, as an easy place to persist it
+ensure_value AIRLOCK_API_TOKEN "$token" .env.jobserver
 
 echo
 echo "Local job-server instance has been set up running in docker at $host"
 echo " - set up user $ghusername as staff and OutputChecker, with permissions on $workspace."
 echo " - backend $backend set up, with user $ghusername"
-echo " - workspace $workspace set up, with user $ghusername"
 echo 
 echo "This state should persist until you prune the docker compose volume the db uses."
+echo 
+echo "You will need to create a workspace (default name is 'airlock-test-workspace')."
+echo
+echo "   just job-server/create-workspace [name]"
 echo
 echo "Your local airlock .env file has been setup to point to this local job-runner instance."
-echo "To undo, comment out or edit the lines that set AIRLOCK_API_*. in your .env file."
+echo "To go back to normal the simplest way is to run, which will stop job-server and restore your .env config"
+echo
+echo "    just job-server/stop"
 echo
 echo "You can log in to the local job-server here: $host"
+echo 
