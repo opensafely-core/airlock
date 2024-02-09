@@ -16,7 +16,7 @@ AIRLOCK_DEV_USERS_FILE="dev_users.json"
 # Note: in development, these settings will be automatically updated by
 # `just job-server/{run,stop}
 # In production you can find this token for an existing backend in the
-# job-server database at jobserver_backends.auth_token, and you can use
-# the default value for the endpoint.
+# Job Server staff area at https://jobs.opensafely.org/staff/backends/ ,
+# and you can use the default value for the endpoint.
 AIRLOCK_API_TOKEN=
 AIRLOCK_API_ENDPOINT="https://localhost:9000/api/v2"
