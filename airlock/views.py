@@ -94,12 +94,15 @@ def validate_workspace(user, workspace_name):
     return workspace
 
 
-def validate_release_request(user, workspace, request_id):
+def validate_release_request(user, request_id):
     """Ensure the release request exists for this workspace."""
-    release_request = ReleaseRequest(workspace, request_id)
-    # TODO output request authorization?
-    if not release_request.exists():
+    try:
+        release_request = ReleaseRequest.find(request_id)
+    except KeyError:
         raise Http404()
+
+    # check user permissions for this workspace
+    validate_workspace(user, release_request.workspace.name)
 
     return release_request
 
@@ -149,15 +152,13 @@ def workspace_request_file(request, workspace_name):
     return redirect(release_request.get_url(path.relpath))
 
 
-
 def request_index(request):
     requests = get_requests_for_user(request.user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
 
-def request_view(request, workspace_name: str, request_id: str, path: str = ""):
-    workspace = validate_workspace(request.user, workspace_name)
-    release_request = validate_release_request(request.user, workspace, request_id)
+def request_view(request, request_id: str, path: str = ""):
+    release_request = validate_release_request(request.user, request_id)
 
     path_item = release_request.get_path(path)
 
@@ -175,15 +176,15 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
     release_files_url = reverse(
         "request_release_files",
-        kwargs={"workspace_name": workspace_name, "request_id": request_id},
+        kwargs={"request_id": request_id},
     )
 
     context = {
-        "workspace": workspace,
+        "workspace": release_request.workspace,
         "release_request": release_request,
         "path_item": path_item,
         "context": "request",
-        "title": f"Request {request_id} for workspace {workspace_name}",
+        "title": f"Request {request_id} for workspace {release_request.workspace.name}",
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
@@ -194,9 +195,8 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
 
 @require_http_methods(["POST"])
-def request_release_files(request, workspace_name, request_id):
-    workspace = validate_workspace(request.user, workspace_name)
-    release_request = validate_release_request(request.user, workspace, request_id)
+def request_release_files(request, request_id):
+    release_request = validate_release_request(request.user, request_id)
     try:
         release_request.release_files(request.user)
     except requests.HTTPError as err:
