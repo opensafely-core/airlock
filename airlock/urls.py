@@ -53,17 +53,17 @@ urlpatterns = [
         name="request_index",
     ),
     path(
-        "requests/view/<str:workspace_name>/<str:request_id>/",
+        "requests/view/<str:request_id>/",
         airlock.views.request_view,
         name="request_home",
     ),
     path(
-        "requests/view/<str:workspace_name>/<str:request_id>/<path:path>",
+        "requests/view/<str:request_id>/<path:path>",
         airlock.views.request_view,
         name="request_view",
     ),
     path(
-        "requests/release/<str:workspace_name>/<str:request_id>",
+        "requests/release/<str:request_id>",
         airlock.views.request_release_files,
         name="request_release_files",
     ),

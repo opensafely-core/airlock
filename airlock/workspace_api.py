@@ -156,6 +156,23 @@ class ReleaseRequest(Container):
     workspace: Workspace
     request_id: str
 
+    @classmethod
+    def find(cls, request_id):
+        """Temporary method to instantiate from just a request id.
+
+        This better matches an API where the primary source of the request id is external, not on disk
+        """
+        # list of relative workspace/request_id paths
+        request_dirs = [
+            d.relative_to(settings.REQUEST_DIR)
+            for d in settings.REQUEST_DIR.glob("*/*")
+            if d.is_dir()
+        ]
+        requests = {d.parts[1]: d for d in request_dirs}
+        path = requests[request_id]
+        workspace = path.parts[0]
+        return cls(Workspace(workspace), request_id)
+
     def root(self):
         return settings.REQUEST_DIR / self.workspace.name / self.request_id
 
@@ -169,7 +186,6 @@ class ReleaseRequest(Container):
         return reverse(
             "request_home",
             kwargs={
-                "workspace_name": self.workspace.name,
                 "request_id": self.request_id,
             },
         )
@@ -178,7 +194,6 @@ class ReleaseRequest(Container):
         return reverse(
             "request_view",
             kwargs={
-                "workspace_name": self.workspace.name,
                 "request_id": self.request_id,
                 "path": relpath,
             },
