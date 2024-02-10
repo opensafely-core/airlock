@@ -94,14 +94,14 @@ def validate_workspace(user, workspace_name):
     return workspace
 
 
-def validate_output_request(user, workspace, request_id):
+def validate_release_request(user, workspace, request_id):
     """Ensure the release request exists for this workspace."""
-    output_request = ReleaseRequest(workspace, request_id)
+    release_request = ReleaseRequest(workspace, request_id)
     # TODO output request authorization?
-    if not output_request.exists():
+    if not release_request.exists():
         raise Http404()
 
-    return output_request
+    return release_request
 
 
 def workspace_index_view(request):
@@ -142,9 +142,9 @@ def request_index_view(request):
 
 def request_view(request, workspace_name: str, request_id: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
-    output_request = validate_output_request(request.user, workspace, request_id)
+    release_request = validate_release_request(request.user, workspace, request_id)
 
-    path_item = output_request.get_path(path)
+    path_item = release_request.get_path(path)
 
     if not path_item.exists():
         raise Http404()
@@ -165,7 +165,7 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
     context = {
         "workspace": workspace,
-        "output_request": output_request,
+        "release_request": release_request,
         "path_item": path_item,
         "context": "request",
         "title": f"Request {request_id} for workspace {workspace_name}",
@@ -195,9 +195,9 @@ def request_add_file(request, workspace_name):
 @require_http_methods(["POST"])
 def request_release_files(request, workspace_name, request_id):
     workspace = validate_workspace(request.user, workspace_name)
-    output_request = validate_output_request(request.user, workspace, request_id)
+    release_request = validate_release_request(request.user, workspace, request_id)
     try:
-        output_request.release_files(request.user)
+        release_request.release_files(request.user)
     except requests.HTTPError as err:
         if settings.DEBUG:  # pragma: nocover
             return TemplateResponse(
@@ -213,4 +213,4 @@ def request_release_files(request, workspace_name, request_id):
             raise PermissionDenied() from None
         raise
 
-    return redirect(output_request.url())
+    return redirect(release_request.url())
