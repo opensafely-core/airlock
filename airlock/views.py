@@ -104,7 +104,7 @@ def validate_release_request(user, workspace, request_id):
     return release_request
 
 
-def workspace_index_view(request):
+def workspace_index(request):
     workspaces = get_workspaces_for_user(request.user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
@@ -128,14 +128,29 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "path_item": path_item,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
-            "add_file_url": reverse(
-                "request_add_file", kwargs={"workspace_name": workspace_name}
+            "request_file_url": reverse(
+                "workspace_request_file", kwargs={"workspace_name": workspace_name}
             ),
         },
     )
 
 
-def request_index_view(request):
+@require_http_methods(["POST"])
+def workspace_request_file(request, workspace_name):
+    workspace = validate_workspace(request.user, workspace_name)
+    path = workspace.get_path(request.POST["path"])
+    if not path.exists():
+        raise Http404()
+
+    release_request = workspace.get_current_request(request.user, create=True)
+    release_request.add_file(path.relpath)
+
+    # redirect to this just added file
+    return redirect(release_request.get_url(path.relpath))
+
+
+
+def request_index(request):
     requests = get_requests_for_user(request.user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
@@ -176,20 +191,6 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
-
-
-@require_http_methods(["POST"])
-def request_add_file(request, workspace_name):
-    workspace = validate_workspace(request.user, workspace_name)
-    path = workspace.get_path(request.POST["path"])
-    if not path.exists():
-        raise Http404()
-
-    release_request = workspace.get_current_request(request.user, create=True)
-    release_request.add_file(path.relpath)
-
-    # redirect to this just added file
-    return redirect(release_request.get_url(path.relpath))
 
 
 @require_http_methods(["POST"])

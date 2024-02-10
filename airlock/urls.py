@@ -28,42 +28,42 @@ urlpatterns = [
     # workspaces
     path(
         "workspaces/",
-        airlock.views.workspace_index_view,
+        airlock.views.workspace_index,
         name="workspace_index",
     ),
     path(
-        "workspaces/<str:workspace_name>/",
+        "workspaces/view/<str:workspace_name>/",
         airlock.views.workspace_view,
         name="workspace_home",
     ),
     path(
-        "workspaces/<str:workspace_name>/<path:path>",
+        "workspaces/view/<str:workspace_name>/<path:path>",
         airlock.views.workspace_view,
         name="workspace_view",
+    ),
+    path(
+        "workspaces/request-file/<str:workspace_name>",
+        airlock.views.workspace_request_file,
+        name="workspace_request_file",
     ),
     # requests
     path(
         "requests/",
-        airlock.views.request_index_view,
+        airlock.views.request_index,
         name="request_index",
     ),
     path(
-        "requests/<str:workspace_name>/<str:request_id>/",
+        "requests/view/<str:workspace_name>/<str:request_id>/",
         airlock.views.request_view,
         name="request_home",
     ),
     path(
-        "requests/<str:workspace_name>/<str:request_id>/<path:path>",
+        "requests/view/<str:workspace_name>/<str:request_id>/<path:path>",
         airlock.views.request_view,
         name="request_view",
     ),
     path(
-        "requests/<str:workspace_name>/add",
-        airlock.views.request_add_file,
-        name="request_add_file",
-    ),
-    path(
-        "release/<str:workspace_name>/<str:request_id>",
+        "requests/release/<str:workspace_name>/<str:request_id>",
         airlock.views.request_release_files,
         name="request_release_files",
     ),
