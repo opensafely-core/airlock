@@ -7,7 +7,7 @@
     <form action="" method="POST">
     {% csrf_token %}
     <input type=hidden name="workspace" value="{{ workspace.name }}"/>
-    <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
+    <input type=hidden name="release_request" value="{{ release_request.request_id }}"/>
     {% #button type="submit" tooltip="This output request is ready to be reviewed" variant="success" %}Submit Output Request For Review{% /button %}
     </form>
   {% elif is_output_checker %}
@@ -91,7 +91,7 @@
             {% csrf_token %}
             <input type=hidden name="file" value="{{ path_item.relpath }}"/>
             <input type=hidden name="workspace" value="{{ workspace.name }}"/>
-            <input type=hidden name="output_request" value="{{ output_request.request_id }}"/>
+            <input type=hidden name="release_request" value="{{ release_request.request_id }}"/>
             {% #button type="submit" tooltip="Remove this file from this output request" variant="warning" %}Remove File from Output Request{% /button %}
           </form>
  
