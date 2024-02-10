@@ -1,13 +1,13 @@
 import pytest
 from playwright.sync_api import expect
 
-from tests.factories import WorkspaceFactory
+from tests import factories
 
 
 @pytest.fixture(autouse=True)
 def workspaces():
-    WorkspaceFactory("test-dir1")
-    WorkspaceFactory("test-dir2")
+    factories.create_workspace("test-dir1")
+    factories.create_workspace("test-dir2")
 
 
 def test_workspaces_index_as_ouput_checker(live_server, page, output_checker_user):
