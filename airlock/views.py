@@ -196,6 +196,9 @@ def request_view(request, request_id: str, path: str = ""):
 
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
+    if not request.user.output_checker:
+        raise PermissionDenied()
+
     release_request = validate_release_request(request.user, request_id)
     try:
         release_request.release_files(request.user)
