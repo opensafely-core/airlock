@@ -94,17 +94,20 @@ def validate_workspace(user, workspace_name):
     return workspace
 
 
-def validate_output_request(user, workspace, request_id):
+def validate_release_request(user, request_id):
     """Ensure the release request exists for this workspace."""
-    output_request = ReleaseRequest(workspace, request_id)
-    # TODO output request authorization?
-    if not output_request.exists():
+    try:
+        release_request = ReleaseRequest.find(request_id)
+    except KeyError:
         raise Http404()
 
-    return output_request
+    # check user permissions for this workspace
+    validate_workspace(user, release_request.workspace.name)
+
+    return release_request
 
 
-def workspace_index_view(request):
+def workspace_index(request):
     workspaces = get_workspaces_for_user(request.user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
@@ -128,23 +131,36 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "path_item": path_item,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
-            "add_file_url": reverse(
-                "request_add_file", kwargs={"workspace_name": workspace_name}
+            "request_file_url": reverse(
+                "workspace_request_file", kwargs={"workspace_name": workspace_name}
             ),
         },
     )
 
 
-def request_index_view(request):
+@require_http_methods(["POST"])
+def workspace_request_file(request, workspace_name):
+    workspace = validate_workspace(request.user, workspace_name)
+    path = workspace.get_path(request.POST["path"])
+    if not path.exists():
+        raise Http404()
+
+    release_request = workspace.get_current_request(request.user, create=True)
+    release_request.add_file(path.relpath)
+
+    # redirect to this just added file
+    return redirect(release_request.get_url(path.relpath))
+
+
+def request_index(request):
     requests = get_requests_for_user(request.user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
 
-def request_view(request, workspace_name: str, request_id: str, path: str = ""):
-    workspace = validate_workspace(request.user, workspace_name)
-    output_request = validate_output_request(request.user, workspace, request_id)
+def request_view(request, request_id: str, path: str = ""):
+    release_request = validate_release_request(request.user, request_id)
 
-    path_item = output_request.get_path(path)
+    path_item = release_request.get_path(path)
 
     if not path_item.exists():
         raise Http404()
@@ -160,15 +176,15 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
     release_files_url = reverse(
         "request_release_files",
-        kwargs={"workspace_name": workspace_name, "request_id": request_id},
+        kwargs={"request_id": request_id},
     )
 
     context = {
-        "workspace": workspace,
-        "output_request": output_request,
+        "workspace": release_request.workspace,
+        "release_request": release_request,
         "path_item": path_item,
         "context": "request",
-        "title": f"Request {request_id} for workspace {workspace_name}",
+        "title": f"Request {request_id} for workspace {release_request.workspace.name}",
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
@@ -179,25 +195,10 @@ def request_view(request, workspace_name: str, request_id: str, path: str = ""):
 
 
 @require_http_methods(["POST"])
-def request_add_file(request, workspace_name):
-    workspace = validate_workspace(request.user, workspace_name)
-    path = workspace.get_path(request.POST["path"])
-    if not path.exists():
-        raise Http404()
-
-    release_request = workspace.get_current_request(request.user, create=True)
-    release_request.add_file(path.relpath)
-
-    # redirect to this just added file
-    return redirect(release_request.get_url(path.relpath))
-
-
-@require_http_methods(["POST"])
-def request_release_files(request, workspace_name, request_id):
-    workspace = validate_workspace(request.user, workspace_name)
-    output_request = validate_output_request(request.user, workspace, request_id)
+def request_release_files(request, request_id):
+    release_request = validate_release_request(request.user, request_id)
     try:
-        output_request.release_files(request.user)
+        release_request.release_files(request.user)
     except requests.HTTPError as err:
         if settings.DEBUG:  # pragma: nocover
             return TemplateResponse(
@@ -213,4 +214,4 @@ def request_release_files(request, workspace_name, request_id):
             raise PermissionDenied() from None
         raise
 
-    return redirect(output_request.url())
+    return redirect(release_request.url())
