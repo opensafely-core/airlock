@@ -146,7 +146,7 @@ def test_workspace_request_file_request_already_exists(client_with_user):
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
-    request = factories.create_request(workspace, user)
+    request = factories.create_release_request(workspace, user)
 
     response = client.post(
         "/workspaces/request-file/test1", data={"path": "test/path.txt"}
@@ -168,13 +168,13 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
 
 
 def test_request_index_no_user(client):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     response = client.get(f"/requests/view/{request.request_id}/")
     assert response.status_code == 302
 
 
 def test_request_view_index(client_with_permission):
-    request = factories.create_request("workspace", client_with_permission.user)
+    request = factories.create_release_request("workspace", client_with_permission.user)
     factories.write_request_file(request, "file.txt")
     response = client_with_permission.get(f"/requests/view/{request.request_id}/")
     assert "file.txt" in response.rendered_content
@@ -191,7 +191,7 @@ def test_request_id_does_not_exist(client_with_permission):
 
 
 def test_request_view_with_directory(client_with_permission):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     factories.write_request_file(request, "some_dir/file.txt")
     response = client_with_permission.get(
         f"/requests/view/{request.request_id}/some_dir/"
@@ -200,7 +200,7 @@ def test_request_view_with_directory(client_with_permission):
 
 
 def test_request_view_with_file(client_with_permission):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     factories.write_request_file(request, "file.txt", "foobar")
     response = client_with_permission.get(
         f"/requests/view/{request.request_id}/file.txt"
@@ -209,7 +209,7 @@ def test_request_view_with_file(client_with_permission):
 
 
 def test_request_view_with_404(client_with_permission):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     response = client_with_permission.get(
         f"/requests/view/{request.request_id}/no_such_file.txt"
     )
@@ -217,7 +217,7 @@ def test_request_view_with_404(client_with_permission):
 
 
 def test_request_view_redirects_to_directory(client_with_permission):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     (request.root() / "some_dir").mkdir(parents=True)
 
     response = client_with_permission.get(
@@ -230,7 +230,7 @@ def test_request_view_redirects_to_directory(client_with_permission):
 
 
 def test_request_view_redirects_to_file(client_with_permission):
-    request = factories.create_request("workspace")
+    request = factories.create_release_request("workspace")
     factories.write_request_file(request, "file.txt")
     response = client_with_permission.get(
         f"/requests/view/{request.request_id}/file.txt/"
@@ -244,15 +244,15 @@ def test_request_view_redirects_to_file(client_with_permission):
 def test_request_index_user_permitted_requests(client_with_user):
     permitted_client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(permitted_client.session)
-    request = factories.create_request("test1", user)
+    request = factories.create_release_request("test1", user)
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
     assert request_ids == {request.request_id}
 
 
 def test_request_index_user_output_checker(client_with_user):
-    r1 = factories.create_request("test1")
-    r2 = factories.create_request("test2")
+    r1 = factories.create_release_request("test1")
+    r2 = factories.create_release_request("test2")
     permitted_client = client_with_user({"workspaces": [], "output_checker": True})
     response = permitted_client.get("/requests/")
     request_ids = {r.request_id for r in response.context["requests"]}
@@ -279,7 +279,7 @@ def test_requests_request_file_creates(client_with_user):
 
 
 def test_request_release_files_success(client_with_permission, release_files_stubber):
-    request = factories.create_request("workspace", request_id="request_id")
+    request = factories.create_release_request("workspace", request_id="request_id")
     factories.write_request_file(request, "test/file1.txt", "test1")
     factories.write_request_file(request, "test/file2.txt", "test2")
 
@@ -293,7 +293,7 @@ def test_request_release_files_success(client_with_permission, release_files_stu
 
 
 def test_requests_release_files_403(client_with_permission, release_files_stubber):
-    request = factories.create_request("workspace", request_id="request_id")
+    request = factories.create_release_request("workspace", request_id="request_id")
     factories.write_request_file(request, "test/file.txt", "test")
 
     response = requests.Response()
@@ -308,7 +308,7 @@ def test_requests_release_files_403(client_with_permission, release_files_stubbe
 
 
 def test_requests_release_files_404(client_with_permission, release_files_stubber):
-    request = factories.create_request("workspace", request_id="request_id")
+    request = factories.create_release_request("workspace", request_id="request_id")
     factories.write_request_file(request, "test/file.txt", "test")
 
     # test 404 results in 500

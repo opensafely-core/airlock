@@ -58,9 +58,9 @@ def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
 def test_get_requests_for_user(workspaces, output_checker, expected):
     user = User(1, "test", workspaces, output_checker)
     other_user = User(1, "other", [], False)
-    factories.create_request("allowed", user, "r1-test")
-    factories.create_request("allowed", other_user, "r2-other")
-    factories.create_request("not-allowed", user, "r3-test")
+    factories.create_release_request("allowed", user, "r1-test")
+    factories.create_release_request("allowed", other_user, "r2-other")
+    factories.create_release_request("not-allowed", user, "r3-test")
     factories.create_workspace("no-request-dir")
     expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
     assert set(get_requests_for_user(user)) == expected_requests
@@ -81,7 +81,7 @@ def test_workspace_get_current_request_for_user():
 
     assert workspace.get_current_request(user) is None
 
-    factories.create_request(workspace, other_user)
+    factories.create_release_request(workspace, other_user)
     assert workspace.get_current_request(user) is None
 
     release_request = workspace.get_current_request(user, create=True)
@@ -98,7 +98,7 @@ def test_workspace_get_current_request_for_user():
 
 def test_workspace_create_new_request():
     user = User(1, "testuser", [], True)
-    release_request = factories.create_request("workspace", user)
+    release_request = factories.create_release_request("workspace", user)
 
     assert release_request.workspace.name == "workspace"
     assert release_request.request_id.endswith("testuser")
@@ -130,7 +130,7 @@ def mock_old_api(monkeypatch):
 def test_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
     user = User(1, "testuser", [], True)
-    release_request = factories.create_request(
+    release_request = factories.create_release_request(
         "workspace", user, request_id="request_id"
     )
     factories.write_request_file(release_request, "test/file.txt", "test")

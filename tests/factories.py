@@ -22,7 +22,7 @@ def create_workspace(name):
     return Workspace(name)
 
 
-def create_request(workspace, user=default_user, request_id=None):
+def create_release_request(workspace, user=default_user, request_id=None):
     workspace = ensure_workspace(workspace)
     if request_id is None:
         request_id = generate_request_id(workspace.name, user)
