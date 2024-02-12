@@ -31,7 +31,7 @@ def responses():
 def release_files_stubber(responses):
     def release_files(request, jobserver_id="jobserver-id", body=None):
         responses.post(
-            f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{request.workspace.name}",
+            f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{request.workspace}",
             status=201,
             headers={"Release-Id": jobserver_id},
             body=body,

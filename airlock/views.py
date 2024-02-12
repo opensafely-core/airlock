@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import requests
 from django import forms
 from django.conf import settings
@@ -9,12 +11,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
-from airlock.workspace_api import (
-    ReleaseRequest,
-    Workspace,
-    get_requests_for_user,
-    get_workspaces_for_user,
-)
+from airlock.api import FileProvider
+from airlock.file_browser_api import PathItem
+
+
+api = FileProvider()
 
 
 def login_exempt(view):
@@ -85,9 +86,11 @@ def index(request):
 
 def validate_workspace(user, workspace_name):
     """Ensure the workspace exists and the current user has permissions to access it."""
-    workspace = Workspace(workspace_name)
-    if not workspace.exists():
+    try:
+        workspace = api.get_workspace(workspace_name)
+    except api.WorkspaceNotFound:
         raise Http404()
+
     if user is None or not user.has_permission(workspace_name):
         raise PermissionDenied()
 
@@ -97,24 +100,25 @@ def validate_workspace(user, workspace_name):
 def validate_release_request(user, request_id):
     """Ensure the release request exists for this workspace."""
     try:
-        release_request = ReleaseRequest.find(request_id)
-    except KeyError:
+        release_request = api.get_release_request(request_id)
+    except api.ReleaseRequestNotFound:
         raise Http404()
 
     # check user permissions for this workspace
-    validate_workspace(user, release_request.workspace.name)
+    validate_workspace(user, release_request.workspace)
 
     return release_request
 
 
 def workspace_index(request):
-    workspaces = get_workspaces_for_user(request.user)
+    workspaces = api.get_workspaces_for_user(request.user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
-    path_item = workspace.get_path(path)
+
+    path_item = PathItem(workspace, path)
 
     if not path_item.exists():
         raise Http404()
@@ -132,35 +136,38 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
             "request_file_url": reverse(
-                "workspace_request_file", kwargs={"workspace_name": workspace_name}
+                "workspace_add_file",
+                kwargs={"workspace_name": workspace_name},
             ),
         },
     )
 
 
 @require_http_methods(["POST"])
-def workspace_request_file(request, workspace_name):
+def workspace_add_file_to_request(request, workspace_name):
     workspace = validate_workspace(request.user, workspace_name)
-    path = workspace.get_path(request.POST["path"])
-    if not path.exists():
+    relpath = Path(request.POST["path"])
+    try:
+        workspace.abspath(relpath)
+    except api.FileNotFound:
         raise Http404()
 
-    release_request = workspace.get_current_request(request.user, create=True)
-    release_request.add_file(path.relpath)
+    release_request = api.get_current_request(workspace_name, request.user, create=True)
+    api.add_file_to_request(release_request, relpath)
 
     # redirect to this just added file
-    return redirect(release_request.get_url(path.relpath))
+    return redirect(release_request.get_url_for_path(relpath))
 
 
 def request_index(request):
-    requests = get_requests_for_user(request.user)
+    requests = api.get_requests_for_user(request.user)
     return TemplateResponse(request, "requests.html", {"requests": requests})
 
 
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    path_item = release_request.get_path(path)
+    path_item = PathItem(release_request, path)
 
     if not path_item.exists():
         raise Http404()
@@ -169,7 +176,7 @@ def request_view(request, request_id: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    is_author = request_id.endswith(request.user.username)
+    is_author = release_request.author == request.user.username
     # hack for testing w/o having to switch users
     if "is_author" in request.GET:  # pragma: nocover
         is_author = request.GET["is_author"].lower() == "true"
@@ -184,7 +191,7 @@ def request_view(request, request_id: str, path: str = ""):
         "release_request": release_request,
         "path_item": path_item,
         "context": "request",
-        "title": f"Request {request_id} for workspace {release_request.workspace.name}",
+        "title": f"Request {request_id}",
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
@@ -200,8 +207,14 @@ def request_release_files(request, request_id):
         raise PermissionDenied()
 
     release_request = validate_release_request(request.user, request_id)
+
+    # TODO: enforce this, but we need a way to bypass it in dev, or else it
+    # gets really awkward to test w/o logging in/out as different users.
+    # if request.user.username == release_request.author:
+    #    raise PermissionDenied(f"You cannot approve your own request")
+
     try:
-        release_request.release_files(request.user)
+        api.release_files(release_request, request.user)
     except requests.HTTPError as err:
         if settings.DEBUG:  # pragma: nocover
             return TemplateResponse(
@@ -217,4 +230,4 @@ def request_release_files(request, request_id):
             raise PermissionDenied() from None
         raise
 
-    return redirect(release_request.url())
+    return redirect(release_request.get_absolute_url())

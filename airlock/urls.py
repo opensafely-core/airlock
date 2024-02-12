@@ -42,9 +42,9 @@ urlpatterns = [
         name="workspace_view",
     ),
     path(
-        "workspaces/request-file/<str:workspace_name>",
-        airlock.views.workspace_request_file,
-        name="workspace_request_file",
+        "workspaces/add-file-to-request/<str:workspace_name>",
+        airlock.views.workspace_add_file_to_request,
+        name="workspace_add_file",
     ),
     # requests
     path(

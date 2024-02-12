@@ -23,7 +23,7 @@
 
 {% #card title=title custom_button=action_button %}  
 {% #breadcrumbs %}
-    {% breadcrumb title=path_item.container.get_id url=path_item.container.url %}
+    {% breadcrumb title=path_item.container.get_id url=path_item.container.get_absolute_url %}
     {% for crumb in path_item.breadcrumbs %}
         {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
@@ -81,7 +81,7 @@
 
       {% fragment as add_button %}
         {% if context == "workspace" %}
-          <form action="{{ request_file_url }}" method="POST">
+          <form action="{{ add_file_url }}" method="POST">
             {% csrf_token %}
             <input type=hidden name="path" value="{{ path_item.relpath }}"/>
             {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Output Request{% /button %}

@@ -1,6 +1,7 @@
 import pytest
 import requests
 
+from airlock.api import FileProvider
 from airlock.users import User
 from tests import factories
 
@@ -128,16 +129,17 @@ def test_workspace_request_file_creates(client_with_user):
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    assert workspace.get_current_request(user) is None
+    api = FileProvider()
+
+    assert api.get_current_request(workspace.name, user) is None
 
     response = client.post(
-        "/workspaces/request-file/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
     )
     assert response.status_code == 302
 
-    release_request = workspace.get_current_request(user)
-    assert release_request.request_id.endswith(user.username)
-    assert release_request.get_path("test/path.txt").exists()
+    release_request = api.get_current_request(workspace.name, user)
+    assert release_request.abspath("test/path.txt").exists()
 
 
 def test_workspace_request_file_request_already_exists(client_with_user):
@@ -148,12 +150,14 @@ def test_workspace_request_file_request_already_exists(client_with_user):
     factories.write_workspace_file(workspace, "test/path.txt")
     release_request = factories.create_release_request(workspace, user)
 
+    api = FileProvider()
+
     response = client.post(
-        "/workspaces/request-file/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
     )
     assert response.status_code == 302
-    assert workspace.get_current_request(user) == release_request
-    assert release_request.get_path("test/path.txt").exists()
+    assert api.get_current_request(workspace.name, user) == release_request
+    assert release_request.abspath("test/path.txt").exists()
 
 
 def test_workspace_request_file_request_path_does_not_exist(client_with_user):
@@ -161,7 +165,7 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
     factories.create_workspace("test1")
 
     response = client.post(
-        "/workspaces/request-file/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
     )
 
     assert response.status_code == 404
@@ -169,7 +173,7 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
 
 def test_request_index_no_user(client):
     release_request = factories.create_release_request("workspace")
-    response = client.get(f"/requests/view/{release_request.request_id}/")
+    response = client.get(f"/requests/view/{release_request.id}/")
     assert response.status_code == 302
 
 
@@ -178,9 +182,7 @@ def test_request_view_index(client_with_permission):
         "workspace", client_with_permission.user
     )
     factories.write_request_file(release_request, "file.txt")
-    response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/"
-    )
+    response = client_with_permission.get(f"/requests/view/{release_request.id}/")
     assert "file.txt" in response.rendered_content
 
 
@@ -198,7 +200,7 @@ def test_request_view_with_directory(client_with_permission):
     release_request = factories.create_release_request("workspace")
     factories.write_request_file(release_request, "some_dir/file.txt")
     response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/some_dir/"
+        f"/requests/view/{release_request.id}/some_dir/"
     )
     assert "file.txt" in response.rendered_content
 
@@ -207,7 +209,7 @@ def test_request_view_with_file(client_with_permission):
     release_request = factories.create_release_request("workspace")
     factories.write_request_file(release_request, "file.txt", "foobar")
     response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/file.txt"
+        f"/requests/view/{release_request.id}/file.txt"
     )
     assert "foobar" in response.rendered_content
 
@@ -215,7 +217,7 @@ def test_request_view_with_file(client_with_permission):
 def test_request_view_with_404(client_with_permission):
     release_request = factories.create_release_request("workspace")
     response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/no_such_file.txt"
+        f"/requests/view/{release_request.id}/no_such_file.txt"
     )
     assert response.status_code == 404
 
@@ -225,12 +227,11 @@ def test_request_view_redirects_to_directory(client_with_permission):
     (release_request.root() / "some_dir").mkdir(parents=True)
 
     response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/some_dir"
+        f"/requests/view/{release_request.id}/some_dir"
     )
     assert response.status_code == 302
     assert (
-        response.headers["Location"]
-        == f"/requests/view/{release_request.request_id}/some_dir/"
+        response.headers["Location"] == f"/requests/view/{release_request.id}/some_dir/"
     )
 
 
@@ -238,12 +239,11 @@ def test_request_view_redirects_to_file(client_with_permission):
     release_request = factories.create_release_request("workspace")
     factories.write_request_file(release_request, "file.txt")
     response = client_with_permission.get(
-        f"/requests/view/{release_request.request_id}/file.txt/"
+        f"/requests/view/{release_request.id}/file.txt/"
     )
     assert response.status_code == 302
     assert (
-        response.headers["Location"]
-        == f"/requests/view/{release_request.request_id}/file.txt"
+        response.headers["Location"] == f"/requests/view/{release_request.id}/file.txt"
     )
 
 
@@ -252,8 +252,8 @@ def test_request_index_user_permitted_requests(client_with_user):
     user = User.from_session(permitted_client.session)
     release_request = factories.create_release_request("test1", user)
     response = permitted_client.get("/requests/")
-    request_ids = {r.request_id for r in response.context["requests"]}
-    assert request_ids == {release_request.request_id}
+    request_ids = {r.id for r in response.context["requests"]}
+    assert request_ids == {release_request.id}
 
 
 def test_request_index_user_output_checker(client_with_user):
@@ -261,27 +261,8 @@ def test_request_index_user_output_checker(client_with_user):
     r2 = factories.create_release_request("test2")
     permitted_client = client_with_user({"workspaces": [], "output_checker": True})
     response = permitted_client.get("/requests/")
-    request_ids = {r.request_id for r in response.context["requests"]}
-    assert request_ids == {r1.request_id, r2.request_id}
-
-
-def test_requests_request_file_creates(client_with_user):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
-
-    workspace = factories.create_workspace("test1")
-    factories.write_workspace_file(workspace, "test/path.txt")
-
-    assert workspace.get_current_request(user) is None
-
-    response = client.post(
-        "/workspaces/request-file/test1", data={"path": "test/path.txt"}
-    )
-    assert response.status_code == 302
-
-    release_request = workspace.get_current_request(user)
-    assert release_request.request_id.endswith(user.username)
-    assert release_request.get_path("test/path.txt").exists()
+    request_ids = {r.id for r in response.context["requests"]}
+    assert request_ids == {r1.id, r2.id}
 
 
 def test_request_release_files_success(client_with_permission, release_files_stubber):
@@ -302,14 +283,18 @@ def test_request_release_files_success(client_with_permission, release_files_stu
 
 def test_requests_release_airlock_403(client_with_user):
     not_permitted_client = client_with_user({"workspaces": [], "output_checker": False})
-    release_request = factories.create_request("workspace", request_id="request_id")
+    release_request = factories.create_release_request(
+        "workspace", request_id="request_id"
+    )
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     response = not_permitted_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
 
 def test_requests_release_jobserver_403(client_with_permission, release_files_stubber):
-    release_request = factories.create_request("workspace", request_id="request_id")
+    release_request = factories.create_release_request(
+        "workspace", request_id="request_id"
+    )
     factories.write_request_file(release_request, "test/file.txt", "test")
 
     response = requests.Response()
