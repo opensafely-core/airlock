@@ -1,7 +1,7 @@
 from django.conf import settings
 
+from airlock.api import FileProvider, ReleaseRequest, Workspace
 from airlock.users import User
-from airlock.workspace_api import ReleaseRequest, Workspace, generate_request_id
 
 
 default_user = User(1, "testuser")
@@ -25,8 +25,13 @@ def create_workspace(name):
 def create_release_request(workspace, user=default_user, request_id=None):
     workspace = ensure_workspace(workspace)
     if request_id is None:
-        request_id = generate_request_id(workspace.name, user)
-    release_request = ReleaseRequest(workspace, request_id)
+        request_id = FileProvider._generate_request_id(workspace.name, user)
+    release_request = ReleaseRequest(
+        id=request_id,
+        workspace=workspace.name,
+        author=user.username,
+        created_at=None,
+    )
     release_request.root().mkdir(parents=True, exist_ok=True)
     return release_request
 
