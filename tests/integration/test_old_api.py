@@ -24,10 +24,10 @@ def test_old_api_create_release(responses):
 
 
 def test_old_api_upload_file(responses):
-    request = factories.create_request("workspace", request_id="request-id")
+    release_request = factories.create_request("workspace", request_id="request-id")
     relpath = Path("test/file.txt")
-    abspath = request.root() / relpath
-    factories.write_request_file(request, relpath, "test")
+    abspath = release_request.root() / relpath
+    factories.write_request_file(release_request, relpath, "test")
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",

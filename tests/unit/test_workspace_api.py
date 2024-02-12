@@ -84,24 +84,24 @@ def test_workspace_get_current_request_for_user():
     factories.create_request(workspace, other_user)
     assert workspace.get_current_request(user) is None
 
-    request = workspace.get_current_request(user, create=True)
-    assert request.workspace.name == "workspace"
-    assert request.request_id.endswith("workspace-test-testuser")
+    release_request = workspace.get_current_request(user, create=True)
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id.endswith("workspace-test-testuser")
 
     # reach around an simulate 2 active requests for same user
     (settings.REQUEST_DIR / "workspace/other-request-testuser").mkdir(parents=True)
 
-    request = workspace.get_current_request(user)
-    assert request.workspace.name == "workspace"
-    assert request.request_id == "other-request-testuser"
+    release_request = workspace.get_current_request(user)
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id == "other-request-testuser"
 
 
 def test_workspace_create_new_request():
     user = User(1, "testuser", [], True)
-    request = factories.create_request("workspace", user)
+    release_request = factories.create_request("workspace", user)
 
-    assert request.workspace.name == "workspace"
-    assert request.request_id.endswith("testuser")
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id.endswith("testuser")
 
 
 def test_request_container():
@@ -130,12 +130,14 @@ def mock_old_api(monkeypatch):
 def test_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
     user = User(1, "testuser", [], True)
-    request = factories.create_request("workspace", user, request_id="request_id")
-    factories.write_request_file(request, "test/file.txt", "test")
+    release_request = factories.create_request(
+        "workspace", user, request_id="request_id"
+    )
+    factories.write_request_file(release_request, "test/file.txt", "test")
 
-    request.release_files(user)
+    release_request.release_files(user)
 
-    item = request.get_path("test/file.txt")
+    item = release_request.get_path("test/file.txt")
     expected_json = {
         "files": [
             {
