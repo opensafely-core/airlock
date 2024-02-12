@@ -16,7 +16,7 @@ from airlock.workspace_api import (
     get_requests_for_user,
     get_workspaces_for_user,
 )
-from tests.factories import WorkspaceFactory
+from tests import factories
 
 
 @pytest.mark.parametrize(
@@ -29,8 +29,8 @@ from tests.factories import WorkspaceFactory
     ],
 )
 def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
-    WorkspaceFactory("allowed")
-    WorkspaceFactory("not-allowed")
+    factories.create_workspace("allowed")
+    factories.create_workspace("not-allowed")
 
     user = User(1, "test", user_workspaces, output_checker)
     assert set(get_workspaces_for_user(user)) == set(expected)
@@ -47,7 +47,7 @@ def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
             [
                 ("allowed", "r1-test"),
                 ("not-allowed", "r3-test"),
-                ("allowed", "r2-otheruser"),
+                ("allowed", "r2-other"),
             ],
         ),
         (["allowed", "notexist"], False, [("allowed", "r1-test")]),
@@ -56,12 +56,13 @@ def test_get_workspaces_for_user(user_workspaces, output_checker, expected):
     ],
 )
 def test_get_requests_for_user(workspaces, output_checker, expected):
-    WorkspaceFactory("allowed").create_request("r1-test")
-    WorkspaceFactory("allowed").create_request("r2-otheruser")
-    WorkspaceFactory("not-allowed").create_request("r3-test")
-    WorkspaceFactory("no-request-dir")
-    expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
     user = User(1, "test", workspaces, output_checker)
+    other_user = User(1, "other", [], False)
+    factories.create_release_request("allowed", user, "r1-test")
+    factories.create_release_request("allowed", other_user, "r2-other")
+    factories.create_release_request("not-allowed", user, "r3-test")
+    factories.create_workspace("no-request-dir")
+    expected_requests = set(ReleaseRequest(Workspace(w), rid) for (w, rid) in expected)
     assert set(get_requests_for_user(user)) == expected_requests
 
 
@@ -74,40 +75,37 @@ def test_workspace_container():
 
 
 def test_workspace_get_current_request_for_user():
-    wf = WorkspaceFactory("workspace")
-    workspace = wf.get()
+    workspace = factories.create_workspace("workspace")
     user = User(1, "testuser", [], True)
     other_user = User(2, "otheruser", [], True)
 
     assert workspace.get_current_request(user) is None
 
-    wf.create_request_for_user(other_user)
+    factories.create_release_request(workspace, other_user)
     assert workspace.get_current_request(user) is None
 
-    request = workspace.get_current_request(user, create=True)
-    assert request.workspace.name == "workspace"
-    assert request.request_id.endswith("workspace-test-testuser")
+    release_request = workspace.get_current_request(user, create=True)
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id.endswith("workspace-test-testuser")
 
     # reach around an simulate 2 active requests for same user
     (settings.REQUEST_DIR / "workspace/other-request-testuser").mkdir(parents=True)
 
-    request = workspace.get_current_request(user)
-    assert request.workspace.name == "workspace"
-    assert request.request_id == "other-request-testuser"
+    release_request = workspace.get_current_request(user)
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id == "other-request-testuser"
 
 
 def test_workspace_create_new_request():
-    wf = WorkspaceFactory("workspace")
-    workspace = wf.get()
     user = User(1, "testuser", [], True)
+    release_request = factories.create_release_request("workspace", user)
 
-    request = workspace.create_new_request(user)
-    assert request.workspace.name == "workspace"
-    assert request.request_id.endswith("testuser")
+    assert release_request.workspace.name == "workspace"
+    assert release_request.request_id.endswith("testuser")
 
 
 def test_request_container():
-    workspace = Workspace("test-workspace")
+    workspace = factories.create_workspace("test-workspace")
 
     output_request = ReleaseRequest(workspace, "test-request")
 
@@ -132,13 +130,14 @@ def mock_old_api(monkeypatch):
 def test_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
     user = User(1, "testuser", [], True)
-    rf = WorkspaceFactory("workspace").create_request("request_id")
-    rf.write_file("test/file.txt", "test")
-    request = rf.get()
+    release_request = factories.create_release_request(
+        "workspace", user, request_id="request_id"
+    )
+    factories.write_request_file(release_request, "test/file.txt", "test")
 
-    request.release_files(user)
+    release_request.release_files(user)
 
-    item = request.get_path("test/file.txt")
+    item = release_request.get_path("test/file.txt")
     expected_json = {
         "files": [
             {
