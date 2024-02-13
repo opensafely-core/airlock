@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
+from airlock.api import Status
 from airlock.file_browser_api import PathItem
 from local_db.api import LocalDBProvider
 
@@ -181,6 +182,14 @@ def request_view(request, request_id: str, path: str = ""):
     if "is_author" in request.GET:  # pragma: nocover
         is_author = request.GET["is_author"].lower() == "true"
 
+    request_submit_url = reverse(
+        "request_submit",
+        kwargs={"request_id": request_id},
+    )
+    request_reject_url = reverse(
+        "request_reject",
+        kwargs={"request_id": request_id},
+    )
     release_files_url = reverse(
         "request_release_files",
         kwargs={"request_id": request_id},
@@ -191,14 +200,40 @@ def request_view(request, request_id: str, path: str = ""):
         "release_request": release_request,
         "path_item": path_item,
         "context": "request",
-        "title": f"Request {request_id}",
+        "title": f"Request for {release_request.workspace} by {release_request.author}",
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
+        "request_submit_url": request_submit_url,
+        "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
+
+
+@require_http_methods(["POST"])
+def request_submit(request, request_id):
+    release_request = validate_release_request(request.user, request_id)
+
+    try:
+        api.set_status(release_request, Status.SUBMITTED, request.user)
+    except api.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    return redirect(release_request.get_absolute_url())
+
+
+@require_http_methods(["POST"])
+def request_reject(request, request_id):
+    release_request = validate_release_request(request.user, request_id)
+
+    try:
+        api.set_status(release_request, Status.REJECTED, request.user)
+    except api.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    return redirect(release_request.get_absolute_url())
 
 
 @require_http_methods(["POST"])
@@ -214,7 +249,11 @@ def request_release_files(request, request_id):
     #    raise PermissionDenied(f"You cannot approve your own request")
 
     try:
+        # For now, we just implicitly approve when release files is requested
+        api.set_status(release_request, Status.APPROVED, request.user)
         api.release_files(release_request, request.user)
+    except api.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))  # pragma: nocover
     except requests.HTTPError as err:
         if settings.DEBUG:  # pragma: nocover
             return TemplateResponse(

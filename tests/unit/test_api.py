@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import old_api
-from airlock.api import ProviderAPI, Workspace, modified_time
+from airlock.api import ProviderAPI, Status, Workspace, modified_time
 from airlock.users import User
 from tests import factories
 
@@ -40,18 +40,37 @@ def mock_old_api(monkeypatch):
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
 
 
+def test_provider_request_release_files_not_approved():
+    author = User(1, "author", ["workspace"], False)
+    checker = User(1, "checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
+
+    api = ProviderAPI()
+    with pytest.raises(api.InvalidStateTransition):
+        api.release_files(release_request, checker)
+
+
 def test_provider_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
-    user = User(1, "testuser", [], True)
+    author = User(1, "author", ["workspace"], False)
+    checker = User(1, "checker", [], True)
     release_request = factories.create_release_request(
-        "workspace", user, id="request_id"
+        "workspace",
+        user=author,
+        id="request_id",
+        status=Status.APPROVED,
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, relpath, "test")
     abspath = release_request.abspath(relpath)
 
     api = ProviderAPI()
-    api.release_files(release_request, user)
+    api.release_files(release_request, checker)
 
     expected_json = {
         "files": [
@@ -70,10 +89,10 @@ def test_provider_request_release_files(mock_old_api):
     }
 
     old_api.create_release.assert_called_once_with(
-        "workspace", json.dumps(expected_json), "testuser"
+        "workspace", json.dumps(expected_json), checker.username
     )
     old_api.upload_file.assert_called_once_with(
-        "jobserver_id", relpath, abspath, "testuser"
+        "jobserver_id", relpath, abspath, checker.username
     )
 
 
@@ -109,8 +128,8 @@ def test_provider_get_requests_for_user(workspaces, output_checker, expected, ap
 
 def test_provider_get_current_request_for_user(api):
     workspace = factories.create_workspace("workspace")
-    user = User(1, "testuser", [], True)
-    other_user = User(2, "otheruser", [], True)
+    user = User(1, "testuser", ["workspace"], False)
+    other_user = User(2, "otheruser", ["workspace"], False)
 
     assert api.get_current_request("workspace", user) is None
 
@@ -126,3 +145,84 @@ def test_provider_get_current_request_for_user(api):
 
     with pytest.raises(Exception):
         api.get_current_request("workspace", user)
+
+
+def test_provider_get_current_request_for_user_output_checker(api):
+    """Output checker must have explict workspace permissions to create requests."""
+    factories.create_workspace("workspace")
+    user = User(1, "output_checker", [], True)
+
+    with pytest.raises(api.RequestPermissionDenied):
+        api.get_current_request("workspace", user, create=True)
+
+
+@pytest.mark.parametrize(
+    "current,future,valid_author,valid_checker",
+    [
+        (Status.PENDING, Status.SUBMITTED, True, False),
+        (Status.PENDING, Status.WITHDRAWN, True, False),
+        (Status.PENDING, Status.APPROVED, False, False),
+        (Status.PENDING, Status.REJECTED, False, False),
+        (Status.PENDING, Status.RELEASED, False, False),
+        (Status.SUBMITTED, Status.APPROVED, False, True),
+        (Status.SUBMITTED, Status.REJECTED, False, True),
+        (Status.SUBMITTED, Status.WITHDRAWN, True, False),
+        (Status.SUBMITTED, Status.PENDING, True, False),
+        (Status.SUBMITTED, Status.RELEASED, False, False),
+        (Status.APPROVED, Status.RELEASED, False, True),
+        (Status.APPROVED, Status.REJECTED, False, True),
+        (Status.APPROVED, Status.WITHDRAWN, True, False),
+        (Status.REJECTED, Status.PENDING, False, False),
+        (Status.REJECTED, Status.SUBMITTED, False, False),
+        (Status.REJECTED, Status.APPROVED, False, True),
+        (Status.REJECTED, Status.WITHDRAWN, False, False),
+        (Status.RELEASED, Status.REJECTED, False, False),
+        (Status.RELEASED, Status.PENDING, False, False),
+        (Status.RELEASED, Status.SUBMITTED, False, False),
+        (Status.RELEASED, Status.APPROVED, False, False),
+        (Status.RELEASED, Status.REJECTED, False, False),
+        (Status.RELEASED, Status.WITHDRAWN, False, False),
+    ],
+)
+def test_set_status(current, future, valid_author, valid_checker, api):
+    author = User(1, "author", ["workspace"], False)
+    checker = User(2, "checker", [], True)
+    release_request1 = factories.create_release_request(
+        "workspace", user=author, status=current
+    )
+    release_request2 = factories.create_release_request(
+        "workspace", user=author, status=current
+    )
+
+    if valid_author:
+        api.set_status(release_request1, future, user=author)
+    else:
+        with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
+            api.set_status(release_request1, future, user=author)
+
+    if valid_checker:
+        api.set_status(release_request2, future, user=checker)
+    else:
+        with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
+            api.set_status(release_request2, future, user=checker)
+
+
+def test_set_status_cannot_action_own_request(api):
+    user = User(2, "checker", [], True)
+    release_request1 = factories.create_release_request(
+        "workspace", user=user, status=Status.SUBMITTED
+    )
+
+    with pytest.raises(api.RequestPermissionDenied):
+        api.set_status(release_request1, Status.APPROVED, user=user)
+    with pytest.raises(api.RequestPermissionDenied):
+        api.set_status(release_request1, Status.REJECTED, user=user)
+
+    release_request2 = factories.create_release_request(
+        "workspace",
+        user=user,
+        status=Status.APPROVED,
+    )
+
+    with pytest.raises(api.RequestPermissionDenied):
+        api.set_status(release_request2, Status.RELEASED, user=user)

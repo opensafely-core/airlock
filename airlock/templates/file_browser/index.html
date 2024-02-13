@@ -3,33 +3,45 @@
 {% block full_width_content %}
 
 {% fragment as action_button %}
-  {% if is_author %}
-    <form action="" method="POST">
-    {% csrf_token %}
-    <input type=hidden name="workspace" value="{{ workspace.name }}"/>
-    <input type=hidden name="release_request" value="{{ release_request.request_id }}"/>
-    {% #button type="submit" tooltip="This output request is ready to be reviewed" variant="success" %}Submit Output Request For Review{% /button %}
-    </form>
-  {% elif is_output_checker %}
-  <form action="{{ release_files_url }}" method="POST">
-    {% csrf_token %}
-    {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="danger" %}Release Files{% /button %}
-    </form>
-  {% endif %}
-  {% if context == "request" %}
-  {% #button type="link" href=workspace.url variant="success" %}Workspace Home{% /button %}
-  {% endif %}
+<div class="flex items-center gap-2">
+    {% if context == "request" %}
+        {% if is_author %}
+            {% if release_request.status.name == "PENDING" %}
+            <form action="{{ request_submit_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button"%}Submit For Review{% /button %}
+            </form>
+            {% endif %}
+        {% elif is_output_checker %}
+            {% if release_request.status.name == "SUBMITTED" %}
+            <form action="{{ request_reject_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button"%}Reject Request{% /button %}
+            </form>
+            <form action="{{ release_files_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="warning" %}Release Files{% /button %}
+            </form>
+            {% endif %}
+        {% endif %}
+        {% #button type="link" href=workspace.get_absolute_url variant="success" %}Workspace Home{% /button %}
+    {% endif %}
+</div>
 {% endfragment %}
 
 {% #card title=title custom_button=action_button %}  
+
+{% if context == "request" %}
+{% #description_item title="Status:" %}{{ release_request.status.name }}{% /description_item %}
+{% endif %}
+{% /card %}
+
 {% #breadcrumbs %}
     {% breadcrumb title=path_item.container.get_id url=path_item.container.get_absolute_url %}
     {% for crumb in path_item.breadcrumbs %}
         {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
 {% /breadcrumbs %}
-
-{% /card %}
 
 <div class="flex flex-row">
 
@@ -58,6 +70,7 @@
   </div>
 
   <div style="flex-basis: 75%; max-width: 75%">
+
     {% if path_item.is_directory %}
 
       {% #card title=path_item.name %}
@@ -81,17 +94,14 @@
 
       {% fragment as add_button %}
         {% if context == "workspace" %}
-          <form action="{{ add_file_url }}" method="POST">
+          <form action="{{ request_file_url }}" method="POST">
             {% csrf_token %}
             <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-            {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Output Request{% /button %}
+            {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Request{% /button %}
           </form>
         {% elif is_author %}
           <form action="" method="POST">
             {% csrf_token %}
-            <input type=hidden name="file" value="{{ path_item.relpath }}"/>
-            <input type=hidden name="workspace" value="{{ workspace.name }}"/>
-            <input type=hidden name="release_request" value="{{ release_request.request_id }}"/>
             {% #button type="submit" tooltip="Remove this file from this output request" variant="warning" %}Remove File from Output Request{% /button %}
           </form>
  

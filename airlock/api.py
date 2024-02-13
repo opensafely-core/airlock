@@ -2,6 +2,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as stdlib_timezone
+from enum import Enum
 from pathlib import Path
 
 from django.conf import settings
@@ -14,6 +15,19 @@ from airlock.users import User
 def modified_time(path):
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=stdlib_timezone.utc).isoformat()
+
+
+class Status(Enum):
+    """Status for release Requests"""
+
+    # author set statuses
+    PENDING = "PENDING"
+    SUBMITTED = "SUBMITTED"
+    WITHDRAWN = "WITHDRAWN"
+    # output checker set statuses
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    RELEASED = "RELEASED"
 
 
 class AirlockContainer:
@@ -102,6 +116,7 @@ class ReleaseRequest(AirlockContainer):
     workspace: str
     author: str
     created_at: datetime
+    status: Status = Status.PENDING
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -153,6 +168,16 @@ class ProviderAPI:
 
     class FileNotFound(APIException):
         pass
+
+    class InvalidStateTransition(APIException):
+        pass
+
+    class RequestPermissionDenied(APIException):
+        """User is not allowed to create a relesae request in this workspace.
+
+        Note: will output_checkers can view all workspaces, they can only
+        create requests in workspaces they have explicit permission for.
+        """
 
     def get_workspace(self, name: str) -> Workspace:
         """Get a workspace object."""
@@ -207,6 +232,68 @@ class ProviderAPI:
         """Get all current requests authored by user"""
         raise NotImplementedError()
 
+    VALID_STATE_TRANSITIONS = {
+        Status.PENDING: [
+            Status.SUBMITTED,
+            Status.WITHDRAWN,
+        ],
+        Status.SUBMITTED: [
+            Status.APPROVED,
+            Status.REJECTED,
+            Status.PENDING,  # allow un-submission
+            Status.WITHDRAWN,
+        ],
+        Status.APPROVED: [
+            Status.RELEASED,
+            Status.RELEASED,
+            Status.REJECTED,  # allow fixing mistake *before* release
+            Status.WITHDRAWN,  # allow user to withdraw before released
+        ],
+        Status.REJECTED: [
+            Status.APPROVED,  # allow mind changed
+        ],
+    }
+
+    def set_status(self, request: ReleaseRequest, status: Status, user: User):
+        """Set the status of the request.
+
+        Note: the ProviderAPI implementation SHOULD first call
+        super().set_status(...) to validate transition and permissions and
+        update object state, and then persist the state however it needs to.
+        """
+        # validate state logic
+        valid_transitions = self.VALID_STATE_TRANSITIONS.get(request.status, [])
+
+        if status not in valid_transitions:
+            raise self.InvalidStateTransition(
+                f"from {request.status.name} to {status.name}"
+            )
+
+        # check permissions
+        # author transitions
+        if status in [status.PENDING, status.SUBMITTED, status.WITHDRAWN]:
+            if user.username != request.author:
+                raise self.RequestPermissionDenied(
+                    f"only {user.username} can set status to {status.name}"
+                )
+
+        # output checker transitions
+        if status in [Status.APPROVED, status.REJECTED, Status.RELEASED]:
+            if not user.output_checker:
+                raise self.RequestPermissionDenied(
+                    f"only an output checker can set status to {status.name}"
+                )
+
+            if user.username == request.author:
+                raise self.RequestPermissionDenied(
+                    f"Can not set your own request to {status.name}"
+                )
+
+        # Ensure the state of this object is updated to reflect the change in status
+        # This is deliberately bypassing the frozen aspect of the class to keep
+        # things consistent. It does change the hash.
+        request.__dict__["status"] = status
+
     def add_file_to_request(self, release_request: ReleaseRequest, relpath: Path):
         """Add a file to a request.
 
@@ -226,6 +313,10 @@ class ProviderAPI:
         implementations, but that will likely change in future.
         """
 
+        # we need to check this before releasing the files
+        if request.status != Status.APPROVED:
+            raise self.InvalidStateTransition(f"From {request.status.name} to RELEASED")
+
         filelist = old_api.create_filelist(request)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username
@@ -236,3 +327,5 @@ class ProviderAPI:
             old_api.upload_file(
                 jobserver_release_id, relpath, request.root() / relpath, user.username
             )
+
+        self.set_status(request, Status.RELEASED, user)
