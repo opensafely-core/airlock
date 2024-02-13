@@ -1,9 +1,13 @@
 from pathlib import Path
 
+import pytest
 from django.conf import settings
 
 import old_api
 from tests import factories
+
+
+pytestmark = pytest.mark.django_db
 
 
 def test_old_api_create_release(responses):
@@ -24,9 +28,7 @@ def test_old_api_create_release(responses):
 
 
 def test_old_api_upload_file(responses):
-    release_request = factories.create_release_request(
-        "workspace", request_id="request-id"
-    )
+    release_request = factories.create_release_request("workspace", id="request-id")
     relpath = Path("test/file.txt")
     abspath = release_request.root() / relpath
     factories.write_request_file(release_request, relpath, "test")

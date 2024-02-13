@@ -3,12 +3,14 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from django.conf import settings
 
 import old_api
-from airlock.api import FileProvider, ProviderAPI, Workspace, modified_time
+from airlock.api import ProviderAPI, Workspace, modified_time
 from airlock.users import User
 from tests import factories
+
+
+pytestmark = pytest.mark.django_db
 
 
 @pytest.mark.parametrize(
@@ -42,7 +44,7 @@ def test_provider_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
     user = User(1, "testuser", [], True)
     release_request = factories.create_release_request(
-        "workspace", user, request_id="request_id"
+        "workspace", user, id="request_id"
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, relpath, "test")
@@ -79,55 +81,48 @@ def test_provider_request_release_files(mock_old_api):
     "workspaces, output_checker, expected",
     [
         ([], False, []),
-        (["allowed"], False, ["r1-test"]),
+        (["allowed"], False, ["r1"]),
         (
             [],
             True,
             [
-                "r1-test",
-                "r3-test",
-                "r2-other",
+                "r1",
+                "r2",
+                "r3",
             ],
         ),
-        (["allowed", "notexist"], False, ["r1-test"]),
+        (["allowed", "notexist"], False, ["r1"]),
         (["notexist", "notexist"], False, []),
         (["no-request-dir", "notexist"], False, []),
     ],
 )
-def test_fileprovider_get_requests_for_user(workspaces, output_checker, expected):
+def test_provider_get_requests_for_user(workspaces, output_checker, expected, api):
     user = User(1, "test", workspaces, output_checker)
     other_user = User(1, "other", [], False)
-    factories.create_release_request("allowed", user, "r1-test")
-    factories.create_release_request("allowed", other_user, "r2-other")
-    factories.create_release_request("not-allowed", user, "r3-test")
+    factories.create_release_request("allowed", user, id="r1")
+    factories.create_release_request("allowed", other_user, id="r2")
+    factories.create_release_request("not-allowed", user, id="r3")
     factories.create_workspace("no-request-dir")
 
-    api = FileProvider()
-
-    expected_requests = set(api.get_release_request(rid) for rid in expected)
-
-    assert set(api.get_requests_for_user(user)) == expected_requests
+    assert set(r.id for r in api.get_requests_for_user(user)) == set(expected)
 
 
-def test_fileprovider_get_current_request_for_user():
+def test_provider_get_current_request_for_user(api):
     workspace = factories.create_workspace("workspace")
     user = User(1, "testuser", [], True)
     other_user = User(2, "otheruser", [], True)
-
-    api = FileProvider()
 
     assert api.get_current_request("workspace", user) is None
 
     factories.create_release_request(workspace, other_user)
     assert api.get_current_request("workspace", user) is None
 
-    request = api.get_current_request("workspace", user, create=True)
-    assert request.workspace == "workspace"
-    assert request.id.endswith("workspace-test-testuser")
+    release_request = api.get_current_request("workspace", user, create=True)
+    assert release_request.workspace == "workspace"
+    assert release_request.author == user.username
 
     # reach around an simulate 2 active requests for same user
-    (settings.REQUEST_DIR / "workspace/other-request-testuser").mkdir(parents=True)
+    api._create_release_request(author=user.username, workspace="workspace")
 
-    request = api.get_current_request("workspace", user)
-    assert request.workspace == "workspace"
-    assert request.id == "other-request-testuser"
+    with pytest.raises(Exception):
+        api.get_current_request("workspace", user)

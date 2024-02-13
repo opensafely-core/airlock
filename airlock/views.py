@@ -11,11 +11,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
-from airlock.api import FileProvider
 from airlock.file_browser_api import PathItem
+from local_db.api import LocalDBProvider
 
 
-api = FileProvider()
+api = LocalDBProvider()
 
 
 def login_exempt(view):
