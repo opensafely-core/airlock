@@ -245,6 +245,9 @@ typing-extensions==4.9.0 \
     # via
     #   pydantic
     #   slippers
+ulid==1.1 \
+    --hash=sha256:0943e8a751ec10dfcdb4df2758f96dffbbfbc055d0b49288caf2f92125900d49
+    # via -r requirements.prod.in
 urllib3==2.2.0 \
     --hash=sha256:051d961ad0c62a94e50ecf1af379c3aba230c66c710493493560c0c223c49f20 \
     --hash=sha256:ce3711610ddce217e6d113a2732fafad960a03fd0318c91faa79481e35c11224

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from django.conf import settings
 from django.shortcuts import reverse
-from django.utils import timezone
 
 import old_api
 from airlock.users import User
@@ -181,6 +180,16 @@ class ProviderAPI:
 
         return workspaces
 
+    def _create_release_request(self, **kwargs):
+        """Factory function to create a release_request.
+
+        The kwargs should match the public ReleaseRequest fields.
+
+        Is private because it is mean to only be used by our test factories to
+        set up state - it is not part of the public API.
+        """
+        raise NotImplementedError()
+
     def get_release_request(self, request_id: str) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
         raise NotImplementedError()
@@ -227,105 +236,3 @@ class ProviderAPI:
             old_api.upload_file(
                 jobserver_release_id, relpath, request.root() / relpath, user.username
             )
-
-
-class FileProvider(ProviderAPI):
-    """Basic implementation that just uses the state on disk.
-
-    This is a temporary implementation to test the design. It basically just
-    holds the current methods we've been using so far to track requests.
-
-    As such, it has no way to track status."""
-
-    @staticmethod
-    def _generate_request_id(workspace_name, user):
-        # attempt globally unique but human readable id
-        ts = timezone.now().strftime("%Y-%m-%d")
-        return f"{ts}-{workspace_name}-{settings.BACKEND}-{user.username}"
-
-    def _request(self, request_id, workspace, user):
-        return ReleaseRequest(
-            id=request_id,
-            workspace=workspace,
-            created_at=None,
-            author=user,
-        )
-
-    def get_release_request(self, request_id: str) -> ReleaseRequest:
-        """Find request_id directory on disk."""
-        # list of relative workspace/request_id paths
-        request_dirs = [
-            d.relative_to(settings.REQUEST_DIR)
-            for d in settings.REQUEST_DIR.glob("*/*")
-            if d.is_dir()
-        ]
-        requests = {d.parts[1]: d for d in request_dirs}
-
-        try:
-            path = requests[request_id]
-        except KeyError:
-            raise self.ReleaseRequestNotFound(request_id)
-
-        workspace = path.parts[0]
-        user = path.name.split("-")[-1]
-        return self._request(path.name, workspace, user)
-
-    def get_current_request(self, workspace: str, user: User, create=False):
-        """Get or create a request for the current workspace/user.
-
-        If none are found, and create is True, then create one and return it.
-        """
-        releases_root = settings.REQUEST_DIR / workspace
-        releases_root.mkdir(exist_ok=True)
-
-        user_releases = [
-            r
-            for r in releases_root.iterdir()
-            if r.is_dir() and r.name.endswith(user.username)
-        ]
-
-        request_id = None
-
-        if len(user_releases) > 1:
-            # TODO: error here. For now, just return the latest request until we've got request status
-            latest = max((r.stat().st_ctime, r) for r in user_releases)
-            return self.get_release_request(latest[1].name)
-        elif len(user_releases) == 1:
-            return self.get_release_request(user_releases[0].name)
-        elif create:
-            request_id = self._generate_request_id(workspace, user)
-            return self._request(request_id, workspace, user)
-
-        return None
-
-    def get_requests_for_user(self, user: User) -> list[ReleaseRequest]:
-        """Get all current requests authored by user"""
-
-        requests = []
-
-        if user.output_checker:
-            workspace_names = [
-                d.name for d in settings.REQUEST_DIR.iterdir() if d.is_dir()
-            ]
-        else:
-            workspace_names = user.workspaces
-
-        for workspace_name in workspace_names:
-            try:
-                self.get_workspace(workspace_name)
-            except self.WorkspaceNotFound:
-                continue
-
-            requests_dir = settings.REQUEST_DIR / workspace_name
-            if not requests_dir.exists():
-                continue
-
-            releases = [r for r in requests_dir.iterdir() if r.is_dir()]
-            if not user.output_checker:
-                # limit to just your requests if not output checker
-                releases = [r for r in releases if r.name.endswith(user.username)]
-
-            for release_dir in releases:
-                requests.append(self.get_release_request(release_dir.name))
-
-        return requests

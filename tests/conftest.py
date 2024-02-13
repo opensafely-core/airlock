@@ -2,6 +2,9 @@ import pytest
 import responses as _responses
 from django.conf import settings
 
+import tests.factories
+from local_db.api import LocalDBProvider
+
 
 # Fail the test run if we see any warnings
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -25,6 +28,14 @@ def temp_storage(settings, tmp_path):
 def responses():
     with _responses.RequestsMock() as rsps:
         yield rsps
+
+
+# we could parameterise this fixture to run tests over all api implementations in future
+@pytest.fixture
+def api(monkeypatch):
+    api = LocalDBProvider()
+    monkeypatch.setattr(tests.factories, "api", api)
+    return api
 
 
 @pytest.fixture

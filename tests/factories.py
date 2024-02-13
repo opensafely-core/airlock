@@ -1,10 +1,13 @@
 from django.conf import settings
 
-from airlock.api import FileProvider, ReleaseRequest, Workspace
+from airlock.api import Workspace
 from airlock.users import User
+from local_db.api import LocalDBProvider
 
 
 default_user = User(1, "testuser")
+
+api = LocalDBProvider()
 
 
 def ensure_workspace(workspace_or_name):
@@ -22,15 +25,10 @@ def create_workspace(name):
     return Workspace(name)
 
 
-def create_release_request(workspace, user=default_user, request_id=None):
+def create_release_request(workspace, user=default_user, **kwargs):
     workspace = ensure_workspace(workspace)
-    if request_id is None:
-        request_id = FileProvider._generate_request_id(workspace.name, user)
-    release_request = ReleaseRequest(
-        id=request_id,
-        workspace=workspace.name,
-        author=user.username,
-        created_at=None,
+    release_request = api._create_release_request(
+        workspace=workspace.name, author=user.username, **kwargs
     )
     release_request.root().mkdir(parents=True, exist_ok=True)
     return release_request

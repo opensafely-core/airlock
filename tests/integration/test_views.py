@@ -1,7 +1,6 @@
 import pytest
 import requests
 
-from airlock.api import FileProvider
 from airlock.users import User
 from tests import factories
 
@@ -122,14 +121,12 @@ def test_workspaces_index_user_permitted_workspaces(client_with_user):
     assert "test2" not in response.rendered_content
 
 
-def test_workspace_request_file_creates(client_with_user):
+def test_workspace_request_file_creates(client_with_user, api):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
-
-    api = FileProvider()
 
     assert api.get_current_request(workspace.name, user) is None
 
@@ -142,15 +139,13 @@ def test_workspace_request_file_creates(client_with_user):
     assert release_request.abspath("test/path.txt").exists()
 
 
-def test_workspace_request_file_request_already_exists(client_with_user):
+def test_workspace_request_file_request_already_exists(client_with_user, api):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
     release_request = factories.create_release_request(workspace, user)
-
-    api = FileProvider()
 
     response = client.post(
         "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
@@ -266,9 +261,7 @@ def test_request_index_user_output_checker(client_with_user):
 
 
 def test_request_release_files_success(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request(
-        "workspace", request_id="request_id"
-    )
+    release_request = factories.create_release_request("workspace", id="request_id")
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     factories.write_request_file(release_request, "test/file2.txt", "test2")
 
@@ -283,18 +276,14 @@ def test_request_release_files_success(client_with_permission, release_files_stu
 
 def test_requests_release_airlock_403(client_with_user):
     not_permitted_client = client_with_user({"workspaces": [], "output_checker": False})
-    release_request = factories.create_release_request(
-        "workspace", request_id="request_id"
-    )
+    release_request = factories.create_release_request("workspace", id="request_id")
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     response = not_permitted_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
 
 def test_requests_release_jobserver_403(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request(
-        "workspace", request_id="request_id"
-    )
+    release_request = factories.create_release_request("workspace", id="request_id")
     factories.write_request_file(release_request, "test/file.txt", "test")
 
     response = requests.Response()
@@ -309,9 +298,7 @@ def test_requests_release_jobserver_403(client_with_permission, release_files_st
 
 
 def test_requests_release_files_404(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request(
-        "workspace", request_id="request_id"
-    )
+    release_request = factories.create_release_request("workspace", id="request_id")
     factories.write_request_file(release_request, "test/file.txt", "test")
 
     # test 404 results in 500

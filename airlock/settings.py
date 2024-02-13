@@ -69,7 +69,10 @@ INSTALLED_APPS = [
     # ensure whitenoise serves files when using runserver
     # https://whitenoise.readthedocs.io/en/latest/django.html#using-whitenoise-in-development
     "whitenoise.runserver_nostatic",
+    # our local applications
     "airlock",
+    "assets",
+    "local_db",  # TODO: not include this application if we're not configured to use it?
     # "django.contrib.auth",
     # "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -80,7 +83,6 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "django_vite",
     "slippers",
-    "assets",
 ]
 
 MIDDLEWARE = [
