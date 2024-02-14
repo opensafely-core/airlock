@@ -254,13 +254,7 @@ class ProviderAPI:
         ],
     }
 
-    def set_status(self, request: ReleaseRequest, status: Status, user: User):
-        """Set the status of the request.
-
-        Note: the ProviderAPI implementation SHOULD first call
-        super().set_status(...) to validate transition and permissions and
-        update object state, and then persist the state however it needs to.
-        """
+    def check_status(self, request: ReleaseRequest, status: Status, user: User):
         # validate state logic
         valid_transitions = self.VALID_STATE_TRANSITIONS.get(request.status, [])
 
@@ -289,17 +283,40 @@ class ProviderAPI:
                     f"Can not set your own request to {status.name}"
                 )
 
+    def set_status(self, request: ReleaseRequest, status: Status, user: User):
+        """Set the status of the request.
+
+        Note: the ProviderAPI implementation SHOULD first call
+        super().set_status(...) to validate transition and permissions and
+        update object state, and then persist the state however it needs to.
+        """
+
+        # validate first
+        self.check_status(request, status, user)
+
         # Ensure the state of this object is updated to reflect the change in status
         # This is deliberately bypassing the frozen aspect of the class to keep
         # things consistent. It does change the hash.
         request.__dict__["status"] = status
 
-    def add_file_to_request(self, release_request: ReleaseRequest, relpath: Path):
+    def add_file_to_request(
+        self, release_request: ReleaseRequest, relpath: Path, user: User
+    ):
         """Add a file to a request.
 
         Subclasses should call super().add_file_to_request(...) to do the
         copying, then record the file metadata as needed.
         """
+        if user.username != release_request.author:
+            raise self.RequestPermissionDenied(
+                f"only author {release_request.author} can add files to this request"
+            )
+
+        if release_request.status not in [Status.PENDING, Status.SUBMITTED]:
+            raise self.RequestPermissionDenied(
+                f"cannot add file to request in state {release_request.status.name}"
+            )
+
         workspace = self.get_workspace(release_request.workspace)
         src = workspace.abspath(relpath)
         dst = release_request.abspath(relpath)
@@ -313,9 +330,8 @@ class ProviderAPI:
         implementations, but that will likely change in future.
         """
 
-        # we need to check this before releasing the files
-        if request.status != Status.APPROVED:
-            raise self.InvalidStateTransition(f"From {request.status.name} to RELEASED")
+        # we check this is valid status transition *before* releasing the files
+        self.check_status(request, Status.RELEASED, user)
 
         filelist = old_api.create_filelist(request)
         jobserver_release_id = old_api.create_release(

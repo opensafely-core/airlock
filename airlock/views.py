@@ -154,7 +154,7 @@ def workspace_add_file_to_request(request, workspace_name):
         raise Http404()
 
     release_request = api.get_current_request(workspace_name, request.user, create=True)
-    api.add_file_to_request(release_request, relpath)
+    api.add_file_to_request(release_request, relpath, request.user)
 
     # redirect to this just added file
     return redirect(release_request.get_url_for_path(relpath))

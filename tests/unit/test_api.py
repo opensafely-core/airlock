@@ -196,12 +196,14 @@ def test_set_status(current, future, valid_author, valid_checker, api):
 
     if valid_author:
         api.set_status(release_request1, future, user=author)
+        assert release_request1.status == future
     else:
         with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
             api.set_status(release_request1, future, user=author)
 
     if valid_checker:
         api.set_status(release_request2, future, user=checker)
+        assert release_request2.status == future
     else:
         with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
             api.set_status(release_request2, future, user=checker)
@@ -226,3 +228,50 @@ def test_set_status_cannot_action_own_request(api):
 
     with pytest.raises(api.RequestPermissionDenied):
         api.set_status(release_request2, Status.RELEASED, user=user)
+
+
+def test_add_file_to_request_not_author(api):
+    author = User(1, "author", ["workspace"], False)
+    other = User(1, "other", ["workspace"], True)
+
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    with pytest.raises(api.RequestPermissionDenied):
+        api.add_file_to_request(release_request, path, other)
+
+
+@pytest.mark.parametrize(
+    "status,success",
+    [
+        (Status.PENDING, True),
+        (Status.SUBMITTED, True),
+        (Status.APPROVED, False),
+        (Status.REJECTED, False),
+        (Status.RELEASED, False),
+        (Status.WITHDRAWN, False),
+    ],
+)
+def test_add_file_to_request_states(status, success, api):
+    author = User(1, "author", ["workspace"], False)
+
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        status=status,
+    )
+
+    if success:
+        api.add_file_to_request(release_request, path, author)
+        assert release_request.abspath(path).exists()
+    else:
+        with pytest.raises(api.RequestPermissionDenied):
+            api.add_file_to_request(release_request, path, author)
