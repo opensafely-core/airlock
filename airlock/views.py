@@ -238,22 +238,14 @@ def request_reject(request, request_id):
 
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
-    if not request.user.output_checker:
-        raise PermissionDenied()
-
     release_request = validate_release_request(request.user, request_id)
-
-    # TODO: enforce this, but we need a way to bypass it in dev, or else it
-    # gets really awkward to test w/o logging in/out as different users.
-    # if request.user.username == release_request.author:
-    #    raise PermissionDenied(f"You cannot approve your own request")
 
     try:
         # For now, we just implicitly approve when release files is requested
         api.set_status(release_request, Status.APPROVED, request.user)
         api.release_files(release_request, request.user)
     except api.RequestPermissionDenied as exc:
-        raise PermissionDenied(str(exc))  # pragma: nocover
+        raise PermissionDenied(str(exc))
     except requests.HTTPError as err:
         if settings.DEBUG:  # pragma: nocover
             return TemplateResponse(

@@ -340,7 +340,7 @@ def test_request_release_files_success(client_with_permission, release_files_stu
     assert api_responses.calls[2].request.body.read() == b"test2"
 
 
-def test_requests_release_airlock_403(client_with_user):
+def test_requests_release_workspace_403(client_with_user):
     not_permitted_client = client_with_user({"workspaces": [], "output_checker": False})
     release_request = factories.create_release_request(
         "workspace",
@@ -349,6 +349,19 @@ def test_requests_release_airlock_403(client_with_user):
     )
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     response = not_permitted_client.post("/requests/release/request_id")
+    assert response.status_code == 403
+
+
+def test_requests_release_author_403(client_with_permission):
+    user = User.from_session(client_with_permission.session)
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        user=user,
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "test/file1.txt", "test1")
+    response = client_with_permission.post("/requests/release/request_id")
     assert response.status_code == 403
 
 
