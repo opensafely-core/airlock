@@ -75,8 +75,8 @@ class LocalDBProvider(ProviderAPI):
 
     def set_status(self, request: ReleaseRequest, status: Status, user: User):
         with transaction.atomic():
-            # validate transition, permissions, and update object
-            super().check_status(request, status, user)
+            # validate transition/permissions ahead of time
+            self.check_status(request, status, user)
             # persist state change
             metadata = self._find_metadata(request.id)
             metadata.status = status

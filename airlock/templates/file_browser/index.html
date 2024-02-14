@@ -20,7 +20,7 @@
             </form>
             <form action="{{ release_files_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="Release these to jobs.opensafely.org" variant="warning" %}Release Files{% /button %}
+                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" %}Release Files{% /button %}
             </form>
             {% endif %}
         {% endif %}
@@ -97,12 +97,12 @@
           <form action="{{ request_file_url }}" method="POST">
             {% csrf_token %}
             <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-            {% #button type="submit" tooltip="Add this file to the current output request, starting a new one if needed" variant="success" %}Add File to Request{% /button %}
+            {% #button type="submit" tooltip="Add this file to the current request, starting a new one if needed" variant="success" %}Add File to Request{% /button %}
           </form>
         {% elif is_author %}
           <form action="" method="POST">
             {% csrf_token %}
-            {% #button type="submit" tooltip="Remove this file from this output request" variant="warning" %}Remove File from Output Request{% /button %}
+            {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
           </form>
  
         {% endif %}
