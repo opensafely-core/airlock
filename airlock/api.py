@@ -173,11 +173,7 @@ class ProviderAPI:
         pass
 
     class RequestPermissionDenied(APIException):
-        """User is not allowed to create a relesae request in this workspace.
-
-        Note: will output_checkers can view all workspaces, they can only
-        create requests in workspaces they have explicit permission for.
-        """
+        pass
 
     def get_workspace(self, name: str) -> Workspace:
         """Get a workspace object."""
@@ -245,7 +241,6 @@ class ProviderAPI:
         ],
         Status.APPROVED: [
             Status.RELEASED,
-            Status.RELEASED,
             Status.REJECTED,  # allow fixing mistake *before* release
             Status.WITHDRAWN,  # allow user to withdraw before released
         ],
@@ -254,50 +249,66 @@ class ProviderAPI:
         ],
     }
 
-    def check_status(self, request: ReleaseRequest, status: Status, user: User):
-        # validate state logic
-        valid_transitions = self.VALID_STATE_TRANSITIONS.get(request.status, [])
+    def check_status(
+        self, release_request: ReleaseRequest, to_status: Status, user: User
+    ):
+        """Check that a given status transtion is valid for this request and this user.
 
-        if status not in valid_transitions:
+        This can be used to look-before-you-leap before mutating state when
+        there's not transaction protection.
+        """
+        # validate state logic
+        valid_transitions = self.VALID_STATE_TRANSITIONS.get(release_request.status, [])
+
+        if to_status not in valid_transitions:
             raise self.InvalidStateTransition(
-                f"from {request.status.name} to {status.name}"
+                f"from {release_request.status.name} to {to_status.name}"
             )
 
         # check permissions
         # author transitions
-        if status in [status.PENDING, status.SUBMITTED, status.WITHDRAWN]:
-            if user.username != request.author:
+        if to_status in [Status.PENDING, Status.SUBMITTED, Status.WITHDRAWN]:
+            if user.username != release_request.author:
                 raise self.RequestPermissionDenied(
-                    f"only {user.username} can set status to {status.name}"
+                    f"only {user.username} can set status to {to_status.name}"
                 )
 
         # output checker transitions
-        if status in [Status.APPROVED, status.REJECTED, Status.RELEASED]:
+        if to_status in [Status.APPROVED, Status.REJECTED, Status.RELEASED]:
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
-                    f"only an output checker can set status to {status.name}"
+                    f"only an output checker can set status to {to_status.name}"
                 )
 
-            if user.username == request.author:
+            if user.username == release_request.author:
                 raise self.RequestPermissionDenied(
-                    f"Can not set your own request to {status.name}"
+                    f"Can not set your own request to {to_status.name}"
                 )
 
-    def set_status(self, request: ReleaseRequest, status: Status, user: User):
+    def set_status(
+        self, release_request: ReleaseRequest, to_status: Status, user: User
+    ):
         """Set the status of the request.
 
-        Note: the ProviderAPI implementation SHOULD first call
-        super().set_status(...) to validate transition and permissions and
-        update object state, and then persist the state however it needs to.
+        This will validate the transition, and then mutate the request object.
+
+        As calling set_status will mutate the passed ReleaseRequest, in cases
+        where we may want to call to external services (e.g. job-server) to
+        mutate external state, and these calls might fail, we provide
+        a look-before-you-leap API. That is, when changing status and related
+        state, an implementer should call `check_status(...)` first to validate
+        the desired state transition and permissions are valid, then mutate
+        their own state, and then call `set_status(...)` if successful to
+        mutate the passed ReleaseRequest object.
         """
 
         # validate first
-        self.check_status(request, status, user)
+        self.check_status(release_request, to_status, user)
 
         # Ensure the state of this object is updated to reflect the change in status
         # This is deliberately bypassing the frozen aspect of the class to keep
         # things consistent. It does change the hash.
-        request.__dict__["status"] = status
+        release_request.__dict__["status"] = to_status
 
     def add_file_to_request(
         self, release_request: ReleaseRequest, relpath: Path, user: User
