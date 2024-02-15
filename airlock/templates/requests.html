@@ -1,11 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% #card title="Requests for "|add:request.user.username %}
+
+{% #card title="Requests by "|add:request.user.username %}
   {% #list_group %}
-    {% for request in requests %} 
-    {% #list_group_item href=request.get_absolute_url %}{{ request.id }}{% /list_group_item %}
+    {% for request in authored_requests %} 
+    {% #list_group_item href=request.get_absolute_url %}{{ request.workspace }}: {{ request.status.name }}{% /list_group_item %}
     {% endfor %}
   {% /list_group %}
 {% /card %}
+
+{% if request.user.output_checker %}
+{% #card title="Outstanding requests awaiting review" %}
+  {% #list_group %}
+    {% for request in outstanding_requests %} 
+    {% #list_group_item href=request.get_absolute_url %}{{ request.workspace }} by {{ request.author }}{% /list_group_item %}
+    {% endfor %}
+  {% /list_group %}
+{% /card %}
+{% endif %}
+
 {% endblock content %}

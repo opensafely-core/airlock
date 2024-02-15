@@ -248,17 +248,30 @@ def test_request_index_user_permitted_requests(client_with_user):
     user = User.from_session(permitted_client.session)
     release_request = factories.create_release_request("test1", user)
     response = permitted_client.get("/requests/")
-    request_ids = {r.id for r in response.context["requests"]}
-    assert request_ids == {release_request.id}
+    authored_ids = {r.id for r in response.context["authored_requests"]}
+    outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    assert authored_ids == {release_request.id}
+    assert outstanding_ids == set()
 
 
 def test_request_index_user_output_checker(client_with_user):
-    r1 = factories.create_release_request("test1")
-    r2 = factories.create_release_request("test2")
-    permitted_client = client_with_user({"workspaces": [], "output_checker": True})
+    permitted_client = client_with_user(
+        {"workspaces": ["test_workspace"], "output_checker": True}
+    )
+    user = User.from_session(permitted_client.session)
+    other = User(1, "other")
+    r1 = factories.create_release_request(
+        "test_workspace", user=user, status=Status.SUBMITTED
+    )
+    r2 = factories.create_release_request(
+        "other_workspace", user=other, status=Status.SUBMITTED
+    )
     response = permitted_client.get("/requests/")
-    request_ids = {r.id for r in response.context["requests"]}
-    assert request_ids == {r1.id, r2.id}
+
+    authored_ids = {r.id for r in response.context["authored_requests"]}
+    outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    assert authored_ids == {r1.id}
+    assert outstanding_ids == {r2.id}
 
 
 def test_request_submit_author(client_with_user):

@@ -161,8 +161,20 @@ def workspace_add_file_to_request(request, workspace_name):
 
 
 def request_index(request):
-    requests = api.get_requests_for_user(request.user)
-    return TemplateResponse(request, "requests.html", {"requests": requests})
+    authored_requests = api.get_requests_authored_by_user(request.user)
+
+    outstanding_requests = []
+    if request.user.output_checker:
+        outstanding_requests = api.get_outstanding_requests_for_review(request.user)
+
+    return TemplateResponse(
+        request,
+        "requests.html",
+        {
+            "authored_requests": authored_requests,
+            "outstanding_requests": outstanding_requests,
+        },
+    )
 
 
 def request_view(request, request_id: str, path: str = ""):
