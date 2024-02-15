@@ -224,8 +224,12 @@ class ProviderAPI:
         """
         raise NotImplementedError()
 
-    def get_requests_for_user(self, user: User) -> list[ReleaseRequest]:
-        """Get all current requests authored by user"""
+    def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
+        """Get all current requests authored by user."""
+        raise NotImplementedError()
+
+    def get_outstanding_requests_for_review(self, user: User):
+        """Get all request that need review."""
         raise NotImplementedError()
 
     VALID_STATE_TRANSITIONS = {

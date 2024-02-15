@@ -60,17 +60,30 @@ class LocalDBProvider(ProviderAPI):
                 author=user.username,
             )
 
-    def get_requests_for_user(self, user: User):
+    def get_requests_authored_by_user(self, user: User):
         requests = []
-        filter_args = {}
 
-        # if not output checker, can only see your own requests
-        if not user.output_checker:
-            filter_args = {"author": user.username}
-
-        for metadata in RequestMetadata.objects.filter(**filter_args):
-            if user.output_checker or metadata.workspace in user.workspaces:
+        for metadata in RequestMetadata.objects.filter(author=user.username).order_by(
+            "status"
+        ):
+            # to create a request, user *must* have explicit workspace
+            # permissions - being an output checker is not enough
+            if metadata.workspace in user.workspaces:
                 requests.append(self._request(metadata))
+
+        return requests
+
+    def get_outstanding_requests_for_review(self, user: User):
+        requests = []
+
+        if not user.output_checker:
+            return []
+
+        for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED):
+            # do not show output_checker their own requests
+            if metadata.author != user.username:
+                requests.append(self._request(metadata))
+
         return requests
 
     def set_status(self, request: ReleaseRequest, status: Status, user: User):

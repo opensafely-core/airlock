@@ -101,21 +101,17 @@ def test_provider_request_release_files(mock_old_api):
     [
         ([], False, []),
         (["allowed"], False, ["r1"]),
-        (
-            [],
-            True,
-            [
-                "r1",
-                "r2",
-                "r3",
-            ],
-        ),
+        # output checkers can't create requests unless explit permission for workspace
+        ([], True, []),
+        (["allowed"], True, ["r1"]),
         (["allowed", "notexist"], False, ["r1"]),
-        (["notexist", "notexist"], False, []),
+        (["notexist"], False, []),
         (["no-request-dir", "notexist"], False, []),
     ],
 )
-def test_provider_get_requests_for_user(workspaces, output_checker, expected, api):
+def test_provider_get_requests_authored_by_user(
+    workspaces, output_checker, expected, api
+):
     user = User(1, "test", workspaces, output_checker)
     other_user = User(1, "other", [], False)
     factories.create_release_request("allowed", user, id="r1")
@@ -123,7 +119,7 @@ def test_provider_get_requests_for_user(workspaces, output_checker, expected, ap
     factories.create_release_request("not-allowed", user, id="r3")
     factories.create_workspace("no-request-dir")
 
-    assert set(r.id for r in api.get_requests_for_user(user)) == set(expected)
+    assert set(r.id for r in api.get_requests_authored_by_user(user)) == set(expected)
 
 
 def test_provider_get_current_request_for_user(api):
