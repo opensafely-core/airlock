@@ -3,6 +3,7 @@ from pathlib import Path
 import requests
 from django import forms
 from django.conf import settings
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import redirect
@@ -156,6 +157,7 @@ def workspace_add_file_to_request(request, workspace_name):
     release_request = api.get_current_request(workspace_name, request.user, create=True)
     api.add_file_to_request(release_request, relpath, request.user)
 
+    messages.success(request, "File has been added to request")
     # redirect to this just added file
     return redirect(release_request.get_url_for_path(relpath))
 
@@ -221,6 +223,7 @@ def request_submit(request, request_id):
     except api.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
+    messages.success(request, "Request has been submitted")
     return redirect(release_request.get_absolute_url())
 
 
@@ -233,6 +236,7 @@ def request_reject(request, request_id):
     except api.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
+    messages.error(request, "Request has been rejected")
     return redirect(release_request.get_absolute_url())
 
 
@@ -261,4 +265,5 @@ def request_release_files(request, request_id):
             raise PermissionDenied() from None
         raise
 
+    messages.success(request, "Files have been released to jobs.opensafely.org")
     return redirect(release_request.get_absolute_url())
