@@ -1,6 +1,7 @@
 import pytest
 import requests
 
+from airlock.api import Status
 from airlock.users import User
 from tests import factories
 
@@ -260,8 +261,73 @@ def test_request_index_user_output_checker(client_with_user):
     assert request_ids == {r1.id, r2.id}
 
 
+def test_request_submit_author(client_with_user):
+    permitted_client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(permitted_client.session)
+    release_request = factories.create_release_request("test1", user=user)
+    factories.write_request_file(release_request, "path/test.txt")
+
+    response = permitted_client.post(f"/requests/submit/{release_request.id}")
+
+    assert response.status_code == 302
+    persisted_request = factories.api.get_release_request(release_request.id)
+    assert persisted_request.status == Status.SUBMITTED
+
+
+def test_request_submit_not_author(client_with_user):
+    permitted_client = client_with_user({"workspaces": ["test1"]})
+    other_user = User(2, "other", [], False)
+    release_request = factories.create_release_request(
+        "test1", user=other_user, status=Status.PENDING
+    )
+    factories.write_request_file(release_request, "path/test.txt")
+
+    response = permitted_client.post(f"/requests/submit/{release_request.id}")
+
+    assert response.status_code == 403
+    persisted_request = factories.api.get_release_request(release_request.id)
+    assert persisted_request.status == Status.PENDING
+
+
+def test_request_reject_output_checker(client_with_permission):
+    author = User(1, "author", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "path/test.txt")
+
+    response = client_with_permission.post(f"/requests/reject/{release_request.id}")
+
+    assert response.status_code == 302
+    persisted_request = factories.api.get_release_request(release_request.id)
+    assert persisted_request.status == Status.REJECTED
+
+
+def test_request_reject_not_output_checker(client_with_user):
+    client = client_with_user({"workspaces": ["test1"]})
+    author = User(1, "author", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "path/test.txt")
+
+    response = client.post(f"/requests/reject/{release_request.id}")
+
+    assert response.status_code == 403
+    persisted_request = factories.api.get_release_request(release_request.id)
+    assert persisted_request.status == Status.SUBMITTED
+
+
 def test_request_release_files_success(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request("workspace", id="request_id")
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     factories.write_request_file(release_request, "test/file2.txt", "test2")
 
@@ -274,16 +340,37 @@ def test_request_release_files_success(client_with_permission, release_files_stu
     assert api_responses.calls[2].request.body.read() == b"test2"
 
 
-def test_requests_release_airlock_403(client_with_user):
+def test_requests_release_workspace_403(client_with_user):
     not_permitted_client = client_with_user({"workspaces": [], "output_checker": False})
-    release_request = factories.create_release_request("workspace", id="request_id")
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
     factories.write_request_file(release_request, "test/file1.txt", "test1")
     response = not_permitted_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
 
+def test_requests_release_author_403(client_with_permission):
+    user = User.from_session(client_with_permission.session)
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        user=user,
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "test/file1.txt", "test1")
+    response = client_with_permission.post("/requests/release/request_id")
+    assert response.status_code == 403
+
+
 def test_requests_release_jobserver_403(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request("workspace", id="request_id")
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
     factories.write_request_file(release_request, "test/file.txt", "test")
 
     response = requests.Response()
@@ -298,7 +385,11 @@ def test_requests_release_jobserver_403(client_with_permission, release_files_st
 
 
 def test_requests_release_files_404(client_with_permission, release_files_stubber):
-    release_request = factories.create_release_request("workspace", id="request_id")
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
     factories.write_request_file(release_request, "test/file.txt", "test")
 
     # test 404 results in 500

@@ -2,6 +2,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as stdlib_timezone
+from enum import Enum
 from pathlib import Path
 
 from django.conf import settings
@@ -14,6 +15,19 @@ from airlock.users import User
 def modified_time(path):
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=stdlib_timezone.utc).isoformat()
+
+
+class Status(Enum):
+    """Status for release Requests"""
+
+    # author set statuses
+    PENDING = "PENDING"
+    SUBMITTED = "SUBMITTED"
+    WITHDRAWN = "WITHDRAWN"
+    # output checker set statuses
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    RELEASED = "RELEASED"
 
 
 class AirlockContainer:
@@ -102,6 +116,7 @@ class ReleaseRequest(AirlockContainer):
     workspace: str
     author: str
     created_at: datetime
+    status: Status = Status.PENDING
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -152,6 +167,12 @@ class ProviderAPI:
         pass
 
     class FileNotFound(APIException):
+        pass
+
+    class InvalidStateTransition(APIException):
+        pass
+
+    class RequestPermissionDenied(APIException):
         pass
 
     def get_workspace(self, name: str) -> Workspace:
@@ -207,12 +228,106 @@ class ProviderAPI:
         """Get all current requests authored by user"""
         raise NotImplementedError()
 
-    def add_file_to_request(self, release_request: ReleaseRequest, relpath: Path):
+    VALID_STATE_TRANSITIONS = {
+        Status.PENDING: [
+            Status.SUBMITTED,
+            Status.WITHDRAWN,
+        ],
+        Status.SUBMITTED: [
+            Status.APPROVED,
+            Status.REJECTED,
+            Status.PENDING,  # allow un-submission
+            Status.WITHDRAWN,
+        ],
+        Status.APPROVED: [
+            Status.RELEASED,
+            Status.REJECTED,  # allow fixing mistake *before* release
+            Status.WITHDRAWN,  # allow user to withdraw before released
+        ],
+        Status.REJECTED: [
+            Status.APPROVED,  # allow mind changed
+        ],
+    }
+
+    def check_status(
+        self, release_request: ReleaseRequest, to_status: Status, user: User
+    ):
+        """Check that a given status transtion is valid for this request and this user.
+
+        This can be used to look-before-you-leap before mutating state when
+        there's not transaction protection.
+        """
+        # validate state logic
+        valid_transitions = self.VALID_STATE_TRANSITIONS.get(release_request.status, [])
+
+        if to_status not in valid_transitions:
+            raise self.InvalidStateTransition(
+                f"from {release_request.status.name} to {to_status.name}"
+            )
+
+        # check permissions
+        # author transitions
+        if to_status in [Status.PENDING, Status.SUBMITTED, Status.WITHDRAWN]:
+            if user.username != release_request.author:
+                raise self.RequestPermissionDenied(
+                    f"only {user.username} can set status to {to_status.name}"
+                )
+
+        # output checker transitions
+        if to_status in [Status.APPROVED, Status.REJECTED, Status.RELEASED]:
+            if not user.output_checker:
+                raise self.RequestPermissionDenied(
+                    f"only an output checker can set status to {to_status.name}"
+                )
+
+            if user.username == release_request.author:
+                raise self.RequestPermissionDenied(
+                    f"Can not set your own request to {to_status.name}"
+                )
+
+    def set_status(
+        self, release_request: ReleaseRequest, to_status: Status, user: User
+    ):
+        """Set the status of the request.
+
+        This will validate the transition, and then mutate the request object.
+
+        As calling set_status will mutate the passed ReleaseRequest, in cases
+        where we may want to call to external services (e.g. job-server) to
+        mutate external state, and these calls might fail, we provide
+        a look-before-you-leap API. That is, when changing status and related
+        state, an implementer should call `check_status(...)` first to validate
+        the desired state transition and permissions are valid, then mutate
+        their own state, and then call `set_status(...)` if successful to
+        mutate the passed ReleaseRequest object.
+        """
+
+        # validate first
+        self.check_status(release_request, to_status, user)
+
+        # Ensure the state of this object is updated to reflect the change in status
+        # This is deliberately bypassing the frozen aspect of the class to keep
+        # things consistent. It does change the hash.
+        release_request.__dict__["status"] = to_status
+
+    def add_file_to_request(
+        self, release_request: ReleaseRequest, relpath: Path, user: User
+    ):
         """Add a file to a request.
 
         Subclasses should call super().add_file_to_request(...) to do the
         copying, then record the file metadata as needed.
         """
+        if user.username != release_request.author:
+            raise self.RequestPermissionDenied(
+                f"only author {release_request.author} can add files to this request"
+            )
+
+        if release_request.status not in [Status.PENDING, Status.SUBMITTED]:
+            raise self.RequestPermissionDenied(
+                f"cannot add file to request in state {release_request.status.name}"
+            )
+
         workspace = self.get_workspace(release_request.workspace)
         src = workspace.abspath(relpath)
         dst = release_request.abspath(relpath)
@@ -226,6 +341,9 @@ class ProviderAPI:
         implementations, but that will likely change in future.
         """
 
+        # we check this is valid status transition *before* releasing the files
+        self.check_status(request, Status.RELEASED, user)
+
         filelist = old_api.create_filelist(request)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username
@@ -236,3 +354,5 @@ class ProviderAPI:
             old_api.upload_file(
                 jobserver_release_id, relpath, request.root() / relpath, user.username
             )
+
+        self.set_status(request, Status.RELEASED, user)

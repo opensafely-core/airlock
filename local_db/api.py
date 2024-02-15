@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
-from airlock.api import ProviderAPI, ReleaseRequest, User
+from django.db import transaction
+
+from airlock.api import ProviderAPI, ReleaseRequest, Status, User
 from local_db.models import RequestMetadata
 
 
@@ -13,6 +15,7 @@ class LocalDBProvider(ProviderAPI):
         return ReleaseRequest(
             id=metadata.id,
             workspace=metadata.workspace,
+            status=metadata.status,
             author=metadata.author,
             created_at=metadata.created_at,
         )
@@ -35,6 +38,7 @@ class LocalDBProvider(ProviderAPI):
             RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=user.username,
+                status__in=[Status.PENDING, Status.SUBMITTED],
             )
         )
         n = len(requests)
@@ -45,6 +49,12 @@ class LocalDBProvider(ProviderAPI):
         elif n == 1:
             return self._request(requests[0])
         elif create:
+            # To create a request, you must have explicit workspace permissions.
+            # Output checkers can view all workspaces, but are not allowed to
+            # create requests for all workspaces.
+            if workspace not in user.workspaces:
+                raise self.RequestPermissionDenied(workspace)
+
             return self._create_release_request(
                 workspace=workspace,
                 author=user.username,
@@ -62,3 +72,13 @@ class LocalDBProvider(ProviderAPI):
             if user.output_checker or metadata.workspace in user.workspaces:
                 requests.append(self._request(metadata))
         return requests
+
+    def set_status(self, request: ReleaseRequest, status: Status, user: User):
+        with transaction.atomic():
+            # validate transition/permissions ahead of time
+            self.check_status(request, status, user)
+            # persist state change
+            metadata = self._find_metadata(request.id)
+            metadata.status = status
+            metadata.save()
+            super().set_status(request, status, user)
