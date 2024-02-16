@@ -144,10 +144,21 @@ class LocalDBProvider(ProviderAPI):
             filegroupmetadata = self._get_or_create_filegroupmetadata(
                 release_request.id, group_name
             )
-            # create the RequestFile
-            RequestFileMetadata.objects.create(
-                relpath=str(relpath), filegroup=filegroupmetadata
-            )
+            # Check if this file is already on the request, in any group
+            try:
+                existing_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=release_request.id, relpath=relpath
+                )
+            except RequestFileMetadata.DoesNotExist:
+                # create the RequestFile
+                RequestFileMetadata.objects.create(
+                    relpath=str(relpath), filegroup=filegroupmetadata
+                )
+            else:
+                raise self.APIException(
+                    "File has already been added to request "
+                    f"(in file group '{existing_file.filegroup.name}')"
+                )
 
         # return a new request object with the updated groups
         return self._request(self._find_metadata(release_request.id))

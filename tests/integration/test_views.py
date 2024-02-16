@@ -180,6 +180,15 @@ def test_workspace_request_file_filegroup_already_exists(client_with_user, api):
     assert filegroupmetadata.request_files.count() == 1
     assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
 
+    # Attempt to add the same file again
+    response = client.post(
+        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+    )
+    assert response.status_code == 302
+    # No new file created
+    assert filegroupmetadata.request_files.count() == 1
+    assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
+
 
 def test_workspace_request_file_request_path_does_not_exist(client_with_user):
     client = client_with_user({"workspaces": ["test1"]})

@@ -341,3 +341,24 @@ def test_release_request_filegroups_multiple_filegroups(api):
         "test_group": [Path("path/file.txt"), Path("path/file1.txt")],
         "test_group1": [Path("path/file2.txt")],
     }
+
+
+def test_release_request_add_same_file(api):
+    release_request, path, author = setup_empty_release_request()
+    assert release_request.filegroups == []
+    release_request = api.add_file_to_request(release_request, path, author)
+    assert len(release_request.filegroups) == 1
+    assert len(release_request.filegroups[0].files) == 1
+
+    # Adding the same file again should not create a new RequestFile
+    with pytest.raises(api.APIException):
+        api.add_file_to_request(release_request, path, author)
+
+    # We also can't add the same file to a different group
+    with pytest.raises(api.APIException):
+        api.add_file_to_request(release_request, path, author, "new_group")
+
+    release_request = api.get_release_request(release_request.id)
+    # No additional files or groups have been created
+    assert len(release_request.filegroups) == 1
+    assert len(release_request.filegroups[0].files) == 1

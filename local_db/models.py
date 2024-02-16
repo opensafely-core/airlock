@@ -64,3 +64,6 @@ class RequestFileMetadata(models.Model):
     filegroup = models.ForeignKey(
         FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
     )
+
+    class Meta:
+        unique_together = ("relpath", "filegroup")
