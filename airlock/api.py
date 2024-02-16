@@ -1,5 +1,5 @@
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from datetime import timezone as stdlib_timezone
 from enum import Enum
@@ -103,6 +103,25 @@ class Workspace(AirlockContainer):
 
 
 @dataclass(frozen=True)
+class RequestFile:
+    """
+    Represents a single file within a release request
+    """
+
+    relpath: Path
+
+
+@dataclass(frozen=True)
+class FileGroup:
+    """
+    Represents a group of one or more files within a release request
+    """
+
+    name: str
+    files: [RequestFile]
+
+
+@dataclass(frozen=True)
 class ReleaseRequest(AirlockContainer):
     """Represents a release request made by a user.
 
@@ -117,6 +136,7 @@ class ReleaseRequest(AirlockContainer):
     author: str
     created_at: datetime
     status: Status = Status.PENDING
+    file_groups: [FileGroup] = field(default_factory=list)
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
