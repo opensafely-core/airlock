@@ -155,9 +155,14 @@ def workspace_add_file_to_request(request, workspace_name):
         raise Http404()
 
     release_request = api.get_current_request(workspace_name, request.user, create=True)
-    api.add_file_to_request(release_request, relpath, request.user)
-
-    messages.success(request, "File has been added to request")
+    try:
+        api.add_file_to_request(release_request, relpath, request.user)
+    except api.APIException as err:
+        # This exception is raised if the file has already been added
+        # (to any group on the request)
+        messages.error(request, str(err))
+    else:
+        messages.success(request, "File has been added to request")
     # redirect to this just added file
     return redirect(release_request.get_url_for_path(relpath))
 
