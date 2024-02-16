@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timezone as stdlib_timezone
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 from django.conf import settings
 from django.shortcuts import reverse
@@ -136,7 +137,7 @@ class ReleaseRequest(AirlockContainer):
     author: str
     created_at: datetime
     status: Status = Status.PENDING
-    file_groups: [FileGroup] = field(default_factory=list)
+    filegroups: [FileGroup] = field(default_factory=list)
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -335,12 +336,21 @@ class ProviderAPI:
         release_request.__dict__["status"] = to_status
 
     def add_file_to_request(
-        self, release_request: ReleaseRequest, relpath: Path, user: User
-    ):
+        self,
+        release_request: ReleaseRequest,
+        relpath: Path,
+        user: User,
+        group_name: Optional[str] = "default",
+    ) -> ReleaseRequest:
         """Add a file to a request.
 
         Subclasses should call super().add_file_to_request(...) to do the
-        copying, then record the file metadata as needed.
+        copying, then create/retrieve the file group and record the file
+        metadata as needed.
+
+        After calling add_file_to_request, the current release_request's
+        filegroups will be out of date. Subclasses should return a new
+        ReleaseRequest to ensure filegroups are current.
         """
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(
@@ -357,6 +367,8 @@ class ProviderAPI:
         dst = release_request.abspath(relpath)
         dst.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(src, dst)
+
+        return release_request
 
     def release_files(self, request: ReleaseRequest, user: User):
         """Release all files from a request to job-server.
