@@ -119,7 +119,7 @@ class FileGroup:
     """
 
     name: str
-    files: [RequestFile]
+    files: list[RequestFile]
 
 
 @dataclass(frozen=True)
@@ -137,7 +137,7 @@ class ReleaseRequest(AirlockContainer):
     author: str
     created_at: datetime
     status: Status = Status.PENDING
-    filegroups: [FileGroup] = field(default_factory=list)
+    filegroups: list[FileGroup] = field(default_factory=list)
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
