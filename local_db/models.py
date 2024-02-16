@@ -45,3 +45,22 @@ class RequestMetadata(models.Model):
     status = StatusField(default=Status.PENDING)
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
+
+
+class FileGroupMetadata(models.Model):
+    """A group of files that share context and controls"""
+
+    request_id = models.TextField()
+    name = models.TextField(default="default")
+
+    class Meta:
+        unique_together = ("request_id", "name")
+
+
+class RequestFileMetadata(models.Model):
+    """Represents attributes of a single file in a request"""
+
+    relpath = models.TextField()
+    filegroup = models.ForeignKey(
+        FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
+    )
