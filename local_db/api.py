@@ -136,8 +136,6 @@ class LocalDBProvider(ProviderAPI):
         user: User,
         group_name: Optional[str] = "default",
     ) -> ReleaseRequest:
-        # call super() to copy the file
-        super().add_file_to_request(release_request, relpath, user, group_name)
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
             filegroupmetadata = self._get_or_create_filegroupmetadata(
@@ -158,6 +156,12 @@ class LocalDBProvider(ProviderAPI):
                     "File has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
+
+            # Now that the db objects have been successfully creates,
+            # call super() to copy the file. This will also validate
+            # that the user can add the file, and that the request is in a
+            # state that allows adding files.
+            super().add_file_to_request(release_request, relpath, user, group_name)
 
         # return a new request object with the updated groups
         return self._request(self._find_metadata(release_request.id))

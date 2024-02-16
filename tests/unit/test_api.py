@@ -271,6 +271,7 @@ def test_add_file_to_request_states(status, success, api):
     else:
         with pytest.raises(api.RequestPermissionDenied):
             api.add_file_to_request(release_request, path, author)
+        assert not release_request.abspath(path).exists()
 
 
 def setup_empty_release_request():

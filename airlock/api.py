@@ -344,9 +344,11 @@ class ProviderAPI:
     ) -> ReleaseRequest:
         """Add a file to a request.
 
-        Subclasses should call super().add_file_to_request(...) to do the
-        copying, then create/retrieve the file group and record the file
-        metadata as needed.
+        Subclasses should do what they need to create the filegroup and
+        record the file metadata as needed and THEN
+        call super().add_file_to_request(...) to do the
+        copying. If the copying fails (e.g. due to permission errors raised
+        below), the subclasses should roll back any changes.
 
         After calling add_file_to_request, the current release_request's
         filegroups will be out of date. Subclasses should return a new
