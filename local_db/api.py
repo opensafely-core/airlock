@@ -27,7 +27,7 @@ class LocalDBProvider(ProviderAPI):
             status=metadata.status,
             author=metadata.author,
             created_at=metadata.created_at,
-            filegroups=self._get_filegroups(request_id=metadata.id),
+            filegroups=self._get_filegroups(metadata),
         )
 
     def _create_release_request(self, **kwargs):
@@ -50,17 +50,16 @@ class LocalDBProvider(ProviderAPI):
             ],
         )
 
-    def _get_filegroups(self, request_id: str):
+    def _get_filegroups(self, metadata: RequestMetadata):
         return [
             self._filegroup(group_metadata)
-            for group_metadata in FileGroupMetadata.objects.filter(
-                request_id=request_id
-            )
+            for group_metadata in metadata.filegroups.all()
         ]
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
+        metadata = self._find_metadata(request_id)
         groupmetadata, _ = FileGroupMetadata.objects.get_or_create(
-            request_id=request_id, name=group_name
+            request=metadata, name=group_name
         )
         return groupmetadata
 

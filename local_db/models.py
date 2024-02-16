@@ -50,11 +50,13 @@ class RequestMetadata(models.Model):
 class FileGroupMetadata(models.Model):
     """A group of files that share context and controls"""
 
-    request_id = models.TextField()
+    request = models.ForeignKey(
+        RequestMetadata, related_name="filegroups", on_delete=models.CASCADE
+    )
     name = models.TextField(default="default")
 
     class Meta:
-        unique_together = ("request_id", "name")
+        unique_together = ("request", "name")
 
 
 class RequestFileMetadata(models.Model):
