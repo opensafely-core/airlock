@@ -1,5 +1,6 @@
 import pytest
 import requests
+from django.contrib import messages
 
 from airlock.api import Status
 from airlock.users import User
@@ -130,9 +131,9 @@ def test_workspace_request_file_creates(client_with_user, api):
     factories.write_workspace_file(workspace, "test/path.txt")
 
     assert api.get_current_request(workspace.name, user) is None
-
     response = client.post(
-        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1",
+        data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
 
@@ -153,7 +154,8 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
     assert release_request.filegroups == []
 
     response = client.post(
-        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1",
+        data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
     current_release_request = api.get_current_request(workspace.name, user)
@@ -162,6 +164,30 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
     filegroup = current_release_request.filegroups[0]
     assert filegroup.name == "default"
     assert str(filegroup.files[0].relpath) == "test/path.txt"
+
+
+def test_workspace_request_file_with_new_filegroup(client_with_user, api):
+    client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(client.session)
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    assert api.get_current_request(workspace.name, user) is None
+    response = client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={
+            "path": "test/path.txt",
+            # new filegroup overrides a selected existing one (or the default)
+            "filegroup": "default",
+            "new_filegroup": "new_group",
+        },
+    )
+    assert response.status_code == 302
+
+    release_request = api.get_current_request(workspace.name, user)
+    filegroup = release_request.filegroups[0]
+    assert filegroup.name == "new_group"
 
 
 def test_workspace_request_file_filegroup_already_exists(client_with_user, api):
@@ -175,14 +201,18 @@ def test_workspace_request_file_filegroup_already_exists(client_with_user, api):
     filegroupmetadata = factories.create_filegroup(release_request, "default")
     assert not filegroupmetadata.request_files.exists()
 
-    client.post("/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"})
+    client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={"path": "test/path.txt", "filegroup": "default"},
+    )
 
     assert filegroupmetadata.request_files.count() == 1
     assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
 
     # Attempt to add the same file again
     response = client.post(
-        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1",
+        data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
     # No new file created
@@ -195,10 +225,42 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
     factories.create_workspace("test1")
 
     response = client.post(
-        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+        "/workspaces/add-file-to-request/test1",
+        data={"path": "test/path.txt", "filegroup": "default"},
     )
 
     assert response.status_code == 404
+
+
+def test_workspace_request_file_invalid_new_filegroup(client_with_user, api):
+    client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(client.session)
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    release_request = factories.create_release_request(workspace, user)
+    filegroupmetadata = factories.create_filegroup(release_request, "test_group")
+
+    response = client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={
+            "path": "test/path.txt",
+            "filegroup": "default",
+            "new_filegroup": "test_group",
+        },
+        follow=True,
+    )
+
+    assert not filegroupmetadata.request_files.exists()
+    # redirects to the workspace file again, with error messages
+    assert response.request["PATH_INFO"] == workspace.get_url_for_path("test/path.txt")
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "already exists" in message.message
 
 
 def test_request_index_no_user(client):

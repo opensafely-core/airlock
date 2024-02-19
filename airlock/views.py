@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from airlock import login_api
 from airlock.api import Status
 from airlock.file_browser_api import PathItem
+from airlock.forms import AddFileForm
 from local_db.api import LocalDBProvider
 
 
@@ -141,6 +142,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},
             ),
+            "form": AddFileForm(
+                release_request=api.get_current_request(workspace_name, request.user)
+            ),
         },
     )
 
@@ -155,14 +159,23 @@ def workspace_add_file_to_request(request, workspace_name):
         raise Http404()
 
     release_request = api.get_current_request(workspace_name, request.user, create=True)
+    form = AddFileForm(request.POST, release_request=release_request)
+    if not form.is_valid():
+        for error in form.errors.values():
+            messages.error(request, error)
+        return redirect(workspace.get_url_for_path(relpath))
+
+    group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
     try:
-        api.add_file_to_request(release_request, relpath, request.user)
+        api.add_file_to_request(release_request, relpath, request.user, group_name)
     except api.APIException as err:
         # This exception is raised if the file has already been added
         # (to any group on the request)
         messages.error(request, str(err))
     else:
-        messages.success(request, "File has been added to request")
+        messages.success(
+            request, f"File has been added to request (file group '{group_name}')"
+        )
     # redirect to this just added file
     return redirect(release_request.get_url_for_path(relpath))
 
