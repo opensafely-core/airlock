@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import old_api
-from airlock.api import ProviderAPI, Status, Workspace, modified_time
+from airlock.api import ProviderAPI, Status, Workspace
 from airlock.users import User
 from tests import factories
 
@@ -79,7 +79,7 @@ def test_provider_request_release_files(mock_old_api):
                 "url": "test/file.txt",
                 "size": 4,
                 "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-                "date": modified_time(abspath),
+                "date": old_api.modified_time(abspath),
                 "metadata": {"tool": "airlock"},
                 "review": None,
             }

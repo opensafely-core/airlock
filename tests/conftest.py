@@ -2,6 +2,7 @@ import pytest
 import responses as _responses
 from django.conf import settings
 
+import old_api
 import tests.factories
 from local_db.api import LocalDBProvider
 
@@ -49,7 +50,7 @@ def release_files_stubber(responses):
         )
 
         if not isinstance(body, Exception):
-            for path in request.filelist():
+            for path in old_api.list_files(request.root()):
                 responses.post(
                     f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{jobserver_id}",
                     status=201,

@@ -14,16 +14,14 @@ def create_filelist(release_request):
     files = []
     root = release_request.root()
 
-    for relpath in release_request.filelist():
+    for relpath in list_files(release_request.root()):
         abspath = root / relpath
-        stat = abspath.stat()
-        mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
         files.append(
             FileMetadata(
                 name=str(relpath),
-                size=stat.st_size,
+                size=abspath.stat().st_size,
                 sha256=hashlib.sha256(abspath.read_bytes()).hexdigest(),
-                date=mtime,
+                date=modified_time(abspath),
                 url=str(relpath),  # not needed, but has to be set
                 metadata={"tool": "airlock"},
             )
@@ -65,3 +63,13 @@ def upload_file(release_id, relpath, abspath, username):
 
     response.raise_for_status()
     return response
+
+
+def modified_time(path):
+    mtime = path.stat().st_mtime
+    return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+
+
+def list_files(path):
+    """List all files recursively."""
+    return list(sorted(p.relative_to(path) for p in path.glob("**/*") if p.is_file()))
