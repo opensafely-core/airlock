@@ -228,7 +228,7 @@ def request_view(request, request_id: str, path: str = ""):
     )
 
     context = {
-        "workspace": release_request.workspace,
+        "workspace": api.get_workspace(release_request.workspace),
         "release_request": release_request,
         "path_item": path_item,
         "context": "request",
