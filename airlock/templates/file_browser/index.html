@@ -2,6 +2,51 @@
 
 {% load django_vite %}
 
+{% block extra_styles %}
+<style>
+
+/* tree styles */
+ul.tree {
+  list-style: none;
+
+  details ul {
+    border-left: 1px dotted grey;
+    padding-left: 0.25rem;
+    margin-left: 0.25rem;
+  }
+}
+
+
+.tree summary {
+  cursor: pointer;
+}
+
+.tree .selected {
+    font-weight: bold;
+    color: green;
+    background: rgba(0, 255, 0, 0.1);
+    cursor: pointer;
+}
+
+
+/* ths attempt at a nice selectedhighlight doesn't quite work
+.tree li {
+  position: relative;
+}
+
+&::before {
+  background: rgba(0, 255, 0, 0.1);
+  content: "";
+  position: absolute;
+  left: -100vw;
+  height: 100%;
+  width: 100vw;
+}
+*/
+
+</style>
+{% endblock extra_styles %}
+
 {% block full_width_content %}
 
 {% fragment as action_button %}
@@ -50,25 +95,32 @@
   <div style="flex-basis: 25%">
 
     {% #card %}
-      {% #list_group %}
-        {% if not path_item.parent %}
-          {% list_group_empty icon=True title=context|title|add:" Root" %}   
-        {% else %}
-          {% #list_group_item href=path_item.parent.url %}
-            ↰ ..
-          {% /list_group_item %}
-          {% for entry in path_item.siblings %}
-            {% #list_group_item href=entry.url %}
-              {{ entry.name}}
-              {% if entry.is_directory %}
-                {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
-              {% endif %}
+      {% if tree %}
+        <ul class="tree root">
+        {% include "file_browser/tree.html" with path=root %}
+        </ul>
+      {% else %}
+        {% #list_group %}
+          {% if not path_item.parent %}
+            {% list_group_empty icon=True title=context|title|add:" Root" %}   
+          {% else %}
+            {% #list_group_item href=path_item.parent.url %}
+                ↰ ..
             {% /list_group_item %}
-          {% endfor %}
-        {% endif %}
-      {% /list_group %}
+            {% for entry in path_item.siblings %}
+                {% #list_group_item href=entry.url %}
+                {{ entry.name}}
+                {% if entry.is_directory %}
+                    {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
+                {% endif %}
+                {% /list_group_item %}
+            {% endfor %}
+          {% endif %}
+        {% /list_group %}
+      {% endif %}
+ 
 
-    {% #card_footer no_container=False %}
+      {% #card_footer no_container=False %}
       {% if context == "request" %}
         <div class="px-4">
           {% #button variant="primary-outline" type="button" data-modal="viewFileGroups" %}
@@ -92,7 +144,6 @@
         {% /modal %}
         {% endif %}
       {% /card_footer %}
-
   {% /card %}
 
   </div>
