@@ -1,7 +1,6 @@
 import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
-from datetime import timezone as stdlib_timezone
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -11,11 +10,6 @@ from django.shortcuts import reverse
 
 import old_api
 from airlock.users import User
-
-
-def modified_time(path):
-    mtime = path.stat().st_mtime
-    return datetime.fromtimestamp(mtime, tz=stdlib_timezone.utc).isoformat()
 
 
 class Status(Enum):
@@ -48,13 +42,6 @@ class AirlockContainer:
 
     def get_url_for_path(self):
         raise NotImplementedError()
-
-    def filelist(self):
-        """List all files recursively."""
-        path = self.root()
-        return list(
-            sorted(p.relative_to(path) for p in path.glob("**/*") if p.is_file())
-        )
 
 
 @dataclass(frozen=True)
