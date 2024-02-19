@@ -9,7 +9,7 @@ class AddFileForm(forms.Form):
         release_request = kwargs.pop("release_request")
         super().__init__(*args, **kwargs)
         if release_request:
-            self.filegroup_names = {group.name for group in release_request.filegroups}
+            self.filegroup_names = release_request.filegroups.keys()
         else:
             self.filegroup_names = set()
         group_choices = {

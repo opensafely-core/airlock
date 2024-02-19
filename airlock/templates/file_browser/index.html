@@ -129,7 +129,7 @@ ul.tree {
         </div>
         {% #modal id="viewFileGroups" %}
           {% #card container=True title="File Groups for this request" %}
-            {% for group in release_request.filegroups %}
+            {% for group in release_request.filegroups.values %}
               {{ group.name}}
               {% #list_group %}
               {% for file in group.files %}

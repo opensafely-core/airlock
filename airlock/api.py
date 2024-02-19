@@ -124,7 +124,7 @@ class ReleaseRequest(AirlockContainer):
     author: str
     created_at: datetime
     status: Status = Status.PENDING
-    filegroups: list[FileGroup] = field(default_factory=list)
+    filegroups: dict[FileGroup] = field(default_factory=dict)
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)

@@ -51,10 +51,10 @@ class LocalDBProvider(ProviderAPI):
         )
 
     def _get_filegroups(self, metadata: RequestMetadata):
-        return [
-            self._filegroup(group_metadata)
+        return {
+            group_metadata.name: self._filegroup(group_metadata)
             for group_metadata in metadata.filegroups.all()
-        ]
+        }
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
