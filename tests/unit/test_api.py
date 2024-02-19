@@ -288,15 +288,15 @@ def setup_empty_release_request():
 
 def test_release_request_filegroups_with_no_files(api):
     release_request, _, _ = setup_empty_release_request()
-    assert release_request.filegroups == []
+    assert release_request.filegroups == {}
 
 
 def test_release_request_filegroups_default_filegroup(api):
     release_request, path, author = setup_empty_release_request()
-    assert release_request.filegroups == []
+    assert release_request.filegroups == {}
     release_request = api.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
-    filegroup = release_request.filegroups[0]
+    filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert len(filegroup.files) == 1
     assert filegroup.files[0].relpath == path
@@ -304,12 +304,12 @@ def test_release_request_filegroups_default_filegroup(api):
 
 def test_release_request_filegroups_named_filegroup(api):
     release_request, path, author = setup_empty_release_request()
-    assert release_request.filegroups == []
+    assert release_request.filegroups == {}
     release_request = api.add_file_to_request(
         release_request, path, author, "test_group"
     )
     assert len(release_request.filegroups) == 1
-    filegroup = release_request.filegroups[0]
+    filegroup = release_request.filegroups["test_group"]
     assert filegroup.name == "test_group"
     assert len(filegroup.files) == 1
     assert filegroup.files[0].relpath == path
@@ -335,7 +335,7 @@ def test_release_request_filegroups_multiple_filegroups(api):
 
     release_request_files = {
         filegroup.name: [file.relpath for file in filegroup.files]
-        for filegroup in release_request.filegroups
+        for filegroup in release_request.filegroups.values()
     }
 
     assert release_request_files == {
@@ -346,10 +346,10 @@ def test_release_request_filegroups_multiple_filegroups(api):
 
 def test_release_request_add_same_file(api):
     release_request, path, author = setup_empty_release_request()
-    assert release_request.filegroups == []
+    assert release_request.filegroups == {}
     release_request = api.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
-    assert len(release_request.filegroups[0].files) == 1
+    assert len(release_request.filegroups["default"].files) == 1
 
     # Adding the same file again should not create a new RequestFile
     with pytest.raises(api.APIException):
@@ -362,4 +362,4 @@ def test_release_request_add_same_file(api):
     release_request = api.get_release_request(release_request.id)
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
-    assert len(release_request.filegroups[0].files) == 1
+    assert len(release_request.filegroups["default"].files) == 1
