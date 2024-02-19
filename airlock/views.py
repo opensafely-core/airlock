@@ -118,10 +118,23 @@ def workspace_index(request):
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
+def use_tree_ui(request):
+    """Quick hack to be able to dynamically switch ui options."""
+    tree = request.session.get("tree", settings.TREE)
+    # hack to switch UI dynamically
+    if "tree" in request.GET:  # pragma: nocover
+        tree = request.GET["tree"].lower() == "true"
+
+    request.session["tree"] = tree
+    return tree
+
+
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    path_item = PathItem(workspace, path)
+    relpath = Path(path)
+    root = PathItem(workspace, Path("."), selected=relpath)
+    path_item = PathItem(workspace, path, selected=relpath)
 
     if not path_item.exists():
         raise Http404()
@@ -135,6 +148,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         "file_browser/index.html",
         {
             "workspace": workspace,
+            "root": root,
             "path_item": path_item,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
@@ -145,6 +159,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "form": AddFileForm(
                 release_request=api.get_current_request(workspace_name, request.user)
             ),
+            "tree": use_tree_ui(request),
         },
     )
 
@@ -200,7 +215,9 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    path_item = PathItem(release_request, path)
+    relpath = Path(path)
+    root = PathItem(release_request, Path("."), selected=relpath)
+    path_item = PathItem(release_request, path, selected=relpath)
 
     if not path_item.exists():
         raise Http404()
@@ -230,6 +247,7 @@ def request_view(request, request_id: str, path: str = ""):
     context = {
         "workspace": api.get_workspace(release_request.workspace),
         "release_request": release_request,
+        "root": root,
         "path_item": path_item,
         "context": "request",
         "title": f"Request for {release_request.workspace} by {release_request.author}",
@@ -239,6 +257,7 @@ def request_view(request, request_id: str, path: str = ""):
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
+        "tree": use_tree_ui(request),
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)

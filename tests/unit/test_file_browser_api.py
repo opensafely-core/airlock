@@ -103,6 +103,10 @@ def test_parent(container, path, parent_path):
             "some_dir",
             ["some_dir/file_a.txt", "some_dir/file_b.txt"],
         ),
+        (
+            "some_dir/file_a.txt",
+            [],
+        ),
     ],
 )
 def test_children(container, path, child_paths):
@@ -151,3 +155,21 @@ def test_breadcrumbs(container):
         PathItem(container, "foo/bar"),
         PathItem(container, "foo/bar/baz"),
     ]
+
+
+def test_selection_logic(container):
+    selected = Path("some_dir/file_a.txt")
+
+    selected_item = PathItem(container, selected, selected)
+    assert selected_item.is_selected()
+    assert selected_item.is_open()
+
+    parent_item = PathItem(container, "some_dir", selected)
+    assert not parent_item.is_selected()
+    assert parent_item.is_on_selected_path()
+    assert parent_item.is_open()
+
+    other_item = PathItem(container, "other_dir", selected)
+    assert not other_item.is_selected()
+    assert not other_item.is_on_selected_path()
+    assert not other_item.is_open()

@@ -21,6 +21,11 @@ class PathItem:
     container: AirlockContainer
     relpath: pathlib.Path
 
+    # The currently selected view path in this container.  Used to calculate if
+    # how relpath relates to it, i.e. if relpath *is* the currently selected
+    # path, or is one of its parents.
+    selected: pathlib.Path = None
+
     def __post_init__(self):
         # ensure relpath is a Path
         object.__setattr__(self, "relpath", pathlib.Path(self.relpath))
@@ -45,14 +50,19 @@ class PathItem:
 
     def parent(self):
         if self.relpath.parents:
-            return PathItem(self.container, self.relpath.parent)
+            return PathItem(self.container, self.relpath.parent, selected=self.selected)
 
     def children(self):
+        if not self.is_directory():
+            return []
         root = self.container.root()
-        return [
-            PathItem(self.container, child.relative_to(root))
+        children = [
+            PathItem(self.container, child.relative_to(root), selected=self.selected)
             for child in self._absolute_path().iterdir()
         ]
+        # directories first, then alphabetical, aks what windows does
+        children.sort(key=lambda p: (not p.is_directory(), p.relpath.name))
+        return children
 
     def siblings(self):
         if not self.relpath.parents:
@@ -63,9 +73,11 @@ class PathItem:
     def contents(self):
         return self._absolute_path().read_text()
 
-    @property
     def suffix(self):
         return self.relpath.suffix
+
+    def file_type(self):
+        return self.suffix().lstrip(".")
 
     def breadcrumbs(self):
         item = self
@@ -79,3 +91,32 @@ class PathItem:
 
         crumbs.reverse()
         return crumbs
+
+    def html_classes(self):
+        """Semantic html classes for this PathItem.
+
+        Currently, only "selected" is used, but it made sense to be able to
+        distinguish file/dirs, and maybe even file types, in the UI, in case we
+        need to.
+        """
+        classes = []
+
+        if self.is_directory():
+            classes.append("dir")
+        else:
+            classes.append("file")
+            classes.append(self.file_type())
+
+        if self.is_selected():
+            classes.append("selected")
+
+        return " ".join(classes)
+
+    def is_selected(self):
+        return self.relpath == self.selected
+
+    def is_on_selected_path(self):
+        return self.relpath in self.selected.parents
+
+    def is_open(self):
+        return self.is_selected() or self.is_on_selected_path()
