@@ -49,3 +49,7 @@ def write_request_file(request, path, contents=""):
 
 def create_filegroup(release_request, group_name):
     return api._get_or_create_filegroupmetadata(release_request.id, group_name)
+
+
+def refresh_release_request(release_request):
+    return api.get_release_request(release_request.id)
