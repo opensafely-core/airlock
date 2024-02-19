@@ -1,9 +1,18 @@
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
 
 from django.db import transaction
 
-from airlock.api import ProviderAPI, ReleaseRequest, Status, User
-from local_db.models import RequestMetadata
+from airlock.api import (
+    FileGroup,
+    ProviderAPI,
+    ReleaseRequest,
+    RequestFile,
+    Status,
+    User,
+)
+from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
 
 
 @dataclass
@@ -18,6 +27,7 @@ class LocalDBProvider(ProviderAPI):
             status=metadata.status,
             author=metadata.author,
             created_at=metadata.created_at,
+            filegroups=self._get_filegroups(metadata),
         )
 
     def _create_release_request(self, **kwargs):
@@ -29,6 +39,29 @@ class LocalDBProvider(ProviderAPI):
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
             raise self.ReleaseRequestNotFound(request_id)
+
+    def _filegroup(self, filegroup_metadata: FileGroupMetadata):
+        """Unpack file group db data into FileGroup and RequestFile objects."""
+        return FileGroup(
+            name=filegroup_metadata.name,
+            files=[
+                RequestFile(relpath=Path(file_metadata.relpath))
+                for file_metadata in filegroup_metadata.request_files.all()
+            ],
+        )
+
+    def _get_filegroups(self, metadata: RequestMetadata):
+        return [
+            self._filegroup(group_metadata)
+            for group_metadata in metadata.filegroups.all()
+        ]
+
+    def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
+        metadata = self._find_metadata(request_id)
+        groupmetadata, _ = FileGroupMetadata.objects.get_or_create(
+            request=metadata, name=group_name
+        )
+        return groupmetadata
 
     def get_release_request(self, request_id: str):
         return self._request(self._find_metadata(request_id))
@@ -95,3 +128,40 @@ class LocalDBProvider(ProviderAPI):
             metadata.status = status
             metadata.save()
             super().set_status(request, status, user)
+
+    def add_file_to_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: Path,
+        user: User,
+        group_name: Optional[str] = "default",
+    ) -> ReleaseRequest:
+        with transaction.atomic():
+            # Get/create the FileGroupMetadata if it doesn't already exist
+            filegroupmetadata = self._get_or_create_filegroupmetadata(
+                release_request.id, group_name
+            )
+            # Check if this file is already on the request, in any group
+            try:
+                existing_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=release_request.id, relpath=relpath
+                )
+            except RequestFileMetadata.DoesNotExist:
+                # create the RequestFile
+                RequestFileMetadata.objects.create(
+                    relpath=str(relpath), filegroup=filegroupmetadata
+                )
+            else:
+                raise self.APIException(
+                    "File has already been added to request "
+                    f"(in file group '{existing_file.filegroup.name}')"
+                )
+
+            # Now that the db objects have been successfully creates,
+            # call super() to copy the file. This will also validate
+            # that the user can add the file, and that the request is in a
+            # state that allows adding files.
+            super().add_file_to_request(release_request, relpath, user, group_name)
+
+        # return a new request object with the updated groups
+        return self._request(self._find_metadata(release_request.id))

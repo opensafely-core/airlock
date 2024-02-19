@@ -137,6 +137,9 @@ def test_workspace_request_file_creates(client_with_user, api):
     assert response.status_code == 302
 
     release_request = api.get_current_request(workspace.name, user)
+    filegroup = release_request.filegroups[0]
+    assert filegroup.name == "default"
+    assert str(filegroup.files[0].relpath) == "test/path.txt"
     assert release_request.abspath("test/path.txt").exists()
 
 
@@ -147,13 +150,44 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
     release_request = factories.create_release_request(workspace, user)
+    assert release_request.filegroups == []
 
     response = client.post(
         "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
     )
     assert response.status_code == 302
-    assert api.get_current_request(workspace.name, user) == release_request
+    current_release_request = api.get_current_request(workspace.name, user)
+    assert current_release_request.id == release_request.id
     assert release_request.abspath("test/path.txt").exists()
+    filegroup = current_release_request.filegroups[0]
+    assert filegroup.name == "default"
+    assert str(filegroup.files[0].relpath) == "test/path.txt"
+
+
+def test_workspace_request_file_filegroup_already_exists(client_with_user, api):
+    client = client_with_user({"workspaces": ["test1"]})
+    user = User.from_session(client.session)
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    release_request = factories.create_release_request(workspace, user)
+    filegroupmetadata = factories.create_filegroup(release_request, "default")
+    assert not filegroupmetadata.request_files.exists()
+
+    client.post("/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"})
+
+    assert filegroupmetadata.request_files.count() == 1
+    assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
+
+    # Attempt to add the same file again
+    response = client.post(
+        "/workspaces/add-file-to-request/test1", data={"path": "test/path.txt"}
+    )
+    assert response.status_code == 302
+    # No new file created
+    assert filegroupmetadata.request_files.count() == 1
+    assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
 
 
 def test_workspace_request_file_request_path_does_not_exist(client_with_user):

@@ -271,3 +271,95 @@ def test_add_file_to_request_states(status, success, api):
     else:
         with pytest.raises(api.RequestPermissionDenied):
             api.add_file_to_request(release_request, path, author)
+        assert not release_request.abspath(path).exists()
+
+
+def setup_empty_release_request():
+    author = User(1, "author", ["workspace"], False)
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    return release_request, path, author
+
+
+def test_release_request_filegroups_with_no_files(api):
+    release_request, _, _ = setup_empty_release_request()
+    assert release_request.filegroups == []
+
+
+def test_release_request_filegroups_default_filegroup(api):
+    release_request, path, author = setup_empty_release_request()
+    assert release_request.filegroups == []
+    release_request = api.add_file_to_request(release_request, path, author)
+    assert len(release_request.filegroups) == 1
+    filegroup = release_request.filegroups[0]
+    assert filegroup.name == "default"
+    assert len(filegroup.files) == 1
+    assert filegroup.files[0].relpath == path
+
+
+def test_release_request_filegroups_named_filegroup(api):
+    release_request, path, author = setup_empty_release_request()
+    assert release_request.filegroups == []
+    release_request = api.add_file_to_request(
+        release_request, path, author, "test_group"
+    )
+    assert len(release_request.filegroups) == 1
+    filegroup = release_request.filegroups[0]
+    assert filegroup.name == "test_group"
+    assert len(filegroup.files) == 1
+    assert filegroup.files[0].relpath == path
+
+
+def test_release_request_filegroups_multiple_filegroups(api):
+    release_request, path, author = setup_empty_release_request()
+    release_request = api.add_file_to_request(
+        release_request, path, author, "test_group"
+    )
+    assert len(release_request.filegroups) == 1
+
+    workspace = api.get_workspace("workspace")
+    path1 = Path("path/file1.txt")
+    path2 = Path("path/file2.txt")
+    factories.write_workspace_file(workspace, path1)
+    factories.write_workspace_file(workspace, path2)
+    api.add_file_to_request(release_request, path1, author, "test_group")
+    api.add_file_to_request(release_request, path2, author, "test_group1")
+
+    release_request = api.get_release_request(release_request.id)
+    assert len(release_request.filegroups) == 2
+
+    release_request_files = {
+        filegroup.name: [file.relpath for file in filegroup.files]
+        for filegroup in release_request.filegroups
+    }
+
+    assert release_request_files == {
+        "test_group": [Path("path/file.txt"), Path("path/file1.txt")],
+        "test_group1": [Path("path/file2.txt")],
+    }
+
+
+def test_release_request_add_same_file(api):
+    release_request, path, author = setup_empty_release_request()
+    assert release_request.filegroups == []
+    release_request = api.add_file_to_request(release_request, path, author)
+    assert len(release_request.filegroups) == 1
+    assert len(release_request.filegroups[0].files) == 1
+
+    # Adding the same file again should not create a new RequestFile
+    with pytest.raises(api.APIException):
+        api.add_file_to_request(release_request, path, author)
+
+    # We also can't add the same file to a different group
+    with pytest.raises(api.APIException):
+        api.add_file_to_request(release_request, path, author, "new_group")
+
+    release_request = api.get_release_request(release_request.id)
+    # No additional files or groups have been created
+    assert len(release_request.filegroups) == 1
+    assert len(release_request.filegroups[0].files) == 1

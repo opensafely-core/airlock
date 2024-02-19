@@ -45,3 +45,7 @@ def write_request_file(request, path, contents=""):
     path = request.root() / path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(contents)
+
+
+def create_filegroup(release_request, group_name):
+    return api._get_or_create_filegroupmetadata(release_request.id, group_name)
