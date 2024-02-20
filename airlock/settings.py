@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import logging
 import os
+import warnings
 from pathlib import Path
 
 import django.dispatch
@@ -247,3 +249,70 @@ MESSAGE_TAGS = {
 
 # Temporary UI featureflag
 TREE = True
+
+
+class MissingVariableErrorFilter(logging.Filter):
+    """
+    Convert "missing template variable" log messages into warnings, whose presence will
+    trip our zero warnings enforcement in test runs.
+
+    Heavily inspired by Adam Johnson's work here:
+    https://adamj.eu/tech/2022/03/30/how-to-make-django-error-for-undefined-template-variables/
+    """
+
+    ignored_prefixes = (
+        # Some internal Django templates rely on the silent missing variable behaviour
+        "admin/",
+        "auth/",
+        "django/",
+        # As does our internal component library
+        "_components",
+        "_partials",
+    )
+
+    def filter(self, record):  # pragma: no cover
+        if record.msg.startswith("Exception while resolving variable "):
+            template_name = record.args[1]
+            if (
+                not template_name.startswith(self.ignored_prefixes)
+                # This shows up when rendering Django's internal error pages
+                and template_name != "unknown"
+            ):
+                # Use `warn_explicit` to raise the warning at whatever location the
+                # original log message was raised
+                warnings.warn_explicit(
+                    record.getMessage(),
+                    UserWarning,
+                    record.pathname,
+                    record.lineno,
+                )
+        # Remove from log output
+        return False
+
+
+# NOTE: This is the default minimal logging config from Django's docs. It is not
+# intended to be the final word in how logging should be configured in Airlock.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "filters": {
+        "missing_variable_error": {
+            "()": "{0.__module__}.{0.__name__}".format(MissingVariableErrorFilter),
+        },
+    },
+    "loggers": {
+        "django.template": {
+            "level": "DEBUG",
+            "filters": ["missing_variable_error"],
+        },
+    },
+}
