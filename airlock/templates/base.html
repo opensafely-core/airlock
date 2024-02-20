@@ -79,7 +79,7 @@
                 </a>
             </li>
             {% endfor %}
-            {% if not request.user.is_authenticated %}
+            {% if not request.user or not request.user.is_authenticated %}
             <li>
                 <a
                 class="
