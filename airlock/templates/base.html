@@ -12,7 +12,7 @@
 
     {% block extra_meta %}{% endblock %}
 
-    <script type="module" nonce="{{ request.csp_nonce }}">
+    <script type="module">
       document.documentElement.classList.remove("no-js");
       document.documentElement.classList.add("js");
 
@@ -79,7 +79,7 @@
                 </a>
             </li>
             {% endfor %}
-            {% if not request.user.is_authenticated %}
+            {% if not request.user or not request.user.is_authenticated %}
             <li>
                 <a
                 class="
