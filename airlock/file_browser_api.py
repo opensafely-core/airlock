@@ -36,6 +36,8 @@ class PathItem:
         return self._absolute_path().is_dir()
 
     def name(self):
+        if self.relpath == ROOT_PATH:
+            return self.container.get_id()
         return self.relpath.name
 
     def url(self):
@@ -79,8 +81,7 @@ class PathItem:
 
         parent = item.parent()
         while parent:
-            if parent.relpath != ROOT_PATH:
-                crumbs.append(parent)
+            crumbs.append(parent)
             parent = parent.parent()
 
         crumbs.reverse()

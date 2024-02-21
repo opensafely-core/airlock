@@ -84,7 +84,6 @@ ul.tree {
 {% /card %}
 
 {% #breadcrumbs %}
-    {% breadcrumb title=path_item.container.get_id url=path_item.container.get_absolute_url %}
     {% for crumb in path_item.breadcrumbs %}
         {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
