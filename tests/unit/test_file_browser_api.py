@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from airlock.api import AirlockContainer
 from airlock.file_browser_api import PathItem
 
 
 @dataclasses.dataclass(frozen=True)
-class DummyContainer(AirlockContainer):
+class DummyContainer:
     path: Path
+    selected_path: Path = Path()
 
     def root(self):
         return self.path
@@ -157,19 +157,20 @@ def test_breadcrumbs(container):
     ]
 
 
-def test_selection_logic(container):
-    selected = Path("some_dir/file_a.txt")
+def test_selection_logic(tmp_files):
+    selected_path = Path("some_dir/file_a.txt")
+    container = DummyContainer(tmp_files, selected_path=selected_path)
 
-    selected_item = PathItem(container, selected, selected)
+    selected_item = PathItem(container, selected_path)
     assert selected_item.is_selected()
     assert selected_item.is_open()
 
-    parent_item = PathItem(container, "some_dir", selected)
+    parent_item = PathItem(container, "some_dir")
     assert not parent_item.is_selected()
     assert parent_item.is_on_selected_path()
     assert parent_item.is_open()
 
-    other_item = PathItem(container, "other_dir", selected)
+    other_item = PathItem(container, "other_dir")
     assert not other_item.is_selected()
     assert not other_item.is_on_selected_path()
     assert not other_item.is_open()

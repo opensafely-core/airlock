@@ -133,8 +133,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
     relpath = Path(path)
-    root = PathItem(workspace, Path("."), selected=relpath)
-    path_item = PathItem(workspace, path, selected=relpath)
+    workspace.selected_path = relpath
+    root = PathItem(workspace, Path())
+    path_item = PathItem(workspace, relpath)
 
     if not path_item.exists():
         raise Http404()
@@ -216,8 +217,9 @@ def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
     relpath = Path(path)
-    root = PathItem(release_request, Path("."), selected=relpath)
-    path_item = PathItem(release_request, path, selected=relpath)
+    release_request.selected_path = relpath
+    root = PathItem(release_request, Path())
+    path_item = PathItem(release_request, relpath)
 
     if not path_item.exists():
         raise Http404()

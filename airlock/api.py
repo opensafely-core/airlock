@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Protocol
 
 from django.conf import settings
 from django.shortcuts import reverse
@@ -25,27 +25,33 @@ class Status(Enum):
     RELEASED = "RELEASED"
 
 
-class AirlockContainer:
-    """Abstract class for a directory or workspace or request files.
+class AirlockContainer(Protocol):
+    """Structural typing class for a instance of a Workspace or ReleaseRequest
 
-    Provides a uniform interface for accessing information about this directory.
+    Provides a uniform interface for accessing information the paths and files
+    container within this instance.
     """
 
-    def root(self):
-        raise NotImplementedError()
+    # The currently selected path in this container.  Used to calculate if how
+    # a particular path relates to it, i.e. if path *is* the currently selected
+    # path, or is one of its parents.
+    selected_path: Path = None
 
-    def get_id(self):
-        raise NotImplementedError()
+    def root(self) -> Path:
+        """Absolute concrete Path to root dir for files in this container."""
 
-    def get_absolute_url(self):
-        raise NotImplementedError()
+    def get_id(self) -> str:
+        """Get the human name for this container."""
 
-    def get_url_for_path(self):
-        raise NotImplementedError()
+    def get_absolute_url(self) -> str:
+        """Get the url for the container object"""
+
+    def get_url_for_path(self, path: Path) -> str:
+        """Get the url for the container object with path"""
 
 
 @dataclass
-class Workspace(AirlockContainer):
+class Workspace:
     """Simple wrapper around a workspace directory on disk.
 
     Deliberately a dumb python object - the only operations are about accessing
@@ -53,6 +59,9 @@ class Workspace(AirlockContainer):
     """
 
     name: str
+
+    # can be set to mark the currently selected path in this workspace
+    selected_path: Path = None
 
     def __post_init__(self):
         if not self.root().exists():
@@ -113,7 +122,7 @@ class FileGroup:
 
 
 @dataclass
-class ReleaseRequest(AirlockContainer):
+class ReleaseRequest:
     """Represents a release request made by a user.
 
     Deliberately a dumb python object. Does not operate on the state of request,
@@ -128,6 +137,9 @@ class ReleaseRequest(AirlockContainer):
     created_at: datetime
     status: Status = Status.PENDING
     filegroups: dict[FileGroup] = field(default_factory=dict)
+
+    # can be set to mark the currently selected path in this release request
+    selected_path: Path = None
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
