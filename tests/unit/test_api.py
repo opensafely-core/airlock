@@ -294,7 +294,7 @@ def test_release_request_filegroups_with_no_files(api):
 def test_release_request_filegroups_default_filegroup(api):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    release_request = api.add_file_to_request(release_request, path, author)
+    api.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
@@ -305,9 +305,7 @@ def test_release_request_filegroups_default_filegroup(api):
 def test_release_request_filegroups_named_filegroup(api):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    release_request = api.add_file_to_request(
-        release_request, path, author, "test_group"
-    )
+    api.add_file_to_request(release_request, path, author, "test_group")
     assert len(release_request.filegroups) == 1
     filegroup = release_request.filegroups["test_group"]
     assert filegroup.name == "test_group"
@@ -317,9 +315,7 @@ def test_release_request_filegroups_named_filegroup(api):
 
 def test_release_request_filegroups_multiple_filegroups(api):
     release_request, path, author = setup_empty_release_request()
-    release_request = api.add_file_to_request(
-        release_request, path, author, "test_group"
-    )
+    api.add_file_to_request(release_request, path, author, "test_group")
     assert len(release_request.filegroups) == 1
 
     workspace = api.get_workspace("workspace")
@@ -347,7 +343,7 @@ def test_release_request_filegroups_multiple_filegroups(api):
 def test_release_request_add_same_file(api):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    release_request = api.add_file_to_request(release_request, path, author)
+    api.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1
 

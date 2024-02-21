@@ -44,7 +44,7 @@ class AirlockContainer:
         raise NotImplementedError()
 
 
-@dataclass(frozen=True)
+@dataclass
 class Workspace(AirlockContainer):
     """Simple wrapper around a workspace directory on disk.
 
@@ -89,6 +89,9 @@ class Workspace(AirlockContainer):
 
         return path
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 @dataclass(frozen=True)
 class RequestFile:
@@ -109,7 +112,7 @@ class FileGroup:
     files: list[RequestFile]
 
 
-@dataclass(frozen=True)
+@dataclass
 class ReleaseRequest(AirlockContainer):
     """Represents a release request made by a user.
 
@@ -316,11 +319,7 @@ class ProviderAPI:
 
         # validate first
         self.check_status(release_request, to_status, user)
-
-        # Ensure the state of this object is updated to reflect the change in status
-        # This is deliberately bypassing the frozen aspect of the class to keep
-        # things consistent. It does change the hash.
-        release_request.__dict__["status"] = to_status
+        release_request.status = to_status
 
     def add_file_to_request(
         self,
@@ -328,7 +327,7 @@ class ProviderAPI:
         relpath: Path,
         user: User,
         group_name: Optional[str] = "default",
-    ) -> ReleaseRequest:
+    ):
         """Add a file to a request.
 
         Subclasses should do what they need to create the filegroup and
@@ -336,10 +335,6 @@ class ProviderAPI:
         call super().add_file_to_request(...) to do the
         copying. If the copying fails (e.g. due to permission errors raised
         below), the subclasses should roll back any changes.
-
-        After calling add_file_to_request, the current release_request's
-        filegroups will be out of date. Subclasses should return a new
-        ReleaseRequest to ensure filegroups are current.
         """
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(

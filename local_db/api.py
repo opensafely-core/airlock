@@ -135,7 +135,7 @@ class LocalDBProvider(ProviderAPI):
         relpath: Path,
         user: User,
         group_name: Optional[str] = "default",
-    ) -> ReleaseRequest:
+    ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
             filegroupmetadata = self._get_or_create_filegroupmetadata(
@@ -163,5 +163,6 @@ class LocalDBProvider(ProviderAPI):
             # state that allows adding files.
             super().add_file_to_request(release_request, relpath, user, group_name)
 
-        # return a new request object with the updated groups
-        return self._request(self._find_metadata(release_request.id))
+        # update instance
+        metadata = self._find_metadata(release_request.id)
+        release_request.filegroups = self._get_filegroups(metadata)
