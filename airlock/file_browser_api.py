@@ -1,7 +1,6 @@
-import pathlib
 from dataclasses import dataclass
 
-from airlock.api import AirlockContainer
+from airlock.api import ROOT_PATH, AirlockContainer, UrlPath
 
 
 @dataclass(frozen=True)
@@ -19,11 +18,11 @@ class PathItem:
     """
 
     container: AirlockContainer
-    relpath: pathlib.Path
+    relpath: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         # ensure relpath is a Path
-        object.__setattr__(self, "relpath", pathlib.Path(self.relpath))
+        object.__setattr__(self, "relpath", UrlPath(self.relpath))
         # ensure path is within container
         self._absolute_path().resolve().relative_to(self.container.root())
 
@@ -80,7 +79,7 @@ class PathItem:
 
         parent = item.parent()
         while parent:
-            if parent.relpath != pathlib.Path(""):
+            if parent.relpath != ROOT_PATH:
                 crumbs.append(parent)
             parent = parent.parent()
 

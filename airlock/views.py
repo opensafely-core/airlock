@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import requests
 from django import forms
 from django.conf import settings
@@ -12,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
-from airlock.api import Status
+from airlock.api import Status, UrlPath
 from airlock.file_browser_api import PathItem
 from airlock.forms import AddFileForm
 from local_db.api import LocalDBProvider
@@ -132,9 +130,9 @@ def use_tree_ui(request):
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    relpath = Path(path)
+    relpath = UrlPath(path)
     workspace.selected_path = relpath
-    root = PathItem(workspace, Path())
+    root = PathItem(workspace)
     path_item = PathItem(workspace, relpath)
 
     if not path_item.exists():
@@ -168,7 +166,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = validate_workspace(request.user, workspace_name)
-    relpath = Path(request.POST["path"])
+    relpath = UrlPath(request.POST["path"])
     try:
         workspace.abspath(relpath)
     except api.FileNotFound:
@@ -216,9 +214,9 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    relpath = Path(path)
+    relpath = UrlPath(path)
     release_request.selected_path = relpath
-    root = PathItem(release_request, Path())
+    root = PathItem(release_request)
     path_item = PathItem(release_request, relpath)
 
     if not path_item.exists():

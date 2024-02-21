@@ -3,6 +3,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+
+# we use PurePosixPath as a convenient url path representation
+from pathlib import PurePosixPath as UrlPath
 from typing import Optional, Protocol
 
 from django.conf import settings
@@ -10,6 +13,9 @@ from django.shortcuts import reverse
 
 import old_api
 from airlock.users import User
+
+
+ROOT_PATH = UrlPath()
 
 
 class Status(Enum):
@@ -35,7 +41,7 @@ class AirlockContainer(Protocol):
     # The currently selected path in this container.  Used to calculate if how
     # a particular path relates to it, i.e. if path *is* the currently selected
     # path, or is one of its parents.
-    selected_path: Path = None
+    selected_path: UrlPath = ROOT_PATH
 
     def root(self) -> Path:
         """Absolute concrete Path to root dir for files in this container."""
@@ -46,7 +52,7 @@ class AirlockContainer(Protocol):
     def get_absolute_url(self) -> str:
         """Get the url for the container object"""
 
-    def get_url_for_path(self, path: Path) -> str:
+    def get_url_for_path(self, path: UrlPath) -> str:
         """Get the url for the container object with path"""
 
 
@@ -61,7 +67,7 @@ class Workspace:
     name: str
 
     # can be set to mark the currently selected path in this workspace
-    selected_path: Path = None
+    selected_path: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         if not self.root().exists():
@@ -108,7 +114,7 @@ class RequestFile:
     Represents a single file within a release request
     """
 
-    relpath: Path
+    relpath: UrlPath
 
 
 @dataclass(frozen=True)
@@ -139,7 +145,7 @@ class ReleaseRequest:
     filegroups: dict[FileGroup] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this release request
-    selected_path: Path = None
+    selected_path: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -336,7 +342,7 @@ class ProviderAPI:
     def add_file_to_request(
         self,
         release_request: ReleaseRequest,
-        relpath: Path,
+        relpath: UrlPath,
         user: User,
         group_name: Optional[str] = "default",
     ):
@@ -382,7 +388,7 @@ class ProviderAPI:
         )
 
         for f in filelist.files:
-            relpath = Path(f.name)
+            relpath = UrlPath(f.name)
             old_api.upload_file(
                 jobserver_release_id, relpath, request.root() / relpath, user.username
             )

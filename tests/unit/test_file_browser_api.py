@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from airlock.file_browser_api import PathItem
+from airlock.file_browser_api import ROOT_PATH, PathItem, UrlPath
 
 
 @dataclasses.dataclass(frozen=True)
 class DummyContainer:
     path: Path
-    selected_path: Path = Path()
+    selected_path: UrlPath = ROOT_PATH
 
     def root(self):
         return self.path
@@ -111,7 +111,9 @@ def test_parent(container, path, parent_path):
 )
 def test_children(container, path, child_paths):
     children = PathItem(container, path).children()
-    assert set(children) == {PathItem(container, Path(child)) for child in child_paths}
+    assert set(children) == {
+        PathItem(container, UrlPath(child)) for child in child_paths
+    }
 
 
 @pytest.mark.parametrize(
@@ -158,7 +160,7 @@ def test_breadcrumbs(container):
 
 
 def test_selection_logic(tmp_files):
-    selected_path = Path("some_dir/file_a.txt")
+    selected_path = UrlPath("some_dir/file_a.txt")
     container = DummyContainer(tmp_files, selected_path=selected_path)
 
     selected_item = PathItem(container, selected_path)
