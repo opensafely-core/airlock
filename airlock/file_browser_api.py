@@ -38,11 +38,12 @@ class PathItem:
     def name(self):
         if self.relpath == ROOT_PATH:
             return self.container.get_id()
+
         return self.relpath.name
 
     def url(self):
         suffix = "/" if self.is_directory() else ""
-        return self.container.get_url_for_path(f"{self.relpath}{suffix}")
+        return self.container.get_url(f"{self.relpath}{suffix}")
 
     def parent(self):
         if self.relpath.parents:

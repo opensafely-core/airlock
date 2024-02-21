@@ -15,7 +15,7 @@ import old_api
 from airlock.users import User
 
 
-ROOT_PATH = UrlPath()
+ROOT_PATH = UrlPath()  # empty path
 
 
 class Status(Enum):
@@ -49,10 +49,7 @@ class AirlockContainer(Protocol):
     def get_id(self) -> str:
         """Get the human name for this container."""
 
-    def get_absolute_url(self) -> str:
-        """Get the url for the container object"""
-
-    def get_url_for_path(self, path: UrlPath) -> str:
+    def get_url(self, path: UrlPath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
 
@@ -79,10 +76,7 @@ class Workspace:
     def get_id(self):
         return self.name
 
-    def get_absolute_url(self):
-        return reverse("workspace_home", kwargs={"workspace_name": self.name})
-
-    def get_url_for_path(self, relpath):
+    def get_url(self, relpath=ROOT_PATH):
         return reverse(
             "workspace_view",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -156,15 +150,7 @@ class ReleaseRequest:
     def get_id(self):
         return self.id
 
-    def get_absolute_url(self):
-        return reverse(
-            "request_home",
-            kwargs={
-                "request_id": self.id,
-            },
-        )
-
-    def get_url_for_path(self, relpath):
+    def get_url(self, relpath=ROOT_PATH):
         return reverse(
             "request_view",
             kwargs={

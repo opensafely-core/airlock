@@ -17,7 +17,7 @@ class DummyContainer:
     def get_id(self):
         return "DummyContainer"
 
-    def get_url_for_path(self, relpath):
+    def get_url(self, relpath):
         return f"/test/{relpath}"
 
 
@@ -156,7 +156,7 @@ def test_from_relative_path_rejects_path_escape(container, path):
 
 def test_breadcrumbs(container):
     path = PathItem(container, "foo/bar/baz")
-    assert [b.name() for b in path.breadcrumbs()] == [
+    assert [c.name() for c in path.breadcrumbs()] == [
         "DummyContainer",
         "foo",
         "bar",

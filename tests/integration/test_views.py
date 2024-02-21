@@ -260,7 +260,7 @@ def test_workspace_request_file_invalid_new_filegroup(client_with_user, api):
 
     assert not filegroupmetadata.request_files.exists()
     # redirects to the workspace file again, with error messages
-    assert response.request["PATH_INFO"] == workspace.get_url_for_path("test/path.txt")
+    assert response.request["PATH_INFO"] == workspace.get_url("test/path.txt")
 
     all_messages = [msg for msg in response.context["messages"]]
     assert len(all_messages) == 1
