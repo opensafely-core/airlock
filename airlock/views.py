@@ -37,6 +37,8 @@ def login(request):
 
     if request.method != "POST":
         next_url = request.GET.get("next", default_next_url)
+        if request.user is not None:
+            return redirect(next_url)
         token_login_form = TokenLoginForm()
     else:
         next_url = request.POST.get("next", default_next_url)
