@@ -307,11 +307,27 @@ def test_request_view_with_directory(client_with_permission, ui_options):
 
 def test_request_view_with_file(client_with_permission, ui_options):
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "file.txt", "foobar")
+    factories.write_workspace_file("workspace", "file.txt", "foobar")
+    factories.create_filegroup(
+        release_request,
+        group_name="default_group",
+        filepaths=["file.txt"]
+    )
+
     response = client_with_permission.get(
         f"/requests/view/{release_request.id}/file.txt"
     )
+    assert "default_group" in response.rendered_content
     assert "foobar" in response.rendered_content
+
+
+def test_request_view_with_submitted_request(client_with_permission, ui_options):
+    release_request = factories.create_release_request("workspace", status=Status.SUBMITTED)
+    response = client_with_permission.get(
+        f"/requests/view/{release_request.id}", follow=True
+    )
+    assert "Reject Request" in response.rendered_content
+    assert "Release Files" in response.rendered_content
 
 
 def test_request_view_with_404(client_with_permission):

@@ -47,7 +47,11 @@ def write_request_file(request, path, contents=""):
     path.write_text(contents)
 
 
-def create_filegroup(release_request, group_name):
+def create_filegroup(release_request, group_name, filepaths=None):
+    for filepath in filepaths or []:
+        api.add_file_to_request(
+            release_request, filepath, User(1, release_request.author), group_name
+        )
     return api._get_or_create_filegroupmetadata(release_request.id, group_name)
 
 
