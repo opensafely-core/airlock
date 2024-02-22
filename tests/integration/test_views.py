@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 import requests
 from django.contrib import messages
@@ -64,6 +66,14 @@ def test_workspace_view_with_file(client_with_permission, ui_options):
     assert "foobar" in response.rendered_content
 
 
+def test_workspace_view_with_html_file(client_with_permission, ui_options):
+    factories.write_workspace_file(
+        "workspace", "file.html", "<html><body>foobar</body></html>"
+    )
+    response = client_with_permission.get("/workspaces/view/workspace/file.html")
+    assert "foobar" in response.rendered_content
+
+
 def test_workspace_view_with_404(client_with_permission):
     factories.create_workspace("workspace")
     response = client_with_permission.get("/workspaces/view/workspace/no_such_file.txt")
@@ -76,6 +86,14 @@ def test_workspace_view_redirects_to_directory(client_with_permission):
     response = client_with_permission.get("/workspaces/view/workspace/some_dir")
     assert response.status_code == 302
     assert response.headers["Location"] == "/workspaces/view/workspace/some_dir/"
+
+
+def test_workspace_view_directory_with_sub_directory(client_with_permission):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "sub_dir/file.txt")
+    response = client_with_permission.get("/workspaces/view/workspace", follow=True)
+    assert "sub_dir" in response.rendered_content
+    assert "file.txt" in response.rendered_content
 
 
 def test_workspace_view_redirects_to_file(client_with_permission):
@@ -305,11 +323,43 @@ def test_request_view_with_directory(client_with_permission, ui_options):
 
 def test_request_view_with_file(client_with_permission, ui_options):
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "file.txt", "foobar")
+    factories.write_workspace_file("workspace", "file.txt", "foobar")
+    factories.create_filegroup(
+        release_request, group_name="default_group", filepaths=["file.txt"]
+    )
+
     response = client_with_permission.get(
         f"/requests/view/{release_request.id}/file.txt"
     )
+    assert "default_group" in response.rendered_content
     assert "foobar" in response.rendered_content
+
+
+def test_request_view_with_submitted_request(client_with_permission, ui_options):
+    release_request = factories.create_release_request(
+        "workspace", status=Status.SUBMITTED
+    )
+    response = client_with_permission.get(
+        f"/requests/view/{release_request.id}", follow=True
+    )
+    assert "Reject Request" in response.rendered_content
+    assert "Release Files" in response.rendered_content
+
+
+def test_request_view_with_authored_request_file(client_with_permission, ui_options):
+    release_request = factories.create_release_request(
+        "workspace",
+        user=User.from_session(client_with_permission.session),
+        status=Status.SUBMITTED,
+    )
+    factories.write_workspace_file("workspace", "file.txt", "foobar")
+    factories.create_filegroup(
+        release_request, group_name="default_group", filepaths=["file.txt"]
+    )
+    response = client_with_permission.get(
+        f"/requests/view/{release_request.id}/file.txt", follow=True
+    )
+    assert "Remove this file" in response.rendered_content
 
 
 def test_request_view_with_404(client_with_permission):
@@ -497,6 +547,45 @@ def test_requests_release_jobserver_403(client_with_permission, release_files_st
     response = client_with_permission.post("/requests/release/request_id")
 
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "content_type,content,should_contain_iframe",
+    [
+        ("text/plain", b"An error from job-server", False),
+        ("text/html", b"<p>An error from job-server</p>", True),
+    ],
+)
+def test_requests_release_jobserver_403_with_debug(
+    client_with_permission,
+    release_files_stubber,
+    settings,
+    content_type,
+    content,
+    should_contain_iframe,
+):
+    settings.DEBUG = True
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "test/file.txt", "test")
+
+    response = requests.Response()
+    response.status_code = 403
+    response.headers = {"Content-Type": content_type}
+    response.raw = BytesIO(content)
+    api403 = requests.HTTPError(response=response)
+    release_files_stubber(release_request, body=api403)
+
+    # test 403 is handled
+    response = client_with_permission.post("/requests/release/request_id")
+    # DEBUG is on, so we return the job-server error
+    assert response.status_code == 200
+    assert "An error from job-server" in response.rendered_content
+    contains_iframe = "<iframe" in response.rendered_content
+    assert contains_iframe == should_contain_iframe
 
 
 def test_requests_release_files_404(client_with_permission, release_files_stubber):

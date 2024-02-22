@@ -35,6 +35,8 @@ def login(request):
 
     if request.method != "POST":
         next_url = request.GET.get("next", default_next_url)
+        if request.user is not None:
+            return redirect(next_url)
         token_login_form = TokenLoginForm()
     else:
         next_url = request.POST.get("next", default_next_url)
@@ -300,7 +302,7 @@ def request_release_files(request, request_id):
     except api.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
     except requests.HTTPError as err:
-        if settings.DEBUG:  # pragma: nocover
+        if settings.DEBUG:
             return TemplateResponse(
                 request,
                 "jobserver-error.html",

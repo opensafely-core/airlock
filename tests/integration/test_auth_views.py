@@ -6,6 +6,22 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 
+def test_login_get(client):
+    response = client.get("/login/")
+    assert response.status_code == 200
+    assert "token_login_form" in response.context
+
+
+def test_login_already_logged_in(client):
+    session_user = {"id": 1, "username": "test"}
+    session = client.session
+    session["user"] = session_user
+    session.save()
+    response = client.get("/login/")
+    assert response.status_code == 302
+    assert response.url == ("/workspaces/")
+
+
 @mock.patch("airlock.login_api.requests.post", autospec=True)
 def test_login(requests_post, client, settings):
     settings.AIRLOCK_API_TOKEN = "test_api_token"
