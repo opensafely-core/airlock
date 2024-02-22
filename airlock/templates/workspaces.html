@@ -4,7 +4,7 @@
 {% #card title="Workspaces for "|add:request.user.username %}
   {% #list_group %}
     {% for workspace in workspaces %} 
-    {% #list_group_item href=workspace.get_absolute_url %}{{ workspace.name }}{% /list_group_item %}
+    {% #list_group_item href=workspace.get_url %}{{ workspace.name }}{% /list_group_item %}
     {% endfor %}
   {% /list_group %}
 {% /card %}

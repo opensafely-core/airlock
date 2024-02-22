@@ -3,13 +3,19 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+
+# we use PurePosixPath as a convenient url path representation
+from pathlib import PurePosixPath as UrlPath
+from typing import Optional, Protocol
 
 from django.conf import settings
 from django.shortcuts import reverse
 
 import old_api
 from airlock.users import User
+
+
+ROOT_PATH = UrlPath()  # empty path
 
 
 class Status(Enum):
@@ -25,27 +31,30 @@ class Status(Enum):
     RELEASED = "RELEASED"
 
 
-class AirlockContainer:
-    """Abstract class for a directory or workspace or request files.
+class AirlockContainer(Protocol):
+    """Structural typing class for a instance of a Workspace or ReleaseRequest
 
-    Provides a uniform interface for accessing information about this directory.
+    Provides a uniform interface for accessing information about the paths and files
+    contained within this instance.
     """
 
-    def root(self):
-        raise NotImplementedError()
+    # The currently selected path in this container.  Used to calculate how
+    # a particular path relates to it, i.e. if path *is* the currently selected
+    # path, or is one of its parents.
+    selected_path: UrlPath = ROOT_PATH
 
-    def get_id(self):
-        raise NotImplementedError()
+    def root(self) -> Path:
+        """Absolute concrete Path to root dir for files in this container."""
 
-    def get_absolute_url(self):
-        raise NotImplementedError()
+    def get_id(self) -> str:
+        """Get the human name for this container."""
 
-    def get_url_for_path(self):
-        raise NotImplementedError()
+    def get_url(self, path: UrlPath = ROOT_PATH) -> str:
+        """Get the url for the container object with path"""
 
 
 @dataclass
-class Workspace(AirlockContainer):
+class Workspace:
     """Simple wrapper around a workspace directory on disk.
 
     Deliberately a dumb python object - the only operations are about accessing
@@ -53,6 +62,9 @@ class Workspace(AirlockContainer):
     """
 
     name: str
+
+    # can be set to mark the currently selected path in this workspace
+    selected_path: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         if not self.root().exists():
@@ -64,10 +76,7 @@ class Workspace(AirlockContainer):
     def get_id(self):
         return self.name
 
-    def get_absolute_url(self):
-        return reverse("workspace_home", kwargs={"workspace_name": self.name})
-
-    def get_url_for_path(self, relpath):
+    def get_url(self, relpath=ROOT_PATH):
         return reverse(
             "workspace_view",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -99,7 +108,7 @@ class RequestFile:
     Represents a single file within a release request
     """
 
-    relpath: Path
+    relpath: UrlPath
 
 
 @dataclass(frozen=True)
@@ -113,7 +122,7 @@ class FileGroup:
 
 
 @dataclass
-class ReleaseRequest(AirlockContainer):
+class ReleaseRequest:
     """Represents a release request made by a user.
 
     Deliberately a dumb python object. Does not operate on the state of request,
@@ -129,6 +138,9 @@ class ReleaseRequest(AirlockContainer):
     status: Status = Status.PENDING
     filegroups: dict[FileGroup] = field(default_factory=dict)
 
+    # can be set to mark the currently selected path in this release request
+    selected_path: UrlPath = ROOT_PATH
+
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
 
@@ -138,15 +150,7 @@ class ReleaseRequest(AirlockContainer):
     def get_id(self):
         return self.id
 
-    def get_absolute_url(self):
-        return reverse(
-            "request_home",
-            kwargs={
-                "request_id": self.id,
-            },
-        )
-
-    def get_url_for_path(self, relpath):
+    def get_url(self, relpath=ROOT_PATH):
         return reverse(
             "request_view",
             kwargs={
@@ -324,7 +328,7 @@ class ProviderAPI:
     def add_file_to_request(
         self,
         release_request: ReleaseRequest,
-        relpath: Path,
+        relpath: UrlPath,
         user: User,
         group_name: Optional[str] = "default",
     ):
@@ -370,7 +374,7 @@ class ProviderAPI:
         )
 
         for f in filelist.files:
-            relpath = Path(f.name)
+            relpath = UrlPath(f.name)
             old_api.upload_file(
                 jobserver_release_id, relpath, request.root() / relpath, user.username
             )

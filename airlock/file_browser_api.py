@@ -1,13 +1,12 @@
-import pathlib
 from dataclasses import dataclass
 
-from airlock.api import AirlockContainer
+from airlock.api import ROOT_PATH, AirlockContainer, UrlPath
 
 
 @dataclass(frozen=True)
 class PathItem:
     """
-    This provides a thin abstraction over `pathlib.Path` objects with two goals:
+    This provides a thin abstraction over url paths and related filesystem objects with two goals:
 
         1. Paths should be enforced as being relative to a certain "container" directory
            and it should not be possible to traverse outside of this directory or to
@@ -19,16 +18,11 @@ class PathItem:
     """
 
     container: AirlockContainer
-    relpath: pathlib.Path
-
-    # The currently selected view path in this container.  Used to calculate if
-    # how relpath relates to it, i.e. if relpath *is* the currently selected
-    # path, or is one of its parents.
-    selected: pathlib.Path = None
+    relpath: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         # ensure relpath is a Path
-        object.__setattr__(self, "relpath", pathlib.Path(self.relpath))
+        object.__setattr__(self, "relpath", UrlPath(self.relpath))
         # ensure path is within container
         self._absolute_path().resolve().relative_to(self.container.root())
 
@@ -42,22 +36,25 @@ class PathItem:
         return self._absolute_path().is_dir()
 
     def name(self):
+        if self.relpath == ROOT_PATH:
+            return self.container.get_id()
+
         return self.relpath.name
 
     def url(self):
         suffix = "/" if self.is_directory() else ""
-        return self.container.get_url_for_path(f"{self.relpath}{suffix}")
+        return self.container.get_url(f"{self.relpath}{suffix}")
 
     def parent(self):
         if self.relpath.parents:
-            return PathItem(self.container, self.relpath.parent, selected=self.selected)
+            return PathItem(self.container, self.relpath.parent)
 
     def children(self):
         if not self.is_directory():
             return []
         root = self.container.root()
         children = [
-            PathItem(self.container, child.relative_to(root), selected=self.selected)
+            PathItem(self.container, child.relative_to(root))
             for child in self._absolute_path().iterdir()
         ]
         # directories first, then alphabetical, aks what windows does
@@ -85,8 +82,7 @@ class PathItem:
 
         parent = item.parent()
         while parent:
-            if parent.relpath != pathlib.Path("."):
-                crumbs.append(parent)
+            crumbs.append(parent)
             parent = parent.parent()
 
         crumbs.reverse()
@@ -113,10 +109,10 @@ class PathItem:
         return " ".join(classes)
 
     def is_selected(self):
-        return self.relpath == self.selected
+        return self.relpath == self.container.selected_path
 
     def is_on_selected_path(self):
-        return self.relpath in self.selected.parents
+        return self.relpath in self.container.selected_path.parents
 
     def is_open(self):
         return self.is_selected() or self.is_on_selected_path()

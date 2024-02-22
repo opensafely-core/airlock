@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import requests
 from django import forms
 from django.conf import settings
@@ -12,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
-from airlock.api import Status
+from airlock.api import Status, UrlPath
 from airlock.file_browser_api import PathItem
 from airlock.forms import AddFileForm
 from local_db.api import LocalDBProvider
@@ -132,9 +130,10 @@ def use_tree_ui(request):
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    relpath = Path(path)
-    root = PathItem(workspace, Path("."), selected=relpath)
-    path_item = PathItem(workspace, path, selected=relpath)
+    relpath = UrlPath(path)
+    workspace.selected_path = relpath
+    root = PathItem(workspace)
+    path_item = PathItem(workspace, relpath)
 
     if not path_item.exists():
         raise Http404()
@@ -167,7 +166,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = validate_workspace(request.user, workspace_name)
-    relpath = Path(request.POST["path"])
+    relpath = UrlPath(request.POST["path"])
     try:
         workspace.abspath(relpath)
     except api.FileNotFound:
@@ -178,7 +177,7 @@ def workspace_add_file_to_request(request, workspace_name):
     if not form.is_valid():
         for error in form.errors.values():
             messages.error(request, error)
-        return redirect(workspace.get_url_for_path(relpath))
+        return redirect(workspace.get_url(relpath))
 
     group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
     try:
@@ -192,7 +191,7 @@ def workspace_add_file_to_request(request, workspace_name):
             request, f"File has been added to request (file group '{group_name}')"
         )
     # redirect to this just added file
-    return redirect(release_request.get_url_for_path(relpath))
+    return redirect(release_request.get_url(relpath))
 
 
 def request_index(request):
@@ -215,9 +214,10 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    relpath = Path(path)
-    root = PathItem(release_request, Path("."), selected=relpath)
-    path_item = PathItem(release_request, path, selected=relpath)
+    relpath = UrlPath(path)
+    release_request.selected_path = relpath
+    root = PathItem(release_request)
+    path_item = PathItem(release_request, relpath)
 
     if not path_item.exists():
         raise Http404()
@@ -273,7 +273,7 @@ def request_submit(request, request_id):
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
-    return redirect(release_request.get_absolute_url())
+    return redirect(release_request.get_url())
 
 
 @require_http_methods(["POST"])
@@ -286,7 +286,7 @@ def request_reject(request, request_id):
         raise PermissionDenied(str(exc))
 
     messages.error(request, "Request has been rejected")
-    return redirect(release_request.get_absolute_url())
+    return redirect(release_request.get_url())
 
 
 @require_http_methods(["POST"])
@@ -315,4 +315,4 @@ def request_release_files(request, request_id):
         raise
 
     messages.success(request, "Files have been released to jobs.opensafely.org")
-    return redirect(release_request.get_absolute_url())
+    return redirect(release_request.get_url())

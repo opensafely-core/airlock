@@ -3,18 +3,21 @@ from pathlib import Path
 
 import pytest
 
-from airlock.api import AirlockContainer
-from airlock.file_browser_api import PathItem
+from airlock.file_browser_api import ROOT_PATH, PathItem, UrlPath
 
 
 @dataclasses.dataclass(frozen=True)
-class DummyContainer(AirlockContainer):
+class DummyContainer:
     path: Path
+    selected_path: UrlPath = ROOT_PATH
 
     def root(self):
         return self.path
 
-    def get_url_for_path(self, relpath):
+    def get_id(self):
+        return "DummyContainer"
+
+    def get_url(self, relpath):
         return f"/test/{relpath}"
 
 
@@ -111,7 +114,9 @@ def test_parent(container, path, parent_path):
 )
 def test_children(container, path, child_paths):
     children = PathItem(container, path).children()
-    assert set(children) == {PathItem(container, Path(child)) for child in child_paths}
+    assert set(children) == {
+        PathItem(container, UrlPath(child)) for child in child_paths
+    }
 
 
 @pytest.mark.parametrize(
@@ -150,26 +155,29 @@ def test_from_relative_path_rejects_path_escape(container, path):
 
 
 def test_breadcrumbs(container):
-    assert PathItem(container, "foo/bar/baz").breadcrumbs() == [
-        PathItem(container, "foo"),
-        PathItem(container, "foo/bar"),
-        PathItem(container, "foo/bar/baz"),
+    path = PathItem(container, "foo/bar/baz")
+    assert [c.name() for c in path.breadcrumbs()] == [
+        "DummyContainer",
+        "foo",
+        "bar",
+        "baz",
     ]
 
 
-def test_selection_logic(container):
-    selected = Path("some_dir/file_a.txt")
+def test_selection_logic(tmp_files):
+    selected_path = UrlPath("some_dir/file_a.txt")
+    container = DummyContainer(tmp_files, selected_path=selected_path)
 
-    selected_item = PathItem(container, selected, selected)
+    selected_item = PathItem(container, selected_path)
     assert selected_item.is_selected()
     assert selected_item.is_open()
 
-    parent_item = PathItem(container, "some_dir", selected)
+    parent_item = PathItem(container, "some_dir")
     assert not parent_item.is_selected()
     assert parent_item.is_on_selected_path()
     assert parent_item.is_open()
 
-    other_item = PathItem(container, "other_dir", selected)
+    other_item = PathItem(container, "other_dir")
     assert not other_item.is_selected()
     assert not other_item.is_on_selected_path()
     assert not other_item.is_open()

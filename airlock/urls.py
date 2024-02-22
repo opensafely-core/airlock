@@ -34,7 +34,8 @@ urlpatterns = [
     path(
         "workspaces/view/<str:workspace_name>/",
         airlock.views.workspace_view,
-        name="workspace_home",
+        kwargs={"path": ""},
+        name="workspace_view",
     ),
     path(
         "workspaces/view/<str:workspace_name>/<path:path>",
@@ -55,7 +56,8 @@ urlpatterns = [
     path(
         "requests/view/<str:request_id>/",
         airlock.views.request_view,
-        name="request_home",
+        name="request_view",
+        kwargs={"path": ""},
     ),
     path(
         "requests/view/<str:request_id>/<path:path>",
