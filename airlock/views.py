@@ -300,7 +300,7 @@ def request_release_files(request, request_id):
     except api.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
     except requests.HTTPError as err:
-        if settings.DEBUG:  # pragma: nocover
+        if settings.DEBUG:
             return TemplateResponse(
                 request,
                 "jobserver-error.html",

@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 import requests
 from django.contrib import messages
@@ -497,6 +499,41 @@ def test_requests_release_jobserver_403(client_with_permission, release_files_st
     response = client_with_permission.post("/requests/release/request_id")
 
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "content_type,content,should_contain_iframe",
+    [
+        ("text/plain", b"An error from job-server", False),
+        ("text/html", b"<p>An error from job-server</p>", True)
+    ]
+)
+def test_requests_release_jobserver_403_with_debug(
+    client_with_permission, release_files_stubber, settings,
+    content_type, content, should_contain_iframe
+):
+    settings.DEBUG = True
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=Status.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "test/file.txt", "test")
+
+    response = requests.Response()
+    response.status_code = 403
+    response.headers = {"Content-Type": content_type}
+    response.raw = BytesIO(content)
+    api403 = requests.HTTPError(response=response)
+    release_files_stubber(release_request, body=api403)
+
+    # test 403 is handled
+    response = client_with_permission.post("/requests/release/request_id")
+    # DEBUG is on, so we return the job-server error
+    assert response.status_code == 200
+    assert "An error from job-server" in response.rendered_content
+    contains_iframe = "<iframe" in response.rendered_content
+    assert contains_iframe == should_contain_iframe
 
 
 def test_requests_release_files_404(client_with_permission, release_files_stubber):
