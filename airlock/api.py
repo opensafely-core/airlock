@@ -34,11 +34,11 @@ class Status(Enum):
 class AirlockContainer(Protocol):
     """Structural typing class for a instance of a Workspace or ReleaseRequest
 
-    Provides a uniform interface for accessing information the paths and files
-    container within this instance.
+    Provides a uniform interface for accessing information about the paths and files
+    contained within this instance.
     """
 
-    # The currently selected path in this container.  Used to calculate if how
+    # The currently selected path in this container.  Used to calculate how
     # a particular path relates to it, i.e. if path *is* the currently selected
     # path, or is one of its parents.
     selected_path: UrlPath = ROOT_PATH
