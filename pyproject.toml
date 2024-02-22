@@ -32,3 +32,9 @@ exclude_also = [
     # this indicates that a method should be defined in a subclass
     "raise NotImplementedError",
 ]
+
+[tool.coverage.django_coverage_plugin]
+template_extensions = "html"
+exclude_blocks = [
+    "\\/\\w+"
+]
