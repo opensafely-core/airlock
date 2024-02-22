@@ -168,6 +168,9 @@ coverage==7.4.0 \
     # via
     #   coverage
     #   pytest-cov
+django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip \
+    --hash=sha256:db70db8737dd269c346f7af6e0c735a3d6462b944302f6bc0178c7bac9a4c7ee
+    # via -r requirements.dev.in
 greenlet==3.0.3 \
     --hash=sha256:01bc7ea167cf943b4c802068e178bbf70ae2e8c080467070d01bfa02f337ee67 \
     --hash=sha256:0448abc479fab28b00cb472d278828b3ccca164531daab4e970a0458786055d6 \
