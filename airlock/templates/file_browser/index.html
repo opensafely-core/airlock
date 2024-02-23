@@ -56,22 +56,22 @@ ul.tree {
             {% if release_request.status.name == "PENDING" %}
             <form action="{{ request_submit_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button"%}Submit For Review{% /button %}
+                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button" id="submit-for-review-button" %}Submit For Review{% /button %}
             </form>
             {% endif %}
         {% elif is_output_checker %}
             {% if release_request.status.name == "SUBMITTED" %}
             <form action="{{ request_reject_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button"%}Reject Request{% /button %}
+                {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button" id="reject-request-button" %}Reject Request{% /button %}
             </form>
             <form action="{{ release_files_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" %}Release Files{% /button %}
+                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
             </form>
             {% endif %}
         {% endif %}
-        {% #button type="link" href=workspace.get_url variant="success" %}Workspace Home{% /button %}
+        {% #button type="link" href=workspace.get_url variant="success" id="workspace-home-button" %}Workspace Home{% /button %}
     {% endif %}
 </div>
 {% endfragment %}
@@ -170,7 +170,7 @@ ul.tree {
     {% else %}
       {% fragment as add_button %}
         {% if context == "workspace" %}
-            {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-button"%}
+            {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-modal-button"%}
               Add File to Request
             {% /button %}
             {% #modal id="addRequestFile" %}
@@ -181,7 +181,7 @@ ul.tree {
                   {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
                   <input type=hidden name="path" value="{{ path_item.relpath }}"/>
                   <div class="mt-2">
-                    {% #button type="submit" variant="success" %}Add File to Request{% /button %}
+                    {% #button type="submit" variant="success" id="add-file-button" %}Add File to Request{% /button %}
                     {% #button variant="danger" type="cancel" %}Cancel{% /button %}
                   </div>
                 </form>

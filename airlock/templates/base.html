@@ -73,6 +73,7 @@
                     {% if location.is_active %}border-t-oxford-600/50 text-oxford-600{% endif %}
                 "
                 href="{{ location.url }}"
+                data-testid="nav-{{ location.name|lower }}"
                 >
                 {{ location.name }}
                 {% if location.is_active %}<span class="sr-only">(current)</span>{% endif %}
@@ -89,6 +90,7 @@
                 "
                 href="{{ login_url }}"
                 rel="nofollow"
+                data-testid="nav-login"
                 >
                 Login
                 </a>
@@ -132,6 +134,7 @@
               "
               href="{{ logout_url }}"
               rel="nofollow"
+              data-testid="nav-logout"
               >
               Logout
               </a>

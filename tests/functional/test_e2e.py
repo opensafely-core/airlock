@@ -80,11 +80,11 @@ def test_e2e_release_files(
     login_as(live_server, page, "researcher")
 
     # Click on to workspaces link
-    find_and_click(page.get_by_role("link", name="Workspaces"))
+    find_and_click(page.get_by_test_id("nav-workspaces"))
     expect(page.locator("body")).to_contain_text("Workspaces for researcher")
 
     # Click on the workspace
-    find_and_click(page.get_by_role("link", name="test-workspace"))
+    find_and_click(page.locator("#workspaces").get_by_role("link"))
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
     assert page.get_by_role("link", name="file.txt").all() == []
@@ -99,16 +99,12 @@ def test_e2e_release_files(
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("#add-file-button"))
+    find_and_click(page.locator("#add-file-modal-button"))
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
 
     # Click the button to add the file to a release request
-    find_and_click(
-        page.get_by_role("form").get_by_role(
-            "button", name=re.compile("add file.*", re.I)
-        )
-    )
+    find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
     # We have been redirected to the release request view for this file
     url_regex = re.compile(
@@ -125,40 +121,41 @@ def test_e2e_release_files(
     # Add this when the view-by-groups is ready.
 
     # Submit request
-    submit_button = page.get_by_role("button", name="Submit for Review")
+    submit_button = page.locator("#submit-for-review-button")
     find_and_click(submit_button)
     expect(page.locator("body")).to_contain_text("SUBMITTED")
     # After the request is submitted, the submit button is no longer visible
     expect(submit_button).not_to_be_visible()
 
     # Ensure researcher can go back to the Workspace view
-    find_and_click(page.get_by_role("link", name="Workspace Home"))
+    find_and_click(page.locator("#workspace-home-button"))
     expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
 
     # Before we log the researcher out and continue, let's just check
     # their requests
-    find_and_click(page.get_by_role("link", name="Requests"))
+    find_and_click(page.get_by_test_id("nav-requests"))
     expect(page).to_have_url(live_server.url + "/requests/")
+
+    request_link = page.locator("#authored-requests").get_by_role("link")
+    expect(request_link).to_contain_text("SUBMITTED")
     # The literal request URL in the html includes the root path (".")
-    expect(page.get_by_role("link", name=re.compile(".+SUBMITTED"))).to_have_attribute(
-        "href", f"/requests/view/{request_id}/."
-    )
+    expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/.")
 
     # Log out
-    find_and_click(page.get_by_role("link", name="Logout"))
+    find_and_click(page.get_by_test_id("nav-logout"))
 
     # Login button is visible now
-    login_button = page.get_by_role("link", name="Login")
+    login_button = page.get_by_test_id("nav-login")
     expect(login_button).to_be_visible()
 
     # Log in as output checker
     login_as(live_server, page, "output_checker")
 
     # View requests
-    find_and_click(page.get_by_role("link", name="Requests"))
+    find_and_click(page.get_by_test_id("nav-requests"))
 
-    # View submitted request
-    find_and_click(page.get_by_role("link", name="test-workspace by researcher"))
+    # View submitted request (in the output-checker's outstanding requests for review)
+    find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
     expect(page.locator("body")).to_contain_text(request_id)
 
     # Mock the responses from job-server
@@ -166,13 +163,13 @@ def test_e2e_release_files(
     release_files_stubber(release_request)
 
     # Release the files
-    find_and_click(page.get_by_role("button", name="Release Files"))
+    find_and_click(page.locator("#release-files-button"))
     expect(page.locator("body")).to_contain_text(
         "Files have been released to jobs.opensafely.org"
     )
 
     # Requests view does not show released request
-    find_and_click(page.get_by_role("link", name="Requests"))
+    find_and_click(page.get_by_test_id("nav-requests"))
     expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
 
 
@@ -194,15 +191,15 @@ def test_e2e_reject_request(page, live_server, dev_users, ui_options):
     login_as(live_server, page, "output_checker")
 
     # View requests
-    find_and_click(page.get_by_role("link", name="Requests"))
+    find_and_click(page.get_by_test_id("nav-requests"))
 
     # View submitted request
     find_and_click(page.get_by_role("link", name="test-workspace by testuser"))
 
     # Reject request
-    find_and_click(page.get_by_role("button", name="Reject Request"))
+    find_and_click(page.locator("#reject-request-button"))
     # Page contains rejected message text
     expect(page.locator("body")).to_contain_text("Request has been rejected")
     # Requests view does not show rejected request
-    find_and_click(page.get_by_role("link", name="Requests"))
+    find_and_click(page.get_by_test_id("nav-requests"))
     expect(page.locator("body")).not_to_contain_text("test-workspace by testuser")
