@@ -175,7 +175,7 @@ ul.tree {
             {% /button %}
             {% #modal id="addRequestFile" %}
               {% #card container=True title="Add a file" %}
-                <form action="{{ request_file_url }}" method="POST">
+                <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
                   {% csrf_token %}
                   {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
                   {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
