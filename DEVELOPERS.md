@@ -99,6 +99,17 @@ Additional arguments passed to `just test` are passed on to pytest. For example,
 run all the tests _except_ the functional tests, run `just test -k 'not functional'`,
 or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`.
 
+### Debugging functional tests
+
+Functional tests run headless by default. To see what's going on, they
+can be run in headed mode. The follwoing command will run just the
+functional tests, in headed mode, slowed down by 500ms. See the
+[playwright docs](https://playwright.dev/python/docs/test-runners#cli-arguments) for additional cli arguments that may be
+useful.
+
+```
+just test -k functional --headed --slowmo 500
+```
 
 # Local job-server for integration.
 
