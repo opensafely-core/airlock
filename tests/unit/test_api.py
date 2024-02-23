@@ -63,10 +63,12 @@ def test_provider_request_release_files(mock_old_api):
         "workspace",
         user=author,
         id="request_id",
-        status=Status.APPROVED,
+        status=Status.SUBMITTED,
     )
     relpath = Path("test/file.txt")
-    factories.write_request_file(release_request, relpath, "test")
+    factories.write_request_file(release_request, "group", relpath, "test")
+    factories.api.set_status(release_request, Status.APPROVED, checker)
+
     abspath = release_request.abspath(relpath)
 
     api = ProviderAPI()

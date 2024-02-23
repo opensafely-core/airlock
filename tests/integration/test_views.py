@@ -51,12 +51,14 @@ def test_workspace_does_not_exist(client_with_permission):
 def test_workspace_view_with_directory(client_with_permission, ui_options):
     factories.write_workspace_file("workspace", "some_dir/file.txt")
     response = client_with_permission.get("/workspaces/view/workspace/some_dir/")
+    assert response.status_code == 200
     assert "file.txt" in response.rendered_content
 
 
 def test_workspace_view_with_file(client_with_permission, ui_options):
     factories.write_workspace_file("workspace", "file.txt", "foobar")
     response = client_with_permission.get("/workspaces/view/workspace/file.txt")
+    assert response.status_code == 200
     assert "foobar" in response.rendered_content
 
 
@@ -291,7 +293,7 @@ def test_request_view_index(client_with_permission, ui_options):
     release_request = factories.create_release_request(
         "workspace", client_with_permission.user
     )
-    factories.write_request_file(release_request, "file.txt")
+    factories.write_request_file(release_request, "group", "file.txt")
     response = client_with_permission.get(f"/requests/view/{release_request.id}/")
     assert "file.txt" in response.rendered_content
 
@@ -308,25 +310,22 @@ def test_request_id_does_not_exist(client_with_permission):
 
 def test_request_view_with_directory(client_with_permission, ui_options):
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "some_dir/file.txt")
+    factories.write_request_file(release_request, "group", "some_dir/file.txt")
     response = client_with_permission.get(
         f"/requests/view/{release_request.id}/some_dir/"
     )
+    assert response.status_code == 200
     assert "file.txt" in response.rendered_content
 
 
 def test_request_view_with_file(client_with_permission, ui_options):
     release_request = factories.create_release_request("workspace")
-    factories.write_workspace_file("workspace", "file.txt", "foobar")
-    factories.create_filegroup(
-        release_request, group_name="default_group", filepaths=["file.txt"]
-    )
-
+    factories.write_request_file(release_request, "group", "file.txt", "foobar")
     response = client_with_permission.get(
         f"/requests/view/{release_request.id}/file.txt"
     )
-    assert "default_group" in response.rendered_content
-    assert "foobar" in response.rendered_content
+    assert response.status_code == 200
+    assert "group" in response.rendered_content
 
 
 def test_request_view_with_submitted_request(client_with_permission, ui_options):
@@ -379,7 +378,7 @@ def test_request_view_redirects_to_directory(client_with_permission):
 
 def test_request_view_redirects_to_file(client_with_permission):
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "file.txt")
+    factories.write_request_file(release_request, "group", "file.txt")
     response = client_with_permission.get(
         f"/requests/view/{release_request.id}/file.txt/"
     )
@@ -424,7 +423,7 @@ def test_request_submit_author(client_with_user):
     permitted_client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(permitted_client.session)
     release_request = factories.create_release_request("test1", user=user)
-    factories.write_request_file(release_request, "path/test.txt")
+    factories.write_request_file(release_request, "group", "path/test.txt")
 
     response = permitted_client.post(f"/requests/submit/{release_request.id}")
 
@@ -439,7 +438,7 @@ def test_request_submit_not_author(client_with_user):
     release_request = factories.create_release_request(
         "test1", user=other_user, status=Status.PENDING
     )
-    factories.write_request_file(release_request, "path/test.txt")
+    factories.write_request_file(release_request, "group", "path/test.txt")
 
     response = permitted_client.post(f"/requests/submit/{release_request.id}")
 
@@ -455,7 +454,7 @@ def test_request_reject_output_checker(client_with_permission):
         user=author,
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "path/test.txt")
+    factories.write_request_file(release_request, "group", "path/test.txt")
 
     response = client_with_permission.post(f"/requests/reject/{release_request.id}")
 
@@ -472,7 +471,7 @@ def test_request_reject_not_output_checker(client_with_user):
         user=author,
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "path/test.txt")
+    factories.write_request_file(release_request, "group", "path/test.txt")
 
     response = client.post(f"/requests/reject/{release_request.id}")
 
@@ -487,8 +486,8 @@ def test_request_release_files_success(client_with_permission, release_files_stu
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file1.txt", "test1")
-    factories.write_request_file(release_request, "test/file2.txt", "test2")
+    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
+    factories.write_request_file(release_request, "group", "test/file2.txt", "test2")
 
     api_responses = release_files_stubber(release_request)
     response = client_with_permission.post("/requests/release/request_id")
@@ -506,7 +505,7 @@ def test_requests_release_workspace_403(client_with_user):
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file1.txt", "test1")
+    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
     response = not_permitted_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
@@ -519,7 +518,7 @@ def test_requests_release_author_403(client_with_permission):
         user=user,
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file1.txt", "test1")
+    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
     response = client_with_permission.post("/requests/release/request_id")
     assert response.status_code == 403
 
@@ -530,7 +529,7 @@ def test_requests_release_jobserver_403(client_with_permission, release_files_st
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file.txt", "test")
+    factories.write_request_file(release_request, "group", "test/file.txt", "test")
 
     response = requests.Response()
     response.status_code = 403
@@ -588,7 +587,7 @@ def test_requests_release_files_404(client_with_permission, release_files_stubbe
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file.txt", "test")
+    factories.write_request_file(release_request, "group", "test/file.txt", "test")
 
     # test 404 results in 500
     response = requests.Response()

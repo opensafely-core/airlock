@@ -31,7 +31,7 @@ def test_old_api_upload_file(responses):
     release_request = factories.create_release_request("workspace", id="request-id")
     relpath = Path("test/file.txt")
     abspath = release_request.root() / relpath
-    factories.write_request_file(release_request, relpath, "test")
+    factories.write_request_file(release_request, "group", relpath, "test")
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
