@@ -11,8 +11,8 @@ ul.tree {
 
   details ul {
     border-left: 1px dotted grey;
-    padding-left: 0.25rem;
-    margin-left: 0.25rem;
+    padding-left: 0.75rem;
+    margin-left: 0.5rem;
   }
 }
 
@@ -21,15 +21,32 @@ ul.tree {
   cursor: pointer;
 }
 
+summary:has(>a.selected), li:has(>a.selected) {
+    background-color: lightblue;
+}
+
 .tree .selected {
     font-weight: bold;
-    color: green;
-    background: rgba(0, 255, 0, 0.1);
     cursor: pointer;
 }
 
 
-/* ths attempt at a nice selectedhighlight doesn't quite work
+.tree .filegroup {
+    text-transform: uppercase;
+}
+
+summary:has(>a.filegroup) {
+    background-color: lightgrey;
+}
+
+summary { 
+    padding-left: 0.25rem; 
+}
+
+div.content {
+    padding: 0.5rem;
+}
+/* ths attempt at a nice selected highlight doesn't quite work
 .tree li {
   position: relative;
 }
@@ -119,7 +136,7 @@ ul.tree {
  
 
       {% #card_footer no_container=False %}
-      {% if context == "request" %}
+      {% if context == "requestasdfadfs" %}
         <div class="px-4">
           {% #button variant="primary-outline" type="button" data-modal="viewFileGroups" %}
             View File Groups
@@ -198,20 +215,22 @@ ul.tree {
 
       {% #card title=path_item.name custom_button=add_button %}
 
-        {% if path_item.suffix == '.html' %}
-          <iframe
-            srcdoc="{{ path_item.contents }}"
-            title="{{ path_item.relpath }}"
-            frameborder=0
-            height=1000
-            style="width: 100%;"
-          >
-          </iframe>
-        {% else %}
-        {% #code %}
-        <pre>{{ path_item.contents }}</pre>
-        {% /code %}
-        {% endif %}
+        <div class="content">
+            {% if path_item.suffix == '.html' %}
+            <iframe
+                srcdoc="{{ path_item.contents }}"
+                title="{{ path_item.relpath }}"
+                frameborder=0
+                height=1000
+                style="width: 100%;"
+            >
+            </iframe>
+            {% else %}
+            {% #code %}
+            <pre>{{ path_item.contents }}</pre>
+            {% /code %}
+            {% endif %}
+        </div>
       {% /card %}
 
     {% endif %}

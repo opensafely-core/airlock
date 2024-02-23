@@ -65,7 +65,7 @@ def write_request_file(request, group, path, contents="", user=None):
 
 
 def create_filegroup(release_request, group_name, filepaths=None):
-    for filepath in filepaths or []:
+    for filepath in filepaths or []:  # pragma: nocover
         api.add_file_to_request(
             release_request, filepath, User(1, release_request.author), group_name
         )

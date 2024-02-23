@@ -1,39 +1,110 @@
-import dataclasses
-from pathlib import Path
+import textwrap
 
 import pytest
+from django.template.loader import render_to_string
 
-from airlock.file_browser_api import ROOT_PATH, PathItem, UrlPath
-
-
-@dataclasses.dataclass(frozen=True)
-class DummyContainer:
-    path: Path
-    selected_path: UrlPath = ROOT_PATH
-
-    def root(self):
-        return self.path
-
-    def get_id(self):
-        return "DummyContainer"
-
-    def get_url(self, relpath):
-        return f"/test/{relpath}"
-
-
-@pytest.fixture(scope="module")
-def tmp_files(tmp_path_factory):
-    tmp_files = tmp_path_factory.mktemp(__name__)
-    (tmp_files / "empty_dir").mkdir()
-    (tmp_files / "some_dir").mkdir()
-    (tmp_files / "some_dir/file_a.txt").write_text("file_a")
-    (tmp_files / "some_dir/file_b.txt").write_text("file_b")
-    return tmp_files
+from airlock.file_browser_api import (
+    UrlPath,
+    get_request_tree,
+    get_workspace_tree,
+)
+from tests import factories
 
 
 @pytest.fixture
-def container(tmp_files):
-    return DummyContainer(tmp_files)
+def workspace():
+    w = factories.create_workspace("workspace")
+    (w.root() / "empty_dir").mkdir()
+    factories.write_workspace_file(w, "some_dir/file_a.txt", "file_a")
+    factories.write_workspace_file(w, "some_dir/file_b.txt", "file_b")
+    factories.write_workspace_file(w, "some_dir/file_c.txt", "file_c")
+    return w
+
+
+@pytest.fixture
+def release_request(workspace):
+    rr = factories.create_release_request(workspace)
+    factories.write_request_file(rr, "group1", "some_dir/file_a.txt")
+    factories.write_request_file(rr, "group1", "some_dir/file_c.txt")
+    factories.write_request_file(rr, "group2", "some_dir/file_b.txt")
+    return rr
+
+
+def test_get_workspace_tree_general(workspace):
+    """Tests an entire tree for the basics."""
+    selected_path = UrlPath("some_dir/file_a.txt")
+    tree = get_workspace_tree(workspace, selected_path)
+
+    # simple way to express the entire tree structure, including selected
+    expected = textwrap.dedent(
+        """
+        workspace*
+          empty_dir
+          some_dir*
+            file_a.txt**
+            file_b.txt
+            file_c.txt
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+    # types
+    assert tree.type == "workspace"
+    assert tree.get_path("empty_dir").type == "dir"
+    assert tree.get_path("empty_dir").children == []
+    assert tree.get_path("some_dir").type == "dir"
+    assert tree.get_path("some_dir/file_a.txt").type == "file"
+    assert tree.get_path("some_dir/file_b.txt").type == "file"
+
+    # selected
+    assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
+
+    # errors
+    with pytest.raises(tree.PathNotFound):
+        tree.get_path("some_dir/notexist.txt")
+    with pytest.raises(tree.PathNotFound):
+        tree.get_path("no_dir")
+
+    # check that the tree works with the recursive template
+    render_to_string("file_browser/tree.html", {"path": tree})
+
+
+@pytest.mark.django_db
+def test_get_request_tree_general(release_request):
+    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    tree = get_request_tree(release_request, selected_path)
+
+    # simple way to express the entire tree structure, including selected
+    expected = textwrap.dedent(
+        f"""
+        {release_request.id}*
+          group1*
+            some_dir*
+              file_a.txt**
+              file_c.txt
+          group2
+            some_dir
+              file_b.txt
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+    # types
+    assert tree.type == "request"
+    assert tree.get_path("group1").type == "filegroup"
+    assert tree.get_path("group1/some_dir").type == "dir"
+    assert tree.get_path("group1/some_dir/file_a.txt").type == "file"
+    assert tree.get_path("group2").type == "filegroup"
+    assert tree.get_path("group2/some_dir").type == "dir"
+    assert tree.get_path("group2/some_dir/file_b.txt").type == "file"
+
+    # selected
+    assert tree.get_path("group1/some_dir/file_a.txt") == tree.get_selected()
+
+    # check that the tree works with the recursive template
+    render_to_string("file_browser/tree.html", {"path": tree})
 
 
 @pytest.mark.parametrize(
@@ -45,23 +116,36 @@ def container(tmp_files):
         ("empty_dir/not_a_file.txt", False),
     ],
 )
-def test_exists(container, path, exists):
-    assert PathItem(container, path).exists() == exists
+def test_workspace_tree_get_path(workspace, path, exists):
+    tree = get_workspace_tree(workspace)
+
+    if exists:
+        tree.get_path(path)
+    else:
+        with pytest.raises(tree.PathNotFound):
+            tree.get_path(path)
 
 
 @pytest.mark.parametrize(
-    "path,is_directory",
+    "path,exists",
     [
-        ("some_dir", True),
-        ("some_dir/file_a.txt", False),
+        ("group1", True),
+        ("group1/some_dir", True),
+        ("group1/some_dir/file_a.txt", True),
+        ("not_a_group", False),
+        ("group1/not_a_dir", False),
+        ("group1/some_dir/not_a_file.txt", False),
     ],
 )
-def test_is_directory(container, path, is_directory):
-    assert PathItem(container, path).is_directory() == is_directory
+@pytest.mark.django_db
+def test_request_tree_get_path(release_request, path, exists):
+    tree = get_request_tree(release_request)
 
-
-def test_name(container):
-    assert PathItem(container, "some_dir/file_a.txt").name() == "file_a.txt"
+    if exists:
+        tree.get_path(path)
+    else:
+        with pytest.raises(tree.PathNotFound):
+            tree.get_path(path)
 
 
 @pytest.mark.parametrize(
@@ -71,113 +155,166 @@ def test_name(container):
         ("some_dir/file_a.txt", "/some_dir/file_a.txt"),
     ],
 )
-def test_url(container, path, url):
-    assert PathItem(container, path).url().endswith(url)
+def test_workspace_tree_urls(workspace, path, url):
+    tree = get_workspace_tree(workspace)
+    assert tree.get_path(path).url().endswith(url)
 
 
 @pytest.mark.parametrize(
-    "path,parent_path",
+    "path,url",
     [
-        ("", None),
-        ("some_dir", ""),
-        ("some_dir/file_a.txt", "some_dir"),
+        ("group1/some_dir", "group1/some_dir/"),
+        ("group1/some_dir/file_a.txt", "group1/some_dir/file_a.txt"),
     ],
 )
-def test_parent(container, path, parent_path):
-    parent = PathItem(container, path).parent()
-    if parent_path is None:
-        assert parent is None
-    else:
-        assert parent == PathItem(container, parent_path)
+@pytest.mark.django_db
+def test_request_tree_urls(release_request, path, url):
+    tree = get_request_tree(release_request)
+    assert tree.get_path(path).url().endswith(url)
 
 
-@pytest.mark.parametrize(
-    "path,child_paths",
-    [
-        (
-            "",
-            ["some_dir", "empty_dir"],
-        ),
-        (
-            "empty_dir",
-            [],
-        ),
-        (
-            "some_dir",
-            ["some_dir/file_a.txt", "some_dir/file_b.txt"],
-        ),
-        (
-            "some_dir/file_a.txt",
-            [],
-        ),
-    ],
-)
-def test_children(container, path, child_paths):
-    children = PathItem(container, path).children()
-    assert set(children) == {
-        PathItem(container, UrlPath(child)) for child in child_paths
-    }
-
-
-@pytest.mark.parametrize(
-    "path,sibling_paths",
-    [
-        ("", []),
-        ("empty_dir", ["empty_dir", "some_dir"]),
-    ],
-)
-def test_siblings(container, path, sibling_paths):
-    siblings = PathItem(container, path).siblings()
-    assert set(siblings) == {PathItem(container, sibling) for sibling in sibling_paths}
-
-
-@pytest.mark.parametrize(
-    "path,contents",
-    [
-        ("some_dir/file_a.txt", "file_a"),
-        ("some_dir/file_b.txt", "file_b"),
-    ],
-)
-def test_contents(container, path, contents):
-    assert PathItem(container, path).contents() == contents
-
-
-@pytest.mark.parametrize(
-    "path",
-    [
-        "../../relative_path",
-        "/tmp/absolute/path",
-    ],
-)
-def test_from_relative_path_rejects_path_escape(container, path):
-    with pytest.raises(ValueError, match="is not in the subpath"):
-        PathItem(container, path)
-
-
-def test_breadcrumbs(container):
-    path = PathItem(container, "foo/bar/baz")
+def test_workspace_tree_breadcrumbs(workspace):
+    tree = get_workspace_tree(workspace)
+    path = tree.get_path("some_dir/file_a.txt")
     assert [c.name() for c in path.breadcrumbs()] == [
-        "DummyContainer",
-        "foo",
-        "bar",
-        "baz",
+        "workspace",
+        "some_dir",
+        "file_a.txt",
     ]
 
 
-def test_selection_logic(tmp_files):
-    selected_path = UrlPath("some_dir/file_a.txt")
-    container = DummyContainer(tmp_files, selected_path=selected_path)
+@pytest.mark.django_db
+def test_request_tree_breadcrumbs(release_request):
+    tree = get_request_tree(release_request)
+    path = tree.get_path("group1/some_dir/file_a.txt")
+    assert [c.name() for c in path.breadcrumbs()] == [
+        release_request.id,
+        "group1",
+        "some_dir",
+        "file_a.txt",
+    ]
 
-    selected_item = PathItem(container, selected_path)
-    assert selected_item.is_selected()
+
+def test_workspace_tree_selection_root(workspace):
+    tree = get_workspace_tree(workspace)
+    assert tree.get_selected() == tree
+
+
+def test_workspace_tree_selection_path(workspace):
+    selected_path = UrlPath("some_dir/file_a.txt")
+    tree = get_workspace_tree(workspace, selected_path)
+
+    selected_item = tree.get_path(selected_path)
+    assert selected_item.selected
+    assert not selected_item.on_selected_path
     assert selected_item.is_open()
 
-    parent_item = PathItem(container, "some_dir")
-    assert not parent_item.is_selected()
-    assert parent_item.is_on_selected_path()
+    parent_item = tree.get_path("some_dir")
+    assert not parent_item.selected
+    assert parent_item.on_selected_path
     assert parent_item.is_open()
 
-    other_item = PathItem(container, "other_dir")
-    assert not other_item.is_selected()
-    assert not other_item.is_on_selected_path()
+    other_item = tree.get_path("some_dir/file_b.txt")
+    assert not other_item.selected
+    assert not other_item.on_selected_path
     assert not other_item.is_open()
+
+
+def test_workspace_tree_selection_bad_path(workspace):
+    selected_path = UrlPath("bad/path")
+    tree = get_workspace_tree(workspace, selected_path)
+    with pytest.raises(tree.PathNotFound):
+        tree.get_selected()
+
+
+@pytest.mark.django_db
+def test_request_tree_selection_root(release_request):
+    # selected root by default
+    tree = get_request_tree(release_request)
+    assert tree.get_selected() == tree
+
+
+@pytest.mark.django_db
+def test_request_tree_selection_path(release_request):
+    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    tree = get_request_tree(release_request, selected_path)
+
+    selected_item = tree.get_path(selected_path)
+    assert selected_item.selected
+    assert not selected_item.on_selected_path
+    assert selected_item.is_open()
+
+    parent_item = tree.get_path("group1/some_dir")
+    assert not parent_item.selected
+    assert parent_item.on_selected_path
+    assert parent_item.is_open()
+
+    other_item = tree.get_path("group2/some_dir/file_b.txt")
+    assert not other_item.selected
+    assert not other_item.on_selected_path
+    assert not other_item.is_open()
+
+
+@pytest.mark.django_db
+def test_request_tree_selection_not_path(release_request):
+    selected_path = UrlPath("bad/path")
+    tree = get_request_tree(release_request, selected_path)
+    with pytest.raises(tree.PathNotFound):
+        tree.get_selected()
+
+
+def test_workspace_tree_siblings(workspace):
+    tree = get_workspace_tree(workspace)
+
+    assert tree.siblings() == []
+    assert {s.name() for s in tree.get_path("some_dir").siblings()} == {
+        "empty_dir",
+        "some_dir",
+    }
+    assert {s.name() for s in tree.get_path("some_dir/file_a.txt").siblings()} == {
+        "file_a.txt",
+        "file_b.txt",
+        "file_c.txt",
+    }
+
+
+@pytest.mark.django_db
+def test_request_tree_siblings(release_request):
+    tree = get_request_tree(release_request)
+
+    assert tree.siblings() == []
+    assert {s.name() for s in tree.get_path("group1").siblings()} == {
+        "group1",
+        "group2",
+    }
+    assert {s.name() for s in tree.get_path("group1/some_dir").siblings()} == {
+        "some_dir"
+    }
+
+
+def test_workspace_tree_contents(workspace):
+    tree = get_workspace_tree(workspace)
+
+    with pytest.raises(Exception):
+        tree.contents()
+
+    with pytest.raises(Exception):
+        tree.get_path("some_dir").contents()
+
+    assert tree.get_path("some_dir/file_a.txt").contents() == "file_a"
+
+
+@pytest.mark.django_db
+def test_request_tree_contents(release_request):
+    tree = get_request_tree(release_request)
+
+    with pytest.raises(Exception):
+        tree.contents()
+
+    with pytest.raises(Exception):
+        tree.get_path("group1").contents()
+
+    with pytest.raises(Exception):
+        tree.get_path("group1/some_dir").contents()
+
+    assert tree.get_path("group1/some_dir/file_a.txt").contents() == "file_a"

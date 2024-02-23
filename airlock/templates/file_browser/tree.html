@@ -3,7 +3,7 @@
   {% if child.is_directory %}
   <details {% if child.is_open %}open{% endif %}>
     <summary>
-      <a class="{{ child.html_classes }}" href="{{ child.url }}">{{ child.name }}</a>
+      <a class="{{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
     </summary>
     {% if child.children %}
       <ul class="tree">
@@ -12,7 +12,7 @@
     {% endif %}
   </details>
   {% else %}
-  <a class="{{ child.html_classes }}" {% if not child.is_selected %}href="{{ child.url }}"{% endif %}>{{ child.name }}</a>
+  <a class="{{ child.html_classes }}" {% if not child.selected %}href="{{ child.url }}"{% endif %}>{{ child.display }}</a>
   {% endif %}
 </li>
 {% endfor %}
