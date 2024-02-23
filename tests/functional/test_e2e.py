@@ -1,0 +1,208 @@
+import json
+import re
+
+import pytest
+from playwright.sync_api import expect
+
+from airlock.api import Status
+from local_db.api import LocalDBProvider
+from tests import factories
+
+
+api = LocalDBProvider()
+
+
+@pytest.fixture
+def dev_users(tmp_path, settings):
+    settings.AIRLOCK_DEV_USERS_FILE = tmp_path / "dev_users.json"
+    settings.AIRLOCK_DEV_USERS_FILE.write_text(
+        json.dumps(
+            {
+                "output_checker": {
+                    "token": "output_checker",
+                    "details": {
+                        "username": "output_checker",
+                        "fullname": "Output Checker",
+                        "output_checker": True,
+                        "staff": True,
+                        "workspaces": [],
+                    },
+                },
+                "researcher": {
+                    "token": "researcher",
+                    "details": {
+                        "username": "researcher",
+                        "fullname": "Researcher",
+                        "output_checker": False,
+                        "staff": False,
+                        "workspaces": ["test-workspace"],
+                    },
+                },
+            }
+        )
+    )
+
+
+def find_and_click(locator):
+    """
+    Helper function to find a locator element and click on it.
+    Asserts that the element is visible before trying to click.
+    This avoids playwright hanging on clicking and unavailable
+    element, which happens if we just chain the locator and click
+    methods.
+    """
+    expect(locator).to_be_visible()
+    locator.click()
+
+
+def login_as(live_server, page, username):
+    page.goto(live_server.url + "/login/?next=/")
+    page.locator("#id_user").fill(username)
+    page.locator("#id_token").fill(username)
+    find_and_click(page.locator("button[type=submit]"))
+
+    expect(page).to_have_url(live_server.url + "/")
+    expect(page.locator("body")).to_contain_text(f"Logged in as: {username}")
+
+
+def test_e2e_release_files(
+    page, live_server, dev_users, ui_options, release_files_stubber
+):
+    """
+    Test full Airlock process to create, submit and release files
+    """
+    # set up a workspace file in a subdirectory
+    factories.write_workspace_file(
+        "test-workspace", "subdir/file.txt", "I am the file content"
+    )
+
+    # Log in as a researcher
+    login_as(live_server, page, "researcher")
+
+    # Click on to workspaces link
+    find_and_click(page.get_by_role("link", name="Workspaces"))
+    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
+
+    # Click on the workspace
+    find_and_click(page.get_by_role("link", name="test-workspace"))
+    expect(page.locator("body")).to_contain_text("subdir")
+    # subdirectories start off collapsed; the file links are not present
+    assert page.get_by_role("link", name="file.txt").all() == []
+
+    # Click on the subdir and then the file link to view in the workspace
+    # There will be more than one link to the folder/file in the page,
+    # one in the explorer, and one in the main folder view
+    # Click on the first link we find
+    find_and_click(page.get_by_role("link", name="subdir").first)
+    find_and_click(page.get_by_role("link", name="file.txt").first)
+    expect(page.locator("body")).to_contain_text("I am the file content")
+
+    # Add file to request, with custom named group
+    # Find the add file button and click on it to open the modal
+    find_and_click(page.locator("#add-file-button"))
+    # Fill in the form with a new group name
+    page.locator("#id_new_filegroup").fill("my-new-group")
+
+    # Click the button to add the file to a release request
+    find_and_click(
+        page.get_by_role("form").get_by_role(
+            "button", name=re.compile("add file.*", re.I)
+        )
+    )
+
+    # We have been redirected to the release request view for this file
+    url_regex = re.compile(
+        rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)\/subdir\/file.txt"
+    )
+    expect(page).to_have_url(url_regex)
+    expect(page.locator("body")).to_contain_text("I am the file content")
+    expect(page.locator("body")).to_contain_text("PENDING")
+
+    # get the request ID for the just-created request, for later reference
+    request_id = url_regex.match(page.url).groups()[0]
+
+    # TODO: View file in group.
+    # Add this when the view-by-groups is ready.
+
+    # Submit request
+    submit_button = page.get_by_role("button", name="Submit for Review")
+    find_and_click(submit_button)
+    expect(page.locator("body")).to_contain_text("SUBMITTED")
+    # After the request is submitted, the submit button is no longer visible
+    expect(submit_button).not_to_be_visible()
+
+    # Ensure researcher can go back to the Workspace view
+    find_and_click(page.get_by_role("link", name="Workspace Home"))
+    expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
+
+    # Before we log the researcher out and continue, let's just check
+    # their requests
+    find_and_click(page.get_by_role("link", name="Requests"))
+    expect(page).to_have_url(live_server.url + "/requests/")
+    # The literal request URL in the html includes the root path (".")
+    expect(page.get_by_role("link", name=re.compile(".+SUBMITTED"))).to_have_attribute(
+        "href", f"/requests/view/{request_id}/."
+    )
+
+    # Log out
+    find_and_click(page.get_by_role("link", name="Logout"))
+
+    # Login button is visible now
+    login_button = page.get_by_role("link", name="Login")
+    expect(login_button).to_be_visible()
+
+    # Log in as output checker
+    login_as(live_server, page, "output_checker")
+
+    # View requests
+    find_and_click(page.get_by_role("link", name="Requests"))
+
+    # View submitted request
+    find_and_click(page.get_by_role("link", name="test-workspace by researcher"))
+    expect(page.locator("body")).to_contain_text(request_id)
+
+    # Mock the responses from job-server
+    release_request = api.get_release_request(request_id)
+    release_files_stubber(release_request)
+
+    # Release the files
+    find_and_click(page.get_by_role("button", name="Release Files"))
+    expect(page.locator("body")).to_contain_text(
+        "Files have been released to jobs.opensafely.org"
+    )
+
+    # Requests view does not show released request
+    find_and_click(page.get_by_role("link", name="Requests"))
+    expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
+
+
+def test_e2e_reject_request(page, live_server, dev_users, ui_options):
+    """
+    Test output-checker rejects a release request
+    """
+    # set up a submitted file
+    factories.write_workspace_file("test-workspace", "file.txt")
+    release_request = factories.create_release_request(
+        "test-workspace",
+        status=Status.SUBMITTED,
+    )
+    factories.create_filegroup(
+        release_request, group_name="default", filepaths=["file.txt"]
+    )
+
+    # Log in as output checker
+    login_as(live_server, page, "output_checker")
+
+    # View requests
+    find_and_click(page.get_by_role("link", name="Requests"))
+
+    # View submitted request
+    find_and_click(page.get_by_role("link", name="test-workspace by testuser"))
+
+    # Reject request
+    find_and_click(page.get_by_role("button", name="Reject Request"))
+    # Page contains rejected message text
+    expect(page.locator("body")).to_contain_text("Request has been rejected")
+    # Requests view does not show rejected request
+    find_and_click(page.get_by_role("link", name="Requests"))
+    expect(page.locator("body")).not_to_contain_text("test-workspace by testuser")
