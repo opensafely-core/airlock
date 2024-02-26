@@ -36,12 +36,6 @@ def client_with_permission(client_with_user):
     yield client_with_user(output_checker)
 
 
-# temporary fixture to test both UI options until we decide on one.
-@pytest.fixture(params=[True, False])
-def ui_options(request, settings):
-    settings.TREE = request.param
-
-
 def test_workspace_view(client_with_permission, ui_options):
     factories.write_workspace_file("workspace", "file.txt")
 
