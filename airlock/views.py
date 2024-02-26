@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from airlock import login_api
 from airlock.api import Status, UrlPath
-from airlock.file_browser_api import PathItem
+from airlock.file_browser_api import get_request_tree, get_workspace_tree
 from airlock.forms import AddFileForm
 from local_db.api import LocalDBProvider
 
@@ -132,12 +132,11 @@ def use_tree_ui(request):
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    relpath = UrlPath(path)
-    workspace.selected_path = relpath
-    root = PathItem(workspace)
-    path_item = PathItem(workspace, relpath)
+    tree = get_workspace_tree(workspace, path)
 
-    if not path_item.exists():
+    try:
+        path_item = tree.get_path(path)
+    except tree.PathNotFound:
         raise Http404()
 
     is_directory_url = path.endswith("/") or path == ""
@@ -149,7 +148,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         "file_browser/index.html",
         {
             "workspace": workspace,
-            "root": root,
+            "root": tree,
             "path_item": path_item,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
@@ -192,8 +191,10 @@ def workspace_add_file_to_request(request, workspace_name):
         messages.success(
             request, f"File has been added to request (file group '{group_name}')"
         )
+
     # redirect to this just added file
-    return redirect(release_request.get_url(relpath))
+
+    return redirect(release_request.get_url(group_name / relpath))
 
 
 def request_index(request):
@@ -216,12 +217,10 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    relpath = UrlPath(path)
-    release_request.selected_path = relpath
-    root = PathItem(release_request)
-    path_item = PathItem(release_request, relpath)
-
-    if not path_item.exists():
+    tree = get_request_tree(release_request, path)
+    try:
+        path_item = tree.get_path(path)
+    except tree.PathNotFound:
         raise Http404()
 
     is_directory_url = path.endswith("/") or path == ""
@@ -249,7 +248,7 @@ def request_view(request, request_id: str, path: str = ""):
     context = {
         "workspace": api.get_workspace(release_request.workspace),
         "release_request": release_request,
-        "root": root,
+        "root": tree,
         "path_item": path_item,
         "context": "request",
         "title": f"Request for {release_request.workspace} by {release_request.author}",

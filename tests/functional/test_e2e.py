@@ -108,7 +108,7 @@ def test_e2e_release_files(
 
     # We have been redirected to the release request view for this file
     url_regex = re.compile(
-        rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)\/subdir\/file.txt"
+        rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)\/my-new-group/subdir\/file.txt"
     )
     expect(page).to_have_url(url_regex)
     expect(page.locator("body")).to_contain_text("I am the file content")
