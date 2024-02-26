@@ -163,7 +163,7 @@ class PathItem:
                 if child.on_selected_path:
                     return walk_selected(child)
 
-            raise self.PathNotFound("Not selected path found")
+            raise self.PathNotFound("No selected path found")
 
         return walk_selected(self)
 
@@ -218,7 +218,7 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     """Build a tree recursively for a ReleaseRequest
 
     For each group, we create a node for that group, and then build a sub-tree
-    its files group.
+    for its file groups.
     """
     # ensure selected_path is UrlPath
     selected_path = UrlPath(selected_path)
@@ -257,13 +257,13 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
 def get_filegroup_tree(container, selected_path, group_data, group_path, parent):
     """Get the tree for a filegroup's files.
 
-    This is more than just a walk the disk. The FileGroup.files is flat list of
-    relative paths. So we need group those by common prefex and descend down
+    This is more than just a walk the disk. The FileGroup.files is a flat list of
+    relative paths. So we need to group those by common prefix and descend down
     the tree.
     """
 
     def build_filegroup_tree(file_parts, path, parent):
-        """Walk a flat list of paths and create a diretcories tree for them."""
+        """Walk a flat list of paths and create a directories tree for them."""
 
         # group multiple paths into groups by first part of path
         grouped = dict()
@@ -275,7 +275,7 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
 
         tree = []
 
-        # now we have them grouped by first path element, we can great a node
+        # now we have them grouped by first path element, we can create a node
         # in the tree for them
         for child, descendants in grouped.items():
             child_path = path / child
