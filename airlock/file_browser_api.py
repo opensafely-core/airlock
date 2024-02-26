@@ -197,8 +197,8 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
             container=workspace,
             relpath=path,
             parent=parent,
-            **is_selected(path, selected_path),
         )
+        set_selected(node, selected_path)
 
         if node._absolute_path().is_dir():
             if path == ROOT_PATH:
@@ -238,8 +238,8 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
         relpath=ROOT_PATH,
         type=PathType.REQUEST,
         parent=None,
-        **is_selected(ROOT_PATH, selected_path),
     )
+    set_selected(root_node, selected_path)
 
     for name, group in release_request.filegroups.items():
         group_node = PathItem(
@@ -248,8 +248,8 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=f"{name} ({len(group.files)} files)",
-            **is_selected(group_path, selected_path),
         )
+        set_selected(group_node, selected_path)
 
         group_node.children = get_filegroup_tree(
             release_request,
@@ -296,8 +296,9 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
                 parent=parent,
                 # actual path on disk, striping the group part
                 filepath=child_path.relative_to(child_path.parts[0]),
-                **is_selected(child_path, selected_path),
             )
+
+            set_selected(node, selected_path)
 
             abspath = node._absolute_path()
             assert abspath.exists()
@@ -323,11 +324,11 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
     return build_filegroup_tree(file_parts, group_path, parent)
 
 
-def is_selected(path, selected_path):
-    return {
-        "selected": path == selected_path,
-        "on_selected_path": path in (selected_path.parents or []),
-    }
+def set_selected(node, selected_path):
+    if node.relpath == selected_path:
+        node.selected = True
+    if node.relpath in (selected_path.parents or []):
+        node.on_selected_path = True
 
 
 def children_sort_key(node):
