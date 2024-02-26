@@ -143,6 +143,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
+    current_request = api.get_current_request(workspace_name, request.user)
+
     return TemplateResponse(
         request,
         "file_browser/index.html",
@@ -156,9 +158,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},
             ),
-            "form": AddFileForm(
-                release_request=api.get_current_request(workspace_name, request.user)
-            ),
+            "current_request": current_request,
+            "form": AddFileForm(release_request=current_request),
             "tree": use_tree_ui(request),
         },
     )

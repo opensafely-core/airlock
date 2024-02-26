@@ -41,6 +41,20 @@ def test_workspace_view(client_with_permission, ui_options):
 
     response = client_with_permission.get("/workspaces/view/workspace/")
     assert "file.txt" in response.rendered_content
+    assert "release-request-button" not in response.rendered_content
+
+
+def test_workspace_view_with_existing_request_for_user(
+    client_with_permission, ui_options
+):
+    user = User.from_session(client_with_permission.session)
+    factories.write_workspace_file("workspace", "file.txt")
+    release_request = factories.create_release_request("workspace", user=user)
+    factories.create_filegroup(
+        release_request, group_name="default_group", filepaths=["file.txt"]
+    )
+    response = client_with_permission.get("/workspaces/view/workspace/")
+    assert "current-request-button" in response.rendered_content
 
 
 def test_workspace_does_not_exist(client_with_permission):

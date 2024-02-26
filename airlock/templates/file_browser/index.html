@@ -89,6 +89,8 @@ div.content {
             {% endif %}
         {% endif %}
         {% #button type="link" href=workspace.get_url variant="success" id="workspace-home-button" %}Workspace Home{% /button %}
+    {% elif current_request %}
+      {% #button variant="success" type="link" href=current_request.get_url id="current-request-button" %}Current release request{% /button %}
     {% endif %}
 </div>
 {% endfragment %}
