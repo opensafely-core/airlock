@@ -118,17 +118,6 @@ def workspace_index(request):
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
-def use_tree_ui(request):
-    """Quick hack to be able to dynamically switch ui options."""
-    tree = request.session.get("tree", settings.TREE)
-    # hack to switch UI dynamically
-    if "tree" in request.GET:  # pragma: nocover
-        tree = request.GET["tree"].lower() == "true"
-
-    request.session["tree"] = tree
-    return tree
-
-
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
@@ -171,7 +160,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             ),
             "current_request": current_request,
             "form": form,
-            "tree": use_tree_ui(request),
         },
     )
 
@@ -268,7 +256,6 @@ def request_view(request, request_id: str, path: str = ""):
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
-        "tree": use_tree_ui(request),
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)

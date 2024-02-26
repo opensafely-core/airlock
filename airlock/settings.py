@@ -247,9 +247,6 @@ MESSAGE_TAGS = {
     messages.ERROR: "alert-danger",
 }
 
-# Temporary UI featureflag
-TREE = True
-
 
 class MissingVariableErrorFilter(logging.Filter):
     """
