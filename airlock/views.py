@@ -153,19 +153,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # check file metadata to allow updating a file if the original has
     # changed.
     form = None
-    if not path_item.is_directory():
-        current_request_files = (
-            {
-                request_file.relpath
-                for filegroup in current_request.filegroups.values()
-                for request_file in filegroup.files
-            }
-            if current_request
-            else set()
-        )
-
-        if path_item.relpath not in current_request_files:
-            form = AddFileForm(release_request=current_request)
+    if current_request is None or path_item.relpath not in current_request.file_set():
+        form = AddFileForm(release_request=current_request)
 
     return TemplateResponse(
         request,
