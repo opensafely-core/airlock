@@ -163,6 +163,7 @@ div.content {
     {% else %}
       {% fragment as add_button %}
         {% if context == "workspace" %}
+          {% if form %}
             {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-modal-button"%}
               Add File to Request
             {% /button %}
@@ -180,6 +181,11 @@ div.content {
                 </form>
                 {% /card %}
             {% /modal %}
+          {% else %}
+            {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
+              Add File to Request
+            {% /button %}
+          {% endif %}
         {% elif is_author %}
           <form action="" method="POST">
             {% csrf_token %}
