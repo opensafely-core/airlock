@@ -143,6 +143,19 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
+    current_request = api.get_current_request(workspace_name, request.user)
+
+    # Only include the AddFileForm if this pathitem is a file that
+    # can be added to a request - i.e. it is a file and it's not
+    # already on the curent request for the user
+    # Currently we can just rely on checking the relpath against
+    # the files on the request. In future we'll likely also need to
+    # check file metadata to allow updating a file if the original has
+    # changed.
+    form = None
+    if current_request is None or path_item.relpath not in current_request.file_set():
+        form = AddFileForm(release_request=current_request)
+
     return TemplateResponse(
         request,
         "file_browser/index.html",
@@ -156,9 +169,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},
             ),
-            "form": AddFileForm(
-                release_request=api.get_current_request(workspace_name, request.user)
-            ),
+            "current_request": current_request,
+            "form": form,
             "tree": use_tree_ui(request),
         },
     )
@@ -175,26 +187,24 @@ def workspace_add_file_to_request(request, workspace_name):
 
     release_request = api.get_current_request(workspace_name, request.user, create=True)
     form = AddFileForm(request.POST, release_request=release_request)
-    if not form.is_valid():
+    if form.is_valid():
+        group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
+        try:
+            api.add_file_to_request(release_request, relpath, request.user, group_name)
+        except api.APIException as err:
+            # This exception is raised if the file has already been added
+            # (to any group on the request)
+            messages.error(request, str(err))
+        else:
+            messages.success(
+                request, f"File has been added to request (file group '{group_name}')"
+            )
+    else:
         for error in form.errors.values():
             messages.error(request, error)
-        return redirect(workspace.get_url(relpath))
 
-    group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
-    try:
-        api.add_file_to_request(release_request, relpath, request.user, group_name)
-    except api.APIException as err:
-        # This exception is raised if the file has already been added
-        # (to any group on the request)
-        messages.error(request, str(err))
-    else:
-        messages.success(
-            request, f"File has been added to request (file group '{group_name}')"
-        )
-
-    # redirect to this just added file
-
-    return redirect(release_request.get_url(group_name / relpath))
+    # Redirect to the file in the workspace
+    return redirect(workspace.get_url(relpath))
 
 
 def request_index(request):

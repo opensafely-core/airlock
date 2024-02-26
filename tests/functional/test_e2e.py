@@ -106,14 +106,20 @@ def test_e2e_release_files(
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
-    # We have been redirected to the release request view for this file
-    url_regex = re.compile(
-        rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)\/my-new-group/subdir\/file.txt"
+    expect(page).to_have_url(
+        f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
-    expect(page).to_have_url(url_regex)
     expect(page.locator("body")).to_contain_text("I am the file content")
-    expect(page.locator("body")).to_contain_text("PENDING")
 
+    # The "Add file to request" button is disabled
+    add_file_button = page.locator("#add-file-modal-button-disabled")
+    expect(add_file_button).to_be_disabled()
+
+    # We now have a "Current release request" button
+    find_and_click(page.locator("#current-request-button"))
+    # Clicking it takes us to the release
+    url_regex = re.compile(rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)/")
+    expect(page).to_have_url(url_regex)
     # get the request ID for the just-created request, for later reference
     request_id = url_regex.match(page.url).groups()[0]
 

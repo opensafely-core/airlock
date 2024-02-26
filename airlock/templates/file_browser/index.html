@@ -89,6 +89,8 @@ div.content {
             {% endif %}
         {% endif %}
         {% #button type="link" href=workspace.get_url variant="success" id="workspace-home-button" %}Workspace Home{% /button %}
+    {% elif current_request %}
+      {% #button variant="success" type="link" href=current_request.get_url id="current-request-button" %}Current release request{% /button %}
     {% endif %}
 </div>
 {% endfragment %}
@@ -161,6 +163,7 @@ div.content {
     {% else %}
       {% fragment as add_button %}
         {% if context == "workspace" %}
+          {% if form %}
             {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-modal-button"%}
               Add File to Request
             {% /button %}
@@ -178,6 +181,11 @@ div.content {
                 </form>
                 {% /card %}
             {% /modal %}
+          {% else %}
+            {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
+              Add File to Request
+            {% /button %}
+          {% endif %}
         {% elif is_author %}
           <form action="" method="POST">
             {% csrf_token %}

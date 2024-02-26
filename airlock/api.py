@@ -170,6 +170,13 @@ class ReleaseRequest:
         # be a destination to copy to.
         return path
 
+    def file_set(self):
+        return {
+            request_file.relpath
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.files
+        }
+
 
 class ProviderAPI:
     class APIException(Exception):
