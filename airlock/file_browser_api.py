@@ -1,6 +1,17 @@
 from dataclasses import dataclass, field
+from enum import Enum
 
 from airlock.api import ROOT_PATH, AirlockContainer, UrlPath
+
+
+class PathType(Enum):
+    """Types of PathItems in a tree."""
+
+    FILE = "file"
+    DIR = "dir"
+    WORKSPACE = "workspace"
+    REQUEST = "request"
+    FILEGROUP = "filegroup"
 
 
 @dataclass
@@ -23,7 +34,7 @@ class PathItem:
     container: AirlockContainer
     relpath: UrlPath
 
-    type: str = None
+    type: PathType = None
     children: list["PathItem"] = field(default_factory=list)
     parent: "PathItem" = None
 
@@ -52,7 +63,7 @@ class PathItem:
 
     def is_directory(self):
         """Does this contain other things?"""
-        return self.type != "file"
+        return self.type != PathType.FILE
 
     def name(self):
         if self.relpath == ROOT_PATH:
@@ -77,7 +88,7 @@ class PathItem:
             return self.parent.children
 
     def contents(self):
-        if self.type == "file":
+        if self.type == PathType.FILE:
             return self._absolute_path().read_text()
 
         raise Exception(
@@ -109,9 +120,9 @@ class PathItem:
         distinguish file/dirs, and maybe even file types, in the UI, in case we
         need to.
         """
-        classes = [self.type]
+        classes = [self.type.name]
 
-        if self.type == "file":
+        if self.type == PathType.FILE:
             classes.append(self.file_type())
 
         if self.selected:
@@ -191,9 +202,9 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
 
         if node._absolute_path().is_dir():
             if path == ROOT_PATH:
-                node.type = "workspace"
+                node.type = PathType.WORKSPACE
             else:
-                node.type = "dir"
+                node.type = PathType.DIR
 
             # recurse and build children nodes
             node.children = [
@@ -205,7 +216,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
             ]
             node.children.sort(key=children_sort_key)
         else:
-            node.type = "file"
+            node.type = PathType.FILE
 
         return node
 
@@ -225,17 +236,16 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     root_node = PathItem(
         container=release_request,
         relpath=ROOT_PATH,
-        type="request",
+        type=PathType.REQUEST,
         parent=None,
         **is_selected(ROOT_PATH, selected_path),
     )
 
     for name, group in release_request.filegroups.items():
-        group_path = UrlPath(name)
         group_node = PathItem(
             container=release_request,
-            relpath=group_path,
-            type="filegroup",
+            relpath=UrlPath(name),
+            type=PathType.FILEGROUP,
             parent=root_node,
             display_text=f"{name} ({len(group.files)} files)",
             **is_selected(group_path, selected_path),
@@ -294,14 +304,14 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
 
             if descendants:
                 assert abspath.is_dir()
-                node.type = "dir"
+                node.type = PathType.DIR
                 # recurse down the tree
                 node.children = build_filegroup_tree(
                     descendants, child_path, parent=node
                 )
             else:
                 assert abspath.is_file()
-                node.type = "file"
+                node.type = PathType.FILE
 
             tree.append(node)
 
@@ -323,4 +333,4 @@ def is_selected(path, selected_path):
 def children_sort_key(node):
     """Sort children first by directory, then files."""
     # this works because True == 1 and False == 0
-    return (node.type == "file", node.name())
+    return (node.type == PathType.FILE, node.name())

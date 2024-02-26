@@ -4,6 +4,7 @@ import pytest
 from django.template.loader import render_to_string
 
 from airlock.file_browser_api import (
+    PathType,
     UrlPath,
     get_request_tree,
     get_workspace_tree,
@@ -50,12 +51,12 @@ def test_get_workspace_tree_general(workspace):
     assert str(tree).strip() == expected.strip()
 
     # types
-    assert tree.type == "workspace"
-    assert tree.get_path("empty_dir").type == "dir"
+    assert tree.type == PathType.WORKSPACE
+    assert tree.get_path("empty_dir").type == PathType.DIR
     assert tree.get_path("empty_dir").children == []
-    assert tree.get_path("some_dir").type == "dir"
-    assert tree.get_path("some_dir/file_a.txt").type == "file"
-    assert tree.get_path("some_dir/file_b.txt").type == "file"
+    assert tree.get_path("some_dir").type == PathType.DIR
+    assert tree.get_path("some_dir/file_a.txt").type == PathType.FILE
+    assert tree.get_path("some_dir/file_b.txt").type == PathType.FILE
 
     # selected
     assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
@@ -92,13 +93,13 @@ def test_get_request_tree_general(release_request):
     assert str(tree).strip() == expected.strip()
 
     # types
-    assert tree.type == "request"
-    assert tree.get_path("group1").type == "filegroup"
-    assert tree.get_path("group1/some_dir").type == "dir"
-    assert tree.get_path("group1/some_dir/file_a.txt").type == "file"
-    assert tree.get_path("group2").type == "filegroup"
-    assert tree.get_path("group2/some_dir").type == "dir"
-    assert tree.get_path("group2/some_dir/file_b.txt").type == "file"
+    assert tree.type == PathType.REQUEST
+    assert tree.get_path("group1").type == PathType.FILEGROUP
+    assert tree.get_path("group1/some_dir").type == PathType.DIR
+    assert tree.get_path("group1/some_dir/file_a.txt").type == PathType.FILE
+    assert tree.get_path("group2").type == PathType.FILEGROUP
+    assert tree.get_path("group2/some_dir").type == PathType.DIR
+    assert tree.get_path("group2/some_dir/file_b.txt").type == PathType.FILE
 
     # selected
     assert tree.get_path("group1/some_dir/file_a.txt") == tree.get_selected()
