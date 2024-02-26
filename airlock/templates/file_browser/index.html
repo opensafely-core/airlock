@@ -133,33 +133,7 @@ div.content {
           {% endif %}
         {% /list_group %}
       {% endif %}
- 
-
-      {% #card_footer no_container=False %}
-      {% if context == "requestasdfadfs" %}
-        <div class="px-4">
-          {% #button variant="primary-outline" type="button" data-modal="viewFileGroups" %}
-            View File Groups
-          {% /button %}
-        </div>
-        {% #modal id="viewFileGroups" %}
-          {% #card container=True title="File Groups for this request" %}
-            {% for group in release_request.filegroups.values %}
-              {{ group.name}}
-              {% #list_group %}
-              {% for file in group.files %}
-                {% #list_group_item %}
-                  {{ file.relpath }}
-                {% /list_group_item %}
-              {% endfor %}
-              {% /list_group %}
-            {% endfor %}
-            {% #button variant="secondary" type="cancel" %}Close{% /button %}
-          {% /card %}
-        {% /modal %}
-        {% endif %}
-      {% /card_footer %}
-  {% /card %}
+    {% /card %}
 
   </div>
 
