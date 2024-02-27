@@ -40,8 +40,8 @@ class PathItem:
 
     # is this the currently selected path?
     selected: bool = False
-    # is this a parent of the currently selected path?
-    on_selected_path: bool = False
+    # should this node be expanded in the tree?
+    expanded: bool = False
 
     # relative filepath on disk. defaults to path, but allows us to customise it.
     filepath: UrlPath = None
@@ -130,10 +130,6 @@ class PathItem:
 
         return " ".join(classes)
 
-    def is_open(self):
-        """Should this node be expanded"""
-        return self.selected or self.on_selected_path
-
     def get_path(self, relpath):
         """Walk the tree and return the PathItem for relpath.
 
@@ -171,7 +167,7 @@ class PathItem:
                 if child.selected:
                     return child
 
-                if child.on_selected_path:
+                if child.expanded:
                     return walk_selected(child)
 
             raise self.PathNotFound("No selected path found")
@@ -182,7 +178,7 @@ class PathItem:
         """Debugging utility to inspect tree."""
 
         def build_string(node, indent):
-            yield f"{indent}{node.name()}{'*' if node.on_selected_path else ''}{'**' if node.selected else ''}"
+            yield f"{indent}{node.name()}{'*' if node.expanded else ''}{'**' if node.selected else ''}"
             for child in node.children:
                 yield from build_string(child, indent + "  ")
 
@@ -193,12 +189,13 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
     """Recursively build a workspace tree from files on disk."""
 
     def build_workspace_tree(path, parent):
+        selected = path == selected_path
         node = PathItem(
             container=workspace,
             relpath=path,
             parent=parent,
+            selected=selected,
         )
-        set_selected(node, selected_path)
 
         if node._absolute_path().is_dir():
             if path == ROOT_PATH:
@@ -215,6 +212,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
                 for child in node._absolute_path().iterdir()
             ]
             node.children.sort(key=children_sort_key)
+            node.expanded = selected or (path in (selected_path.parents or []))
         else:
             node.type = PathType.FILE
 
@@ -238,18 +236,23 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
         relpath=ROOT_PATH,
         type=PathType.REQUEST,
         parent=None,
+        selected=(selected_path == ROOT_PATH),
+        expanded=True,
     )
-    set_selected(root_node, selected_path)
 
     for name, group in release_request.filegroups.items():
+        group_path = UrlPath(name)
+        selected = group_path == selected_path
+        expanded = selected or (group_path in (selected_path.parents or []))
         group_node = PathItem(
             container=release_request,
             relpath=UrlPath(name),
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=f"{name} ({len(group.files)} files)",
+            selected=selected,
+            expanded=selected or expanded,
         )
-        set_selected(group_node, selected_path)
 
         group_node.children = get_filegroup_tree(
             release_request,
@@ -257,6 +260,7 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
             group,
             group_node.relpath,
             parent=group_node,
+            expanded=expanded,
         )
 
         root_node.children.append(group_node)
@@ -264,7 +268,9 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_filegroup_tree(container, selected_path, group_data, group_path, parent):
+def get_filegroup_tree(
+    container, selected_path, group_data, group_path, parent, expanded
+):
     """Get the tree for a filegroup's files.
 
     This is more than just a walk the disk. The FileGroup.files is a flat list of
@@ -290,15 +296,15 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
         for child, descendants in grouped.items():
             child_path = path / child
 
+            selected = child_path == selected_path
             node = PathItem(
                 container=container,
                 relpath=child_path,
                 parent=parent,
                 # actual path on disk, striping the group part
                 filepath=child_path.relative_to(child_path.parts[0]),
+                selected=selected,
             )
-
-            set_selected(node, selected_path)
 
             abspath = node._absolute_path()
             assert abspath.exists()
@@ -310,6 +316,8 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
                 node.children = build_filegroup_tree(
                     descendants, child_path, parent=node
                 )
+                node.expanded = expanded
+
             else:
                 assert abspath.is_file()
                 node.type = PathType.FILE
@@ -322,13 +330,6 @@ def get_filegroup_tree(container, selected_path, group_data, group_path, parent)
 
     file_parts = [f.relpath.parts for f in group_data.files]
     return build_filegroup_tree(file_parts, group_path, parent)
-
-
-def set_selected(node, selected_path):
-    if node.relpath == selected_path:
-        node.selected = True
-    if node.relpath in (selected_path.parents or []):
-        node.on_selected_path = True
 
 
 def children_sort_key(node):

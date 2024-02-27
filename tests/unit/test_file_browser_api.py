@@ -201,24 +201,31 @@ def test_workspace_tree_selection_root(workspace):
     assert tree.get_selected() == tree
 
 
-def test_workspace_tree_selection_path(workspace):
+def test_workspace_tree_selection_path_file(workspace):
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
     selected_item = tree.get_path(selected_path)
     assert selected_item.selected
-    assert not selected_item.on_selected_path
-    assert selected_item.is_open()
+    assert not selected_item.expanded
 
     parent_item = tree.get_path("some_dir")
     assert not parent_item.selected
-    assert parent_item.on_selected_path
-    assert parent_item.is_open()
+    assert parent_item.expanded
 
     other_item = tree.get_path("some_dir/file_b.txt")
     assert not other_item.selected
-    assert not other_item.on_selected_path
-    assert not other_item.is_open()
+    assert not other_item.expanded
+
+
+def test_workspace_tree_selection_path_dir(workspace):
+    selected_path = UrlPath("some_dir")
+    tree = get_workspace_tree(workspace, selected_path)
+
+    selected_item = tree.get_path(selected_path)
+    assert selected_item.selected
+    # selected dir *is* expanded
+    assert selected_item.expanded
 
 
 def test_workspace_tree_selection_bad_path(workspace):
@@ -242,18 +249,15 @@ def test_request_tree_selection_path(release_request):
 
     selected_item = tree.get_path(selected_path)
     assert selected_item.selected
-    assert not selected_item.on_selected_path
-    assert selected_item.is_open()
+    assert not selected_item.expanded
 
     parent_item = tree.get_path("group1/some_dir")
     assert not parent_item.selected
-    assert parent_item.on_selected_path
-    assert parent_item.is_open()
+    assert parent_item.expanded
 
     other_item = tree.get_path("group2/some_dir/file_b.txt")
     assert not other_item.selected
-    assert not other_item.on_selected_path
-    assert not other_item.is_open()
+    assert not other_item.expanded
 
 
 @pytest.mark.django_db
