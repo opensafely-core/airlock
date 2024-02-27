@@ -59,12 +59,3 @@ def release_files_stubber(responses):
         return responses
 
     return release_files
-
-
-# temporary fixture to test both UI options until we decide on one.
-@pytest.fixture(params=["tree", "dir"])
-def ui_options(request, settings):
-    if request.param == "tree":
-        settings.TREE = True
-    else:
-        settings.TREE = False

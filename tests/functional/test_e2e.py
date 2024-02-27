@@ -65,9 +65,7 @@ def login_as(live_server, page, username):
     expect(page.locator("body")).to_contain_text(f"Logged in as: {username}")
 
 
-def test_e2e_release_files(
-    page, live_server, dev_users, ui_options, release_files_stubber
-):
+def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     """
     Test full Airlock process to create, submit and release files
     """
@@ -179,7 +177,7 @@ def test_e2e_release_files(
     expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
 
 
-def test_e2e_reject_request(page, live_server, dev_users, ui_options):
+def test_e2e_reject_request(page, live_server, dev_users):
     """
     Test output-checker rejects a release request
     """

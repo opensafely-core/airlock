@@ -36,7 +36,7 @@ def client_with_permission(client_with_user):
     yield client_with_user(output_checker)
 
 
-def test_workspace_view(client_with_permission, ui_options):
+def test_workspace_view(client_with_permission):
     factories.write_workspace_file("workspace", "file.txt")
 
     response = client_with_permission.get("/workspaces/view/workspace/")
@@ -45,7 +45,7 @@ def test_workspace_view(client_with_permission, ui_options):
 
 
 def test_workspace_view_with_existing_request_for_user(
-    client_with_permission, ui_options
+    client_with_permission,
 ):
     user = User.from_session(client_with_permission.session)
     factories.write_workspace_file("workspace", "file.txt")
@@ -62,21 +62,21 @@ def test_workspace_does_not_exist(client_with_permission):
     assert response.status_code == 404
 
 
-def test_workspace_view_with_directory(client_with_permission, ui_options):
+def test_workspace_view_with_directory(client_with_permission):
     factories.write_workspace_file("workspace", "some_dir/file.txt")
     response = client_with_permission.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 200
     assert "file.txt" in response.rendered_content
 
 
-def test_workspace_view_with_file(client_with_permission, ui_options):
+def test_workspace_view_with_file(client_with_permission):
     factories.write_workspace_file("workspace", "file.txt", "foobar")
     response = client_with_permission.get("/workspaces/view/workspace/file.txt")
     assert response.status_code == 200
     assert "foobar" in response.rendered_content
 
 
-def test_workspace_view_with_html_file(client_with_permission, ui_options):
+def test_workspace_view_with_html_file(client_with_permission):
     factories.write_workspace_file(
         "workspace", "file.html", "<html><body>foobar</body></html>"
     )
@@ -303,7 +303,7 @@ def test_request_index_no_user(client):
     assert response.status_code == 302
 
 
-def test_request_view_index(client_with_permission, ui_options):
+def test_request_view_index(client_with_permission):
     release_request = factories.create_release_request(
         "workspace", client_with_permission.user
     )
@@ -322,7 +322,7 @@ def test_request_id_does_not_exist(client_with_permission):
     assert response.status_code == 404
 
 
-def test_request_view_with_directory(client_with_permission, ui_options):
+def test_request_view_with_directory(client_with_permission):
     release_request = factories.create_release_request("workspace")
     factories.write_request_file(release_request, "group", "some_dir/file.txt")
     response = client_with_permission.get(
@@ -332,7 +332,7 @@ def test_request_view_with_directory(client_with_permission, ui_options):
     assert "file.txt" in response.rendered_content
 
 
-def test_request_view_with_file(client_with_permission, ui_options):
+def test_request_view_with_file(client_with_permission):
     release_request = factories.create_release_request("workspace")
     factories.write_request_file(release_request, "group", "file.txt", "foobar")
     response = client_with_permission.get(
@@ -342,7 +342,7 @@ def test_request_view_with_file(client_with_permission, ui_options):
     assert "group" in response.rendered_content
 
 
-def test_request_view_with_submitted_request(client_with_permission, ui_options):
+def test_request_view_with_submitted_request(client_with_permission):
     release_request = factories.create_release_request(
         "workspace", status=Status.SUBMITTED
     )
@@ -353,7 +353,7 @@ def test_request_view_with_submitted_request(client_with_permission, ui_options)
     assert "Release Files" in response.rendered_content
 
 
-def test_request_view_with_authored_request_file(client_with_permission, ui_options):
+def test_request_view_with_authored_request_file(client_with_permission):
     release_request = factories.create_release_request(
         "workspace",
         user=User.from_session(client_with_permission.session),
