@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% load django_vite %}
+{% load static %}
 
 {% block extra_styles %}
 <style>
@@ -21,7 +22,7 @@ ul.tree {
   cursor: pointer;
 }
 
-summary:has(>a.selected), li:has(>a.selected) {
+.tree summary:has(>a.selected), .tree li:has(>a.selected) {
     background-color: lightblue;
 }
 
@@ -30,36 +31,31 @@ summary:has(>a.selected), li:has(>a.selected) {
     cursor: pointer;
 }
 
-
 .tree .filegroup {
     text-transform: uppercase;
 }
 
-summary:has(>a.filegroup) {
+.tree summary:has(>a.filegroup) {
     background-color: lightgrey;
 }
 
-summary { 
-    padding-left: 0.25rem; 
+.tree a.dir {
+    background-image: url("{% static "folder.png" %}");
+    background-repeat: no-repeat;
+    background-size: 1.4rem;
+    background-position: left 0 top 0;
+    padding-left: 1.3rem;
+}
+.tree summary {
+    padding-left: 0.25rem;
 }
 
-div.content {
-    padding: 0.5rem;
-}
-/* ths attempt at a nice selected highlight doesn't quite work
-.tree li {
-  position: relative;
-}
 
-&::before {
-  background: rgba(0, 255, 0, 0.1);
-  content: "";
-  position: absolute;
-  left: -100vw;
-  height: 100%;
-  width: 100vw;
+.content {
+    width:100%;
+    max-width: 100%;
+    overflow: scroll;
 }
-*/
 
 </style>
 {% endblock extra_styles %}
@@ -173,7 +169,7 @@ div.content {
         {% endif %}
       {% endfragment %}
 
-      {% #card title=path_item.name custom_button=add_button %}
+      {% #card title=path_item.name container=True custom_button=add_button %}
 
         <div class="content">
             {% if path_item.suffix == '.html' %}
@@ -186,9 +182,7 @@ div.content {
             >
             </iframe>
             {% else %}
-            {% #code %}
             <pre>{{ path_item.contents }}</pre>
-            {% /code %}
             {% endif %}
         </div>
       {% /card %}
