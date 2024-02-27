@@ -141,6 +141,7 @@ test *ARGS: devenv
     $BIN/python -m pytest \
       --cov=airlock \
       --cov=assets \
+      --cov=local_db \
       --cov=tests \
       --cov=old_api \
       --cov-report=html \
