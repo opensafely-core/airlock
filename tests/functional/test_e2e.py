@@ -121,8 +121,24 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # get the request ID for the just-created request, for later reference
     request_id = url_regex.match(page.url).groups()[0]
 
-    # TODO: View file in group.
     # Add this when the view-by-groups is ready.
+    # Find the filegroup in the tree
+    # Note: `get_by_role`` gets all links on the page; `locator` searches
+    # for elements with the filegroup class; the `scope` pseudoselector
+    # lets us search on the elements themselves as well as their children
+    filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
+    expect(filegroup_link).to_be_visible()
+    expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
+
+    # In the initial request view, the tree is collapsed
+    file_link = page.get_by_role("link").locator(".file:scope")
+    assert file_link.all() == []
+
+    # Click to open the filegroup tree
+    filegroup_link.click()
+    # Tree opens fully expanded, so now the file (in its subdir) is visible
+    find_and_click(file_link)
+    expect(page.locator("body")).to_contain_text("I am the file content")
 
     # Submit request
     submit_button = page.locator("#submit-for-review-button")
