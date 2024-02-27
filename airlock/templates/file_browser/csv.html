@@ -1,0 +1,25 @@
+{% load airlocktags %}
+{% as_csv_data contents as csv_data %}
+<div class="inline-block min-w-full align-middle max-w-full">
+    {% #table %}
+      {% #table_head class="bg-slate-200" id="csvTable" %}
+        {% #table_row %}
+          {% for header in csv_data.headers %}
+            {% #table_header %}{{ header }}{% /table_header %}
+          {% endfor %}
+        {% /table_row %}
+      {% /table_head %}
+
+      {% #table_body %}
+        {% for row in csv_data.rows %}
+            {% #table_row class="even:bg-slate-50" %}
+            {% for cell in row %}
+                {% #table_cell %}
+                    {{ cell }}
+                {% /table_cell %}
+            {% endfor %}
+            {% /table_row %}
+        {% endfor %}
+      {% /table_body %}
+    {% /table %}
+  </div>
