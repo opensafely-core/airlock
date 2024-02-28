@@ -84,6 +84,13 @@ def test_workspace_view_with_html_file(client_with_permission):
     assert "foobar" in response.rendered_content
 
 
+def test_workspace_view_with_csv_file(client_with_permission):
+    factories.write_workspace_file("workspace", "file.csv", "header1,header2\nFoo,Bar")
+    response = client_with_permission.get("/workspaces/view/workspace/file.csv")
+    for content in ["<table", "Foo", "Bar"]:
+        assert content in response.rendered_content
+
+
 def test_workspace_view_with_404(client_with_permission):
     factories.create_workspace("workspace")
     response = client_with_permission.get("/workspaces/view/workspace/no_such_file.txt")

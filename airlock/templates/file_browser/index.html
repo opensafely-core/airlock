@@ -54,6 +54,7 @@ ul.tree {
 .content {
     width:100%;
     max-width: 100%;
+    height: 75vh;
     overflow: scroll;
 }
 
@@ -181,6 +182,8 @@ ul.tree {
                 style="width: 100%;"
             >
             </iframe>
+            {% elif path_item.suffix == '.csv' %}
+              {% include "file_browser/csv.html" with contents=path_item.contents %}
             {% else %}
             <pre>{{ path_item.contents }}</pre>
             {% endif %}
