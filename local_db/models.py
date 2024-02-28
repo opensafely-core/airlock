@@ -20,7 +20,7 @@ class StatusField(models.TextField):
     choices = [(i.value, i.name) for i in Status]
 
     def from_db_value(self, value, expression, connection):
-        if value is None:
+        if value is None:  # pragma: no cover
             return value
 
         return Status[value]
