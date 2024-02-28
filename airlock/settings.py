@@ -118,6 +118,7 @@ TEMPLATES = [
             "builtins": [
                 "slippers.templatetags.slippers",  # required for assets library
             ],
+            "debug": DEBUG,  # required for template coverage
         },
     },
 ]
