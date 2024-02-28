@@ -38,3 +38,6 @@ template_extensions = "html"
 exclude_blocks = [
     "\\/\\w+"
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"airlock/views/__init__.py" = ["F401"]
