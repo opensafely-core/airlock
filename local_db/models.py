@@ -31,8 +31,6 @@ class StatusField(models.TextField):
         except Exception as exc:
             raise exc.__class__("value should be instance of Status") from exc
 
-        return super().get_prep_value(value)
-
 
 class RequestMetadata(models.Model):
     """A request for a set of files to be reviewed and potentially released."""
