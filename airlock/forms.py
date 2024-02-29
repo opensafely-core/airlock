@@ -1,6 +1,11 @@
 from django import forms
 
 
+class TokenLoginForm(forms.Form):
+    user = forms.CharField()
+    token = forms.CharField()
+
+
 class AddFileForm(forms.Form):
     filegroup = forms.ChoiceField(required=False)
     new_filegroup = forms.CharField(required=False)

@@ -121,7 +121,6 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # get the request ID for the just-created request, for later reference
     request_id = url_regex.match(page.url).groups()[0]
 
-    # Add this when the view-by-groups is ready.
     # Find the filegroup in the tree
     # Note: `get_by_role`` gets all links on the page; `locator` searches
     # for elements with the filegroup class; the `scope` pseudoselector
