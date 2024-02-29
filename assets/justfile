@@ -19,7 +19,7 @@ update:
     just -d $tmpdir --justfile $tmpdir/justfile assets-install
     just -d $tmpdir --justfile $tmpdir/justfile assets-build
     cp -r $tmpdir/templates/_components/* ./templates/_components/
-    cp $tmpdir/jobserver/views/components.py ./views.py
+    cp $tmpdir/jobserver/views/components.py ./base_views.py
     mkdir -p dist
     cp -r $tmpdir/assets/dist/* ./dist/
     cp -r $tmpdir/assets/dist/.vite ./dist/
