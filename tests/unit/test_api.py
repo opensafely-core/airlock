@@ -124,6 +124,47 @@ def test_provider_get_requests_authored_by_user(
     assert set(r.id for r in api.get_requests_authored_by_user(user)) == set(expected)
 
 
+@pytest.mark.parametrize(
+    "output_checker, expected",
+    [
+        # A non-output checker never sees outstanding requests
+        (False, []),
+        # An output checker only sees outstanding requests that
+        # they did not author
+        (True, ["r1"]),
+    ],
+)
+def test_provider_get_outstanding_requests_for_review(output_checker, expected, api):
+    user = User(1, "test", ["workspace"], output_checker)
+    other_user = User(1, "other", ["workspace"], False)
+    # request created by another user, status submitted
+    factories.create_release_request(
+        "workspace", other_user, id="r1", status=Status.SUBMITTED
+    )
+
+    # requests not visible to output checker
+    # status submitted, but authored by output checker
+    factories.create_release_request(
+        "workspace", user, id="r2", status=Status.SUBMITTED
+    )
+    # requests authored by other users, status other than pending
+    for i, status in enumerate(
+        [
+            Status.PENDING,
+            Status.WITHDRAWN,
+            Status.APPROVED,
+            Status.REJECTED,
+            Status.RELEASED,
+        ]
+    ):
+        ws = f"workspace{i}"
+        factories.create_release_request(ws, User(1, f"test_{i}", [ws]), status=status)
+
+    assert set(r.id for r in api.get_outstanding_requests_for_review(user)) == set(
+        expected
+    )
+
+
 def test_provider_get_current_request_for_user(api):
     workspace = factories.create_workspace("workspace")
     user = User(1, "testuser", ["workspace"], False)
@@ -274,6 +315,15 @@ def test_add_file_to_request_states(status, success, api):
         with pytest.raises(api.RequestPermissionDenied):
             api.add_file_to_request(release_request, path, author)
         assert not release_request.abspath(path).exists()
+
+
+def test_request_release_invalid_state():
+    factories.create_workspace("workspace")
+    with pytest.raises(AttributeError):
+        factories.create_release_request(
+            "workspace",
+            status="unknown",
+        )
 
 
 def setup_empty_release_request():

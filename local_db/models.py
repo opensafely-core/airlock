@@ -20,7 +20,7 @@ class StatusField(models.TextField):
     choices = [(i.value, i.name) for i in Status]
 
     def from_db_value(self, value, expression, connection):
-        if value is None:
+        if value is None:  # pragma: no cover
             return value
 
         return Status[value]
@@ -30,8 +30,6 @@ class StatusField(models.TextField):
             return value.name
         except Exception as exc:
             raise exc.__class__("value should be instance of Status") from exc
-
-        return super().get_prep_value(value)
 
 
 class RequestMetadata(models.Model):
