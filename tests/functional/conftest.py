@@ -16,6 +16,10 @@ def set_env():
 
 @pytest.fixture(scope="session", autouse=True)
 def playwright_install(request):
+    if os.environ.get("PLAYWRIGHT_BROWSER_EXECUTABLE_PATH"):  # pragma: no cover
+        # No need to install browsers if we're using a custom
+        # executable path
+        return
     # As this can potentially take a long time when it's first run (and as it is
     # subsequently a silent no-op) we disable output capturing so that progress gets
     # displayed to the user

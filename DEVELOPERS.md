@@ -117,7 +117,10 @@ Additional arguments passed to `just test` are passed on to pytest. For example,
 run all the tests _except_ the functional tests, run `just test -k 'not functional'`,
 or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`.
 
-### Debugging functional tests
+
+### Functional tests
+
+#### Debugging
 
 Functional tests run headless by default. To see what's going on, they
 can be run in headed mode. The follwoing command will run just the
@@ -128,6 +131,21 @@ useful.
 ```
 just test -k functional --headed --slowmo 500
 ```
+
+#### Browser configuration
+
+By default, the functional tests run with the latest chromium browser only (the
+Playwright default). In order to test older/different browser version, you can
+pass an environment variable specifying a path to browser executable. E.g. to
+run with the system chrome at /usr/bin/google-chrome:
+
+```
+PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable just test -k functional
+```
+
+(To verify the custom browser executable, run with `-s` to print an info message to
+the console, or with `--headed` for headed mode.)
+
 
 # Local job-server for integration.
 
