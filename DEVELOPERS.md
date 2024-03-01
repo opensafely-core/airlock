@@ -80,6 +80,24 @@ activating a virtual environment and running something like:
 set -a; source .env; set +a
 ```
 
+## Assets
+
+The asset build tooling and component library is currently extracted 
+from job-server for use in airlock.
+
+We also add the components browser view at the /ui-components. This acts
+as a test to see everything works, and a helpful builtin reference for
+using the slippers components.
+
+To update the upstream assets, first remove any existing built assets:
+```bash
+just assets/clean
+```
+And then update with the latest upstream assets:
+```bash
+just assets/update
+```
+
 ## Testing
 
 ### Test categories

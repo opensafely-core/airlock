@@ -1,3 +1,10 @@
+[tool.ruff]
+# Exclude upstream assets files from jobserver
+exclude = [
+  "assets/templates/*",
+  "assets/base_views.py"
+]
+
 [tool.ruff.lint]
 # See: https://docs.astral.sh/ruff/rules/
 extend-select = [
