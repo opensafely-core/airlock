@@ -139,10 +139,7 @@ ul.tree {
       {% fragment as add_button %}
         {% if context == "workspace" %}
           {% if form %}
-            {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-modal-button"%}
-              Add File to Request
-            {% /button %}
-            {% #modal id="addRequestFile" %}
+            {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
               {% #card container=True title="Add a file" %}
                 <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
                   {% csrf_token %}
@@ -197,7 +194,3 @@ ul.tree {
 </div>
 
 {% endblock full_width_content %}
-
-{% block extra_js %}
-  {% vite_asset "templates/_components/modal/modal.js" %}
-{% endblock %}
