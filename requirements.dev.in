@@ -2,6 +2,8 @@
 # are compiled separately
 --constraint requirements.prod.txt
 
+django-debug-toolbar
+django-debug-toolbar-template-profiler
 ruff
 pip-tools
 pytest

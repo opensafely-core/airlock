@@ -125,6 +125,13 @@ functional tests, in headed mode, slowed down by 500ms. See the
 [playwright docs](https://playwright.dev/python/docs/test-runners#cli-arguments) for additional cli arguments that may be
 useful.
 
+### Django Debug Toolbar
+
+We include DDT as a dev dependency, as it is useful for inspecting django
+specific things.  However, it is not enabled by default.  It is only enabled if
+both `DJANGO_DEBUG` and `DJANGO_DEBUG_TOOLBAR` env vars are set to `"True"`.
+
+
 ```
 just test -k functional --headed --slowmo 500
 ```
