@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -12,7 +12,7 @@ from airlock.api import Status
 from airlock.file_browser_api import get_request_tree
 from local_db.api import LocalDBProvider
 
-from .helpers import validate_release_request
+from .helpers import serve_file, validate_release_request
 
 
 api = LocalDBProvider()
@@ -82,6 +82,21 @@ def request_view(request, request_id: str, path: str = ""):
     }
 
     return TemplateResponse(request, "file_browser/index.html", context)
+
+
+@require_http_methods(["GET"])
+def request_contents(request, request_id: str, path: str):
+    release_request = validate_release_request(request.user, request_id)
+
+    try:
+        abspath = release_request.abspath(path)
+    except api.FileNotFound:
+        raise Http404()
+
+    if not abspath.is_file():
+        return HttpResponseBadRequest()
+
+    return serve_file(abspath)
 
 
 @require_http_methods(["POST"])

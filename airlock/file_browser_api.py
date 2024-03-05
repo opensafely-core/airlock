@@ -47,6 +47,18 @@ class PathItem:
     # but this allow it to be overridden.
     display_text: str = None
 
+    DISPLAY_TYPES = {
+        "html": "iframe",
+        "jpeg": "image",
+        "jpg": "image",
+        "png": "image",
+        "svg": "image",
+        "csv": "table",
+        "tsv": "table",
+        "txt": "preformatted",
+        "log": "preformatted",
+    }
+
     def __post_init__(self):
         # ensure is UrlPath
         self.relpath = UrlPath(self.relpath)
@@ -74,6 +86,11 @@ class PathItem:
         suffix = "/" if self.is_directory() else ""
         return self.container.get_url(f"{self.relpath}{suffix}")
 
+    def contents_url(self):
+        if self.type != PathType.FILE:
+            raise Exception(f"contents_url called on non-file path {self.relpath}")
+        return self.container.get_contents_url(f"{self.relpath}")
+
     def siblings(self):
         if not self.relpath.parents:
             return []
@@ -93,6 +110,9 @@ class PathItem:
 
     def file_type(self):
         return self.suffix().lstrip(".")
+
+    def display_type(self):
+        return self.DISPLAY_TYPES.get(self.file_type(), "preformatted")
 
     def breadcrumbs(self):
         item = self

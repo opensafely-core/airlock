@@ -55,6 +55,9 @@
     .content {
       width:100%;
       max-width: 100%;
+    }
+
+    .content-scroller {
       height: 75vh;
       overflow: scroll;
     }
@@ -62,6 +65,7 @@
     .datatable thead {
       position: sticky;
       top: 0;
+      text-align: left;
     }
 
 
@@ -178,19 +182,27 @@
           {% #card title=path_item.name container=True custom_button=add_button %}
 
             <div class="content">
-              {% if path_item.suffix == '.html' %}
+              {% if path_item.display_type == "iframe" %}
                 <iframe
-                  srcdoc="{{ path_item.contents }}"
+                  src="{{ path_item.contents_url }}"
                   title="{{ path_item.relpath }}"
                   frameborder=0
                   height=1000
                   style="width: 100%;"
                 >
                 </iframe>
-              {% elif path_item.suffix == '.csv' %}
-                {% include "file_browser/csv.html" with contents=path_item.contents %}
+              {% elif path_item.display_type == "image" %}
+                <div class="content-scroller">
+                  <img src="{{ path_item.contents_url }}">
+                </div>
+              {% elif path_item.display_type == "table" %}
+                <div class="content-scroller">
+                  {% include "file_browser/csv.html" with contents=path_item.contents %}
+                </div>
               {% else %}
-            <pre>{{ path_item.contents }}</pre>
+                <div class="content-scroller">
+                <pre>{{ path_item.contents }}</pre>
+                </div>
               {% endif %}
             </div>
           {% /card %}
@@ -208,19 +220,19 @@
   {% django_htmx_script %}
 
   <script type="text/javascript">
-      // keep the selected class up to date in the tree on the client side
+    // keep the selected class up to date in the tree on the client side
     function setTreeSelection(target, event) {
-          // target here is the hx-get link that has been clicked on
+      // target here is the hx-get link that has been clicked on
 
-          // remove class from currently selected node
+      // remove class from currently selected node
       document.querySelector('#tree .selected')?.classList.remove('selected');
 
-          // set current selected
+      // set current selected
       target.classList.add('selected');
-          // ensure parent details container is open, which means clicking on a directory will open containers.
+      // ensure parent details container is open, which means clicking on a directory will open containers.
       target.closest("details").open = true;
 
-          // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
+      // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
       if (target.classList.contains("filegroup")) {
         target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
       }

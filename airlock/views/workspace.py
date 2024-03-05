@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -10,7 +10,7 @@ from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 from local_db.api import LocalDBProvider
 
-from .helpers import validate_workspace
+from .helpers import serve_file, validate_workspace
 
 
 api = LocalDBProvider()
@@ -65,6 +65,21 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "form": form,
         },
     )
+
+
+@require_http_methods(["GET"])
+def workspace_contents(request, workspace_name: str, path: str):
+    workspace = validate_workspace(request.user, workspace_name)
+
+    try:
+        abspath = workspace.abspath(path)
+    except api.FileNotFound:
+        raise Http404()
+
+    if not abspath.is_file():
+        return HttpResponseBadRequest()
+
+    return serve_file(abspath)
 
 
 @require_http_methods(["POST"])

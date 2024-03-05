@@ -44,6 +44,11 @@ urlpatterns = [
         name="workspace_view",
     ),
     path(
+        "workspaces/content/<str:workspace_name>/<path:path>",
+        airlock.views.workspace_contents,
+        name="workspace_contents",
+    ),
+    path(
         "workspaces/add-file-to-request/<str:workspace_name>",
         airlock.views.workspace_add_file_to_request,
         name="workspace_add_file",
@@ -64,6 +69,11 @@ urlpatterns = [
         "requests/view/<str:request_id>/<path:path>",
         airlock.views.request_view,
         name="request_view",
+    ),
+    path(
+        "requests/content/<str:request_id>/<path:path>",
+        airlock.views.request_contents,
+        name="request_contents",
     ),
     path(
         "requests/release/<str:request_id>",

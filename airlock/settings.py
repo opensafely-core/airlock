@@ -225,6 +225,8 @@ STATICFILES_DIRS = [
 # Changing from the default allows us to share localhost port in developement
 SESSION_COOKIE_NAME = "airlock-sessionid"
 
+# Enable frames
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Serve files from static dirs directly. This removes the need to run collectstatic
 # https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_USE_FINDERS

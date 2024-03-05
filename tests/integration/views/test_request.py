@@ -123,6 +123,34 @@ def test_request_view_redirects_to_file(client_with_permission):
     )
 
 
+def test_request_contents_file(client_with_permission):
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "file.txt", contents="test"
+    )
+    response = client_with_permission.get("/requests/content/id/default/file.txt")
+    assert response.status_code == 200
+    assert list(response.streaming_content) == [b"test"]
+
+
+def test_request_contents_dir(client_with_permission):
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "foo/file.txt", contents="test"
+    )
+    response = client_with_permission.get("/requests/content/id/default/foo")
+    assert response.status_code == 400
+
+
+def test_request_contents_not_exists(client_with_permission):
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "foo/file.txt", contents="test"
+    )
+    response = client_with_permission.get("/requests/content/id/default/notexists.txt")
+    assert response.status_code == 404
+
+
 def test_request_index_user_permitted_requests(client_with_user):
     permitted_client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(permitted_client.session)
