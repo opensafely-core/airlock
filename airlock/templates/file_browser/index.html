@@ -208,19 +208,19 @@
   {% django_htmx_script %}
 
   <script type="text/javascript">
-      // keep the selected class up to date in the tree on the client side
+    // keep the selected class up to date in the tree on the client side
     function setTreeSelection(target, event) {
-          // target here is the hx-get link that has been clicked on
+      // target here is the hx-get link that has been clicked on
 
-          // remove class from currently selected node
+      // remove class from currently selected node
       document.querySelector('#tree .selected')?.classList.remove('selected');
 
-          // set current selected
+      // set current selected
       target.classList.add('selected');
-          // ensure parent details container is open, which means clicking on a directory will open containers.
+      // ensure parent details container is open, which means clicking on a directory will open containers.
       target.closest("details").open = true;
 
-          // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
+      // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
       if (target.classList.contains("filegroup")) {
         target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
       }
