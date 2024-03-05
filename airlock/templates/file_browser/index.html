@@ -5,201 +5,201 @@
 {% load django_htmx %}
 
 {% block extra_styles %}
-<style>
+  <style>
 
 /* tree styles */
-ul.tree {
-  list-style: none;
+    ul.tree {
+      list-style: none;
 
-  details ul {
-    border-left: 1px dotted grey;
-    padding-left: 0.75rem;
-    margin-left: 0.5rem;
-  }
-}
-
-
-.tree summary {
-  cursor: pointer;
-}
-
-.tree summary:has(>a.selected), .tree li:has(>a.selected) {
-    background-color: lightblue;
-}
-
-.tree .selected {
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.tree .filegroup {
-    text-transform: uppercase;
-}
-
-.tree summary:has(>a.filegroup) {
-    background-color: lightgrey;
-}
-
-.tree a.dir {
-    background-image: url("{% static "folder.png" %}");
-    background-repeat: no-repeat;
-    background-size: 1.4rem;
-    background-position: left 0 top 0;
-    padding-left: 1.3rem;
-}
-.tree summary {
-    padding-left: 0.25rem;
-}
+      details ul {
+        border-left: 1px dotted grey;
+        padding-left: 0.75rem;
+        margin-left: 0.5rem;
+      }
+    }
 
 
-.content {
-    width:100%;
-    max-width: 100%;
-    height: 75vh;
-    overflow: scroll;
-}
+    .tree summary {
+      cursor: pointer;
+    }
 
-.datatable thead {
-  position: sticky;
-  top: 0;
-}
+    .tree summary:has(>a.selected), .tree li:has(>a.selected) {
+      background-color: lightblue;
+    }
+
+    .tree .selected {
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .tree .filegroup {
+      text-transform: uppercase;
+    }
+
+    .tree summary:has(>a.filegroup) {
+      background-color: lightgrey;
+    }
+
+    .tree a.dir {
+      background-image: url("{% static "folder.png" %}");
+      background-repeat: no-repeat;
+      background-size: 1.4rem;
+      background-position: left 0 top 0;
+      padding-left: 1.3rem;
+    }
+    .tree summary {
+      padding-left: 0.25rem;
+    }
 
 
-</style>
+    .content {
+      width:100%;
+      max-width: 100%;
+      height: 75vh;
+      overflow: scroll;
+    }
+
+    .datatable thead {
+      position: sticky;
+      top: 0;
+    }
+
+
+  </style>
 {% endblock extra_styles %}
 
 {% block full_width_content %}
 
-{% fragment as action_button %}
-<div class="flex items-center gap-2">
-    {% if context == "request" %}
+  {% fragment as action_button %}
+    <div class="flex items-center gap-2">
+      {% if context == "request" %}
         {% if is_author %}
-            {% if release_request.status.name == "PENDING" %}
+          {% if release_request.status.name == "PENDING" %}
             <form action="{{ request_submit_url }}" method="POST">
-                {% csrf_token %}
-                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button" id="submit-for-review-button" %}Submit For Review{% /button %}
+              {% csrf_token %}
+              {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button" id="submit-for-review-button" %}Submit For Review{% /button %}
             </form>
-            {% endif %}
+          {% endif %}
         {% elif is_output_checker %}
-            {% if release_request.status.name == "SUBMITTED" %}
+          {% if release_request.status.name == "SUBMITTED" %}
             <form action="{{ request_reject_url }}" method="POST">
-                {% csrf_token %}
-                {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button" id="reject-request-button" %}Reject Request{% /button %}
+              {% csrf_token %}
+              {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button" id="reject-request-button" %}Reject Request{% /button %}
             </form>
             <form action="{{ release_files_url }}" method="POST">
-                {% csrf_token %}
-                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
+              {% csrf_token %}
+              {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
             </form>
-            {% endif %}
+          {% endif %}
         {% endif %}
         {% #button type="link" href=workspace.get_url variant="success" id="workspace-home-button" %}Workspace Home{% /button %}
-    {% elif current_request %}
-      {% #button variant="success" type="link" href=current_request.get_url id="current-request-button" %}Current release request{% /button %}
+      {% elif current_request %}
+        {% #button variant="success" type="link" href=current_request.get_url id="current-request-button" %}Current release request{% /button %}
+      {% endif %}
+    </div>
+  {% endfragment %}
+
+  {% #card title=title custom_button=action_button %}
+    {% if context == "request" %}
+      {% #description_item title="Status:" %}{{ release_request.status.name }}{% /description_item %}
     {% endif %}
-</div>
-{% endfragment %}
+  {% /card %}
 
-{% #card title=title custom_button=action_button %}  
-{% if context == "request" %}
-{% #description_item title="Status:" %}{{ release_request.status.name }}{% /description_item %}
-{% endif %}
-{% /card %}
-
-{% #breadcrumbs %}
+  {% #breadcrumbs %}
     {% for crumb in path_item.breadcrumbs %}
-        {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
+      {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
     {% endfor %}
-{% /breadcrumbs %}
+  {% /breadcrumbs %}
 
-<div class="flex flex-row">
+  <div class="flex flex-row">
 
-  <div style="flex-basis: 25%">
-    {% #card %}
-    <ul id="tree" class="tree root" hx-target="#selected-contents" hx-select="#selected-contents" hx-swap="outerHTML" hx-push-url="true"> 
-      {% include "file_browser/tree.html" with path=root %}
-      </ul>
-    {% /card %}
-  </div>
-
-  <div style="flex-basis: 75%; max-width: 75%">
-  <div id="selected-contents">
-
-    {% if path_item.is_directory %}
-
-      {% #card title=path_item.name %}
-        {% #list_group %}
-          {% if not path_item.children %}
-            {% list_group_empty icon=True title="Empty Directory" %}
-          {% else %}
-            {% for entry in path_item.children %}
-              {% #list_group_item href=entry.url %}
-                {{ entry.name}}
-                {% if entry.is_directory %}
-                  {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
-                {% endif %}
-              {% /list_group_item %}
-            {% endfor %}
-          {% endif %}
-        {% /list_group %}
+    <div style="flex-basis: 25%">
+      {% #card %}
+        <ul id="tree" class="tree root" hx-target="#selected-contents" hx-select="#selected-contents" hx-swap="outerHTML" hx-push-url="true">
+          {% include "file_browser/tree.html" with path=root %}
+        </ul>
       {% /card %}
+    </div>
 
-    {% else %}
-      {% fragment as add_button %}
-        {% if context == "workspace" %}
-          {% if form %}
-            {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
-              {% #card container=True title="Add a file" %}
-                <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
-                  {% csrf_token %}
-                  {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
-                  {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
-                  <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-                  <div class="mt-2">
-                    {% #button type="submit" variant="success" id="add-file-button" %}Add File to Request{% /button %}
-                    {% #button variant="danger" type="cancel" %}Cancel{% /button %}
-                  </div>
-                </form>
-                {% /card %}
-            {% /modal %}
-          {% else %}
-            {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
-              Add File to Request
-            {% /button %}
-          {% endif %}
-        {% elif is_author %}
-          <form action="" method="POST">
-            {% csrf_token %}
-            {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
-          </form>
- 
-        {% endif %}
-      {% endfragment %}
+    <div style="flex-basis: 75%; max-width: 75%">
+      <div id="selected-contents">
 
-      {% #card title=path_item.name container=True custom_button=add_button %}
+        {% if path_item.is_directory %}
 
-        <div class="content">
-            {% if path_item.suffix == '.html' %}
-            <iframe
-                srcdoc="{{ path_item.contents }}"
-                title="{{ path_item.relpath }}"
-                frameborder=0
-                height=1000
-                style="width: 100%;"
-            >
-            </iframe>
-            {% elif path_item.suffix == '.csv' %}
-              {% include "file_browser/csv.html" with contents=path_item.contents %}
-            {% else %}
-            <pre>{{ path_item.contents }}</pre>
+          {% #card title=path_item.name %}
+            {% #list_group %}
+              {% if not path_item.children %}
+                {% list_group_empty icon=True title="Empty Directory" %}
+              {% else %}
+                {% for entry in path_item.children %}
+                  {% #list_group_item href=entry.url %}
+                    {{ entry.name}}
+                    {% if entry.is_directory %}
+                      {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
+                    {% endif %}
+                  {% /list_group_item %}
+                {% endfor %}
+              {% endif %}
+            {% /list_group %}
+          {% /card %}
+
+        {% else %}
+          {% fragment as add_button %}
+            {% if context == "workspace" %}
+              {% if form %}
+                {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
+                  {% #card container=True title="Add a file" %}
+                    <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
+                      {% csrf_token %}
+                      {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
+                      {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
+                      <input type=hidden name="path" value="{{ path_item.relpath }}"/>
+                      <div class="mt-2">
+                        {% #button type="submit" variant="success" id="add-file-button" %}Add File to Request{% /button %}
+                        {% #button variant="danger" type="cancel" %}Cancel{% /button %}
+                      </div>
+                    </form>
+                  {% /card %}
+                {% /modal %}
+              {% else %}
+                {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
+                  Add File to Request
+                {% /button %}
+              {% endif %}
+            {% elif is_author %}
+              <form action="" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
+              </form>
+
             {% endif %}
-        </div>
-      {% /card %}
+          {% endfragment %}
 
-    {% endif %}
+          {% #card title=path_item.name container=True custom_button=add_button %}
 
+            <div class="content">
+              {% if path_item.suffix == '.html' %}
+                <iframe
+                  srcdoc="{{ path_item.contents }}"
+                  title="{{ path_item.relpath }}"
+                  frameborder=0
+                  height=1000
+                  style="width: 100%;"
+                >
+                </iframe>
+              {% elif path_item.suffix == '.csv' %}
+                {% include "file_browser/csv.html" with contents=path_item.contents %}
+              {% else %}
+            <pre>{{ path_item.contents }}</pre>
+              {% endif %}
+            </div>
+          {% /card %}
+
+        {% endif %}
+
+      </div>
+    </div>
   </div>
-  </div>
-</div>
 
 {% endblock full_width_content %}
 
@@ -209,21 +209,21 @@ ul.tree {
 
   <script type="text/javascript">
       // keep the selected class up to date in the tree on the client side
-      function setTreeSelection(target, event) {
+    function setTreeSelection(target, event) {
           // target here is the hx-get link that has been clicked on
 
           // remove class from currently selected node
-          document.querySelector('#tree .selected')?.classList.remove('selected');
+      document.querySelector('#tree .selected')?.classList.remove('selected');
 
           // set current selected
-          target.classList.add('selected');
+      target.classList.add('selected');
           // ensure parent details container is open, which means clicking on a directory will open containers.
-          target.closest("details").open = true;
+      target.closest("details").open = true;
 
           // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
-          if (target.classList.contains("filegroup")) {
-              target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
-          }
+      if (target.classList.contains("filegroup")) {
+        target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
       }
+    }
   </script>
 {% endblock %}

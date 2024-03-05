@@ -1,18 +1,18 @@
 {% for child in path.children %}
-<li class="tree ">
-  {% if child.is_directory %}
-  <details {% if child.expanded %}open{% endif %}>
-    <summary>
-        <a class="{{ child.html_classes }}" hx-get="{{ child.url }}" href="{{ child.url }}" hx-on="htmx:afterRequest: setTreeSelection(this, event)">{{ child.display }}</a>
-    </summary>
-    {% if child.children %}
-      <ul class="tree">
-        {% include "file_browser/tree.html" with path=child %}
-      </ul>
+  <li class="tree ">
+    {% if child.is_directory %}
+      <details {% if child.expanded %}open{% endif %}>
+        <summary>
+          <a class="{{ child.html_classes }}" hx-get="{{ child.url }}" href="{{ child.url }}" hx-on="htmx:afterRequest: setTreeSelection(this, event)">{{ child.display }}</a>
+        </summary>
+        {% if child.children %}
+          <ul class="tree">
+            {% include "file_browser/tree.html" with path=child %}
+          </ul>
+        {% endif %}
+      </details>
+    {% else %}
+      <a class="{{ child.html_classes }}" hx-get="{{ child.url }}" href="{{ child.url }}" hx-on="htmx:afterRequest: setTreeSelection(this, event)">{{ child.display }}</a>
     {% endif %}
-  </details>
-  {% else %}
-  <a class="{{ child.html_classes }}" hx-get="{{ child.url }}" href="{{ child.url }}" hx-on="htmx:afterRequest: setTreeSelection(this, event)">{{ child.display }}</a>
-  {% endif %}
-</li>
+  </li>
 {% endfor %}

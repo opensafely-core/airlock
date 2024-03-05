@@ -33,117 +33,117 @@
   <body class="preload flex flex-col min-h-screen text-slate bg-white">
 
     <header
-    class="
-        bg-gradient-to-r from-oxford-200/20 via-bn-roman-200/35 to-bn-strawberry-200/25
-        after:absolute after:h-1 after:w-full after:bg-gradient-to-r after:from-oxford-600/60 after:via-bn-roman-600/70 after:to-bn-strawberry-600/60
-    "
+      class="
+             bg-gradient-to-r from-oxford-200/20 via-bn-roman-200/35 to-bn-strawberry-200/25
+             after:absolute after:h-1 after:w-full after:bg-gradient-to-r after:from-oxford-600/60 after:via-bn-roman-600/70 after:to-bn-strawberry-600/60
+            "
     >
-        <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
-            <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
-            {% url 'home' as url %}
-            {% url 'login' as login_url %}
-            {% url 'logout' as logout_url %}
-            <a
-                class="
-                group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500
-                after:absolute after:bottom-1 after:h-[2px] after:left-2 after:bg-bn-strawberry-300 after:w-1 after:transition-all after:opacity-0
-                after:hover:w-11/12 after:hover:opacity-100
-                "
-                href="{{ url }}"
-            >
-                <span class="transition-colors ease-in duration-150 text-oxford group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
-                OpenSAFELY
-                </span>
-                <span class="transition-colors ease-in duration-300 text-oxford-600 group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
-                Airlock
-                </span>
-            </a>
-            </p>
+      <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
+        <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
+          {% url 'home' as url %}
+          {% url 'login' as login_url %}
+          {% url 'logout' as logout_url %}
+          <a
+            class="
+                   group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                   after:absolute after:bottom-1 after:h-[2px] after:left-2 after:bg-bn-strawberry-300 after:w-1 after:transition-all after:opacity-0
+                   after:hover:w-11/12 after:hover:opacity-100
+                  "
+            href="{{ url }}"
+          >
+            <span class="transition-colors ease-in duration-150 text-oxford group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
+              OpenSAFELY
+            </span>
+            <span class="transition-colors ease-in duration-300 text-oxford-600 group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
+              Airlock
+            </span>
+          </a>
+        </p>
 
-            <ul class="hidden relative flex-row gap-4 mx-1 ml-auto text-sm font-semibold md:flex">
-            {% for location in nav %}
+        <ul class="hidden relative flex-row gap-4 mx-1 ml-auto text-sm font-semibold md:flex">
+          {% for location in nav %}
             <li>
-                <a
+              <a
                 class="
-                    relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
-                    hover:text-bn-strawberry-700
-                    focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-                    before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-                    before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
-                    {% if location.is_active %}border-t-oxford-600/50 text-oxford-600{% endif %}
-                "
+                       relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
+                       hover:text-bn-strawberry-700
+                       focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                       before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
+                       before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
+                       {% if location.is_active %}border-t-oxford-600/50 text-oxford-600{% endif %}
+                      "
                 href="{{ location.url }}"
                 data-testid="nav-{{ location.name|lower }}"
-                >
+              >
                 {{ location.name }}
                 {% if location.is_active %}<span class="sr-only">(current)</span>{% endif %}
-                </a>
+              </a>
             </li>
-            {% endfor %}
-            {% if not request.user or not request.user.is_authenticated %}
+          {% endfor %}
+          {% if not request.user or not request.user.is_authenticated %}
             <li>
-                <a
+              <a
                 class="
-                    relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
-                    hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
-                    focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
-                "
+                       relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
+                       hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
+                       focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
+                      "
                 href="{{ login_url }}"
                 rel="nofollow"
                 data-testid="nav-login"
-                >
+              >
                 Login
-                </a>
+              </a>
             </li>
-            {% else %}
+          {% else %}
             <li>
-                <details-utils close-click-outside close-esc>
+              <details-utils close-click-outside close-esc>
                 <details class="flex group">
-                    <summary
+                  <summary
                     class="
-                        flex relative h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0 cursor-pointer
-                        hover:text-bn-strawberry-700
-                        focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-                        before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-                        before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
-                    "
-                    >
+                           flex relative h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0 cursor-pointer
+                           hover:text-bn-strawberry-700
+                           focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                           before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
+                           before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
+                          "
+                  >
                     Account
                     <span class="opacity-75 ml-1">
-                        {% icon_chevron_down_mini class="h-5 w-5 inline-block group-open:hidden" %}
-                        {% icon_chevron_up_mini class="h-5 w-5 hidden group-open:inline-block" %}
+                      {% icon_chevron_down_mini class="h-5 w-5 inline-block group-open:hidden" %}
+                      {% icon_chevron_up_mini class="h-5 w-5 hidden group-open:inline-block" %}
                     </span>
-                    </summary>
-                    <div class="absolute border-0 origin-top-right top-full mt-2 right-0 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
+                  </summary>
+                  <div class="absolute border-0 origin-top-right top-full mt-2 right-0 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
                     <p class="pt-3 pb-2 px-4">
-                        Logged in as:
-                        <span class="block">
+                      Logged in as:
+                      <span class="block">
                         <strong class="break-words">{{ request.user.username }}</strong>
-                        </span>
+                      </span>
                     </p>
-                    </div>
+                  </div>
                 </details>
-                </details-utils>
+              </details-utils>
             </li>
             <li>
               <a
-              class="
-                  relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
-                  hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
-                  focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
-              "
-              href="{{ logout_url }}"
-              rel="nofollow"
-              data-testid="nav-logout"
+                class="
+                       relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
+                       hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
+                       focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
+                      "
+                href="{{ logout_url }}"
+                rel="nofollow"
+                data-testid="nav-logout"
               >
-              Logout
+                Logout
               </a>
-          </li>
-            {% endif %}
-            </ul>
-        </nav>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
     </header>
- 
+
     <main class="min-h-[66vh] flex-grow pb-12 bg-slate-100">
       <div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4" id="content">
         {% alerts messages=messages %}

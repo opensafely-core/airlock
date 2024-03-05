@@ -5,17 +5,17 @@
     <thead class="bg-slate-200" id="csvTable">
       <tr>
         {% for header in csv_data.headers %}
-        <th>{{ header }}</th>
+          <th>{{ header }}</th>
         {% endfor %}
       </tr>
     </thead>
     <tbody>
       {% for row in csv_data.rows %}
-      <tr class="even:bg-slate-50">
-        {% for cell in row %}
-        <td>{{ cell }}</td>
-        {% endfor %}
-      </tr>
+        <tr class="even:bg-slate-50">
+          {% for cell in row %}
+            <td>{{ cell }}</td>
+          {% endfor %}
+        </tr>
       {% endfor %}
     </tbody>
   </table>
