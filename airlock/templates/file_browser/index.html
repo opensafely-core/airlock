@@ -210,7 +210,7 @@ ul.tree {
           // remove class from currently selected node
           document.querySelector('#tree .selected')?.classList.remove('selected');
 
-          // set corrent selected
+          // set current selected
           target.classList.add('selected');
           // ensure parent details container is open, which means clicking on a directory will open containers.
           target.closest("details").open = true;
