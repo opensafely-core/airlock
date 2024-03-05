@@ -185,6 +185,8 @@ load-example-data: devenv
     curl -s https://jobs.opensafely.org/opensafely-internal/tpp-database-schema/outputs/85/download/ --output "$tmp"
     unzip -u "$tmp" -d "$workspace"
 
+    cp example-data/bennett.svg $workspace/output/sample.svg
+
     request_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_REQUEST_DIR%/}/example-workspace/test-request"
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir

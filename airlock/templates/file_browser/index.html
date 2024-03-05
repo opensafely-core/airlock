@@ -55,6 +55,9 @@
     .content {
       width:100%;
       max-width: 100%;
+    }
+
+    .content-scroller {
       height: 75vh;
       overflow: scroll;
     }
@@ -62,6 +65,7 @@
     .datatable thead {
       position: sticky;
       top: 0;
+      text-align: left;
     }
 
 
@@ -178,7 +182,7 @@
           {% #card title=path_item.name container=True custom_button=add_button %}
 
             <div class="content">
-              {% if path_item.suffix == '.html' %}
+              {% if path_item.display_type == "iframe" %}
                 <iframe
                   src="{{ path_item.contents_url }}"
                   title="{{ path_item.relpath }}"
@@ -187,10 +191,18 @@
                   style="width: 100%;"
                 >
                 </iframe>
-              {% elif path_item.suffix == '.csv' %}
-                {% include "file_browser/csv.html" with contents=path_item.contents %}
+              {% elif path_item.display_type == "image" %}
+                <div class="content-scroller">
+                  <img src="{{ path_item.contents_url }}">
+                </div>
+              {% elif path_item.display_type == "table" %}
+                <div class="content-scroller">
+                  {% include "file_browser/csv.html" with contents=path_item.contents %}
+                </div>
               {% else %}
-            <pre>{{ path_item.contents }}</pre>
+                <div class="content-scroller">
+                <pre>{{ path_item.contents }}</pre>
+                </div>
               {% endif %}
             </div>
           {% /card %}
