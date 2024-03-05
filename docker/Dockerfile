@@ -179,7 +179,8 @@ RUN --mount=type=cache,target=/root/.cache \
     python -m pip install --require-hashes --requirement /tmp/requirements.dev.txt
 
 # Install playwright chromium dependencies. This needs to be done AFTER 
-# playwright is pip-installed
+# playwright is pip-installed. Although we don't use the default playwright
+# chromium browser, this gets us the system dependencies
 RUN playwright install-deps chromium
 
 # Override ENTRYPOINT rather than CMD so we can pass arbitrary commands to the entrypoint script

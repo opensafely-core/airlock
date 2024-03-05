@@ -26,9 +26,21 @@ build env="dev": _dotenv
     # build the thing
     docker compose build --pull {{ env }}
 
+# Fetch and extract the chromium version we need for testing 
+get-chromium:
+    #!/bin/bash
+    # We use chromium v108 for consistency with backends
+    # https://www.chromium.org/getting-involved/download-chromium/#downloading-old-builds-of-chrome-chromium
+    # The chrome executable after unzipping is at ../.playwright-browsers/chrome-linux/chrome
+    chrome_executable=../.playwright-browsers/chrome-linux/chrome
+    if [[ ! -f $chrome_executable ]]; then
+        mkdir -p ../.playwright-browsers
+        wget -O ../.playwright-browsers/chrome-linux.zip https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/1058929/chrome-linux.zip
+        unzip ../.playwright-browsers/chrome-linux.zip -d ../.playwright-browsers/ && rm ../.playwright-browsers/chrome-linux.zip
+    fi
 
 # run tests in dev container
-test *pytest_args="": _dotenv build
+test *pytest_args="": _dotenv build get-chromium
     #!/bin/bash
     # Note, we do *not* run coverage in docker, as we want to use xdist, and coverage does not seem to work reliably.
     docker compose run --rm test pytest {{ pytest_args }}
