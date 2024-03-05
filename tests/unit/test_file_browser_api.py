@@ -161,6 +161,18 @@ def test_workspace_tree_urls(workspace, path, url):
     assert tree.get_path(path).url().endswith(url)
 
 
+def test_workspace_tree_content_urls(workspace):
+    tree = get_workspace_tree(workspace)
+    assert (
+        tree.get_path("some_dir/file_a.txt")
+        .contents_url()
+        .endswith("some_dir/file_a.txt")
+    )
+
+    with pytest.raises(Exception):
+        assert tree.get_path("some_dir").contents_url()
+
+
 @pytest.mark.parametrize(
     "path,url",
     [

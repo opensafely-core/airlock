@@ -1,5 +1,6 @@
 import pytest
 from django.contrib import messages
+from django.shortcuts import reverse
 
 from airlock.users import User
 from tests import factories
@@ -58,7 +59,11 @@ def test_workspace_view_with_html_file(client_with_permission):
         "workspace", "file.html", "<html><body>foobar</body></html>"
     )
     response = client_with_permission.get("/workspaces/view/workspace/file.html")
-    assert "foobar" in response.rendered_content
+    url = reverse(
+        "workspace_contents",
+        kwargs={"workspace_name": "workspace", "path": "file.html"},
+    )
+    assert f'src="{url}"' in response.rendered_content
 
 
 def test_workspace_view_with_csv_file(client_with_permission):
@@ -124,6 +129,25 @@ def test_workspace_view_with_directory_no_permission(client_with_user):
     forbidden_client = client_with_user({"workspaces": ["another-workspace"]})
     response = forbidden_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 403
+
+
+def test_workspace_contents_file(client_with_permission):
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    response = client_with_permission.get("/workspaces/content/workspace/file.txt")
+    assert response.status_code == 200
+    assert list(response.streaming_content) == [b"test"]
+
+
+def test_workspace_contents_dir(client_with_permission):
+    factories.write_workspace_file("workspace", "foo/file.txt", "test")
+    response = client_with_permission.get("/workspaces/content/workspace/foo")
+    assert response.status_code == 400
+
+
+def test_workspace_contents_not_exists(client_with_permission):
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    response = client_with_permission.get("/workspaces/content/workspace/notexists.txt")
+    assert response.status_code == 404
 
 
 def test_workspaces_index_no_user(client):

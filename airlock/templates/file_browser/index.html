@@ -180,7 +180,7 @@
             <div class="content">
               {% if path_item.suffix == '.html' %}
                 <iframe
-                  srcdoc="{{ path_item.contents }}"
+                  src="{{ path_item.contents_url }}"
                   title="{{ path_item.relpath }}"
                   frameborder=0
                   height=1000

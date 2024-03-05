@@ -1,5 +1,7 @@
+from email.utils import formatdate
+
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import FileResponse, Http404
 
 from local_db.api import LocalDBProvider
 
@@ -36,3 +38,13 @@ def validate_release_request(user, request_id):
     validate_workspace(user, release_request.workspace)
 
     return release_request
+
+
+def serve_file(abspath):
+    stat = abspath.stat()
+    # use same ETag format as whitenoise
+    headers = {
+        "Last-Modified": formatdate(stat.st_mtime, usegmt=True),
+        "ETag": f'"{int(stat.st_mtime):x}-{stat.st_size:x}"',
+    }
+    return FileResponse(abspath.open("rb"), headers=headers)

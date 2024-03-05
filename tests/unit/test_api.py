@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from django.conf import settings
 
 import old_api
 from airlock.api import ProviderAPI, Status, UrlPath, Workspace
@@ -11,6 +12,34 @@ from tests import factories
 
 
 pytestmark = pytest.mark.django_db
+
+
+def test_workspace_container():
+    workspace = factories.create_workspace("workspace")
+
+    assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
+    assert workspace.get_id() == "workspace"
+    assert (
+        workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
+    )
+    assert (
+        workspace.get_contents_url("foo/bar.html")
+        == "/workspaces/content/workspace/foo/bar.html"
+    )
+
+
+def test_request_container():
+    release_request = factories.create_release_request("workspace", id="id")
+
+    assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
+    assert release_request.get_id() == "id"
+    assert (
+        release_request.get_url("group/bar.html") == "/requests/view/id/group/bar.html"
+    )
+    assert (
+        release_request.get_contents_url("group/bar.html")
+        == "/requests/content/id/group/bar.html"
+    )
 
 
 @pytest.mark.parametrize(
