@@ -56,10 +56,7 @@ class PathItem:
             self.filepath = self.relpath
 
     def _absolute_path(self):
-        root = self.container.root()
-        path = root / self.filepath
-        path.resolve().relative_to(root)
-        return path
+        return self.container.abspath(self.filepath)
 
     def is_directory(self):
         """Does this contain other things?"""
