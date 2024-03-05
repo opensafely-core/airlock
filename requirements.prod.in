@@ -2,6 +2,7 @@ Django
 django-vite
 slippers
 django-extensions
+django-htmx
 whitenoise
 gunicorn
 requests

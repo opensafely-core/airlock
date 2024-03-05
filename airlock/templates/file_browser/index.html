@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 
-{% load django_vite %}
 {% load static %}
+{% load django_vite %}
+{% load django_htmx %}
 
 {% block extra_styles %}
 <style>
@@ -114,13 +115,14 @@ ul.tree {
 
   <div style="flex-basis: 25%">
     {% #card %}
-      <ul class="tree root">
+    <ul id="tree" class="tree root" hx-target="#selected-contents" hx-select="#selected-contents" hx-swap="outerHTML" hx-push-url="true"> 
       {% include "file_browser/tree.html" with path=root %}
       </ul>
     {% /card %}
   </div>
 
   <div style="flex-basis: 75%; max-width: 75%">
+  <div id="selected-contents">
 
     {% if path_item.is_directory %}
 
@@ -145,10 +147,7 @@ ul.tree {
       {% fragment as add_button %}
         {% if context == "workspace" %}
           {% if form %}
-            {% #button variant="success" type="button" tooltip="Add this file to the current request, starting a new one if needed" data-modal="addRequestFile" id="add-file-modal-button"%}
-              Add File to Request
-            {% /button %}
-            {% #modal id="addRequestFile" %}
+            {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
               {% #card container=True title="Add a file" %}
                 <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
                   {% csrf_token %}
@@ -199,11 +198,32 @@ ul.tree {
     {% endif %}
 
   </div>
-
+  </div>
 </div>
 
 {% endblock full_width_content %}
 
 {% block extra_js %}
-  {% vite_asset "templates/_components/modal/modal.js" %}
+  <script type="text/javascript" src="{% static 'vendor/htmx.min.js' %}"></script>
+  {% django_htmx_script %}
+
+  <script type="text/javascript">
+      // keep the selected class up to date in the tree on the client side
+      function setTreeSelection(target, event) {
+          // target here is the hx-get link that has been clicked on
+
+          // remove class from currently selected node
+          document.querySelector('#tree .selected')?.classList.remove('selected');
+
+          // set current selected
+          target.classList.add('selected');
+          // ensure parent details container is open, which means clicking on a directory will open containers.
+          target.closest("details").open = true;
+
+          // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
+          if (target.classList.contains("filegroup")) {
+              target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
+          }
+      }
+  </script>
 {% endblock %}

@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "django_vite",
     "slippers",
+    "django_htmx",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +104,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "airlock.middleware.UserMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 

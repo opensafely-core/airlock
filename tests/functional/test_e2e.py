@@ -97,7 +97,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("#add-file-modal-button"))
+    find_and_click(page.locator("[data-modal=addRequestFile]"))
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
 

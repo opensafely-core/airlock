@@ -11,13 +11,14 @@ clean:
     rm -rf $ASSETS_DIST
 
 
-update:
+update: clean
     #!/bin/bash
     set -euo pipefail
     tmpdir=$(mktemp -d)
     git clone --depth=1 https://github.com/opensafely-core/job-server $tmpdir
     just -d $tmpdir --justfile $tmpdir/justfile assets-install
     just -d $tmpdir --justfile $tmpdir/justfile assets-build
+    mkdir -p dist templates
     cp -r $tmpdir/templates/_components/* ./templates/_components/
     cp $tmpdir/jobserver/views/components.py ./base_views.py
     mkdir -p dist

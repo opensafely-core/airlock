@@ -7,7 +7,9 @@
 asgiref==3.7.2 \
     --hash=sha256:89b2ef2247e3b562a16eef663bc0e2e703ec6468e2fa8a5cd61cd449786d4f6e \
     --hash=sha256:9e0ce3aa93a819ba5b45120216b23878cf6e8525eb3848653452b4192b92afed
-    # via django
+    # via
+    #   django
+    #   django-htmx
 certifi==2023.11.17 \
     --hash=sha256:9b469f3a900bf28dc19b8cfbf8019bf47f7fdd1a65a1d4ffb98fc14166beb4d1 \
     --hash=sha256:e036ab49d5b79556f99cfc2d9320b34cfbe5be05c5871b51de9329f0603b0474
@@ -110,11 +112,16 @@ django==5.0.2 \
     # via
     #   -r requirements.prod.in
     #   django-extensions
+    #   django-htmx
     #   django-vite
     #   slippers
 django-extensions==3.2.3 \
     --hash=sha256:44d27919d04e23b3f40231c4ab7af4e61ce832ef46d610cc650d53e68328410a \
     --hash=sha256:9600b7562f79a92cbf1fde6403c04fee314608fefbb595502e34383ae8203401
+    # via -r requirements.prod.in
+django-htmx==1.17.2 \
+    --hash=sha256:4089f2ed38727e9846c2f4cd1daddf6b010c7be8d834cfbcffc8c5ecf445c04e \
+    --hash=sha256:f4971432d2ca45dbb31d9b58add1c50ae54354afe4bf59cafd591b1711b502c0
     # via -r requirements.prod.in
 django-vite==3.0.3 \
     --hash=sha256:0738e6fe49ed097ab8e9e22ac78776584735948e118d3875817f78a87acaac82 \
