@@ -43,8 +43,6 @@ class PathItem:
     # should this node be expanded in the tree?
     expanded: bool = False
 
-    # relative filepath on disk. defaults to path, but allows us to customise it.
-    filepath: UrlPath = None
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
     display_text: str = None
@@ -52,14 +50,9 @@ class PathItem:
     def __post_init__(self):
         # ensure is UrlPath
         self.relpath = UrlPath(self.relpath)
-        if self.filepath is None:
-            self.filepath = self.relpath
 
     def _absolute_path(self):
-        root = self.container.root()
-        path = root / self.filepath
-        path.resolve().relative_to(root)
-        return path
+        return self.container.abspath(self.relpath)
 
     def is_directory(self):
         """Does this contain other things?"""
@@ -301,8 +294,6 @@ def get_filegroup_tree(
                 container=container,
                 relpath=child_path,
                 parent=parent,
-                # actual path on disk, striping the group part
-                filepath=child_path.relative_to(child_path.parts[0]),
                 selected=selected,
             )
 

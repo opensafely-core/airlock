@@ -159,7 +159,7 @@ def test_workspace_request_file_creates(client_with_user, api):
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert str(filegroup.files[0].relpath) == "test/path.txt"
-    assert release_request.abspath("test/path.txt").exists()
+    assert release_request.abspath("default/test/path.txt").exists()
 
 
 def test_workspace_request_file_request_already_exists(client_with_user, api):
@@ -178,7 +178,7 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
     assert response.status_code == 302
     current_release_request = api.get_current_request(workspace.name, user)
     assert current_release_request.id == release_request.id
-    assert release_request.abspath("test/path.txt").exists()
+    assert current_release_request.abspath("default/test/path.txt").exists()
     filegroup = current_release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert str(filegroup.files[0].relpath) == "test/path.txt"

@@ -92,7 +92,7 @@ class Workspace:
         # protect against traversal
         path.resolve().relative_to(root)
 
-        # validate path exists for *workspace* files
+        # validate path exists
         if not path.exists():
             raise ProviderAPI.FileNotFound(path)
 
@@ -160,14 +160,28 @@ class ReleaseRequest:
         )
 
     def abspath(self, relpath):
+        """Returns abspath to the file on disk.
+
+        The first part of the relpath is the group, so we parse and validate that first.
+        """
+        relpath = UrlPath(relpath)
         root = self.root()
-        path = root / relpath
+
+        group = relpath.parts[0]
+
+        if group not in self.filegroups:
+            raise ProviderAPI.FileNotFound(f"bad group {group} in url {relpath}")
+
+        filepath = relpath.relative_to(group)
+        path = root / filepath
 
         # protect against traversal
         path.resolve().relative_to(root)
 
-        # note: we do not validate path exists for *request* file, as it might
-        # be a destination to copy to.
+        # validate path exists
+        if not path.exists():
+            raise ProviderAPI.FileNotFound(path)
+
         return path
 
     def file_set(self):
@@ -359,7 +373,8 @@ class ProviderAPI:
 
         workspace = self.get_workspace(release_request.workspace)
         src = workspace.abspath(relpath)
-        dst = release_request.abspath(relpath)
+        # manually contruct target path from root
+        dst = release_request.root() / relpath
         dst.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(src, dst)
 
