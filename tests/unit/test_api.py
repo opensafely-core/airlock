@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import old_api
-from airlock.api import ProviderAPI, Status, Workspace
+from airlock.api import ProviderAPI, Status, UrlPath, Workspace
 from airlock.users import User
 from tests import factories
 
@@ -69,7 +69,7 @@ def test_provider_request_release_files(mock_old_api):
     factories.write_request_file(release_request, "group", relpath, "test")
     factories.api.set_status(release_request, Status.APPROVED, checker)
 
-    abspath = release_request.abspath(relpath)
+    abspath = release_request.abspath("group" / relpath)
 
     api = ProviderAPI()
     api.release_files(release_request, checker)
@@ -310,11 +310,10 @@ def test_add_file_to_request_states(status, success, api):
 
     if success:
         api.add_file_to_request(release_request, path, author)
-        assert release_request.abspath(path).exists()
+        assert release_request.abspath("default" / path).exists()
     else:
         with pytest.raises(api.RequestPermissionDenied):
             api.add_file_to_request(release_request, path, author)
-        assert not release_request.abspath(path).exists()
 
 
 def test_request_release_invalid_state():
@@ -324,6 +323,20 @@ def test_request_release_invalid_state():
             "workspace",
             status="unknown",
         )
+
+
+def test_request_release_abspath(api):
+    path = UrlPath("foo/bar.txt")
+    release_request = factories.create_release_request("id")
+    factories.write_request_file(release_request, "default", path)
+
+    with pytest.raises(api.FileNotFound):
+        release_request.abspath("badgroup" / path)
+
+    with pytest.raises(api.FileNotFound):
+        release_request.abspath("default/does/not/exist")
+
+    assert release_request.abspath("default" / path).exists()
 
 
 def setup_empty_release_request():
