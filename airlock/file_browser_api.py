@@ -91,6 +91,9 @@ class PathItem:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(f"{self.relpath}", download=download)
 
+    def download_url(self):
+        return self.contents_url(download=True)
+
     def siblings(self):
         if not self.relpath.parents:
             return []

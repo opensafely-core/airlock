@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock.api import Status
-from airlock.file_browser_api import get_request_tree, UrlPath
+from airlock.file_browser_api import get_request_tree
 from local_db.api import LocalDBProvider
 
 from .helpers import serve_file, validate_release_request
@@ -97,6 +97,15 @@ def request_contents(request, request_id: str, path: str):
         return HttpResponseBadRequest()
 
     download = "download" in request.GET
+    # Downloads are only allowed for output checkers
+    # Downloads are not allowed for request authors (including those that are also
+    # output checkers)
+    if download and (
+        not request.user.output_checker
+        or (release_request.author == request.user.username)
+    ):
+        raise PermissionDenied()
+
     return serve_file(abspath, download)
 
 
