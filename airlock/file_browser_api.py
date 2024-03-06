@@ -86,10 +86,10 @@ class PathItem:
         suffix = "/" if self.is_directory() else ""
         return self.container.get_url(f"{self.relpath}{suffix}")
 
-    def contents_url(self):
+    def contents_url(self, download=False):
         if self.type != PathType.FILE:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
-        return self.container.get_contents_url(f"{self.relpath}")
+        return self.container.get_contents_url(f"{self.relpath}", download=download)
 
     def siblings(self):
         if not self.relpath.parents:

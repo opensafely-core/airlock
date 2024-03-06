@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from airlock.api import Status
-from airlock.file_browser_api import get_request_tree
+from airlock.file_browser_api import get_request_tree, UrlPath
 from local_db.api import LocalDBProvider
 
 from .helpers import serve_file, validate_release_request
@@ -96,7 +96,8 @@ def request_contents(request, request_id: str, path: str):
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
-    return serve_file(abspath)
+    download = "download" in request.GET
+    return serve_file(abspath, download)
 
 
 @require_http_methods(["POST"])

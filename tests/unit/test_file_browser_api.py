@@ -186,6 +186,19 @@ def test_request_tree_urls(release_request, path, url):
     assert tree.get_path(path).url().endswith(url)
 
 
+@pytest.mark.django_db
+def test_request_tree_download_url(release_request):
+    tree = get_request_tree(release_request)
+    assert (
+        tree.get_path("group1/some_dir/file_a.txt")
+        .download_url()
+        .endswith("group1/some_dir/file_a.txt?download")
+    )
+
+    with pytest.raises(Exception):
+        assert tree.get_path("some_dir").download_url()
+
+
 def test_workspace_tree_breadcrumbs(workspace):
     tree = get_workspace_tree(workspace)
     path = tree.get_path("some_dir/file_a.txt")
