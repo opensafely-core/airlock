@@ -123,6 +123,10 @@ class RequestFile:
 
     relpath: UrlPath
 
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(**attrs)
+
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -132,6 +136,13 @@ class FileGroup:
 
     name: str
     files: list[RequestFile]
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "files"},
+            files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
+        )
 
 
 @dataclass
@@ -153,6 +164,17 @@ class ReleaseRequest:
 
     # can be set to mark the currently selected path in this release request
     selected_path: UrlPath = ROOT_PATH
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "filegroups"},
+            filegroups=cls._filegroups_from_dict(attrs.get("filegroups", {})),
+        )
+
+    @staticmethod
+    def _filegroups_from_dict(attrs):
+        return {key: FileGroup.from_dict(value) for key, value in attrs.items()}
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -212,6 +234,9 @@ class ReleaseRequest:
             for filegroup in self.filegroups.values()
             for request_file in filegroup.files
         }
+
+    def set_filegroups_from_dict(self, attrs):
+        self.filegroups = self._filegroups_from_dict(attrs)
 
 
 class ProviderAPI:
