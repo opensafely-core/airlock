@@ -27,8 +27,13 @@ class User:
     def has_permission(self, workspace_name):
         return (
             # Output checkers can view all workspaces
-            self.output_checker or workspace_name in self.workspaces
+            self.output_checker or self.can_create_request(workspace_name)
         )
+
+    def can_create_request(self, workspace_name):
+        # Only users with explict access to the workspace can create release
+        # requests.
+        return workspace_name in self.workspaces
 
     def is_authenticated(self):
         return True
