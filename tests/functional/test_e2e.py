@@ -177,6 +177,18 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
     expect(page.locator("body")).to_contain_text(request_id)
 
+    # Reuse the locators from the workspace view to click on filegroup and then file
+    # Click to open the filegroup tree
+    find_and_click(filegroup_link)
+    find_and_click(file_link)
+    expect(page.locator("body")).to_contain_text("I am the file content")
+
+    # Download the file
+    with page.expect_download() as download_info:
+        find_and_click(page.locator("#download-button"))
+    download = download_info.value
+    assert download.suggested_filename == "file.txt"
+
     # Mock the responses from job-server
     release_request = api.get_release_request(request_id)
     release_files_stubber(release_request)
