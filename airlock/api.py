@@ -239,7 +239,25 @@ class ReleaseRequest:
         self.filegroups = self._filegroups_from_dict(attrs)
 
 
+class DataAccessLayerProtocol:
+    """
+    Placeholder for a structural type class we can use to define what a data access
+    layer should look like, once we've settled what that is.
+    """
+
+
 class ProviderAPI:
+    """
+    Business Logic Layer (class will be renamed later)
+
+    The mechanism via which the rest of the codebase should read and write application
+    state. Interacts with a Data Access Layer purely by exchanging simple values
+    (dictionaries, strings etc).
+    """
+
+    def __init__(self, data_access_layer: DataAccessLayerProtocol):
+        self._dal = data_access_layer
+
     class APIException(Exception):
         pass
 
@@ -292,11 +310,11 @@ class ProviderAPI:
         Is private because it is mean to only be used by our test factories to
         set up state - it is not part of the public API.
         """
-        raise NotImplementedError()
+        return ReleaseRequest.from_dict(self._dal.create_release_request(**kwargs))
 
     def get_release_request(self, request_id: str) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
-        raise NotImplementedError()
+        return ReleaseRequest.from_dict(self._dal.get_release_request(request_id))
 
     def get_current_request(
         self, workspace_name: str, user: User, create: bool = False
@@ -305,15 +323,32 @@ class ProviderAPI:
 
         If create is True, create one.
         """
-        raise NotImplementedError()
+        current_request_data = self._dal.get_current_request(
+            workspace=workspace_name,
+            username=user.username,
+            user_workspaces=user.workspaces,
+            create=create,
+        )
+        if current_request_data is not None:
+            return ReleaseRequest.from_dict(current_request_data)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
-        raise NotImplementedError()
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_requests_authored_by_user(
+                username=user.username, user_workspaces=user.workspaces
+            )
+        ]
 
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
-        raise NotImplementedError()
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_outstanding_requests_for_review(
+                username=user.username, user_is_output_checker=user.output_checker
+            )
+        ]
 
     VALID_STATE_TRANSITIONS = {
         Status.PENDING: [
@@ -391,6 +426,7 @@ class ProviderAPI:
 
         # validate first
         self.check_status(release_request, to_status, user)
+        self._dal.set_status(release_request.id, to_status)
         release_request.status = to_status
 
     def add_file_to_request(
@@ -400,14 +436,6 @@ class ProviderAPI:
         user: User,
         group_name: Optional[str] = "default",
     ):
-        """Add a file to a request.
-
-        Subclasses should do what they need to create the filegroup and
-        record the file metadata as needed and THEN
-        call super().add_file_to_request(...) to do the
-        copying. If the copying fails (e.g. due to permission errors raised
-        below), the subclasses should roll back any changes.
-        """
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(
                 f"only author {release_request.author} can add files to this request"
@@ -425,6 +453,14 @@ class ProviderAPI:
         dst.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(src, dst)
 
+        # TODO: This is not currently safe in that we modify the filesytem before
+        # calling out to the DAL which could fail. We will deal with this later by
+        # switching to a content-addressed storage model which avoids having mutable
+        # state on the filesystem.
+        filegroup_data = self._dal.add_file_to_request(
+            request_id=release_request.id, group_name=group_name, relpath=relpath
+        )
+        release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
     def release_files(self, request: ReleaseRequest, user: User):
@@ -452,8 +488,8 @@ class ProviderAPI:
 
 
 def _get_configured_api():
-    ProviderImplementation = import_string(settings.AIRLOCK_API_PROVIDER)
-    return ProviderImplementation()
+    DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)
+    return ProviderAPI(DataAccessLayer())
 
 
 # We follow the Django pattern of using a lazy object which configures itself on first

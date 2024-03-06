@@ -268,7 +268,7 @@ else:  # pragma: no cover
         f"variables must be set.\n\n{_missing_env_var_hint}"
     )
 
-AIRLOCK_API_PROVIDER = "local_db.api.LocalDBProvider"
+AIRLOCK_DATA_ACCESS_LAYER = "local_db.api.LocalDBDataAccessLayer"
 
 # BACKEND is global env var on backends
 BACKEND = os.environ.get("BACKEND", "test")

@@ -66,7 +66,7 @@ def create_filegroup(release_request, group_name, filepaths=None):
         api.add_file_to_request(
             release_request, filepath, User(1, release_request.author), group_name
         )
-    return api._get_or_create_filegroupmetadata(release_request.id, group_name)
+    return api._dal._get_or_create_filegroupmetadata(release_request.id, group_name)
 
 
 def refresh_release_request(release_request):

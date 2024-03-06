@@ -1,27 +1,23 @@
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from django.db import transaction
 
 from airlock.api import (
-    FileGroup,
+    DataAccessLayerProtocol,
     ProviderAPI,
-    ReleaseRequest,
-    RequestFile,
     Status,
-    User,
 )
 from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
 
 
-@dataclass
-class LocalDBProvider(ProviderAPI):
-    """Implementation of ProviderAPI using local_db models to store data."""
+class LocalDBDataAccessLayer(DataAccessLayerProtocol):
+    """
+    Implementation of DataAccessLayerProtocol using local_db models to store data
+    """
 
     def _request(self, metadata: RequestMetadata = None):
         """Unpack the db data into the Request object."""
-        return ReleaseRequest(
+        return dict(
             id=metadata.id,
             workspace=metadata.workspace,
             status=metadata.status,
@@ -30,7 +26,7 @@ class LocalDBProvider(ProviderAPI):
             filegroups=self._get_filegroups(metadata),
         )
 
-    def _create_release_request(self, **kwargs):
+    def create_release_request(self, **kwargs):
         metadata = RequestMetadata.objects.create(**kwargs)
         return self._request(metadata)
 
@@ -38,14 +34,14 @@ class LocalDBProvider(ProviderAPI):
         try:
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
-            raise self.ReleaseRequestNotFound(request_id)
+            raise ProviderAPI.ReleaseRequestNotFound(request_id)
 
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
         """Unpack file group db data into FileGroup and RequestFile objects."""
-        return FileGroup(
+        return dict(
             name=filegroup_metadata.name,
             files=[
-                RequestFile(relpath=Path(file_metadata.relpath))
+                dict(relpath=Path(file_metadata.relpath))
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
@@ -66,18 +62,20 @@ class LocalDBProvider(ProviderAPI):
     def get_release_request(self, request_id: str):
         return self._request(self._find_metadata(request_id))
 
-    def get_current_request(self, workspace: str, user: User, create=False):
+    def get_current_request(
+        self, workspace: str, username: str, user_workspaces: list[str], create=False
+    ):
         requests = list(
             RequestMetadata.objects.filter(
                 workspace=workspace,
-                author=user.username,
+                author=username,
                 status__in=[Status.PENDING, Status.SUBMITTED],
             )
         )
         n = len(requests)
         if n > 1:
             raise Exception(
-                f"Multiple active release requests for user {user.username} in workspace {workspace}"
+                f"Multiple active release requests for user {username} in workspace {workspace}"
             )
         elif n == 1:
             return self._request(requests[0])
@@ -85,66 +83,59 @@ class LocalDBProvider(ProviderAPI):
             # To create a request, you must have explicit workspace permissions.
             # Output checkers can view all workspaces, but are not allowed to
             # create requests for all workspaces.
-            if workspace not in user.workspaces:
-                raise self.RequestPermissionDenied(workspace)
+            if workspace not in user_workspaces:
+                raise ProviderAPI.RequestPermissionDenied(workspace)
 
-            return self._create_release_request(
+            return self.create_release_request(
                 workspace=workspace,
-                author=user.username,
+                author=username,
             )
 
-    def get_requests_authored_by_user(self, user: User):
+    def get_requests_authored_by_user(self, username: str, user_workspaces: list[str]):
         requests = []
 
-        for metadata in RequestMetadata.objects.filter(author=user.username).order_by(
+        for metadata in RequestMetadata.objects.filter(author=username).order_by(
             "status"
         ):
             # to create a request, user *must* have explicit workspace
             # permissions - being an output checker is not enough
-            if metadata.workspace in user.workspaces:
+            if metadata.workspace in user_workspaces:
                 requests.append(self._request(metadata))
 
         return requests
 
-    def get_outstanding_requests_for_review(self, user: User):
+    def get_outstanding_requests_for_review(
+        self, username: str, user_is_output_checker: bool
+    ):
         requests = []
 
-        if not user.output_checker:
+        if not user_is_output_checker:
             return []
 
         for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED):
             # do not show output_checker their own requests
-            if metadata.author != user.username:
+            if metadata.author != username:
                 requests.append(self._request(metadata))
 
         return requests
 
-    def set_status(self, request: ReleaseRequest, status: Status, user: User):
+    def set_status(self, request_id: str, status: Status):
         with transaction.atomic():
-            # validate transition/permissions ahead of time
-            self.check_status(request, status, user)
             # persist state change
-            metadata = self._find_metadata(request.id)
+            metadata = self._find_metadata(request_id)
             metadata.status = status
             metadata.save()
-            super().set_status(request, status, user)
 
-    def add_file_to_request(
-        self,
-        release_request: ReleaseRequest,
-        relpath: Path,
-        user: User,
-        group_name: Optional[str] = "default",
-    ):
+    def add_file_to_request(self, request_id, relpath: Path, group_name: str):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
             filegroupmetadata = self._get_or_create_filegroupmetadata(
-                release_request.id, group_name
+                request_id, group_name
             )
             # Check if this file is already on the request, in any group
             try:
                 existing_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=release_request.id, relpath=relpath
+                    filegroup__request_id=request_id, relpath=relpath
                 )
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
@@ -152,17 +143,11 @@ class LocalDBProvider(ProviderAPI):
                     relpath=str(relpath), filegroup=filegroupmetadata
                 )
             else:
-                raise self.APIException(
+                raise ProviderAPI.APIException(
                     "File has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 
-            # Now that the db objects have been successfully creates,
-            # call super() to copy the file. This will also validate
-            # that the user can add the file, and that the request is in a
-            # state that allows adding files.
-            super().add_file_to_request(release_request, relpath, user, group_name)
-
-        # update instance
-        metadata = self._find_metadata(release_request.id)
-        release_request.filegroups = self._get_filegroups(metadata)
+        # Return updated FileGroups data
+        metadata = self._find_metadata(request_id)
+        return self._get_filegroups(metadata)
