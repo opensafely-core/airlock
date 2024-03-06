@@ -62,34 +62,15 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_release_request(self, request_id: str):
         return self._request(self._find_metadata(request_id))
 
-    def get_current_request(
-        self, workspace: str, username: str, user_workspaces: list[str], create=False
-    ):
-        requests = list(
-            RequestMetadata.objects.filter(
+    def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+        return [
+            self._request(request)
+            for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
                 status__in=[Status.PENDING, Status.SUBMITTED],
             )
-        )
-        n = len(requests)
-        if n > 1:
-            raise Exception(
-                f"Multiple active release requests for user {username} in workspace {workspace}"
-            )
-        elif n == 1:
-            return self._request(requests[0])
-        elif create:
-            # To create a request, you must have explicit workspace permissions.
-            # Output checkers can view all workspaces, but are not allowed to
-            # create requests for all workspaces.
-            if workspace not in user_workspaces:
-                raise ProviderAPI.RequestPermissionDenied(workspace)
-
-            return self.create_release_request(
-                workspace=workspace,
-                author=username,
-            )
+        ]
 
     def get_requests_authored_by_user(self, username: str):
         return [

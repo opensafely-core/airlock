@@ -323,14 +323,32 @@ class ProviderAPI:
 
         If create is True, create one.
         """
-        current_request_data = self._dal.get_current_request(
+        active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace_name,
             username=user.username,
-            user_workspaces=user.workspaces,
-            create=create,
         )
-        if current_request_data is not None:
-            return ReleaseRequest.from_dict(current_request_data)
+
+        n = len(active_requests)
+        if n > 1:
+            raise Exception(
+                f"Multiple active release requests for user {user.username} in workspace {workspace_name}"
+            )
+        elif n == 1:
+            return ReleaseRequest.from_dict(active_requests[0])
+        elif create:
+            # To create a request, you must have explicit workspace permissions.
+            # Output checkers can view all workspaces, but are not allowed to
+            # create requests for all workspaces.
+            if workspace_name not in user.workspaces:
+                raise ProviderAPI.RequestPermissionDenied(workspace_name)
+
+            new_request = self._dal.create_release_request(
+                workspace=workspace_name,
+                author=user.username,
+            )
+            return ReleaseRequest.from_dict(new_request)
+        else:
+            return None
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
