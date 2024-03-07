@@ -359,11 +359,15 @@ class ProviderAPI:
 
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
+        # Only output checkers can see these
+        if not user.output_checker:
+            return []
+
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_outstanding_requests_for_review(
-                username=user.username, user_is_output_checker=user.output_checker
-            )
+            for attrs in self._dal.get_outstanding_requests_for_review()
+            # Do not show output_checker their own requests
+            if attrs["author"] != user.username
         ]
 
     VALID_STATE_TRANSITIONS = {

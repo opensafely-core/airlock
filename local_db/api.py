@@ -80,20 +80,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
-    def get_outstanding_requests_for_review(
-        self, username: str, user_is_output_checker: bool
-    ):
-        requests = []
-
-        if not user_is_output_checker:
-            return []
-
-        for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED):
-            # do not show output_checker their own requests
-            if metadata.author != username:
-                requests.append(self._request(metadata))
-
-        return requests
+    def get_outstanding_requests_for_review(self):
+        return [
+            self._request(metadata)
+            for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED)
+        ]
 
     def set_status(self, request_id: str, status: Status):
         with transaction.atomic():
