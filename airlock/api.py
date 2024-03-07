@@ -52,8 +52,10 @@ class AirlockContainer(Protocol):
     def get_url(self, path: UrlPath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
-    def get_contents_url(self, path: UrlPath = ROOT_PATH) -> str:
-        """Get the url for the container object with path"""
+    def get_contents_url(
+        self, path: UrlPath = ROOT_PATH, download: bool = False
+    ) -> str:
+        """Get the url for the contents of the container object with path"""
 
 
 @dataclass
@@ -85,7 +87,7 @@ class Workspace:
             kwargs={"workspace_name": self.name, "path": relpath},
         )
 
-    def get_contents_url(self, relpath):
+    def get_contents_url(self, relpath, download=False):
         return reverse(
             "workspace_contents",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -168,11 +170,14 @@ class ReleaseRequest:
             },
         )
 
-    def get_contents_url(self, relpath):
-        return reverse(
+    def get_contents_url(self, relpath, download=False):
+        url = reverse(
             "request_contents",
             kwargs={"request_id": self.id, "path": relpath},
         )
+        if download:
+            url += "?download"
+        return url
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.

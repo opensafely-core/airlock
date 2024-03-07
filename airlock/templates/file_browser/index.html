@@ -174,7 +174,8 @@
                 {% csrf_token %}
                 {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
               </form>
-
+            {% elif is_output_checker %}
+              {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
             {% endif %}
           {% endfragment %}
 

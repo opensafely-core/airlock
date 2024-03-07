@@ -96,7 +96,17 @@ def request_contents(request, request_id: str, path: str):
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
-    return serve_file(abspath)
+    download = "download" in request.GET
+    # Downloads are only allowed for output checkers
+    # Downloads are not allowed for request authors (including those that are also
+    # output checkers)
+    if download and (
+        not request.user.output_checker
+        or (release_request.author == request.user.username)
+    ):
+        raise PermissionDenied()
+
+    return serve_file(abspath, download)
 
 
 @require_http_methods(["POST"])

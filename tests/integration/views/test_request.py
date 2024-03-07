@@ -130,6 +130,7 @@ def test_request_contents_file(client_with_permission):
     )
     response = client_with_permission.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
+    assert not response.as_attachment
     assert list(response.streaming_content) == [b"test"]
 
 
@@ -149,6 +150,104 @@ def test_request_contents_not_exists(client_with_permission):
     )
     response = client_with_permission.get("/requests/content/id/default/notexists.txt")
     assert response.status_code == 404
+
+
+def test_request_download_file(client_with_permission):
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "file.txt", contents="test"
+    )
+    response = client_with_permission.get(
+        "/requests/content/id/default/file.txt?download"
+    )
+    assert response.status_code == 200
+    assert response.as_attachment
+    assert list(response.streaming_content) == [b"test"]
+
+
+@pytest.mark.parametrize(
+    "request_author,session_user,can_download",
+    [
+        (  # Different non-output-checker author and output-checker user
+            {
+                "id": 1,
+                "username": "output-checker",
+                "workspaces": ["workspace"],
+                "output_checker": False,
+            },
+            {
+                "id": 2,
+                "username": "author",
+                "workspaces": ["workspace"],
+                "output_checker": True,
+            },
+            True,
+        ),
+        (  # Different output-checker author and output-checker user
+            {
+                "id": 1,
+                "username": "output-checker",
+                "workspaces": ["workspace"],
+                "output_checker": True,
+            },
+            {
+                "id": 2,
+                "username": "author",
+                "workspaces": ["workspace"],
+                "output_checker": True,
+            },
+            True,
+        ),
+        (  # Different non-output-checker author and non-output-checker user
+            {
+                "id": 1,
+                "username": "researcher",
+                "workspaces": ["workspace"],
+                "output_checker": False,
+            },
+            {
+                "id": 2,
+                "username": "author",
+                "workspaces": ["workspace"],
+                "output_checker": False,
+            },
+            False,
+        ),
+        (  # Same output-checker author and user
+            {
+                "id": 1,
+                "username": "output-checker",
+                "workspaces": ["workspace"],
+                "output_checker": True,
+            },
+            {
+                "id": 1,
+                "username": "output-checker",
+                "workspaces": ["workspace"],
+                "output_checker": True,
+            },
+            False,
+        ),
+    ],
+)
+def test_request_download_file_permissions(
+    client_with_user, request_author, session_user, can_download
+):
+    client = client_with_user(session_user)
+    author = User(**request_author)
+    release_request = factories.create_release_request(
+        "workspace", id="id", user=author
+    )
+    factories.write_request_file(
+        release_request, "default", "file.txt", contents="test", user=author
+    )
+    response = client.get("/requests/content/id/default/file.txt?download")
+    if can_download:
+        assert response.status_code == 200
+        assert response.as_attachment
+        assert list(response.streaming_content) == [b"test"]
+    else:
+        assert response.status_code == 403
 
 
 def test_request_index_user_permitted_requests(client_with_user):
