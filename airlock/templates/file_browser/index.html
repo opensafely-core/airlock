@@ -118,7 +118,13 @@
 
     <div style="flex-basis: 25%">
       {% #card %}
-        <ul id="tree" class="tree root" hx-target="#selected-contents" hx-select="#selected-contents" hx-swap="outerHTML" hx-push-url="true">
+        <ul id="tree" class="tree root"
+            hx-target="#selected-contents"
+            hx-select="#selected-contents"
+            hx-swap="outerHTML"
+            hx-push-url="true"
+            hx-on:htmx:after-request="setTreeSelection(this, event)"
+        >
           {% include "file_browser/tree.html" with path=root %}
         </ul>
       {% /card %}
@@ -225,11 +231,13 @@
 
   <script type="text/javascript">
     // keep the selected class up to date in the tree on the client side
-    function setTreeSelection(target, event) {
+    function setTreeSelection(tree, event) {
       // target here is the hx-get link that has been clicked on
 
       // remove class from currently selected node
-      document.querySelector('#tree .selected')?.classList.remove('selected');
+      tree.querySelector('.selected')?.classList.remove('selected');
+
+      let target = event.srcElement;
 
       // set current selected
       target.classList.add('selected');
