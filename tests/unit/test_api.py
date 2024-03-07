@@ -127,30 +127,13 @@ def test_provider_request_release_files(mock_old_api):
     )
 
 
-@pytest.mark.parametrize(
-    "workspaces, output_checker, expected",
-    [
-        ([], False, []),
-        (["allowed"], False, ["r1"]),
-        # output checkers can't create requests unless explit permission for workspace
-        ([], True, []),
-        (["allowed"], True, ["r1"]),
-        (["allowed", "notexist"], False, ["r1"]),
-        (["notexist"], False, []),
-        (["no-request-dir", "notexist"], False, []),
-    ],
-)
-def test_provider_get_requests_authored_by_user(
-    workspaces, output_checker, expected, api
-):
-    user = User(1, "test", workspaces, output_checker)
-    other_user = User(1, "other", [], False)
-    factories.create_release_request("allowed", user, id="r1")
-    factories.create_release_request("allowed", other_user, id="r2")
-    factories.create_release_request("not-allowed", user, id="r3")
-    factories.create_workspace("no-request-dir")
+def test_provider_get_requests_authored_by_user(api):
+    user = User(1, "test", [], True)
+    other_user = User(1, "other", [], True)
+    factories.create_release_request("workspace", user, id="r1")
+    factories.create_release_request("workspace", other_user, id="r2")
 
-    assert set(r.id for r in api.get_requests_authored_by_user(user)) == set(expected)
+    assert [r.id for r in api.get_requests_authored_by_user(user)] == ["r1"]
 
 
 @pytest.mark.parametrize(

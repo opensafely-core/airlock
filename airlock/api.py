@@ -336,9 +336,7 @@ class ProviderAPI:
         """Get all current requests authored by user."""
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_authored_by_user(
-                username=user.username, user_workspaces=user.workspaces
-            )
+            for attrs in self._dal.get_requests_authored_by_user(username=user.username)
         ]
 
     def get_outstanding_requests_for_review(self, user: User):

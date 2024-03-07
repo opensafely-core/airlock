@@ -91,18 +91,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 author=username,
             )
 
-    def get_requests_authored_by_user(self, username: str, user_workspaces: list[str]):
-        requests = []
-
-        for metadata in RequestMetadata.objects.filter(author=username).order_by(
-            "status"
-        ):
-            # to create a request, user *must* have explicit workspace
-            # permissions - being an output checker is not enough
-            if metadata.workspace in user_workspaces:
-                requests.append(self._request(metadata))
-
-        return requests
+    def get_requests_authored_by_user(self, username: str):
+        return [
+            self._request(request)
+            for request in RequestMetadata.objects.filter(author=username).order_by(
+                "status"
+            )
+        ]
 
     def get_outstanding_requests_for_review(
         self, username: str, user_is_output_checker: bool
