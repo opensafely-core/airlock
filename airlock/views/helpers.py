@@ -3,10 +3,7 @@ from email.utils import formatdate
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 
-from local_db.api import LocalDBProvider
-
-
-api = LocalDBProvider()
+from airlock.api import api
 
 
 def login_exempt(view):

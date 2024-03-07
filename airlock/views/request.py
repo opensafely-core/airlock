@@ -9,14 +9,10 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.api import Status
+from airlock.api import Status, api
 from airlock.file_browser_api import get_request_tree
-from local_db.api import LocalDBProvider
 
 from .helpers import serve_file, validate_release_request
-
-
-api = LocalDBProvider()
 
 
 def request_index(request):

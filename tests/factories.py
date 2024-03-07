@@ -1,13 +1,10 @@
 from django.conf import settings
 
-from airlock.api import Workspace
+from airlock.api import Workspace, api
 from airlock.users import User
-from local_db.api import LocalDBProvider
 
 
 default_user = User(1, "testuser")
-
-api = LocalDBProvider()
 
 
 def get_user(*, username="testuser", workspaces=[], output_checker=False):

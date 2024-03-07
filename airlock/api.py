@@ -10,6 +10,8 @@ from typing import Optional, Protocol
 
 from django.conf import settings
 from django.shortcuts import reverse
+from django.utils.functional import SimpleLazyObject
+from django.utils.module_loading import import_string
 
 import old_api
 from airlock.users import User
@@ -422,3 +424,13 @@ class ProviderAPI:
             )
 
         self.set_status(request, Status.RELEASED, user)
+
+
+def _get_configured_api():
+    ProviderImplementation = import_string(settings.AIRLOCK_API_PROVIDER)
+    return ProviderImplementation()
+
+
+# We follow the Django pattern of using a lazy object which configures itself on first
+# access so as to avoid reading `settings` during import
+api = SimpleLazyObject(_get_configured_api)

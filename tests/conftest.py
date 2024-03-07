@@ -2,9 +2,9 @@ import pytest
 import responses as _responses
 from django.conf import settings
 
+import airlock.api
 import old_api
 import tests.factories
-from local_db.api import LocalDBProvider
 
 
 # Fail the test run if we see any warnings
@@ -34,9 +34,8 @@ def responses():
 # we could parameterise this fixture to run tests over all api implementations in future
 @pytest.fixture
 def api(monkeypatch):
-    api = LocalDBProvider()
-    monkeypatch.setattr(tests.factories, "api", api)
-    return api
+    monkeypatch.setattr(tests.factories, "api", airlock.api.api)
+    return airlock.api.api
 
 
 @pytest.fixture

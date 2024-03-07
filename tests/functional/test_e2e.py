@@ -4,12 +4,8 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from airlock.api import Status
-from local_db.api import LocalDBProvider
+from airlock.api import Status, api
 from tests import factories
-
-
-api = LocalDBProvider()
 
 
 @pytest.fixture
