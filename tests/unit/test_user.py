@@ -55,3 +55,27 @@ def test_session_user_has_permission(output_checker, workspaces, has_permission)
     }
     user = User.from_session(mock_session)
     assert user.has_permission("test") == has_permission
+
+
+@pytest.mark.parametrize(
+    "output_checker,workspaces,can_create_request",
+    [
+        (True, [], False),
+        (True, ["other", "other1"], False),
+        (False, ["test", "other", "other1"], True),
+        (False, ["other", "other1"], False),
+    ],
+)
+def test_session_user_can_create_request(
+    output_checker, workspaces, can_create_request
+):
+    mock_session = {
+        "user": {
+            "id": 1,
+            "username": "test",
+            "workspaces": workspaces,
+            "output_checker": output_checker,
+        }
+    }
+    user = User.from_session(mock_session)
+    assert user.can_create_request("test") == can_create_request

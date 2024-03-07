@@ -141,6 +141,21 @@ def test_workspace_view_redirects_to_file(client_with_permission):
     assert response.headers["Location"] == "/workspaces/view/workspace/file.txt"
 
 
+@pytest.mark.parametrize(
+    "user,can_see_form",
+    [
+        ({"workspaces": ["workspace"], "output_checker": True}, True),
+        ({"workspaces": ["workspace"], "output_checker": False}, True),
+        ({"workspaces": [], "output_checker": True}, False),
+    ],
+)
+def test_workspace_view_file_add_to_request(client_with_user, user, can_see_form):
+    client = client_with_user(user)
+    factories.write_workspace_file("workspace", "file.txt")
+    response = client.get("/workspaces/view/workspace/file.txt")
+    assert (response.context["form"] is None) == (not can_see_form)
+
+
 def test_workspace_view_index_no_user(client):
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)

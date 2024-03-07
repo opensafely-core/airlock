@@ -39,13 +39,21 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     # Only include the AddFileForm if this pathitem is a file that
     # can be added to a request - i.e. it is a file and it's not
-    # already on the curent request for the user
+    # already on the curent request for the user, and the user
+    # is allowed to add it to a request (if they are an output-checker they
+    # are allowed to view all workspaces, but not necessarily create
+    # requests for them.)
     # Currently we can just rely on checking the relpath against
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
     form = None
-    if current_request is None or path_item.relpath not in current_request.file_set():
+    file_in_request = (
+        current_request and path_item.relpath in current_request.file_set()
+    )
+    if request.user.can_create_request(workspace_name) and (
+        current_request is None or not file_in_request
+    ):
         form = AddFileForm(release_request=current_request)
 
     return TemplateResponse(
@@ -62,6 +70,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 kwargs={"workspace_name": workspace_name},
             ),
             "current_request": current_request,
+            "file_in_request": file_in_request,
             "form": form,
         },
     )
