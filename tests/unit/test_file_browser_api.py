@@ -323,6 +323,7 @@ def test_request_tree_siblings(release_request):
 
 
 def test_workspace_tree_contents(workspace):
+    (workspace.root() / "dir.ext").mkdir()
     tree = get_workspace_tree(workspace)
 
     with pytest.raises(Exception):
@@ -330,6 +331,8 @@ def test_workspace_tree_contents(workspace):
 
     with pytest.raises(Exception):
         tree.get_path("some_dir").contents()
+
+    tree.get_path("dir.ext").contents() == "dir.ext is not a file"
 
     assert tree.get_path("some_dir/file_a.txt").contents() == "file_a"
 

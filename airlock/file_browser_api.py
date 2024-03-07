@@ -102,7 +102,14 @@ class PathItem:
 
     def contents(self):
         if self.type == PathType.FILE:
-            return self._absolute_path().read_text()
+            abspath = self._absolute_path()
+
+            # backstop against an empty directory with a suffix being
+            # missclassified as a file when building the tree. See build_path_tree.
+            if abspath.is_file():
+                return abspath.read_text()
+
+            return f"{self.relpath} is not a file"
 
         raise Exception(
             f"contents() called on {self.relpath}, which is of type {self.type}"
@@ -204,39 +211,23 @@ class PathItem:
 def get_workspace_tree(workspace, selected_path=ROOT_PATH):
     """Recursively build a workspace tree from files on disk."""
 
-    def build_workspace_tree(path, parent):
-        selected = path == selected_path
-        node = PathItem(
-            container=workspace,
-            relpath=path,
-            parent=parent,
-            selected=selected,
-        )
-
-        if node._absolute_path().is_dir():
-            if path == ROOT_PATH:
-                node.type = PathType.WORKSPACE
-            else:
-                node.type = PathType.DIR
-
-            # recurse and build children nodes
-            node.children = [
-                build_workspace_tree(
-                    child.relative_to(workspace.root()),
-                    parent=node,
-                )
-                for child in node._absolute_path().iterdir()
-            ]
-            node.children.sort(key=children_sort_key)
-            node.expanded = selected or (path in (selected_path.parents or []))
-        else:
-            node.type = PathType.FILE
-
-        return node
-
-    # ensure selected_path is UrlPath
     selected_path = UrlPath(selected_path)
-    return build_workspace_tree(ROOT_PATH, parent=None)
+    root = workspace.root()
+    # list all files in one go is much faster than walking the tree
+    pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+    root_node = PathItem(
+        container=workspace,
+        relpath=ROOT_PATH,
+        type=PathType.WORKSPACE,
+        parent=None,
+        selected=(selected_path == ROOT_PATH),
+        expanded=True,
+    )
+
+    root_node.children = get_path_tree(
+        workspace, pathlist, parent=root_node, selected_path=selected_path
+    )
+    return root_node
 
 
 def get_request_tree(release_request, selected_path=ROOT_PATH):
@@ -270,12 +261,11 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
             expanded=selected or expanded,
         )
 
-        group_node.children = get_filegroup_tree(
+        group_node.children = get_path_tree(
             release_request,
-            selected_path,
-            group,
-            group_node.relpath,
+            pathlist=[f.relpath for f in group.files],
             parent=group_node,
+            selected_path=selected_path,
             expanded=expanded,
         )
 
@@ -284,22 +274,13 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_filegroup_tree(
-    container, selected_path, group_data, group_path, parent, expanded
-):
-    """Get the tree for a filegroup's files.
+def get_path_tree(container, pathlist, parent, selected_path=ROOT_PATH, expanded=False):
+    """Walk a flat list of paths and create a tree from them."""
 
-    This is more than just a walk the disk. The FileGroup.files is a flat list of
-    relative paths. So we need to group those by common prefix and descend down
-    the tree.
-    """
-
-    def build_filegroup_tree(file_parts, path, parent):
-        """Walk a flat list of paths and create a directories tree for them."""
-
+    def build_path_tree(path_parts, parent):
         # group multiple paths into groups by first part of path
         grouped = dict()
-        for child, *descendants in file_parts:
+        for child, *descendants in path_parts:
             if child not in grouped:
                 grouped[child] = []
             if descendants:
@@ -310,30 +291,39 @@ def get_filegroup_tree(
         # now we have them grouped by first path element, we can create a node
         # in the tree for them
         for child, descendants in grouped.items():
-            child_path = path / child
-
-            selected = child_path == selected_path
+            path = parent.relpath / child
+            selected = path == selected_path
             node = PathItem(
                 container=container,
-                relpath=child_path,
+                relpath=path,
                 parent=parent,
                 selected=selected,
             )
 
-            abspath = node._absolute_path()
-            assert abspath.exists()
-
-            if descendants:
-                assert abspath.is_dir()
+            # If it has decendants, it is a directory. However, an empty
+            # directory in workspace still needs to be classed as a PathType.DIR.
+            # So we infer if it is by checking for lack of suffix. All output files
+            # *must* have a suffix, so this is a reasonable check.
+            #
+            # However, in theory, there could be an empty directory with
+            # a suffix in its name, so this will treat these as a file rather
+            # than a directory.  If this is a problem, we could instead call
+            # is_dir(), but we are trying to avoid hitting the filesystem in
+            # the tree recursion for speed.
+            #
+            # We have a backstop check to not blow up in this case
+            # PathItem.contents()
+            if descendants or path.suffix == "":
                 node.type = PathType.DIR
                 # recurse down the tree
-                node.children = build_filegroup_tree(
-                    descendants, child_path, parent=node
-                )
-                node.expanded = expanded
+                node.children = build_path_tree(descendants, parent=node)
 
+                # expand all regardless of selected state, used for request filegroup trees
+                if expanded:
+                    node.expanded = True
+                else:
+                    node.expanded = selected or (path in (selected_path.parents or []))
             else:
-                assert abspath.is_file()
                 node.type = PathType.FILE
 
             tree.append(node)
@@ -342,8 +332,8 @@ def get_filegroup_tree(
         tree.sort(key=children_sort_key)
         return tree
 
-    file_parts = [f.relpath.parts for f in group_data.files]
-    return build_filegroup_tree(file_parts, group_path, parent)
+    path_parts = [p.parts for p in pathlist]
+    return build_path_tree(path_parts, parent)
 
 
 def children_sort_key(node):
