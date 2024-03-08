@@ -4,7 +4,11 @@ import { fontFamily } from "tailwindcss/defaultTheme";
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./assets/templates/**/*.html", "./assets/src/scripts/**/*.{js,jsx}"],
+  content: [
+    "./airlock/templates/**/*.html",
+    "./assets/src/scripts/**/*.{js,jsx}",
+    "./assets/templates/**/*.html",
+  ],
   theme: {
     extend: {
       fontFamily: {
