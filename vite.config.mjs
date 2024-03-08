@@ -10,6 +10,7 @@ const config = {
     rollupOptions: {
       input: {
         base: "./assets/src/scripts/base.js",
+        components: "./assets/src/scripts/components.js",
         multiselect: "./assets/templates/_components/multiselect/multiselect.js",
       },
     },

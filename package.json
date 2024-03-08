@@ -23,6 +23,9 @@
     "@github/filter-input-element": "^0.1.1",
     "@remotedevforce/tom-select": "^2.2.8",
     "@zachleat/details-utils": "^2.0.2",
-    "htmx.org": "^1.9.10"
+    "highlight.js": "^11.9.0",
+    "htmx.org": "^1.9.10",
+    "simple-datatables": "^9.0.0",
+    "slugify": "^1.6.6"
   }
 }
