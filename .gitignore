@@ -14,3 +14,6 @@ __pycache__/
 # docker temp config
 /job-server/.env.jobserver
 
+# Assets
+/node_modules
+/assets/dist
