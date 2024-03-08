@@ -2,7 +2,7 @@ import pytest
 import responses as _responses
 from django.conf import settings
 
-import airlock.api
+import airlock.business_logic
 import old_api
 import tests.factories
 
@@ -31,11 +31,12 @@ def responses():
         yield rsps
 
 
-# we could parameterise this fixture to run tests over all api implementations in future
+# We could parameterise this fixture to run tests over all Data Access Layer
+# implementations in future
 @pytest.fixture
-def api(monkeypatch):
-    monkeypatch.setattr(tests.factories, "api", airlock.api.api)
-    return airlock.api.api
+def bll(monkeypatch):
+    monkeypatch.setattr(tests.factories, "bll", airlock.business_logic.bll)
+    return airlock.business_logic.bll
 
 
 @pytest.fixture

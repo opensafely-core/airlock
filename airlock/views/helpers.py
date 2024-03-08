@@ -3,7 +3,7 @@ from email.utils import formatdate
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 
-from airlock.api import api
+from airlock.business_logic import bll
 
 
 def login_exempt(view):
@@ -14,8 +14,8 @@ def login_exempt(view):
 def validate_workspace(user, workspace_name):
     """Ensure the workspace exists and the current user has permissions to access it."""
     try:
-        workspace = api.get_workspace(workspace_name)
-    except api.WorkspaceNotFound:
+        workspace = bll.get_workspace(workspace_name)
+    except bll.WorkspaceNotFound:
         raise Http404()
 
     if user is None or not user.has_permission(workspace_name):
@@ -27,8 +27,8 @@ def validate_workspace(user, workspace_name):
 def validate_release_request(user, request_id):
     """Ensure the release request exists for this workspace."""
     try:
-        release_request = api.get_release_request(request_id)
-    except api.ReleaseRequestNotFound:
+        release_request = bll.get_release_request(request_id)
+    except bll.ReleaseRequestNotFound:
         raise Http404()
 
     # check user permissions for this workspace

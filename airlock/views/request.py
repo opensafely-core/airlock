@@ -9,18 +9,18 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.api import Status, api
+from airlock.business_logic import Status, bll
 from airlock.file_browser_api import get_request_tree
 
 from .helpers import serve_file, validate_release_request
 
 
 def request_index(request):
-    authored_requests = api.get_requests_authored_by_user(request.user)
+    authored_requests = bll.get_requests_authored_by_user(request.user)
 
     outstanding_requests = []
     if request.user.output_checker:
-        outstanding_requests = api.get_outstanding_requests_for_review(request.user)
+        outstanding_requests = bll.get_outstanding_requests_for_review(request.user)
 
     return TemplateResponse(
         request,
@@ -74,7 +74,7 @@ def request_view(request, request_id: str, path: str = ""):
     )
 
     context = {
-        "workspace": api.get_workspace(release_request.workspace),
+        "workspace": bll.get_workspace(release_request.workspace),
         "release_request": release_request,
         "root": tree,
         "path_item": path_item,
@@ -97,7 +97,7 @@ def request_contents(request, request_id: str, path: str):
 
     try:
         abspath = release_request.abspath(path)
-    except api.FileNotFound:
+    except bll.FileNotFound:
         raise Http404()
 
     if not abspath.is_file():
@@ -121,8 +121,8 @@ def request_submit(request, request_id):
     release_request = validate_release_request(request.user, request_id)
 
     try:
-        api.set_status(release_request, Status.SUBMITTED, request.user)
-    except api.RequestPermissionDenied as exc:
+        bll.set_status(release_request, Status.SUBMITTED, request.user)
+    except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
@@ -134,8 +134,8 @@ def request_reject(request, request_id):
     release_request = validate_release_request(request.user, request_id)
 
     try:
-        api.set_status(release_request, Status.REJECTED, request.user)
-    except api.RequestPermissionDenied as exc:
+        bll.set_status(release_request, Status.REJECTED, request.user)
+    except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     messages.error(request, "Request has been rejected")
@@ -148,9 +148,9 @@ def request_release_files(request, request_id):
 
     try:
         # For now, we just implicitly approve when release files is requested
-        api.set_status(release_request, Status.APPROVED, request.user)
-        api.release_files(release_request, request.user)
-    except api.RequestPermissionDenied as exc:
+        bll.set_status(release_request, Status.APPROVED, request.user)
+        bll.release_files(release_request, request.user)
+    except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
     except requests.HTTPError as err:
         if settings.DEBUG:

@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 import requests
 
-from airlock.api import Status
+from airlock.business_logic import Status
 from airlock.users import User
 from tests import factories
 
@@ -304,7 +304,7 @@ def test_request_submit_author(client_with_user):
     response = permitted_client.post(f"/requests/submit/{release_request.id}")
 
     assert response.status_code == 302
-    persisted_request = factories.api.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(release_request.id)
     assert persisted_request.status == Status.SUBMITTED
 
 
@@ -319,7 +319,7 @@ def test_request_submit_not_author(client_with_user):
     response = permitted_client.post(f"/requests/submit/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.api.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(release_request.id)
     assert persisted_request.status == Status.PENDING
 
 
@@ -335,7 +335,7 @@ def test_request_reject_output_checker(client_with_permission):
     response = client_with_permission.post(f"/requests/reject/{release_request.id}")
 
     assert response.status_code == 302
-    persisted_request = factories.api.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(release_request.id)
     assert persisted_request.status == Status.REJECTED
 
 
@@ -352,7 +352,7 @@ def test_request_reject_not_output_checker(client_with_user):
     response = client.post(f"/requests/reject/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.api.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(release_request.id)
     assert persisted_request.status == Status.SUBMITTED
 
 

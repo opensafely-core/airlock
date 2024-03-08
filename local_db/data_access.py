@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.db import transaction
 
-from airlock.api import (
+from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     Status,

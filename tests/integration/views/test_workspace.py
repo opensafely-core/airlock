@@ -233,28 +233,28 @@ def test_workspaces_index_user_permitted_workspaces(client_with_user):
     assert "test2" not in response.rendered_content
 
 
-def test_workspace_request_file_creates(client_with_user, api):
+def test_workspace_request_file_creates(client_with_user, bll):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    assert api.get_current_request(workspace.name, user) is None
+    assert bll.get_current_request(workspace.name, user) is None
     response = client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
 
-    release_request = api.get_current_request(workspace.name, user)
+    release_request = bll.get_current_request(workspace.name, user)
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert str(filegroup.files[0].relpath) == "test/path.txt"
     assert release_request.abspath("default/test/path.txt").exists()
 
 
-def test_workspace_request_file_request_already_exists(client_with_user, api):
+def test_workspace_request_file_request_already_exists(client_with_user, bll):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
@@ -268,7 +268,7 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
         data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
-    current_release_request = api.get_current_request(workspace.name, user)
+    current_release_request = bll.get_current_request(workspace.name, user)
     assert current_release_request.id == release_request.id
     assert current_release_request.abspath("default/test/path.txt").exists()
     filegroup = current_release_request.filegroups["default"]
@@ -276,14 +276,14 @@ def test_workspace_request_file_request_already_exists(client_with_user, api):
     assert str(filegroup.files[0].relpath) == "test/path.txt"
 
 
-def test_workspace_request_file_with_new_filegroup(client_with_user, api):
+def test_workspace_request_file_with_new_filegroup(client_with_user, bll):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    assert api.get_current_request(workspace.name, user) is None
+    assert bll.get_current_request(workspace.name, user) is None
     response = client.post(
         "/workspaces/add-file-to-request/test1",
         data={
@@ -295,12 +295,12 @@ def test_workspace_request_file_with_new_filegroup(client_with_user, api):
     )
     assert response.status_code == 302
 
-    release_request = api.get_current_request(workspace.name, user)
+    release_request = bll.get_current_request(workspace.name, user)
     filegroup = release_request.filegroups["new_group"]
     assert filegroup.name == "new_group"
 
 
-def test_workspace_request_file_filegroup_already_exists(client_with_user, api):
+def test_workspace_request_file_filegroup_already_exists(client_with_user, bll):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 
@@ -342,7 +342,7 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
     assert response.status_code == 404
 
 
-def test_workspace_request_file_invalid_new_filegroup(client_with_user, api):
+def test_workspace_request_file_invalid_new_filegroup(client_with_user, bll):
     client = client_with_user({"workspaces": ["test1"]})
     user = User.from_session(client.session)
 

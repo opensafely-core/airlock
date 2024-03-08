@@ -505,11 +505,11 @@ class BusinessLogicLayer:
         self.set_status(request, Status.RELEASED, user)
 
 
-def _get_configured_api():
+def _get_configured_bll():
     DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)
     return BusinessLogicLayer(DataAccessLayer())
 
 
 # We follow the Django pattern of using a lazy object which configures itself on first
 # access so as to avoid reading `settings` during import
-api = SimpleLazyObject(_get_configured_api)
+bll = SimpleLazyObject(_get_configured_bll)
