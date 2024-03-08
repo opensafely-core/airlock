@@ -2,6 +2,7 @@
 Ensure all the various places in which we need to reference our target Python version
 are consistent.
 """
+
 import re
 from pathlib import Path
 

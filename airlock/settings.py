@@ -337,7 +337,7 @@ LOGGING = {
     },
     "filters": {
         "missing_variable_error": {
-            "()": "{0.__module__}.{0.__name__}".format(MissingVariableErrorFilter),
+            "()": f"{MissingVariableErrorFilter.__module__}.{MissingVariableErrorFilter.__name__}",
         },
     },
     "loggers": {
