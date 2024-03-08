@@ -29,12 +29,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Build assets
+        run: npm ci && npm run build
+
       - uses: "opensafely-core/setup-action@v1"
         with:
           python-version: "3.11"
           install-just: true
+
       - name: Set up development environment
         run: just devenv
+
       - name: Run tests
         run: |
           just test-all
