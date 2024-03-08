@@ -15,16 +15,19 @@
           <small><code>{{ dev_users_file }}</code></small>
         {% /alert %}
       {% endif %}
-      <form class="gap-2 flex-wrap md:flex-nowrap" method="POST" action="{% url 'login' %}" >
+      <form class="gap-2 flex-wrap md:flex-nowrap" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" >
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next_url }}" />
 
         {% form_input type="text" field=token_login_form.user label="GitHub username or Email address" class="mb-3" placeholder="opensafely" input_class="max-w-md" %}
         {% form_input type="text" field=token_login_form.token label="Single Use Token" placeholder="three random words" show_placeholder=True class="mb-3" input_class="max-w-md" %}
 
-        {% #button type="submit" variant="primary-outline" %}
+        {% #button type="submit" variant="primary-outline" id="login-button" %}
           Log in with token
         {% /button %}
+        <span id="spinner" class="hidden" >
+          {% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2" %}
+        </span>
       </form>
       <div class="prose prose-sm mb-6">
         <p>
@@ -42,3 +45,15 @@
     {% /card %}
 
 {% endblock content %}
+
+
+{% block extra_js %}
+
+  <script type="text/javascript">
+    function showSpinner() {
+      document.getElementById('login-button').classList.add('hidden');
+      document.getElementById('spinner').classList.remove('hidden');
+    }
+  </script>
+
+{% endblock %}
