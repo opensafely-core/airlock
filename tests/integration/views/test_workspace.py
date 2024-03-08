@@ -53,6 +53,7 @@ def test_workspace_view_with_file(client_with_permission):
     assert response.status_code == 200
     assert "foobar" in response.rendered_content
     assert response.template_name == "file_browser/index.html"
+    assert "HX-Request" in response.headers["Vary"]
 
 
 def test_workspace_view_with_file_htmx(client_with_permission):
@@ -64,6 +65,7 @@ def test_workspace_view_with_file_htmx(client_with_permission):
     assert "foobar" in response.rendered_content
     assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
+    assert "HX-Request" in response.headers["Vary"]
 
 
 def test_workspace_view_with_html_file(client_with_permission):

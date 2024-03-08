@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.vary import vary_on_headers
 
 from airlock.api import Status
 from airlock.file_browser_api import get_request_tree
@@ -35,6 +36,8 @@ def request_index(request):
     )
 
 
+# we return different content if it is a HTMX request.
+@vary_on_headers("HX-Request")
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
