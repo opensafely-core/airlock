@@ -75,7 +75,7 @@ class Workspace:
 
     def __post_init__(self):
         if not self.root().exists():
-            raise ProviderAPI.WorkspaceNotFound(self.name)
+            raise BusinessLogicLayer.WorkspaceNotFound(self.name)
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
@@ -107,7 +107,7 @@ class Workspace:
 
         # validate path exists
         if not path.exists():
-            raise ProviderAPI.FileNotFound(path)
+            raise BusinessLogicLayer.FileNotFound(path)
 
         return path
 
@@ -214,7 +214,7 @@ class ReleaseRequest:
         group = relpath.parts[0]
 
         if group not in self.filegroups:
-            raise ProviderAPI.FileNotFound(f"bad group {group} in url {relpath}")
+            raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
 
         filepath = relpath.relative_to(group)
         path = root / filepath
@@ -224,7 +224,7 @@ class ReleaseRequest:
 
         # validate path exists
         if not path.exists():
-            raise ProviderAPI.FileNotFound(path)
+            raise BusinessLogicLayer.FileNotFound(path)
 
         return path
 
@@ -246,10 +246,8 @@ class DataAccessLayerProtocol:
     """
 
 
-class ProviderAPI:
+class BusinessLogicLayer:
     """
-    Business Logic Layer (class will be renamed later)
-
     The mechanism via which the rest of the codebase should read and write application
     state. Interacts with a Data Access Layer purely by exchanging simple values
     (dictionaries, strings etc).
@@ -340,7 +338,7 @@ class ProviderAPI:
             # Output checkers can view all workspaces, but are not allowed to
             # create requests for all workspaces.
             if workspace_name not in user.workspaces:
-                raise ProviderAPI.RequestPermissionDenied(workspace_name)
+                raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
 
             new_request = self._dal.create_release_request(
                 workspace=workspace_name,
@@ -509,7 +507,7 @@ class ProviderAPI:
 
 def _get_configured_api():
     DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)
-    return ProviderAPI(DataAccessLayer())
+    return BusinessLogicLayer(DataAccessLayer())
 
 
 # We follow the Django pattern of using a lazy object which configures itself on first

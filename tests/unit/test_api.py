@@ -6,7 +6,7 @@ import pytest
 from django.conf import settings
 
 import old_api
-from airlock.api import ProviderAPI, Status, UrlPath, Workspace
+from airlock.api import BusinessLogicLayer, Status, UrlPath, Workspace
 from airlock.users import User
 from tests import factories
 
@@ -56,7 +56,7 @@ def test_provider_get_workspaces_for_user(user_workspaces, output_checker, expec
     factories.create_workspace("not-allowed")
     user = User(1, "test", user_workspaces, output_checker)
 
-    api = ProviderAPI(data_access_layer=None)
+    api = BusinessLogicLayer(data_access_layer=None)
 
     assert set(api.get_workspaces_for_user(user)) == set(Workspace(w) for w in expected)
 
@@ -79,7 +79,7 @@ def test_provider_request_release_files_not_approved():
         status=Status.SUBMITTED,
     )
 
-    api = ProviderAPI(data_access_layer=None)
+    api = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(api.InvalidStateTransition):
         api.release_files(release_request, checker)
 
@@ -100,7 +100,7 @@ def test_provider_request_release_files(mock_old_api):
 
     abspath = release_request.abspath("group" / relpath)
 
-    api = ProviderAPI(data_access_layer=Mock())
+    api = BusinessLogicLayer(data_access_layer=Mock())
     api.release_files(release_request, checker)
 
     expected_json = {

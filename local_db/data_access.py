@@ -3,8 +3,8 @@ from pathlib import Path
 from django.db import transaction
 
 from airlock.api import (
+    BusinessLogicLayer,
     DataAccessLayerProtocol,
-    ProviderAPI,
     Status,
 )
 from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
@@ -34,7 +34,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         try:
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
-            raise ProviderAPI.ReleaseRequestNotFound(request_id)
+            raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
 
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
         """Unpack file group db data into FileGroup and RequestFile objects."""
@@ -110,7 +110,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     relpath=str(relpath), filegroup=filegroupmetadata
                 )
             else:
-                raise ProviderAPI.APIException(
+                raise BusinessLogicLayer.APIException(
                     "File has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
