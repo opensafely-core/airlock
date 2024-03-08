@@ -123,6 +123,8 @@ class RequestFile:
     """
 
     relpath: UrlPath
+    # Default is temporary: this field will become required soon
+    file_id: str = ""
 
     @classmethod
     def from_dict(cls, attrs):
