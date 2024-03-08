@@ -108,6 +108,42 @@ def test_get_request_tree_general(release_request):
     render_to_string("file_browser/tree.html", {"path": tree})
 
 
+def test_get_workspace_tree_selected_only(workspace):
+    """Tests an entire tree for the basics."""
+    selected_path = UrlPath("some_dir/file_a.txt")
+    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace*
+          some_dir*
+            file_a.txt**
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
+@pytest.mark.django_db
+def test_get_request_tree_selected_only(release_request):
+    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    tree = get_request_tree(release_request, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree, and all groups
+    expected = textwrap.dedent(
+        f"""
+        {release_request.id}*
+          group1*
+            some_dir*
+              file_a.txt**
+          group2
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
 @pytest.mark.parametrize(
     "path,exists",
     [

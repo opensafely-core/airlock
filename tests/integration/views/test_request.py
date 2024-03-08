@@ -53,7 +53,21 @@ def test_request_view_with_file(client_with_permission):
         f"/requests/view/{release_request.id}/group/file.txt"
     )
     assert response.status_code == 200
-    assert "group" in response.rendered_content
+    assert "foobar" in response.rendered_content
+    assert response.template_name == "file_browser/index.html"
+
+
+def test_request_view_with_file_htmx(client_with_permission):
+    release_request = factories.create_release_request("workspace")
+    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    response = client_with_permission.get(
+        f"/requests/view/{release_request.id}/group/file.txt",
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    assert "foobar" in response.rendered_content
+    assert response.template_name == "file_browser/contents.html"
+    assert '<ul id="tree"' not in response.rendered_content
 
 
 def test_request_view_with_submitted_request(client_with_permission):

@@ -52,6 +52,18 @@ def test_workspace_view_with_file(client_with_permission):
     response = client_with_permission.get("/workspaces/view/workspace/file.txt")
     assert response.status_code == 200
     assert "foobar" in response.rendered_content
+    assert response.template_name == "file_browser/index.html"
+
+
+def test_workspace_view_with_file_htmx(client_with_permission):
+    factories.write_workspace_file("workspace", "file.txt", "foobar")
+    response = client_with_permission.get(
+        "/workspaces/view/workspace/file.txt", headers={"HX-Request": "true"}
+    )
+    assert response.status_code == 200
+    assert "foobar" in response.rendered_content
+    assert response.template_name == "file_browser/contents.html"
+    assert '<ul id="tree"' not in response.rendered_content
 
 
 def test_workspace_view_with_html_file(client_with_permission):

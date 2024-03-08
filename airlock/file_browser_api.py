@@ -208,13 +208,20 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
-def get_workspace_tree(workspace, selected_path=ROOT_PATH):
-    """Recursively build a workspace tree from files on disk."""
+def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
+    """Recursively build workspace tree from the root dir.
+
+    If selected_only==True, only build the selected path, not the entire tree."""
 
     selected_path = UrlPath(selected_path)
     root = workspace.root()
-    # list all files in one go is much faster than walking the tree
-    pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+
+    if selected_only:
+        pathlist = [selected_path]
+    else:
+        # listing all files in one go is much faster than walking the tree
+        pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+
     root_node = PathItem(
         container=workspace,
         relpath=ROOT_PATH,
@@ -230,7 +237,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_request_tree(release_request, selected_path=ROOT_PATH):
+def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=False):
     """Build a tree recursively for a ReleaseRequest
 
     For each group, we create a node for that group, and then build a sub-tree
@@ -261,9 +268,19 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
             expanded=selected or expanded,
         )
 
+        pathlist = [f.relpath for f in group.files]
+
+        if selected_only:
+            if expanded:
+                # remove group
+                relpath = selected_path.relative_to(selected_path.parts[0])
+                pathlist = [relpath]
+            else:
+                pathlist = []
+
         group_node.children = get_path_tree(
             release_request,
-            pathlist=[f.relpath for f in group.files],
+            pathlist=pathlist,
             parent=group_node,
             selected_path=selected_path,
             expanded=expanded,
@@ -274,7 +291,14 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_path_tree(container, pathlist, parent, selected_path=ROOT_PATH, expanded=False):
+def get_path_tree(
+    container,
+    pathlist,
+    parent,
+    selected_path=ROOT_PATH,
+    expanded=False,
+    selected_only=False,
+):
     """Walk a flat list of paths and create a tree from them."""
 
     def build_path_tree(path_parts, parent):

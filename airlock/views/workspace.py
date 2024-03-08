@@ -24,7 +24,14 @@ def workspace_index(request):
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    tree = get_workspace_tree(workspace, path)
+    template = "file_browser/index.html"
+    selected_only = False
+
+    if request.htmx:
+        template = "file_browser/contents.html"
+        selected_only = True
+
+    tree = get_workspace_tree(workspace, path, selected_only)
 
     try:
         path_item = tree.get_path(path)
@@ -58,7 +65,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     return TemplateResponse(
         request,
-        "file_browser/index.html",
+        template,
         {
             "workspace": workspace,
             "root": tree,

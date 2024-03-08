@@ -38,7 +38,15 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    tree = get_request_tree(release_request, path)
+    template = "file_browser/index.html"
+    selected_only = False
+
+    if request.htmx:
+        template = "file_browser/contents.html"
+        selected_only = True
+
+    tree = get_request_tree(release_request, path, selected_only)
+
     try:
         path_item = tree.get_path(path)
     except tree.PathNotFound:
@@ -81,7 +89,7 @@ def request_view(request, request_id: str, path: str = ""):
         "release_files_url": release_files_url,
     }
 
-    return TemplateResponse(request, "file_browser/index.html", context)
+    return TemplateResponse(request, template, context)
 
 
 @require_http_methods(["GET"])
