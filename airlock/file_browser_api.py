@@ -8,7 +8,7 @@ class PathType(Enum):
     """Types of PathItems in a tree."""
 
     FILE = "file"
-    DIR = "dir"
+    DIR = "directory"
     WORKSPACE = "workspace"
     REQUEST = "request"
     FILEGROUP = "filegroup"
@@ -143,7 +143,7 @@ class PathItem:
         distinguish file/dirs, and maybe even file types, in the UI, in case we
         need to.
         """
-        classes = [self.type.name.lower()]
+        classes = [self.type.value.lower()]
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
