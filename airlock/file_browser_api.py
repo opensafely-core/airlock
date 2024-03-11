@@ -268,15 +268,16 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             expanded=selected or expanded,
         )
 
-        pathlist = [f.relpath for f in group.files]
+        pathlist = []
 
         if selected_only:
             if expanded:
-                # remove group
+                # remove group from path
                 relpath = selected_path.relative_to(selected_path.parts[0])
-                pathlist = [relpath]
-            else:
-                pathlist = []
+                if relpath != ROOT_PATH:
+                    pathlist = [relpath]
+        else:
+            pathlist = [f.relpath for f in group.files]
 
         group_node.children = get_path_tree(
             release_request,

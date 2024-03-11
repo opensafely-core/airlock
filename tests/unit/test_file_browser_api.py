@@ -126,7 +126,7 @@ def test_get_workspace_tree_selected_only(workspace):
 
 
 @pytest.mark.django_db
-def test_get_request_tree_selected_only(release_request):
+def test_get_request_tree_selected_only_file(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
     tree = get_request_tree(release_request, selected_path, selected_only=True)
 
@@ -137,6 +137,23 @@ def test_get_request_tree_selected_only(release_request):
           group1*
             some_dir*
               file_a.txt**
+          group2
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
+@pytest.mark.django_db
+def test_get_request_tree_selected_only_group(release_request):
+    selected_path = UrlPath("group1")
+    tree = get_request_tree(release_request, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree, and all groups
+    expected = textwrap.dedent(
+        f"""
+        {release_request.id}*
+          group1***
           group2
         """
     )
