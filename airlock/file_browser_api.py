@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from airlock.api import ROOT_PATH, AirlockContainer, UrlPath
+from airlock.business_logic import ROOT_PATH, AirlockContainer, UrlPath
 
 
 class PathType(Enum):

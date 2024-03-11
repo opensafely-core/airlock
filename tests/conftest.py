@@ -2,9 +2,9 @@ import pytest
 import responses as _responses
 from django.conf import settings
 
+import airlock.business_logic
 import old_api
 import tests.factories
-from local_db.api import LocalDBProvider
 
 
 # Fail the test run if we see any warnings
@@ -31,12 +31,12 @@ def responses():
         yield rsps
 
 
-# we could parameterise this fixture to run tests over all api implementations in future
+# We could parameterise this fixture to run tests over all Data Access Layer
+# implementations in future
 @pytest.fixture
-def api(monkeypatch):
-    api = LocalDBProvider()
-    monkeypatch.setattr(tests.factories, "api", api)
-    return api
+def bll(monkeypatch):
+    monkeypatch.setattr(tests.factories, "bll", airlock.business_logic.bll)
+    return airlock.business_logic.bll
 
 
 @pytest.fixture

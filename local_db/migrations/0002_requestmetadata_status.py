@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import airlock.api
+import airlock.business_logic
 import local_db.models
 
 
@@ -15,6 +15,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="requestmetadata",
             name="status",
-            field=local_db.models.StatusField(default=airlock.api.Status["PENDING"]),
+            field=local_db.models.StatusField(
+                default=airlock.business_logic.Status["PENDING"]
+            ),
         ),
     ]

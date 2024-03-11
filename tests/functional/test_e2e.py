@@ -4,12 +4,8 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from airlock.api import Status
-from local_db.api import LocalDBProvider
+from airlock.business_logic import Status, bll
 from tests import factories
-
-
-api = LocalDBProvider()
 
 
 @pytest.fixture
@@ -196,7 +192,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert download.suggested_filename == "file.txt"
 
     # Mock the responses from job-server
-    release_request = api.get_release_request(request_id)
+    release_request = bll.get_release_request(request_id)
     release_files_stubber(release_request)
 
     # Release the files

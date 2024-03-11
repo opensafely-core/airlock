@@ -10,6 +10,8 @@ from typing import Optional, Protocol
 
 from django.conf import settings
 from django.shortcuts import reverse
+from django.utils.functional import SimpleLazyObject
+from django.utils.module_loading import import_string
 
 import old_api
 from airlock.users import User
@@ -73,7 +75,7 @@ class Workspace:
 
     def __post_init__(self):
         if not self.root().exists():
-            raise ProviderAPI.WorkspaceNotFound(self.name)
+            raise BusinessLogicLayer.WorkspaceNotFound(self.name)
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
@@ -105,7 +107,7 @@ class Workspace:
 
         # validate path exists
         if not path.exists():
-            raise ProviderAPI.FileNotFound(path)
+            raise BusinessLogicLayer.FileNotFound(path)
 
         return path
 
@@ -121,6 +123,10 @@ class RequestFile:
 
     relpath: UrlPath
 
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(**attrs)
+
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -130,6 +136,13 @@ class FileGroup:
 
     name: str
     files: list[RequestFile]
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "files"},
+            files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
+        )
 
 
 @dataclass
@@ -151,6 +164,17 @@ class ReleaseRequest:
 
     # can be set to mark the currently selected path in this release request
     selected_path: UrlPath = ROOT_PATH
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "filegroups"},
+            filegroups=cls._filegroups_from_dict(attrs.get("filegroups", {})),
+        )
+
+    @staticmethod
+    def _filegroups_from_dict(attrs):
+        return {key: FileGroup.from_dict(value) for key, value in attrs.items()}
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
@@ -190,7 +214,7 @@ class ReleaseRequest:
         group = relpath.parts[0]
 
         if group not in self.filegroups:
-            raise ProviderAPI.FileNotFound(f"bad group {group} in url {relpath}")
+            raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
 
         filepath = relpath.relative_to(group)
         path = root / filepath
@@ -200,7 +224,7 @@ class ReleaseRequest:
 
         # validate path exists
         if not path.exists():
-            raise ProviderAPI.FileNotFound(path)
+            raise BusinessLogicLayer.FileNotFound(path)
 
         return path
 
@@ -211,8 +235,27 @@ class ReleaseRequest:
             for request_file in filegroup.files
         }
 
+    def set_filegroups_from_dict(self, attrs):
+        self.filegroups = self._filegroups_from_dict(attrs)
 
-class ProviderAPI:
+
+class DataAccessLayerProtocol:
+    """
+    Placeholder for a structural type class we can use to define what a data access
+    layer should look like, once we've settled what that is.
+    """
+
+
+class BusinessLogicLayer:
+    """
+    The mechanism via which the rest of the codebase should read and write application
+    state. Interacts with a Data Access Layer purely by exchanging simple values
+    (dictionaries, strings etc).
+    """
+
+    def __init__(self, data_access_layer: DataAccessLayerProtocol):
+        self._dal = data_access_layer
+
     class APIException(Exception):
         pass
 
@@ -265,11 +308,11 @@ class ProviderAPI:
         Is private because it is mean to only be used by our test factories to
         set up state - it is not part of the public API.
         """
-        raise NotImplementedError()
+        return ReleaseRequest.from_dict(self._dal.create_release_request(**kwargs))
 
     def get_release_request(self, request_id: str) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
-        raise NotImplementedError()
+        return ReleaseRequest.from_dict(self._dal.get_release_request(request_id))
 
     def get_current_request(
         self, workspace_name: str, user: User, create: bool = False
@@ -278,15 +321,52 @@ class ProviderAPI:
 
         If create is True, create one.
         """
-        raise NotImplementedError()
+        active_requests = self._dal.get_active_requests_for_workspace_by_user(
+            workspace=workspace_name,
+            username=user.username,
+        )
+
+        n = len(active_requests)
+        if n > 1:
+            raise Exception(
+                f"Multiple active release requests for user {user.username} in workspace {workspace_name}"
+            )
+        elif n == 1:
+            return ReleaseRequest.from_dict(active_requests[0])
+        elif create:
+            # To create a request, you must have explicit workspace permissions.
+            # Output checkers can view all workspaces, but are not allowed to
+            # create requests for all workspaces.
+            if workspace_name not in user.workspaces:
+                raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+
+            new_request = self._dal.create_release_request(
+                workspace=workspace_name,
+                author=user.username,
+            )
+            return ReleaseRequest.from_dict(new_request)
+        else:
+            return None
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
-        raise NotImplementedError()
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_requests_authored_by_user(username=user.username)
+        ]
 
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
-        raise NotImplementedError()
+        # Only output checkers can see these
+        if not user.output_checker:
+            return []
+
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_outstanding_requests_for_review()
+            # Do not show output_checker their own requests
+            if attrs["author"] != user.username
+        ]
 
     VALID_STATE_TRANSITIONS = {
         Status.PENDING: [
@@ -364,6 +444,7 @@ class ProviderAPI:
 
         # validate first
         self.check_status(release_request, to_status, user)
+        self._dal.set_status(release_request.id, to_status)
         release_request.status = to_status
 
     def add_file_to_request(
@@ -373,14 +454,6 @@ class ProviderAPI:
         user: User,
         group_name: Optional[str] = "default",
     ):
-        """Add a file to a request.
-
-        Subclasses should do what they need to create the filegroup and
-        record the file metadata as needed and THEN
-        call super().add_file_to_request(...) to do the
-        copying. If the copying fails (e.g. due to permission errors raised
-        below), the subclasses should roll back any changes.
-        """
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(
                 f"only author {release_request.author} can add files to this request"
@@ -398,6 +471,14 @@ class ProviderAPI:
         dst.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(src, dst)
 
+        # TODO: This is not currently safe in that we modify the filesytem before
+        # calling out to the DAL which could fail. We will deal with this later by
+        # switching to a content-addressed storage model which avoids having mutable
+        # state on the filesystem.
+        filegroup_data = self._dal.add_file_to_request(
+            request_id=release_request.id, group_name=group_name, relpath=relpath
+        )
+        release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
     def release_files(self, request: ReleaseRequest, user: User):
@@ -422,3 +503,13 @@ class ProviderAPI:
             )
 
         self.set_status(request, Status.RELEASED, user)
+
+
+def _get_configured_bll():
+    DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)
+    return BusinessLogicLayer(DataAccessLayer())
+
+
+# We follow the Django pattern of using a lazy object which configures itself on first
+# access so as to avoid reading `settings` during import
+bll = SimpleLazyObject(_get_configured_bll)

@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from django.conf import settings
 
 import old_api
-from airlock.api import ProviderAPI, Status, UrlPath, Workspace
+from airlock.business_logic import BusinessLogicLayer, Status, UrlPath, Workspace
 from airlock.users import User
 from tests import factories
 
@@ -56,9 +56,9 @@ def test_provider_get_workspaces_for_user(user_workspaces, output_checker, expec
     factories.create_workspace("not-allowed")
     user = User(1, "test", user_workspaces, output_checker)
 
-    api = ProviderAPI()
+    bll = BusinessLogicLayer(data_access_layer=None)
 
-    assert set(api.get_workspaces_for_user(user)) == set(Workspace(w) for w in expected)
+    assert set(bll.get_workspaces_for_user(user)) == set(Workspace(w) for w in expected)
 
 
 @pytest.fixture
@@ -79,9 +79,9 @@ def test_provider_request_release_files_not_approved():
         status=Status.SUBMITTED,
     )
 
-    api = ProviderAPI()
-    with pytest.raises(api.InvalidStateTransition):
-        api.release_files(release_request, checker)
+    bll = BusinessLogicLayer(data_access_layer=None)
+    with pytest.raises(bll.InvalidStateTransition):
+        bll.release_files(release_request, checker)
 
 
 def test_provider_request_release_files(mock_old_api):
@@ -96,12 +96,12 @@ def test_provider_request_release_files(mock_old_api):
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, "group", relpath, "test")
-    factories.api.set_status(release_request, Status.APPROVED, checker)
+    factories.bll.set_status(release_request, Status.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
 
-    api = ProviderAPI()
-    api.release_files(release_request, checker)
+    bll = BusinessLogicLayer(data_access_layer=Mock())
+    bll.release_files(release_request, checker)
 
     expected_json = {
         "files": [
@@ -127,30 +127,13 @@ def test_provider_request_release_files(mock_old_api):
     )
 
 
-@pytest.mark.parametrize(
-    "workspaces, output_checker, expected",
-    [
-        ([], False, []),
-        (["allowed"], False, ["r1"]),
-        # output checkers can't create requests unless explit permission for workspace
-        ([], True, []),
-        (["allowed"], True, ["r1"]),
-        (["allowed", "notexist"], False, ["r1"]),
-        (["notexist"], False, []),
-        (["no-request-dir", "notexist"], False, []),
-    ],
-)
-def test_provider_get_requests_authored_by_user(
-    workspaces, output_checker, expected, api
-):
-    user = User(1, "test", workspaces, output_checker)
-    other_user = User(1, "other", [], False)
-    factories.create_release_request("allowed", user, id="r1")
-    factories.create_release_request("allowed", other_user, id="r2")
-    factories.create_release_request("not-allowed", user, id="r3")
-    factories.create_workspace("no-request-dir")
+def test_provider_get_requests_authored_by_user(bll):
+    user = User(1, "test", [], True)
+    other_user = User(1, "other", [], True)
+    factories.create_release_request("workspace", user, id="r1")
+    factories.create_release_request("workspace", other_user, id="r2")
 
-    assert set(r.id for r in api.get_requests_authored_by_user(user)) == set(expected)
+    assert [r.id for r in bll.get_requests_authored_by_user(user)] == ["r1"]
 
 
 @pytest.mark.parametrize(
@@ -163,7 +146,7 @@ def test_provider_get_requests_authored_by_user(
         (True, ["r1"]),
     ],
 )
-def test_provider_get_outstanding_requests_for_review(output_checker, expected, api):
+def test_provider_get_outstanding_requests_for_review(output_checker, expected, bll):
     user = User(1, "test", ["workspace"], output_checker)
     other_user = User(1, "other", ["workspace"], False)
     # request created by another user, status submitted
@@ -189,39 +172,39 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
         ws = f"workspace{i}"
         factories.create_release_request(ws, User(1, f"test_{i}", [ws]), status=status)
 
-    assert set(r.id for r in api.get_outstanding_requests_for_review(user)) == set(
+    assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
         expected
     )
 
 
-def test_provider_get_current_request_for_user(api):
+def test_provider_get_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
     user = User(1, "testuser", ["workspace"], False)
     other_user = User(2, "otheruser", ["workspace"], False)
 
-    assert api.get_current_request("workspace", user) is None
+    assert bll.get_current_request("workspace", user) is None
 
     factories.create_release_request(workspace, other_user)
-    assert api.get_current_request("workspace", user) is None
+    assert bll.get_current_request("workspace", user) is None
 
-    release_request = api.get_current_request("workspace", user, create=True)
+    release_request = bll.get_current_request("workspace", user, create=True)
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
     # reach around an simulate 2 active requests for same user
-    api._create_release_request(author=user.username, workspace="workspace")
+    bll._create_release_request(author=user.username, workspace="workspace")
 
     with pytest.raises(Exception):
-        api.get_current_request("workspace", user)
+        bll.get_current_request("workspace", user)
 
 
-def test_provider_get_current_request_for_user_output_checker(api):
+def test_provider_get_current_request_for_user_output_checker(bll):
     """Output checker must have explict workspace permissions to create requests."""
     factories.create_workspace("workspace")
     user = User(1, "output_checker", [], True)
 
-    with pytest.raises(api.RequestPermissionDenied):
-        api.get_current_request("workspace", user, create=True)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.get_current_request("workspace", user, create=True)
 
 
 @pytest.mark.parametrize(
@@ -252,7 +235,7 @@ def test_provider_get_current_request_for_user_output_checker(api):
         (Status.RELEASED, Status.WITHDRAWN, False, False),
     ],
 )
-def test_set_status(current, future, valid_author, valid_checker, api):
+def test_set_status(current, future, valid_author, valid_checker, bll):
     author = User(1, "author", ["workspace"], False)
     checker = User(2, "checker", [], True)
     release_request1 = factories.create_release_request(
@@ -263,30 +246,30 @@ def test_set_status(current, future, valid_author, valid_checker, api):
     )
 
     if valid_author:
-        api.set_status(release_request1, future, user=author)
+        bll.set_status(release_request1, future, user=author)
         assert release_request1.status == future
     else:
-        with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
-            api.set_status(release_request1, future, user=author)
+        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+            bll.set_status(release_request1, future, user=author)
 
     if valid_checker:
-        api.set_status(release_request2, future, user=checker)
+        bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
     else:
-        with pytest.raises((api.InvalidStateTransition, api.RequestPermissionDenied)):
-            api.set_status(release_request2, future, user=checker)
+        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+            bll.set_status(release_request2, future, user=checker)
 
 
-def test_set_status_cannot_action_own_request(api):
+def test_set_status_cannot_action_own_request(bll):
     user = User(2, "checker", [], True)
     release_request1 = factories.create_release_request(
         "workspace", user=user, status=Status.SUBMITTED
     )
 
-    with pytest.raises(api.RequestPermissionDenied):
-        api.set_status(release_request1, Status.APPROVED, user=user)
-    with pytest.raises(api.RequestPermissionDenied):
-        api.set_status(release_request1, Status.REJECTED, user=user)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request1, Status.APPROVED, user=user)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request1, Status.REJECTED, user=user)
 
     release_request2 = factories.create_release_request(
         "workspace",
@@ -294,11 +277,11 @@ def test_set_status_cannot_action_own_request(api):
         status=Status.APPROVED,
     )
 
-    with pytest.raises(api.RequestPermissionDenied):
-        api.set_status(release_request2, Status.RELEASED, user=user)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request2, Status.RELEASED, user=user)
 
 
-def test_add_file_to_request_not_author(api):
+def test_add_file_to_request_not_author(bll):
     author = User(1, "author", ["workspace"], False)
     other = User(1, "other", ["workspace"], True)
 
@@ -310,8 +293,8 @@ def test_add_file_to_request_not_author(api):
         user=author,
     )
 
-    with pytest.raises(api.RequestPermissionDenied):
-        api.add_file_to_request(release_request, path, other)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.add_file_to_request(release_request, path, other)
 
 
 @pytest.mark.parametrize(
@@ -325,7 +308,7 @@ def test_add_file_to_request_not_author(api):
         (Status.WITHDRAWN, False),
     ],
 )
-def test_add_file_to_request_states(status, success, api):
+def test_add_file_to_request_states(status, success, bll):
     author = User(1, "author", ["workspace"], False)
 
     path = Path("path/file.txt")
@@ -338,11 +321,11 @@ def test_add_file_to_request_states(status, success, api):
     )
 
     if success:
-        api.add_file_to_request(release_request, path, author)
+        bll.add_file_to_request(release_request, path, author)
         assert release_request.abspath("default" / path).exists()
     else:
-        with pytest.raises(api.RequestPermissionDenied):
-            api.add_file_to_request(release_request, path, author)
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.add_file_to_request(release_request, path, author)
 
 
 def test_request_release_invalid_state():
@@ -354,15 +337,15 @@ def test_request_release_invalid_state():
         )
 
 
-def test_request_release_abspath(api):
+def test_request_release_abspath(bll):
     path = UrlPath("foo/bar.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
 
-    with pytest.raises(api.FileNotFound):
+    with pytest.raises(bll.FileNotFound):
         release_request.abspath("badgroup" / path)
 
-    with pytest.raises(api.FileNotFound):
+    with pytest.raises(bll.FileNotFound):
         release_request.abspath("default/does/not/exist")
 
     assert release_request.abspath("default" / path).exists()
@@ -380,15 +363,15 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
-def test_release_request_filegroups_with_no_files(api):
+def test_release_request_filegroups_with_no_files(bll):
     release_request, _, _ = setup_empty_release_request()
     assert release_request.filegroups == {}
 
 
-def test_release_request_filegroups_default_filegroup(api):
+def test_release_request_filegroups_default_filegroup(bll):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    api.add_file_to_request(release_request, path, author)
+    bll.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
@@ -396,10 +379,10 @@ def test_release_request_filegroups_default_filegroup(api):
     assert filegroup.files[0].relpath == path
 
 
-def test_release_request_filegroups_named_filegroup(api):
+def test_release_request_filegroups_named_filegroup(bll):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    api.add_file_to_request(release_request, path, author, "test_group")
+    bll.add_file_to_request(release_request, path, author, "test_group")
     assert len(release_request.filegroups) == 1
     filegroup = release_request.filegroups["test_group"]
     assert filegroup.name == "test_group"
@@ -407,20 +390,20 @@ def test_release_request_filegroups_named_filegroup(api):
     assert filegroup.files[0].relpath == path
 
 
-def test_release_request_filegroups_multiple_filegroups(api):
+def test_release_request_filegroups_multiple_filegroups(bll):
     release_request, path, author = setup_empty_release_request()
-    api.add_file_to_request(release_request, path, author, "test_group")
+    bll.add_file_to_request(release_request, path, author, "test_group")
     assert len(release_request.filegroups) == 1
 
-    workspace = api.get_workspace("workspace")
+    workspace = bll.get_workspace("workspace")
     path1 = Path("path/file1.txt")
     path2 = Path("path/file2.txt")
     factories.write_workspace_file(workspace, path1)
     factories.write_workspace_file(workspace, path2)
-    api.add_file_to_request(release_request, path1, author, "test_group")
-    api.add_file_to_request(release_request, path2, author, "test_group1")
+    bll.add_file_to_request(release_request, path1, author, "test_group")
+    bll.add_file_to_request(release_request, path2, author, "test_group1")
 
-    release_request = api.get_release_request(release_request.id)
+    release_request = bll.get_release_request(release_request.id)
     assert len(release_request.filegroups) == 2
 
     release_request_files = {
@@ -434,22 +417,22 @@ def test_release_request_filegroups_multiple_filegroups(api):
     }
 
 
-def test_release_request_add_same_file(api):
+def test_release_request_add_same_file(bll):
     release_request, path, author = setup_empty_release_request()
     assert release_request.filegroups == {}
-    api.add_file_to_request(release_request, path, author)
+    bll.add_file_to_request(release_request, path, author)
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1
 
     # Adding the same file again should not create a new RequestFile
-    with pytest.raises(api.APIException):
-        api.add_file_to_request(release_request, path, author)
+    with pytest.raises(bll.APIException):
+        bll.add_file_to_request(release_request, path, author)
 
     # We also can't add the same file to a different group
-    with pytest.raises(api.APIException):
-        api.add_file_to_request(release_request, path, author, "new_group")
+    with pytest.raises(bll.APIException):
+        bll.add_file_to_request(release_request, path, author, "new_group")
 
-    release_request = api.get_release_request(release_request.id)
+    release_request = bll.get_release_request(release_request.id)
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1

@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from ulid import ulid
 
-from airlock.api import Status
+from airlock.business_logic import Status
 
 
 def local_request_id():

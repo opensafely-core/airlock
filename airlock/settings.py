@@ -268,6 +268,8 @@ else:  # pragma: no cover
         f"variables must be set.\n\n{_missing_env_var_hint}"
     )
 
+AIRLOCK_DATA_ACCESS_LAYER = "local_db.data_access.LocalDBDataAccessLayer"
+
 # BACKEND is global env var on backends
 BACKEND = os.environ.get("BACKEND", "test")
 

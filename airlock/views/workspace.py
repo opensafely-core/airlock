@@ -6,19 +6,15 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.api import UrlPath
+from airlock.business_logic import UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
-from local_db.api import LocalDBProvider
 
 from .helpers import serve_file, validate_workspace
 
 
-api = LocalDBProvider()
-
-
 def workspace_index(request):
-    workspaces = api.get_workspaces_for_user(request.user)
+    workspaces = bll.get_workspaces_for_user(request.user)
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
@@ -45,7 +41,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    current_request = api.get_current_request(workspace_name, request.user)
+    current_request = bll.get_current_request(workspace_name, request.user)
 
     # Only include the AddFileForm if this pathitem is a file that
     # can be added to a request - i.e. it is a file and it's not
@@ -92,7 +88,7 @@ def workspace_contents(request, workspace_name: str, path: str):
 
     try:
         abspath = workspace.abspath(path)
-    except api.FileNotFound:
+    except bll.FileNotFound:
         raise Http404()
 
     if not abspath.is_file():
@@ -107,16 +103,16 @@ def workspace_add_file_to_request(request, workspace_name):
     relpath = UrlPath(request.POST["path"])
     try:
         workspace.abspath(relpath)
-    except api.FileNotFound:
+    except bll.FileNotFound:
         raise Http404()
 
-    release_request = api.get_current_request(workspace_name, request.user, create=True)
+    release_request = bll.get_current_request(workspace_name, request.user, create=True)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
         group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
         try:
-            api.add_file_to_request(release_request, relpath, request.user, group_name)
-        except api.APIException as err:
+            bll.add_file_to_request(release_request, relpath, request.user, group_name)
+        except bll.APIException as err:
             # This exception is raised if the file has already been added
             # (to any group on the request)
             messages.error(request, str(err))
