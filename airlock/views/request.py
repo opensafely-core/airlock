@@ -113,7 +113,7 @@ def request_contents(request, request_id: str, path: str):
     ):
         raise PermissionDenied()
 
-    return serve_file(abspath, download)
+    return serve_file(abspath, download, filename=path)
 
 
 @require_http_methods(["POST"])
