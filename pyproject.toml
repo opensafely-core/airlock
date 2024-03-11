@@ -22,13 +22,16 @@ isort.lines-after-imports = 2
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "airlock.settings"
+testpaths = [
+   "tests"
+]
 
 [tool.coverage.run]
 branch = true
 # Required to get full coverage when using Playwright
 concurrency = ["greenlet", "thread"]
 plugins = ["django_coverage_plugin"]
-omit = ["*/assets/templates/*",]
+omit = ["*/assets/*",]
 
 [tool.coverage.report]
 fail_under = 100

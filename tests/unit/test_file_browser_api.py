@@ -6,6 +6,7 @@ from django.template.loader import render_to_string
 from airlock.file_browser_api import (
     PathType,
     UrlPath,
+    filter_files,
     get_request_tree,
     get_workspace_tree,
 )
@@ -106,6 +107,60 @@ def test_get_request_tree_general(release_request):
 
     # check that the tree works with the recursive template
     render_to_string("file_browser/tree.html", {"path": tree})
+
+
+def test_get_workspace_tree_selected_only(workspace):
+    """Tests an entire tree for the basics."""
+    selected_path = UrlPath("some_dir/file_a.txt")
+    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace*
+          some_dir*
+            file_a.txt**
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
+@pytest.mark.django_db
+def test_get_request_tree_selected_only_file(release_request):
+    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    tree = get_request_tree(release_request, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree, and all groups
+    expected = textwrap.dedent(
+        f"""
+        {release_request.id}*
+          group1*
+            some_dir*
+              file_a.txt**
+          group2
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
+@pytest.mark.django_db
+def test_get_request_tree_selected_only_group(release_request):
+    selected_path = UrlPath("group1")
+    tree = get_request_tree(release_request, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree, and all groups
+    expected = textwrap.dedent(
+        f"""
+        {release_request.id}*
+          group1***
+            some_dir*
+          group2
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
 
 
 @pytest.mark.parametrize(
@@ -351,3 +406,20 @@ def test_request_tree_contents(release_request):
         tree.get_path("group1/some_dir").contents()
 
     assert tree.get_path("group1/some_dir/file_a.txt").contents() == "file_a"
+
+
+def test_filter_files():
+    selected = UrlPath("foo/bar")
+    files = [
+        UrlPath("foo/bar"),
+        UrlPath("foo/bar/child1"),
+        UrlPath("foo/bar/child2"),
+        UrlPath("foo/bar/child1/grandchild"),
+        UrlPath("foo/other"),
+    ]
+
+    assert list(filter_files(selected, files)) == [
+        UrlPath("foo/bar"),
+        UrlPath("foo/bar/child1"),
+        UrlPath("foo/bar/child2"),
+    ]

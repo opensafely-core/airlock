@@ -135,6 +135,12 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Click to open the filegroup tree
     filegroup_link.click()
+
+    # Click on the directory to ensure that renders correctly.
+    subdir_link = page.get_by_role("link").locator(".directory:scope")
+    find_and_click(subdir_link)
+    expect(page.locator("#selected-contents")).to_contain_text("file.txt")
+
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
     expect(page.locator("body")).to_contain_text("I am the file content")

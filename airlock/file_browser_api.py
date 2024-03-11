@@ -8,7 +8,7 @@ class PathType(Enum):
     """Types of PathItems in a tree."""
 
     FILE = "file"
-    DIR = "dir"
+    DIR = "directory"
     WORKSPACE = "workspace"
     REQUEST = "request"
     FILEGROUP = "filegroup"
@@ -143,7 +143,7 @@ class PathItem:
         distinguish file/dirs, and maybe even file types, in the UI, in case we
         need to.
         """
-        classes = [self.type.name.lower()]
+        classes = [self.type.value.lower()]
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
@@ -208,13 +208,32 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
-def get_workspace_tree(workspace, selected_path=ROOT_PATH):
-    """Recursively build a workspace tree from files on disk."""
+def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
+    """Recursively build workspace tree from the root dir.
+
+    If selected_only==True, we do not build entire tree, as that can be
+    expensive if we just want to partially render one node.
+
+    Instead, we build just the tree down to the selected path, and then all its
+    immediate children, if it has any. We include children so that if
+    selected_path is a directory, its contents can be partially rendered.
+    """
 
     selected_path = UrlPath(selected_path)
     root = workspace.root()
-    # list all files in one go is much faster than walking the tree
-    pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+
+    if selected_only:
+        pathlist = [selected_path]
+
+        # if directory, we also need to also load children to display in the content area
+        abspath = workspace.abspath(selected_path)
+        if abspath.is_dir():
+            pathlist.extend(child.relative_to(root) for child in abspath.iterdir())
+
+    else:
+        # listing all files in one go is much faster than walking the tree
+        pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+
     root_node = PathItem(
         container=workspace,
         relpath=ROOT_PATH,
@@ -230,11 +249,14 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_request_tree(release_request, selected_path=ROOT_PATH):
+def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=False):
     """Build a tree recursively for a ReleaseRequest
 
     For each group, we create a node for that group, and then build a sub-tree
     for its file groups.
+
+    If selected_only=True, we avoid building the entire tree. Instead, we just
+    build part of the tree on the selected_path, and its immediate children.
     """
     # ensure selected_path is UrlPath
     selected_path = UrlPath(selected_path)
@@ -261,9 +283,26 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
             expanded=selected or expanded,
         )
 
+        group_paths = [f.relpath for f in group.files]
+
+        if selected_only:
+            if expanded:
+                if group_path == selected_path:
+                    # we just need the group's immediate child paths
+                    pathlist = [UrlPath(p.parts[0]) for p in group_paths]
+                else:
+                    # filter for just the selected path and any immediate children
+                    selected_subpath = selected_path.relative_to(group_path)
+                    pathlist = list(filter_files(selected_subpath, group_paths))
+            else:
+                # we don't want any children for unselected groups
+                pathlist = []
+        else:
+            pathlist = group_paths
+
         group_node.children = get_path_tree(
             release_request,
-            pathlist=[f.relpath for f in group.files],
+            pathlist=pathlist,
             parent=group_node,
             selected_path=selected_path,
             expanded=expanded,
@@ -274,7 +313,23 @@ def get_request_tree(release_request, selected_path=ROOT_PATH):
     return root_node
 
 
-def get_path_tree(container, pathlist, parent, selected_path=ROOT_PATH, expanded=False):
+def filter_files(selected, files):
+    """Filter the list of file paths for the selected file and any immediate children."""
+    n = len(selected.parts)
+    for f in files:
+        head, tail = f.parts[:n], f.parts[n:]
+        if head == selected.parts and len(tail) <= 1:
+            yield f
+
+
+def get_path_tree(
+    container,
+    pathlist,
+    parent,
+    selected_path=ROOT_PATH,
+    expanded=False,
+    selected_only=False,
+):
     """Walk a flat list of paths and create a tree from them."""
 
     def build_path_tree(path_parts, parent):

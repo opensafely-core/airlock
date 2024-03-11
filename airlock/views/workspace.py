@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.vary import vary_on_headers
 
 from airlock.api import UrlPath
 from airlock.file_browser_api import get_workspace_tree
@@ -21,10 +22,19 @@ def workspace_index(request):
     return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
 
 
+# we return different content if it is a HTMX request.
+@vary_on_headers("HX-Request")
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = validate_workspace(request.user, workspace_name)
 
-    tree = get_workspace_tree(workspace, path)
+    template = "file_browser/index.html"
+    selected_only = False
+
+    if request.htmx:
+        template = "file_browser/contents.html"
+        selected_only = True
+
+    tree = get_workspace_tree(workspace, path, selected_only)
 
     try:
         path_item = tree.get_path(path)
@@ -58,7 +68,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     return TemplateResponse(
         request,
-        "file_browser/index.html",
+        template,
         {
             "workspace": workspace,
             "root": tree,

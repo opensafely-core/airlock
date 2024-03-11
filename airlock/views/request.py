@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.vary import vary_on_headers
 
 from airlock.api import Status
 from airlock.file_browser_api import get_request_tree
@@ -35,10 +36,20 @@ def request_index(request):
     )
 
 
+# we return different content if it is a HTMX request.
+@vary_on_headers("HX-Request")
 def request_view(request, request_id: str, path: str = ""):
     release_request = validate_release_request(request.user, request_id)
 
-    tree = get_request_tree(release_request, path)
+    template = "file_browser/index.html"
+    selected_only = False
+
+    if request.htmx:
+        template = "file_browser/contents.html"
+        selected_only = True
+
+    tree = get_request_tree(release_request, path, selected_only)
+
     try:
         path_item = tree.get_path(path)
     except tree.PathNotFound:
@@ -81,7 +92,7 @@ def request_view(request, request_id: str, path: str = ""):
         "release_files_url": release_files_url,
     }
 
-    return TemplateResponse(request, "file_browser/index.html", context)
+    return TemplateResponse(request, template, context)
 
 
 @require_http_methods(["GET"])

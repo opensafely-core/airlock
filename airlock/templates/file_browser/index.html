@@ -39,7 +39,7 @@
       background-color: lightgrey;
     }
 
-    .tree a.dir {
+    .tree a.directory {
       background-image: url("{% static "folder.png" %}");
       background-repeat: no-repeat;
       background-size: 1.4rem;
@@ -132,95 +132,7 @@
     </div>
 
     <div style="flex-basis: 75%; max-width: 75%">
-      <div id="selected-contents">
-
-        {% if path_item.is_directory %}
-
-          {% #card title=path_item.name %}
-            {% #list_group %}
-              {% if not path_item.children %}
-                {% list_group_empty icon=True title="Empty Directory" %}
-              {% else %}
-                {% for entry in path_item.children %}
-                  {% #list_group_item href=entry.url %}
-                    {{ entry.name}}
-                    {% if entry.is_directory %}
-                      {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
-                    {% endif %}
-                  {% /list_group_item %}
-                {% endfor %}
-              {% endif %}
-            {% /list_group %}
-          {% /card %}
-
-        {% else %}
-          {% fragment as add_button %}
-            {% if context == "workspace" %}
-              {% if form %}
-                {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
-                  {% #card container=True title="Add a file" %}
-                    <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
-                      {% csrf_token %}
-                      {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
-                      {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
-                      <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-                      <div class="mt-2">
-                        {% #button type="submit" variant="success" id="add-file-button" %}Add File to Request{% /button %}
-                        {% #button variant="danger" type="cancel" %}Cancel{% /button %}
-                      </div>
-                    </form>
-                  {% /card %}
-                {% /modal %}
-              {% elif file_in_request %}
-                {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
-                  Add File to Request
-                {% /button %}
-              {% else %}
-                {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
-                  Add File to Request
-                {% /button %}
-              {% endif %}
-            {% elif is_author %}
-              <form action="" method="POST">
-                {% csrf_token %}
-                {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
-              </form>
-            {% elif is_output_checker %}
-              {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
-            {% endif %}
-          {% endfragment %}
-
-          {% #card title=path_item.name container=True custom_button=add_button %}
-
-            <div class="content">
-              {% if path_item.display_type == "iframe" %}
-                <iframe
-                  src="{{ path_item.contents_url }}"
-                  title="{{ path_item.relpath }}"
-                  frameborder=0
-                  height=1000
-                  style="width: 100%;"
-                >
-                </iframe>
-              {% elif path_item.display_type == "image" %}
-                <div class="content-scroller">
-                  <img src="{{ path_item.contents_url }}">
-                </div>
-              {% elif path_item.display_type == "table" %}
-                <div class="content-scroller">
-                  {% include "file_browser/csv.html" with contents=path_item.contents %}
-                </div>
-              {% else %}
-                <div class="content-scroller">
-                <pre>{{ path_item.contents }}</pre>
-                </div>
-              {% endif %}
-            </div>
-          {% /card %}
-
-        {% endif %}
-
-      </div>
+      {% include "file_browser/contents.html" %}
     </div>
   </div>
 
