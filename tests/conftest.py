@@ -3,7 +3,6 @@ import responses as _responses
 from django.conf import settings
 
 import airlock.business_logic
-import old_api
 import tests.factories
 
 
@@ -50,7 +49,7 @@ def release_files_stubber(responses):
         )
 
         if not isinstance(body, Exception):
-            for path in old_api.list_files(request.root()):
+            for _ in request.get_file_paths():
                 responses.post(
                     f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{jobserver_id}",
                     status=201,

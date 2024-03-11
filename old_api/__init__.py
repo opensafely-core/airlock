@@ -66,8 +66,3 @@ def upload_file(release_id, relpath, abspath, username):
 def modified_time(path):
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-
-
-def list_files(path):
-    """List all files recursively."""
-    return list(sorted(p.relative_to(path) for p in path.glob("**/*") if p.is_file()))
