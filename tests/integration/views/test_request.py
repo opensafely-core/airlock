@@ -439,7 +439,7 @@ def test_requests_release_jobserver_403_with_debug(
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file.txt", "test")
+    factories.write_request_file(release_request, "default", "test/file.txt", "test")
 
     response = requests.Response()
     response.status_code = 403
