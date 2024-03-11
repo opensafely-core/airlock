@@ -6,6 +6,7 @@ from django.template.loader import render_to_string
 from airlock.file_browser_api import (
     PathType,
     UrlPath,
+    filter_files,
     get_request_tree,
     get_workspace_tree,
 )
@@ -154,6 +155,7 @@ def test_get_request_tree_selected_only_group(release_request):
         f"""
         {release_request.id}*
           group1***
+            some_dir*
           group2
         """
     )
@@ -404,3 +406,20 @@ def test_request_tree_contents(release_request):
         tree.get_path("group1/some_dir").contents()
 
     assert tree.get_path("group1/some_dir/file_a.txt").contents() == "file_a"
+
+
+def test_filter_files():
+    selected = UrlPath("foo/bar")
+    files = [
+        UrlPath("foo/bar"),
+        UrlPath("foo/bar/child1"),
+        UrlPath("foo/bar/child2"),
+        UrlPath("foo/bar/child1/grandchild"),
+        UrlPath("foo/other"),
+    ]
+
+    assert list(filter_files(selected, files)) == [
+        UrlPath("foo/bar"),
+        UrlPath("foo/bar/child1"),
+        UrlPath("foo/bar/child2"),
+    ]
