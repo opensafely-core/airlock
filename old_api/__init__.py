@@ -10,12 +10,10 @@ from old_api.schema import FileList, FileMetadata
 session = requests.Session()
 
 
-def create_filelist(release_request):
+def create_filelist(paths):
     files = []
-    root = release_request.root()
 
-    for relpath in list_files(release_request.root()):
-        abspath = root / relpath
+    for relpath, abspath in paths:
         files.append(
             FileMetadata(
                 name=str(relpath),

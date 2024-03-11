@@ -239,6 +239,15 @@ class ReleaseRequest:
     def set_filegroups_from_dict(self, attrs):
         self.filegroups = self._filegroups_from_dict(attrs)
 
+    def get_file_paths(self):
+        paths = []
+        for file_group in self.filegroups.values():
+            for request_file in file_group.files:
+                relpath = request_file.relpath
+                abspath = self.abspath(file_group.name / relpath)
+                paths.append((relpath, abspath))
+        return paths
+
 
 class DataAccessLayerProtocol:
     """
@@ -485,16 +494,14 @@ class BusinessLogicLayer:
         # we check this is valid status transition *before* releasing the files
         self.check_status(request, Status.RELEASED, user)
 
-        filelist = old_api.create_filelist(request)
+        file_paths = request.get_file_paths()
+        filelist = old_api.create_filelist(file_paths)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username
         )
 
-        for f in filelist.files:
-            relpath = UrlPath(f.name)
-            old_api.upload_file(
-                jobserver_release_id, relpath, request.root() / relpath, user.username
-            )
+        for relpath, abspath in file_paths:
+            old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
         self.set_status(request, Status.RELEASED, user)
 
