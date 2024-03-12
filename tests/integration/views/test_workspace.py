@@ -224,13 +224,26 @@ def test_workspaces_index_no_user(client):
 
 
 def test_workspaces_index_user_permitted_workspaces(client_with_user):
-    permitted_client = client_with_user({"workspaces": ["test1"]})
-    factories.create_workspace("test1")
+    permitted_client = client_with_user(
+        {
+            "workspaces": {
+                "test1a": {"project": "Project 1"},
+                "test1b": {"project": "Project 1"},
+                "test2": {"project": "Project 2"},
+            }
+        }
+    )
+    factories.create_workspace("test1a")
+    factories.create_workspace("test1b")
     factories.create_workspace("test2")
+    factories.create_workspace("not-allowed")
     response = permitted_client.get("/workspaces/")
-    workspace_names = {ws.name for ws in response.context["workspaces"]}
-    assert workspace_names == {"test1"}
-    assert "test2" not in response.rendered_content
+
+    projects = response.context["projects"]
+    assert projects["Project 1"][0].name == "test1a"
+    assert projects["Project 1"][1].name == "test1b"
+    assert projects["Project 2"][0].name == "test2"
+    assert "not-allowed" not in response.rendered_content
 
 
 def test_workspace_request_file_creates(client_with_user, bll):

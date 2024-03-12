@@ -47,12 +47,19 @@ def test_provider_get_workspaces_for_user(output_checker):
     factories.create_workspace("foo")
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
-    user = User(1, "test", ["foo", "bar", "not-exists"], output_checker)
+    workspaces = {
+        "foo": {"project": "project 1"},
+        "bar": {"project": "project 2"},
+        "not-exists": {"project": "project 3"},
+    }
+    user = User(1, "test", workspaces, output_checker)
 
     bll = BusinessLogicLayer(data_access_layer=None)
 
-    # sorted alphabetically
-    assert bll.get_workspaces_for_user(user) == [Workspace("bar"), Workspace("foo")]
+    assert bll.get_workspaces_for_user(user) == [
+        Workspace("foo", {"project": "project 1"}),
+        Workspace("bar", {"project": "project 2"}),
+    ]
 
 
 @pytest.fixture

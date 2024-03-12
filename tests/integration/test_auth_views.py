@@ -31,6 +31,9 @@ def test_login(requests_post, client, settings):
     api_response.json.return_value = {
         "username": "test_user",
         "output_checker": False,
+        "workspaces": {
+            "workspace": {"project": "project1"},
+        },
     }
 
     assert "user" not in client.session
@@ -41,13 +44,16 @@ def test_login(requests_post, client, settings):
     )
 
     requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/auth",
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
         headers={"Authorization": "test_api_token"},
         json={"user": "test_user", "token": "foo bar baz"},
     )
 
     assert client.session["user"]["username"] == "test_user"
     assert client.session["user"]["output_checker"] is False
+    assert client.session["user"]["workspaces"] == {
+        "workspace": {"project": "project1"},
+    }
 
     assert response.url == "/workspaces/"
 
@@ -65,7 +71,7 @@ def test_login_invalid_token(requests_post, client, settings):
     )
 
     requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/auth",
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
         headers={"Authorization": "test_api_token"},
         json={"user": "test_user", "token": "foo bar baz"},
     )

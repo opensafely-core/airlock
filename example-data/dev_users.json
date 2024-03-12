@@ -6,9 +6,9 @@
       "fullname": "Output Checker",
       "output_checker": true,
       "staff": true,
-      "workspaces": [
-        "example-workspace"
-      ]
+      "workspaces": {
+        "example-workspace": {"project": "Project 1"}
+      }
     }
   },
   "researcher_1": {
@@ -18,9 +18,9 @@
       "fullname": "Researcher 1",
       "output_checker": false,
       "staff": false,
-      "workspaces": [
-        "example-workspace"
-      ]
+      "workspaces": {
+        "example-workspace": {"project": "Project 1"}
+      }
     }
   }
 }

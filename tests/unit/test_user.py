@@ -8,12 +8,17 @@ def test_session_user_from_session():
         "user": {
             "id": 1,
             "username": "test",
-            "workspaces": ["test-workspace-1", "test_workspace2"],
+            "workspaces": {
+                "test-workspace-1": {"project": "Project 1"},
+                "test_workspace2": {"project": "Project 2"},
+            },
             "output_checker": True,
         }
     }
     user = User.from_session(mock_session)
-    assert user.workspaces == ("test-workspace-1", "test_workspace2")
+    assert set(user.workspaces) == {"test-workspace-1", "test_workspace2"}
+    assert user.workspaces["test-workspace-1"]["project"] == "Project 1"
+    assert user.workspaces["test_workspace2"]["project"] == "Project 2"
     assert user.output_checker
 
 
@@ -25,7 +30,7 @@ def test_session_user_with_defaults():
         }
     }
     user = User.from_session(mock_session)
-    assert user.workspaces == ()
+    assert user.workspaces == {}
     assert not user.output_checker
 
 
@@ -39,9 +44,9 @@ def test_session_user_no_user_set():
     "output_checker,workspaces,has_permission",
     [
         (True, [], True),
-        (True, ["other", "other1"], True),
-        (False, ["test", "other", "other1"], True),
-        (False, ["other", "other1"], False),
+        (True, {"other": {}, "other1": {}}, True),
+        (False, {"test": {}, "other": {}, "other1": {}}, True),
+        (False, {"other": {}, "other1": {}}, False),
     ],
 )
 def test_session_user_has_permission(output_checker, workspaces, has_permission):
@@ -61,9 +66,9 @@ def test_session_user_has_permission(output_checker, workspaces, has_permission)
     "output_checker,workspaces,can_create_request",
     [
         (True, [], False),
-        (True, ["other", "other1"], False),
-        (False, ["test", "other", "other1"], True),
-        (False, ["other", "other1"], False),
+        (True, {"other": {}, "other1": {}}, False),
+        (False, {"test": {}, "other": {}, "other1": {}}, True),
+        (False, {"other": {}, "other1": {}}, False),
     ],
 )
 def test_session_user_can_create_request(

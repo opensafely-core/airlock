@@ -20,7 +20,7 @@ def test_login(requests_post, settings, page, live_server):
     page.locator("button[type=submit]").click()
 
     requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/auth",
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
         headers={"Authorization": "test_api_token"},
         json={"user": "test_user", "token": "foo bar baz"},
     )

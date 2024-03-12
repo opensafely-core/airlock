@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib import messages
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
@@ -13,9 +15,20 @@ from airlock.forms import AddFileForm
 from .helpers import serve_file, validate_workspace
 
 
+def grouped_workspaces(workspaces):
+    workspaces_by_project = defaultdict(list)
+    for workspace in workspaces:
+        workspaces_by_project[workspace.project()].append(workspace)
+
+    for project, workspaces in sorted(workspaces_by_project.items()):
+        yield project, list(sorted(workspaces))
+
+
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
-    return TemplateResponse(request, "workspaces.html", {"workspaces": workspaces})
+    projects = dict(grouped_workspaces(workspaces))
+
+    return TemplateResponse(request, "workspaces.html", {"projects": projects})
 
 
 # we return different content if it is a HTMX request.
