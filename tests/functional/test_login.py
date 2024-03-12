@@ -3,7 +3,7 @@ from unittest import mock
 from playwright.sync_api import expect
 
 
-@mock.patch("airlock.login_api.requests.post", autospec=True)
+@mock.patch("airlock.login_api.session.post", autospec=True)
 def test_login(requests_post, settings, page, live_server):
     settings.AIRLOCK_API_TOKEN = "test_api_token"
 

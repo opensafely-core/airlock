@@ -22,7 +22,7 @@ def test_login_already_logged_in(client):
     assert response.url == ("/workspaces/")
 
 
-@mock.patch("airlock.login_api.requests.post", autospec=True)
+@mock.patch("airlock.login_api.session.post", autospec=True)
 def test_login(requests_post, client, settings):
     settings.AIRLOCK_API_TOKEN = "test_api_token"
 
@@ -58,7 +58,7 @@ def test_login(requests_post, client, settings):
     assert response.url == "/workspaces/"
 
 
-@mock.patch("airlock.login_api.requests.post")
+@mock.patch("airlock.login_api.session.post")
 def test_login_invalid_token(requests_post, client, settings):
     settings.AIRLOCK_API_TOKEN = "test_api_token"
 
