@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Tuple
 
 
 @dataclasses.dataclass(frozen=True)
@@ -12,7 +11,7 @@ class User:
 
     id: int
     username: str
-    workspaces: Tuple = dataclasses.field(default_factory=tuple)
+    workspaces: dict = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
 
     @classmethod
@@ -20,7 +19,7 @@ class User:
         user = session_data.get("user")
         if user is None:
             return
-        workspaces = tuple(user.get("workspaces", tuple()))
+        workspaces = user.get("workspaces", dict())
         output_checker = user.get("output_checker", False)
         return cls(user["id"], user["username"], workspaces, output_checker)
 

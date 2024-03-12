@@ -16,6 +16,9 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
                     "token": "foo bar baz",
                     "details": {
                         "output_checker": True,
+                        "workspaces": {
+                            "test1": {"project": "project1"},
+                        },
                     },
                 },
             }
@@ -23,7 +26,10 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
     )
 
     assert login_api.get_user_data("test_user", "foo bar baz") == {
-        "output_checker": True
+        "output_checker": True,
+        "workspaces": {
+            "test1": {"project": "project1"},
+        },
     }
 
 
@@ -35,6 +41,11 @@ def test_get_user_data_with_dev_users_invalid(settings, tmp_path):
         json.dumps(
             {
                 "test_user": {"token": "foo bar baz"},
+                "details": {
+                    "workspaces": {
+                        "test1": {"project": "project1"},
+                    }
+                },
             }
         )
     )
