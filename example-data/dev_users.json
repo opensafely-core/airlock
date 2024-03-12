@@ -6,7 +6,9 @@
       "fullname": "Output Checker",
       "output_checker": true,
       "staff": true,
-      "workspaces": []
+      "workspaces": [
+        "example-workspace"
+      ]
     }
   },
   "researcher_1": {

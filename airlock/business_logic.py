@@ -111,9 +111,6 @@ class Workspace:
 
         return path
 
-    def __hash__(self):
-        return hash(self.name)
-
 
 @dataclass(frozen=True)
 class RequestFile:
@@ -283,14 +280,7 @@ class BusinessLogicLayer:
         """Get all the local workspace directories that a user has permission for."""
 
         workspaces = []
-        if user.output_checker:
-            workspace_names = [
-                d.name for d in settings.WORKSPACE_DIR.iterdir() if d.is_dir()
-            ]
-        else:
-            workspace_names = user.workspaces
-
-        for workspace_name in workspace_names:
+        for workspace_name in sorted(user.workspaces):
             try:
                 workspace = self.get_workspace(workspace_name)
             except self.WorkspaceNotFound:

@@ -60,7 +60,7 @@ def output_checker_user(live_server, context):
         {
             "id": "test_output_checker",
             "username": "test_output_checker",
-            "workspaces": [],
+            "workspaces": ["test-dir2"],
             "output_checker": True,
         },
     )
