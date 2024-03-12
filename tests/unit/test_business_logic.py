@@ -42,23 +42,17 @@ def test_request_container():
     )
 
 
-@pytest.mark.parametrize(
-    "user_workspaces,output_checker,expected",
-    [
-        ([], False, []),
-        (["allowed"], False, ["allowed"]),
-        ([], True, ["allowed", "not-allowed"]),
-        (["allowed", "notexist"], False, ["allowed"]),
-    ],
-)
-def test_provider_get_workspaces_for_user(user_workspaces, output_checker, expected):
-    factories.create_workspace("allowed")
+@pytest.mark.parametrize("output_checker", [False, True])
+def test_provider_get_workspaces_for_user(output_checker):
+    factories.create_workspace("foo")
+    factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
-    user = User(1, "test", user_workspaces, output_checker)
+    user = User(1, "test", ["foo", "bar", "not-exists"], output_checker)
 
     bll = BusinessLogicLayer(data_access_layer=None)
 
-    assert set(bll.get_workspaces_for_user(user)) == set(Workspace(w) for w in expected)
+    # sorted alphabetically
+    assert bll.get_workspaces_for_user(user) == [Workspace("bar"), Workspace("foo")]
 
 
 @pytest.fixture
