@@ -60,7 +60,7 @@ class AirlockContainer(Protocol):
         """Get the url for the contents of the container object with path"""
 
 
-@dataclass
+@dataclass(order=True)
 class Workspace:
     """Simple wrapper around a workspace directory on disk.
 
@@ -69,6 +69,7 @@ class Workspace:
     """
 
     name: str
+    metadata: dict = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this workspace
     selected_path: UrlPath = ROOT_PATH
@@ -76,6 +77,9 @@ class Workspace:
     def __post_init__(self):
         if not self.root().exists():
             raise BusinessLogicLayer.WorkspaceNotFound(self.name)
+
+    def project(self):
+        return self.metadata.get("project", None)
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
@@ -271,18 +275,18 @@ class BusinessLogicLayer:
     class RequestPermissionDenied(APIException):
         pass
 
-    def get_workspace(self, name: str) -> Workspace:
+    def get_workspace(self, name: str, metadata: dict = {}) -> Workspace:
         """Get a workspace object."""
         # this almost trivial currently, but may involve more in future
-        return Workspace(name)
+        return Workspace(name, metadata)
 
     def get_workspaces_for_user(self, user: User) -> list[Workspace]:
         """Get all the local workspace directories that a user has permission for."""
 
         workspaces = []
-        for workspace_name in sorted(user.workspaces):
+        for workspace_name, metadata in user.workspaces.items():
             try:
-                workspace = self.get_workspace(workspace_name)
+                workspace = self.get_workspace(workspace_name, metadata)
             except self.WorkspaceNotFound:
                 continue
 

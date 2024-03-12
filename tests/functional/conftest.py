@@ -60,7 +60,7 @@ def output_checker_user(live_server, context):
         {
             "id": "test_output_checker",
             "username": "test_output_checker",
-            "workspaces": ["test-dir2"],
+            "workspaces": {"test-dir2": {"project": "Project 2"}},
             "output_checker": True,
         },
     )
@@ -74,7 +74,7 @@ def researcher_user(live_server, context):
         {
             "id": "test_researcher",
             "username": "test_researcher",
-            "workspaces": ["test-dir1"],
+            "workspaces": {"test-dir1": {"project": "Project 1"}},
             "output_checker": False,
         },
     )

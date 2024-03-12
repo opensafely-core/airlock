@@ -1,11 +1,24 @@
 {% extends "base.html" %}
 
+{% block extra_styles %}
+  <style>
+    ul.projects p.project {
+      padding: 1rem;
+    }
+  </style>
+{% endblock extra_styles %}
+
 {% block content %}
   {% #card title="Workspaces for "|add:request.user.username %}
-    {% #list_group id="workspaces" %}
-      {% for workspace in workspaces %}
-        {% #list_group_item href=workspace.get_url %}{{ workspace.name }}{% /list_group_item %}
+    <ul class="projects">
+      {% for project, workspaces in projects.items %}
+        <li>
+          <p class="project">{{ project }}</p>
+          {% #list_group id="workspaces" %}
+            {% for workspace in workspaces %}
+              {% #list_group_item href=workspace.get_url %}{{ workspace.name }}{% /list_group_item %}
+            {% endfor %}
+          {% /list_group %}
       {% endfor %}
-    {% /list_group %}
   {% /card %}
 {% endblock content %}
