@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from airlock.business_logic import Workspace, bll
+from airlock.business_logic import RequestFileType, Workspace, bll
 from airlock.users import User
 
 
@@ -61,7 +61,9 @@ def create_release_request(workspace, user=None, **kwargs):
     return release_request
 
 
-def write_request_file(request, group, path, contents="", user=None):
+def write_request_file(
+    request, group, path, contents="", user=None, filetype=RequestFileType.OUTPUT
+):
     workspace = ensure_workspace(request.workspace)
     try:
         workspace.abspath(path)
@@ -72,7 +74,9 @@ def write_request_file(request, group, path, contents="", user=None):
     if user is None:  # pragma: nocover
         user = create_user(request.author, workspaces=[workspace.name])
 
-    bll.add_file_to_request(request, relpath=path, user=user, group_name=group)
+    bll.add_file_to_request(
+        request, relpath=path, user=user, group_name=group, filetype=filetype
+    )
 
 
 def create_filegroup(release_request, group_name, filepaths=None):

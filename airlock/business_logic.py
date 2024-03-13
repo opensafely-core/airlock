@@ -35,6 +35,11 @@ class Status(Enum):
     RELEASED = "RELEASED"
 
 
+class RequestFileType(Enum):
+    OUTPUT = "output"
+    SUPPORTING = "supporting"
+
+
 class AirlockContainer(Protocol):
     """Structural typing class for a instance of a Workspace or ReleaseRequest
 
@@ -126,6 +131,7 @@ class RequestFile:
 
     relpath: UrlPath
     file_id: str
+    filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
     def from_dict(cls, attrs):

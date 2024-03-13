@@ -6,7 +6,13 @@ import pytest
 from django.conf import settings
 
 import old_api
-from airlock.business_logic import BusinessLogicLayer, Status, UrlPath, Workspace
+from airlock.business_logic import (
+    BusinessLogicLayer,
+    RequestFileType,
+    Status,
+    UrlPath,
+    Workspace,
+)
 from tests import factories
 
 
@@ -340,8 +346,12 @@ def test_request_release_invalid_state():
 
 def test_request_release_get_request_file(bll):
     path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
 
     with pytest.raises(bll.FileNotFound):
         release_request.get_request_file("badgroup" / path)
@@ -355,10 +365,15 @@ def test_request_release_get_request_file(bll):
 
 def test_request_release_abspath(bll):
     path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
 
     assert release_request.abspath("default" / path).exists()
+    assert release_request.abspath("default" / supporting_path).exists()
 
 
 def setup_empty_release_request():

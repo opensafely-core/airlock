@@ -2,34 +2,37 @@ from django.db import models
 from django.utils import timezone
 from ulid import ulid
 
-from airlock.business_logic import Status
+from airlock.business_logic import RequestFileType, Status
 
 
 def local_request_id():
     return str(ulid())
 
 
-class StatusField(models.TextField):
-    """Custom field that ensures correct types for status column.
+class EnumField(models.TextField):
+    """Custom field that ensures correct types for a column, defined by an Enum.
 
-    Specifically, dasta is stored in the db as the string name, e.g.
+    Specifically, data is stored in the db as the string name, e.g.
     "PENDING"`, and when loaded from the db, is deserialized into the correct
     enum instance e.g. `Status.PENDING`.
     """
 
-    choices = [(i.value, i.name) for i in Status]
+    def __init__(self, *args, enum=Status, **kwargs):
+        self.enum = enum
+        self.choices = [(i.value, i.name) for i in self.enum]
+        super().__init__(*args, **kwargs)
 
     def from_db_value(self, value, expression, connection):
         if value is None:  # pragma: no cover
             return value
 
-        return Status[value]
+        return self.enum[value]
 
     def get_prep_value(self, value):
         try:
             return value.name
         except Exception as exc:
-            raise exc.__class__("value should be instance of Status") from exc
+            raise exc.__class__(f"value should be instance of {self.enum}") from exc
 
 
 class RequestMetadata(models.Model):
@@ -40,7 +43,7 @@ class RequestMetadata(models.Model):
     )
 
     workspace = models.TextField()
-    status = StatusField(default=Status.PENDING)
+    status = EnumField(default=Status.PENDING, enum=Status)
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -67,6 +70,7 @@ class RequestFileMetadata(models.Model):
     # An opaque string use to identify the specific version of the file (in practice, a
     # hash – but we should not rely on that)
     file_id = models.TextField()
+    filetype = EnumField(default=RequestFileType.OUTPUT, enum=RequestFileType)
 
     class Meta:
         unique_together = ("relpath", "filegroup")
