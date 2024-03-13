@@ -4,6 +4,9 @@ import requests
 from django.conf import settings
 
 
+session = requests.Session()
+
+
 class LoginError(Exception):
     pass
 
@@ -16,7 +19,7 @@ def get_user_data(user: str, token: str):
 
 
 def get_user_data_prod(user: str, token: str):
-    response = requests.post(
+    response = session.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
         headers={"Authorization": settings.AIRLOCK_API_TOKEN},
         json={"user": user, "token": token},
