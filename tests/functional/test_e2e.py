@@ -4,7 +4,7 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from airlock.business_logic import Status, bll
+from airlock.business_logic import RequestStatus, bll
 from tests import factories
 
 
@@ -335,7 +335,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
     factories.write_workspace_file("test-workspace", "file.txt")
     release_request = factories.create_release_request(
         "test-workspace",
-        status=Status.SUBMITTED,
+        status=RequestStatus.SUBMITTED,
     )
     factories.create_filegroup(
         release_request, group_name="default", filepaths=["file.txt"]

@@ -6,7 +6,7 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     RequestFileType,
-    Status,
+    RequestStatus,
 )
 from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
 
@@ -76,7 +76,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
-                status__in=[Status.PENDING, Status.SUBMITTED],
+                status__in=[RequestStatus.PENDING, RequestStatus.SUBMITTED],
             )
         ]
 
@@ -91,10 +91,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_outstanding_requests_for_review(self):
         return [
             self._request(metadata)
-            for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED)
+            for metadata in RequestMetadata.objects.filter(status=RequestStatus.SUBMITTED)
         ]
 
-    def set_status(self, request_id: str, status: Status):
+    def set_status(self, request_id: str, status: RequestStatus):
         with transaction.atomic():
             # persist state change
             metadata = self._find_metadata(request_id)

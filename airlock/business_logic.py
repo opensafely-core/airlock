@@ -23,7 +23,7 @@ from airlock.users import User
 ROOT_PATH = UrlPath()  # empty path
 
 
-class Status(Enum):
+class RequestStatus(Enum):
     """Status for release Requests"""
 
     # author set statuses
@@ -198,7 +198,7 @@ class ReleaseRequest:
     workspace: str
     author: str
     created_at: datetime
-    status: Status = Status.PENDING
+    status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[FileGroup] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this release request
@@ -455,28 +455,28 @@ class BusinessLogicLayer:
         ]
 
     VALID_STATE_TRANSITIONS = {
-        Status.PENDING: [
-            Status.SUBMITTED,
-            Status.WITHDRAWN,
+        RequestStatus.PENDING: [
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
         ],
-        Status.SUBMITTED: [
-            Status.APPROVED,
-            Status.REJECTED,
-            Status.PENDING,  # allow un-submission
-            Status.WITHDRAWN,
+        RequestStatus.SUBMITTED: [
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+            RequestStatus.PENDING,  # allow un-submission
+            RequestStatus.WITHDRAWN,
         ],
-        Status.APPROVED: [
-            Status.RELEASED,
-            Status.REJECTED,  # allow fixing mistake *before* release
-            Status.WITHDRAWN,  # allow user to withdraw before released
+        RequestStatus.APPROVED: [
+            RequestStatus.RELEASED,
+            RequestStatus.REJECTED,  # allow fixing mistake *before* release
+            RequestStatus.WITHDRAWN,  # allow user to withdraw before released
         ],
-        Status.REJECTED: [
-            Status.APPROVED,  # allow mind changed
+        RequestStatus.REJECTED: [
+            RequestStatus.APPROVED,  # allow mind changed
         ],
     }
 
     def check_status(
-        self, release_request: ReleaseRequest, to_status: Status, user: User
+        self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
         """Check that a given status transtion is valid for this request and this user.
 
@@ -493,14 +493,14 @@ class BusinessLogicLayer:
 
         # check permissions
         # author transitions
-        if to_status in [Status.PENDING, Status.SUBMITTED, Status.WITHDRAWN]:
+        if to_status in [RequestStatus.PENDING, RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN]:
             if user.username != release_request.author:
                 raise self.RequestPermissionDenied(
                     f"only {user.username} can set status to {to_status.name}"
                 )
 
         # output checker transitions
-        if to_status in [Status.APPROVED, Status.REJECTED, Status.RELEASED]:
+        if to_status in [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.RELEASED]:
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
@@ -512,7 +512,7 @@ class BusinessLogicLayer:
                 )
 
     def set_status(
-        self, release_request: ReleaseRequest, to_status: Status, user: User
+        self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
         """Set the status of the request.
 
@@ -546,7 +546,7 @@ class BusinessLogicLayer:
                 f"only author {release_request.author} can add files to this request"
             )
 
-        if release_request.status not in [Status.PENDING, Status.SUBMITTED]:
+        if release_request.status not in [RequestStatus.PENDING, RequestStatus.SUBMITTED]:
             raise self.RequestPermissionDenied(
                 f"cannot add file to request in state {release_request.status.name}"
             )
@@ -573,7 +573,7 @@ class BusinessLogicLayer:
         """
 
         # we check this is valid status transition *before* releasing the files
-        self.check_status(request, Status.RELEASED, user)
+        self.check_status(request, RequestStatus.RELEASED, user)
 
         file_paths = request.get_output_file_paths()
         filelist = old_api.create_filelist(file_paths)
@@ -584,7 +584,7 @@ class BusinessLogicLayer:
         for relpath, abspath in file_paths:
             old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
-        self.set_status(request, Status.RELEASED, user)
+        self.set_status(request, RequestStatus.RELEASED, user)
 
 
 def _get_configured_bll():
