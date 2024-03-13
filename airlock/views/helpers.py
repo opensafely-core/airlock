@@ -37,11 +37,16 @@ def validate_release_request(user, request_id):
     return release_request
 
 
-def serve_file(abspath, download=False):
+def serve_file(abspath, download=False, filename=None):
     stat = abspath.stat()
     # use same ETag format as whitenoise
     headers = {
         "Last-Modified": formatdate(stat.st_mtime, usegmt=True),
         "ETag": f'"{int(stat.st_mtime):x}-{stat.st_size:x}"',
     }
-    return FileResponse(abspath.open("rb"), headers=headers, as_attachment=download)
+    return FileResponse(
+        abspath.open("rb"),
+        headers=headers,
+        as_attachment=download,
+        filename=filename,
+    )

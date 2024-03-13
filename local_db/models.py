@@ -64,6 +64,9 @@ class RequestFileMetadata(models.Model):
     filegroup = models.ForeignKey(
         FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
     )
+    # An opaque string use to identify the specific version of the file (in practice, a
+    # hash – but we should not rely on that)
+    file_id = models.TextField()
 
     class Meta:
         unique_together = ("relpath", "filegroup")

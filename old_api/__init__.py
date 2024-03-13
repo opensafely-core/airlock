@@ -10,12 +10,10 @@ from old_api.schema import FileList, FileMetadata
 session = requests.Session()
 
 
-def create_filelist(release_request):
+def create_filelist(paths):
     files = []
-    root = release_request.root()
 
-    for relpath in list_files(release_request.root()):
-        abspath = root / relpath
+    for relpath, abspath in paths:
         files.append(
             FileMetadata(
                 name=str(relpath),
@@ -68,8 +66,3 @@ def upload_file(release_id, relpath, abspath, username):
 def modified_time(path):
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-
-
-def list_files(path):
-    """List all files recursively."""
-    return list(sorted(p.relative_to(path) for p in path.glob("**/*") if p.is_file()))

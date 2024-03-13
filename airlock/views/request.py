@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -100,9 +100,6 @@ def request_contents(request, request_id: str, path: str):
     except bll.FileNotFound:
         raise Http404()
 
-    if not abspath.is_file():
-        return HttpResponseBadRequest()
-
     download = "download" in request.GET
     # Downloads are only allowed for output checkers
     # Downloads are not allowed for request authors (including those that are also
@@ -113,7 +110,7 @@ def request_contents(request, request_id: str, path: str):
     ):
         raise PermissionDenied()
 
-    return serve_file(abspath, download)
+    return serve_file(abspath, download, filename=path)
 
 
 @require_http_methods(["POST"])

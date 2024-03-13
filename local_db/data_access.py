@@ -41,7 +41,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return dict(
             name=filegroup_metadata.name,
             files=[
-                dict(relpath=Path(file_metadata.relpath))
+                dict(relpath=Path(file_metadata.relpath), file_id=file_metadata.file_id)
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
@@ -93,7 +93,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.status = status
             metadata.save()
 
-    def add_file_to_request(self, request_id, relpath: Path, group_name: str):
+    def add_file_to_request(
+        self, request_id, relpath: Path, file_id: str, group_name: str
+    ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
             filegroupmetadata = self._get_or_create_filegroupmetadata(
@@ -107,7 +109,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
                 RequestFileMetadata.objects.create(
-                    relpath=str(relpath), filegroup=filegroupmetadata
+                    relpath=str(relpath), file_id=file_id, filegroup=filegroupmetadata
                 )
             else:
                 raise BusinessLogicLayer.APIException(

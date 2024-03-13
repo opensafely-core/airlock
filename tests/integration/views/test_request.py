@@ -154,7 +154,7 @@ def test_request_contents_dir(client_with_permission):
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = client_with_permission.get("/requests/content/id/default/foo")
-    assert response.status_code == 400
+    assert response.status_code == 404
 
 
 def test_request_contents_not_exists(client_with_permission):
@@ -439,7 +439,7 @@ def test_requests_release_jobserver_403_with_debug(
         id="request_id",
         status=Status.SUBMITTED,
     )
-    factories.write_request_file(release_request, "test/file.txt", "test")
+    factories.write_request_file(release_request, "default", "test/file.txt", "test")
 
     response = requests.Response()
     response.status_code = 403

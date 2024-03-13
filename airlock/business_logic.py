@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -123,6 +125,7 @@ class RequestFile:
     """
 
     relpath: UrlPath
+    file_id: str
 
     @classmethod
     def from_dict(cls, attrs):
@@ -210,24 +213,19 @@ class ReleaseRequest:
         The first part of the relpath is the group, so we parse and validate that first.
         """
         relpath = UrlPath(relpath)
-        root = self.root()
-
         group = relpath.parts[0]
+        file_relpath = UrlPath(*relpath.parts[1:])
 
-        if group not in self.filegroups:
+        if not (filegroup := self.filegroups.get(group)):
             raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
 
-        filepath = relpath.relative_to(group)
-        path = root / filepath
+        matching_files = [f for f in filegroup.files if f.relpath == file_relpath]
+        if not matching_files:
+            raise BusinessLogicLayer.FileNotFound(relpath)
+        assert len(matching_files) == 1
+        request_file = matching_files[0]
 
-        # protect against traversal
-        path.resolve().relative_to(root)
-
-        # validate path exists
-        if not path.exists():
-            raise BusinessLogicLayer.FileNotFound(path)
-
-        return path
+        return self.root() / request_file.file_id
 
     def file_set(self):
         return {
@@ -238,6 +236,29 @@ class ReleaseRequest:
 
     def set_filegroups_from_dict(self, attrs):
         self.filegroups = self._filegroups_from_dict(attrs)
+
+    def get_file_paths(self):
+        paths = []
+        for file_group in self.filegroups.values():
+            for request_file in file_group.files:
+                relpath = request_file.relpath
+                abspath = self.abspath(file_group.name / relpath)
+                paths.append((relpath, abspath))
+        return paths
+
+
+def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
+    # Make a "staging" copy of the file under a temporary name so we know it can't be
+    # modified underneath us
+    tmp_name = f"{datetime.now():%Y%m%d-%H%M%S}_{secrets.token_hex(8)}.tmp"
+    tmp_path = release_request.root() / tmp_name
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(abspath, tmp_path)
+    # Rename the staging file to the hash of its contents
+    with tmp_path.open("rb") as f:
+        digest = hashlib.file_digest(f, "sha256").hexdigest()
+    tmp_path.rename(release_request.root() / digest)
+    return digest
 
 
 class DataAccessLayerProtocol:
@@ -460,17 +481,13 @@ class BusinessLogicLayer:
 
         workspace = self.get_workspace(release_request.workspace)
         src = workspace.abspath(relpath)
-        # manually contruct target path from root
-        dst = release_request.root() / relpath
-        dst.parent.mkdir(exist_ok=True, parents=True)
-        shutil.copy(src, dst)
+        file_id = store_file(release_request, src)
 
-        # TODO: This is not currently safe in that we modify the filesytem before
-        # calling out to the DAL which could fail. We will deal with this later by
-        # switching to a content-addressed storage model which avoids having mutable
-        # state on the filesystem.
         filegroup_data = self._dal.add_file_to_request(
-            request_id=release_request.id, group_name=group_name, relpath=relpath
+            request_id=release_request.id,
+            group_name=group_name,
+            relpath=relpath,
+            file_id=file_id,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
@@ -485,16 +502,14 @@ class BusinessLogicLayer:
         # we check this is valid status transition *before* releasing the files
         self.check_status(request, Status.RELEASED, user)
 
-        filelist = old_api.create_filelist(request)
+        file_paths = request.get_file_paths()
+        filelist = old_api.create_filelist(file_paths)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username
         )
 
-        for f in filelist.files:
-            relpath = UrlPath(f.name)
-            old_api.upload_file(
-                jobserver_release_id, relpath, request.root() / relpath, user.username
-            )
+        for relpath, abspath in file_paths:
+            old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
         self.set_status(request, Status.RELEASED, user)
 
