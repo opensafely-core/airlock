@@ -16,9 +16,9 @@ def test_command():
 
     # Determine its current path and its "old style" path
     file_meta = RequestFileMetadata.objects.get()
-    full_relpath = f"{file_meta.filegroup.name}/{file_meta.relpath}"
-    path_with_hash = release_request.abspath(full_relpath)
-    old_style_path = release_request.root() / full_relpath
+    relpath_with_group = f"{file_meta.filegroup.name}/{file_meta.relpath}"
+    path_with_hash = release_request.abspath(relpath_with_group)
+    old_style_path = release_request.root() / file_meta.relpath
 
     # Move the file to its old location
     old_style_path.parent.mkdir(parents=True, exist_ok=True)

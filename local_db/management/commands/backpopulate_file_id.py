@@ -12,9 +12,7 @@ class Command(BaseCommand):
         for file_meta in list(empty_file_ids):
             request_id = file_meta.filegroup.request_id
             request = bll.get_release_request(request_id)
-            original_path = (
-                request.root() / file_meta.filegroup.name / file_meta.relpath
-            )
+            original_path = request.root() / file_meta.relpath
             file_meta.file_id = store_file(request, original_path)
             file_meta.save()
             original_path.unlink()
