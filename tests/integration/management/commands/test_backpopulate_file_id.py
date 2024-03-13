@@ -31,9 +31,12 @@ def test_command():
     call_command("backpopulate_file_id")
 
     # Confirm the database record now contains a hash
-    file_meta = RequestFileMetadata.objects.get()
+    file_meta.refresh_from_db()
     assert file_meta.file_id != ""
 
     # Confirm that the file is in its expected location and not in its old location
     assert path_with_hash.exists()
     assert not old_style_path.exists()
+
+    # Confirm that now empty directory has been removed
+    assert not old_style_path.parent.exists()

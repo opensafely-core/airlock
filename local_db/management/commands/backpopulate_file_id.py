@@ -1,3 +1,5 @@
+import errno
+
 from django.core.management.base import BaseCommand
 
 from airlock.business_logic import bll, store_file
@@ -16,3 +18,16 @@ class Command(BaseCommand):
             file_meta.file_id = store_file(request, original_path)
             file_meta.save()
             original_path.unlink()
+            remove_empty_dirs(original_path.parent)
+
+
+def remove_empty_dirs(path):
+    while True:
+        try:
+            path.rmdir()
+        except OSError as exc:
+            if exc.errno == errno.ENOTEMPTY:
+                break
+            else:  # pragma: no cover
+                raise
+        path = path.parent
