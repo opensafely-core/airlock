@@ -224,3 +224,11 @@ just job-server/clean
 just job-server/configure GHUSERNAME
 just job-server/create-workspace 
 ```
+
+
+## Deployment
+
+New versions should be deployed automatically on merge to `main` after a
+short delay. Github Actions should build a new Docker image, and then
+the backends poll regularly for updated images. See:
+https://github.com/opensafely-core/backend-server/tree/main/services/airlock
