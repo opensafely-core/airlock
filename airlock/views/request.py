@@ -100,9 +100,6 @@ def request_contents(request, request_id: str, path: str):
     except bll.FileNotFound:
         raise Http404()
 
-    if not abspath.is_file():
-        raise Http404()
-
     download = "download" in request.GET
     # Downloads are only allowed for output checkers
     # Downloads are not allowed for request authors (including those that are also
