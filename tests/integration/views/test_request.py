@@ -184,13 +184,11 @@ def test_request_download_file(client_with_permission):
     [
         (  # Different non-output-checker author and output-checker user
             {
-                "id": 1,
                 "username": "output-checker",
                 "workspaces": ["workspace"],
                 "output_checker": False,
             },
             {
-                "id": 2,
                 "username": "author",
                 "workspaces": ["workspace"],
                 "output_checker": True,
@@ -199,13 +197,11 @@ def test_request_download_file(client_with_permission):
         ),
         (  # Different output-checker author and output-checker user
             {
-                "id": 1,
                 "username": "output-checker",
                 "workspaces": ["workspace"],
                 "output_checker": True,
             },
             {
-                "id": 2,
                 "username": "author",
                 "workspaces": ["workspace"],
                 "output_checker": True,
@@ -214,13 +210,11 @@ def test_request_download_file(client_with_permission):
         ),
         (  # Different non-output-checker author and non-output-checker user
             {
-                "id": 1,
                 "username": "researcher",
                 "workspaces": ["workspace"],
                 "output_checker": False,
             },
             {
-                "id": 2,
                 "username": "author",
                 "workspaces": ["workspace"],
                 "output_checker": False,
@@ -229,13 +223,11 @@ def test_request_download_file(client_with_permission):
         ),
         (  # Same output-checker author and user
             {
-                "id": 1,
                 "username": "output-checker",
                 "workspaces": ["workspace"],
                 "output_checker": True,
             },
             {
-                "id": 1,
                 "username": "output-checker",
                 "workspaces": ["workspace"],
                 "output_checker": True,
@@ -248,7 +240,7 @@ def test_request_download_file_permissions(
     client_with_user, request_author, session_user, can_download
 ):
     client = client_with_user(session_user)
-    author = User(**request_author)
+    author = factories.create_user(**request_author)
     release_request = factories.create_release_request(
         "workspace", id="id", user=author
     )
@@ -280,7 +272,7 @@ def test_request_index_user_output_checker(client_with_user):
         {"workspaces": ["test_workspace"], "output_checker": True}
     )
     user = User.from_session(permitted_client.session)
-    other = User(1, "other")
+    other = factories.create_user("other")
     r1 = factories.create_release_request(
         "test_workspace", user=user, status=Status.SUBMITTED
     )
@@ -310,7 +302,7 @@ def test_request_submit_author(client_with_user):
 
 def test_request_submit_not_author(client_with_user):
     permitted_client = client_with_user({"workspaces": ["test1"]})
-    other_user = User(2, "other", [], False)
+    other_user = factories.create_user("other", [], False)
     release_request = factories.create_release_request(
         "test1", user=other_user, status=Status.PENDING
     )
@@ -324,7 +316,7 @@ def test_request_submit_not_author(client_with_user):
 
 
 def test_request_reject_output_checker(client_with_permission):
-    author = User(1, "author", ["test1"], False)
+    author = factories.create_user("author", ["test1"], False)
     release_request = factories.create_release_request(
         "test1",
         user=author,
@@ -341,7 +333,7 @@ def test_request_reject_output_checker(client_with_permission):
 
 def test_request_reject_not_output_checker(client_with_user):
     client = client_with_user({"workspaces": ["test1"]})
-    author = User(1, "author", ["test1"], False)
+    author = factories.create_user("author", ["test1"], False)
     release_request = factories.create_release_request(
         "test1",
         user=author,

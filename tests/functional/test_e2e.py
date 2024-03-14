@@ -21,7 +21,7 @@ def dev_users(tmp_path, settings):
                         "fullname": "Output Checker",
                         "output_checker": True,
                         "staff": True,
-                        "workspaces": [],
+                        "workspaces": {},
                     },
                 },
                 "researcher": {

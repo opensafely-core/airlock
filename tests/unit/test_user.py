@@ -43,7 +43,7 @@ def test_session_user_no_user_set():
 @pytest.mark.parametrize(
     "output_checker,workspaces,has_permission",
     [
-        (True, [], True),
+        (True, {}, True),
         (True, {"other": {}, "other1": {}}, True),
         (False, {"test": {}, "other": {}, "other1": {}}, True),
         (False, {"other": {}, "other1": {}}, False),
@@ -65,7 +65,7 @@ def test_session_user_has_permission(output_checker, workspaces, has_permission)
 @pytest.mark.parametrize(
     "output_checker,workspaces,can_create_request",
     [
-        (True, [], False),
+        (True, {}, False),
         (True, {"other": {}, "other1": {}}, False),
         (False, {"test": {}, "other": {}, "other1": {}}, True),
         (False, {"other": {}, "other1": {}}, False),

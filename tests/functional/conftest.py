@@ -6,6 +6,8 @@ import pytest
 from django.conf import settings
 from django.contrib.sessions.models import Session
 
+from tests import factories
+
 
 @pytest.fixture(scope="session", autouse=True)
 def set_env():
@@ -38,8 +40,9 @@ def login_as_user(live_server, context, user_dict):
     Creates a session with relevant user data and
     sets the session cookie.
     """
+    user = factories.create_user(**user_dict)
     session_store = Session.get_session_store_class()()
-    session_store["user"] = user_dict
+    session_store["user"] = user.to_dict()
     session_store.save()
     context.add_cookies(
         [
@@ -58,7 +61,6 @@ def output_checker_user(live_server, context):
         live_server,
         context,
         {
-            "id": "test_output_checker",
             "username": "test_output_checker",
             "workspaces": {"test-dir2": {"project": "Project 2"}},
             "output_checker": True,
@@ -72,7 +74,6 @@ def researcher_user(live_server, context):
         live_server,
         context,
         {
-            "id": "test_researcher",
             "username": "test_researcher",
             "workspaces": {"test-dir1": {"project": "Project 1"}},
             "output_checker": False,

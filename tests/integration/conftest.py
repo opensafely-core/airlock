@@ -1,16 +1,17 @@
 import pytest
 
-from airlock.users import User
+from tests import factories
 
 
 @pytest.fixture
 def client_with_user(client):
     def _client(session_user):
-        session_user = {"id": 1, "username": "test", **session_user}
+        session_user.setdefault("username", "test")
+        user = factories.create_user(**session_user)
         session = client.session
-        session["user"] = session_user
+        session["user"] = user.to_dict()
         session.save()
-        client.user = User.from_session(session)
+        client.user = user
         return client
 
     return _client
