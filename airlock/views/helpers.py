@@ -11,7 +11,7 @@ def login_exempt(view):
     return view
 
 
-def validate_workspace(user, workspace_name):
+def get_workspace_or_raise(user, workspace_name):
     """Ensure the workspace exists and the current user has permissions to access it."""
     try:
         workspace = bll.get_workspace(workspace_name, user)
@@ -23,7 +23,7 @@ def validate_workspace(user, workspace_name):
     return workspace
 
 
-def validate_release_request(user, request_id):
+def get_release_request_or_raise(user, request_id):
     """Ensure the release request exists for this workspace."""
     try:
         release_request = bll.get_release_request(request_id, user)

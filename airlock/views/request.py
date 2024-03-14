@@ -12,7 +12,7 @@ from django.views.decorators.vary import vary_on_headers
 from airlock.business_logic import Status, bll
 from airlock.file_browser_api import get_request_tree
 
-from .helpers import serve_file, validate_release_request
+from .helpers import get_release_request_or_raise, serve_file
 
 
 def request_index(request):
@@ -35,7 +35,7 @@ def request_index(request):
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 def request_view(request, request_id: str, path: str = ""):
-    release_request = validate_release_request(request.user, request_id)
+    release_request = get_release_request_or_raise(request.user, request_id)
 
     template = "file_browser/index.html"
     selected_only = False
@@ -93,7 +93,7 @@ def request_view(request, request_id: str, path: str = ""):
 
 @require_http_methods(["GET"])
 def request_contents(request, request_id: str, path: str):
-    release_request = validate_release_request(request.user, request_id)
+    release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
         abspath = release_request.abspath(path)
@@ -115,7 +115,7 @@ def request_contents(request, request_id: str, path: str):
 
 @require_http_methods(["POST"])
 def request_submit(request, request_id):
-    release_request = validate_release_request(request.user, request_id)
+    release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
         bll.set_status(release_request, Status.SUBMITTED, request.user)
@@ -128,7 +128,7 @@ def request_submit(request, request_id):
 
 @require_http_methods(["POST"])
 def request_reject(request, request_id):
-    release_request = validate_release_request(request.user, request_id)
+    release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
         bll.set_status(release_request, Status.REJECTED, request.user)
@@ -141,7 +141,7 @@ def request_reject(request, request_id):
 
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
-    release_request = validate_release_request(request.user, request_id)
+    release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
         # For now, we just implicitly approve when release files is requested

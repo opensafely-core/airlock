@@ -12,7 +12,7 @@ from airlock.business_logic import UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
-from .helpers import serve_file, validate_workspace
+from .helpers import get_workspace_or_raise, serve_file
 
 
 def grouped_workspaces(workspaces):
@@ -34,7 +34,7 @@ def workspace_index(request):
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 def workspace_view(request, workspace_name: str, path: str = ""):
-    workspace = validate_workspace(request.user, workspace_name)
+    workspace = get_workspace_or_raise(request.user, workspace_name)
 
     template = "file_browser/index.html"
     selected_only = False
@@ -97,7 +97,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
-    workspace = validate_workspace(request.user, workspace_name)
+    workspace = get_workspace_or_raise(request.user, workspace_name)
 
     try:
         abspath = workspace.abspath(path)
@@ -112,7 +112,7 @@ def workspace_contents(request, workspace_name: str, path: str):
 
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
-    workspace = validate_workspace(request.user, workspace_name)
+    workspace = get_workspace_or_raise(request.user, workspace_name)
     relpath = UrlPath(request.POST["path"])
     try:
         workspace.abspath(relpath)
