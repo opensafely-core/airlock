@@ -11,28 +11,26 @@ def login_exempt(view):
     return view
 
 
-def validate_workspace(user, workspace_name):
-    """Ensure the workspace exists and the current user has permissions to access it."""
+def get_workspace_or_raise(user, workspace_name):
+    """Get the workspace, converting any errors to http codes."""
     try:
-        workspace = bll.get_workspace(workspace_name)
+        workspace = bll.get_workspace(workspace_name, user)
     except bll.WorkspaceNotFound:
         raise Http404()
-
-    if user is None or not user.has_permission(workspace_name):
+    except bll.WorkspacePermissionDenied:
         raise PermissionDenied()
 
     return workspace
 
 
-def validate_release_request(user, request_id):
-    """Ensure the release request exists for this workspace."""
+def get_release_request_or_raise(user, request_id):
+    """Get the release request, converting any errors to http codes."""
     try:
-        release_request = bll.get_release_request(request_id)
+        release_request = bll.get_release_request(request_id, user)
     except bll.ReleaseRequestNotFound:
         raise Http404()
-
-    # check user permissions for this workspace
-    validate_workspace(user, release_request.workspace)
+    except bll.WorkspacePermissionDenied:
+        raise PermissionDenied()
 
     return release_request
 
