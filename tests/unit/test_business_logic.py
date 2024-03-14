@@ -396,7 +396,7 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     bll.add_file_to_request(release_request, path, author, "test_group")
     assert len(release_request.filegroups) == 1
 
-    workspace = bll.get_workspace("workspace")
+    workspace = bll.get_workspace("workspace", author)
     path1 = Path("path/file1.txt")
     path2 = Path("path/file2.txt")
     factories.write_workspace_file(workspace, path1)

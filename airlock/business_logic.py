@@ -293,21 +293,32 @@ class BusinessLogicLayer:
     class InvalidStateTransition(APIException):
         pass
 
+    class WorkspacePermissionDenied(APIException):
+        pass
+
     class RequestPermissionDenied(APIException):
         pass
 
-    def get_workspace(self, name: str, metadata: dict = {}) -> Workspace:
+    def get_workspace(self, name: str, user: User) -> Workspace:
         """Get a workspace object."""
-        # this almost trivial currently, but may involve more in future
-        return Workspace(name, metadata)
+
+        if user is None or not user.has_permission(name):
+            raise self.WorkspacePermissionDenied()
+
+        # this is a bit awkward. IF the user is an output checker, they may not
+        # have the workspace metadata in their User instance, so we provide an
+        # empty metadata instance.
+        # Currently, the only place this metadata is used is in the workspace
+        # index, to group by project, so its mostly fine that its not here.
+        return Workspace(name, user.workspaces.get(name, {}))
 
     def get_workspaces_for_user(self, user: User) -> list[Workspace]:
         """Get all the local workspace directories that a user has permission for."""
 
         workspaces = []
-        for workspace_name, metadata in user.workspaces.items():
+        for workspace_name in user.workspaces:
             try:
-                workspace = self.get_workspace(workspace_name, metadata)
+                workspace = self.get_workspace(workspace_name, user)
             except self.WorkspaceNotFound:
                 continue
 
@@ -479,7 +490,7 @@ class BusinessLogicLayer:
                 f"cannot add file to request in state {release_request.status.name}"
             )
 
-        workspace = self.get_workspace(release_request.workspace)
+        workspace = self.get_workspace(release_request.workspace, user)
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 

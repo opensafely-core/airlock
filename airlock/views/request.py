@@ -74,7 +74,7 @@ def request_view(request, request_id: str, path: str = ""):
     )
 
     context = {
-        "workspace": bll.get_workspace(release_request.workspace),
+        "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
         "root": tree,
         "path_item": path_item,

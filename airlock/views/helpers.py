@@ -14,11 +14,10 @@ def login_exempt(view):
 def validate_workspace(user, workspace_name):
     """Ensure the workspace exists and the current user has permissions to access it."""
     try:
-        workspace = bll.get_workspace(workspace_name)
+        workspace = bll.get_workspace(workspace_name, user)
     except bll.WorkspaceNotFound:
         raise Http404()
-
-    if user is None or not user.has_permission(workspace_name):
+    except bll.WorkspacePermissionDenied:
         raise PermissionDenied()
 
     return workspace
