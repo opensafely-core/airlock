@@ -12,7 +12,7 @@ def login_exempt(view):
 
 
 def get_workspace_or_raise(user, workspace_name):
-    """Ensure the workspace exists and the current user has permissions to access it."""
+    """Get the workspace, converting any errors to http codes."""
     try:
         workspace = bll.get_workspace(workspace_name, user)
     except bll.WorkspaceNotFound:
@@ -24,7 +24,7 @@ def get_workspace_or_raise(user, workspace_name):
 
 
 def get_release_request_or_raise(user, request_id):
-    """Ensure the release request exists for this workspace."""
+    """Get the release request, converting any errors to http codes."""
     try:
         release_request = bll.get_release_request(request_id, user)
     except bll.ReleaseRequestNotFound:
