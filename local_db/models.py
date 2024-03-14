@@ -43,7 +43,7 @@ class RequestMetadata(models.Model):
     )
 
     workspace = models.TextField()
-    status = EnumField(default=RequestStatus.PENDING, enum=Status)
+    status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 

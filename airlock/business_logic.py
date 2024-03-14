@@ -41,6 +41,11 @@ class RequestFileType(Enum):
     SUPPORTING = "supporting"
 
 
+class FileApprovalStatus(Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 class AirlockContainer(Protocol):
     """Structural typing class for a instance of a Workspace or ReleaseRequest
 
