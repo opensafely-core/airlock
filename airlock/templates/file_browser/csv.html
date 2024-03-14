@@ -1,7 +1,8 @@
 {% load airlocktags %}
 {% as_csv_data contents as csv_data %}
-<div class="inline-block min-w-full align-middle max-w-full">
-  <table class="datatable">
+<div id="csvtable" class="inline-block min-w-full align-middle max-w-full">
+  <p class="spinner">Loading table data...</p>
+  <table class="datatable" style="display: none">
     <thead class="bg-slate-200" id="csvTable">
       <tr>
         {% for header in csv_data.headers %}
@@ -11,7 +12,7 @@
     </thead>
     <tbody>
       {% for row in csv_data.rows %}
-        <tr class="even:bg-slate-50">
+        <tr>
           {% for cell in row %}
             <td>{{ cell }}</td>
           {% endfor %}
@@ -20,3 +21,8 @@
     </tbody>
   </table>
 </div>
+
+<script type="text/javascript">
+  document.querySelector("#csvtable p.spinner").style.display = "none";
+  document.querySelector("#csvtable table.datatable").style.display = "table";
+</script>
