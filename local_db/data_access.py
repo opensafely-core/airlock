@@ -5,6 +5,7 @@ from django.db import transaction
 from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
+    RequestFileType,
     Status,
 )
 from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
@@ -41,7 +42,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return dict(
             name=filegroup_metadata.name,
             files=[
-                dict(relpath=Path(file_metadata.relpath), file_id=file_metadata.file_id)
+                dict(
+                    relpath=Path(file_metadata.relpath),
+                    file_id=file_metadata.file_id,
+                    filetype=file_metadata.filetype,
+                )
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
@@ -94,7 +99,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.save()
 
     def add_file_to_request(
-        self, request_id, relpath: Path, file_id: str, group_name: str
+        self,
+        request_id,
+        relpath: Path,
+        file_id: str,
+        group_name: str,
+        filetype=RequestFileType,
     ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
@@ -102,18 +112,25 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id, group_name
             )
             # Check if this file is already on the request, in any group
+            # A file (including supporting files) may only be on a request once.
             try:
                 existing_file = RequestFileMetadata.objects.get(
                     filegroup__request_id=request_id, relpath=relpath
                 )
+                # We should never be able to attempt to add a file to a request
+                # with a different filetype
+                assert existing_file.filetype == filetype
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
                 RequestFileMetadata.objects.create(
-                    relpath=str(relpath), file_id=file_id, filegroup=filegroupmetadata
+                    relpath=str(relpath),
+                    file_id=file_id,
+                    filegroup=filegroupmetadata,
+                    filetype=filetype,
                 )
             else:
                 raise BusinessLogicLayer.APIException(
-                    "File has already been added to request "
+                    "{filetype} file has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 

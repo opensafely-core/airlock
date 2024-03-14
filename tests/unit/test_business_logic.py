@@ -335,6 +335,47 @@ def test_add_file_to_request_states(status, success, bll):
             bll.add_file_to_request(release_request, path, author)
 
 
+def test_add_file_to_request_default_filetype(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    bll.add_file_to_request(release_request, path, author)
+    request_file = release_request.filegroups["default"].files[0]
+    assert request_file.filetype == RequestFileType.OUTPUT
+
+
+@pytest.mark.parametrize(
+    "filetype,success",
+    [
+        (RequestFileType.OUTPUT, True),
+        (RequestFileType.SUPPORTING, True),
+        ("unknown", False),
+    ],
+)
+def test_add_file_to_request_with_filetype(bll, filetype, success):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    if success:
+        bll.add_file_to_request(release_request, path, author, filetype=filetype)
+        request_file = release_request.filegroups["default"].files[0]
+        assert request_file.filetype == filetype
+    else:
+        with pytest.raises(AttributeError):
+            bll.add_file_to_request(release_request, path, author, filetype=filetype)
+
+
 def test_request_release_invalid_state():
     factories.create_workspace("workspace")
     with pytest.raises(AttributeError):

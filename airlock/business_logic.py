@@ -497,6 +497,7 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
         group_name: Optional[str] = "default",
+        filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(
@@ -517,6 +518,7 @@ class BusinessLogicLayer:
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
+            filetype=filetype,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
