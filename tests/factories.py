@@ -30,11 +30,7 @@ def ensure_workspace(workspace_or_name):
     raise Exception(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
 
 
-def create_workspace(name, user=None):
-    # create a default user with permission on workspace
-    if user is None:
-        user = create_user(workspaces=[name])
-
+def create_workspace(name):
     workspace_dir = settings.WORKSPACE_DIR / name
     workspace_dir.mkdir(exist_ok=True, parents=True)
     return bll.get_workspace(name)
@@ -52,7 +48,7 @@ def create_release_request(workspace, user=None, **kwargs):
 
     # create a default user with permission on workspace
     if user is None:
-        user = create_user(workspaces=[workspace.name])
+        user = create_user("author", workspaces=[workspace.name])
 
     release_request = bll._create_release_request(
         workspace=workspace.name, author=user.username, **kwargs

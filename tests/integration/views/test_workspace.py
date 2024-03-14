@@ -2,7 +2,6 @@ import pytest
 from django.contrib import messages
 from django.shortcuts import reverse
 
-from airlock.users import User
 from tests import factories
 
 
@@ -14,51 +13,55 @@ def test_index(client):
     assert "Hello World" in response.rendered_content
 
 
-def test_workspace_view(client_with_permission):
+def test_workspace_view(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt")
 
-    response = client_with_permission.get("/workspaces/view/workspace/")
+    response = airlock_client.get("/workspaces/view/workspace/")
     assert "file.txt" in response.rendered_content
     assert "release-request-button" not in response.rendered_content
 
 
-def test_workspace_view_with_existing_request_for_user(
-    client_with_permission,
-):
-    user = User.from_session(client_with_permission.session)
+def test_workspace_view_with_existing_request_for_user(airlock_client):
+    user = factories.create_user(output_checker=True)
+    airlock_client.login_with_user(user)
     factories.write_workspace_file("workspace", "file.txt")
     release_request = factories.create_release_request("workspace", user=user)
     factories.create_filegroup(
         release_request, group_name="default_group", filepaths=["file.txt"]
     )
-    response = client_with_permission.get("/workspaces/view/workspace/")
+    response = airlock_client.get("/workspaces/view/workspace/")
     assert "current-request-button" in response.rendered_content
 
 
-def test_workspace_does_not_exist(client_with_permission):
-    response = client_with_permission.get("/workspaces/view/bad/")
+def test_workspace_does_not_exist(airlock_client):
+    airlock_client.login(output_checker=True)
+    response = airlock_client.get("/workspaces/view/bad/")
     assert response.status_code == 404
 
 
-def test_workspace_view_with_directory(client_with_permission):
+def test_workspace_view_with_directory(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "some_dir/file.txt")
-    response = client_with_permission.get("/workspaces/view/workspace/some_dir/")
+    response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 200
     assert "file.txt" in response.rendered_content
 
 
-def test_workspace_view_with_file(client_with_permission):
+def test_workspace_view_with_file(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt", "foobar")
-    response = client_with_permission.get("/workspaces/view/workspace/file.txt")
+    response = airlock_client.get("/workspaces/view/workspace/file.txt")
     assert response.status_code == 200
     assert "foobar" in response.rendered_content
     assert response.template_name == "file_browser/index.html"
     assert "HX-Request" in response.headers["Vary"]
 
 
-def test_workspace_view_with_file_htmx(client_with_permission):
+def test_workspace_view_with_file_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt", "foobar")
-    response = client_with_permission.get(
+    response = airlock_client.get(
         "/workspaces/view/workspace/file.txt", headers={"HX-Request": "true"}
     )
     assert response.status_code == 200
@@ -68,11 +71,12 @@ def test_workspace_view_with_file_htmx(client_with_permission):
     assert "HX-Request" in response.headers["Vary"]
 
 
-def test_workspace_view_with_html_file(client_with_permission):
+def test_workspace_view_with_html_file(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file(
         "workspace", "file.html", "<html><body>foobar</body></html>"
     )
-    response = client_with_permission.get("/workspaces/view/workspace/file.html")
+    response = airlock_client.get("/workspaces/view/workspace/file.html")
     url = reverse(
         "workspace_contents",
         kwargs={"workspace_name": "workspace", "path": "file.html"},
@@ -80,7 +84,8 @@ def test_workspace_view_with_html_file(client_with_permission):
     assert f'src="{url}"' in response.rendered_content
 
 
-def test_workspace_view_with_svg_file(client_with_permission):
+def test_workspace_view_with_svg_file(airlock_client):
+    airlock_client.login(output_checker=True)
     TEST_SVG = """
     <svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">
     <style>
@@ -111,7 +116,7 @@ def test_workspace_view_with_svg_file(client_with_permission):
         "file.svg",
         TEST_SVG,
     )
-    response = client_with_permission.get("/workspaces/view/workspace/file.svg")
+    response = airlock_client.get("/workspaces/view/workspace/file.svg")
     url = reverse(
         "workspace_contents",
         kwargs={"workspace_name": "workspace", "path": "file.svg"},
@@ -119,38 +124,43 @@ def test_workspace_view_with_svg_file(client_with_permission):
     assert f'src="{url}"' in response.rendered_content
 
 
-def test_workspace_view_with_csv_file(client_with_permission):
+def test_workspace_view_with_csv_file(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.csv", "header1,header2\nFoo,Bar")
-    response = client_with_permission.get("/workspaces/view/workspace/file.csv")
+    response = airlock_client.get("/workspaces/view/workspace/file.csv")
     for content in ["<table", "Foo", "Bar"]:
         assert content in response.rendered_content
 
 
-def test_workspace_view_with_404(client_with_permission):
+def test_workspace_view_with_404(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.create_workspace("workspace")
-    response = client_with_permission.get("/workspaces/view/workspace/no_such_file.txt")
+    response = airlock_client.get("/workspaces/view/workspace/no_such_file.txt")
     assert response.status_code == 404
 
 
-def test_workspace_view_redirects_to_directory(client_with_permission):
+def test_workspace_view_redirects_to_directory(airlock_client):
+    airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)
-    response = client_with_permission.get("/workspaces/view/workspace/some_dir")
+    response = airlock_client.get("/workspaces/view/workspace/some_dir")
     assert response.status_code == 302
     assert response.headers["Location"] == "/workspaces/view/workspace/some_dir/"
 
 
-def test_workspace_view_directory_with_sub_directory(client_with_permission):
+def test_workspace_view_directory_with_sub_directory(airlock_client):
+    airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "sub_dir/file.txt")
-    response = client_with_permission.get("/workspaces/view/workspace", follow=True)
+    response = airlock_client.get("/workspaces/view/workspace", follow=True)
     assert "sub_dir" in response.rendered_content
     assert "file.txt" in response.rendered_content
 
 
-def test_workspace_view_redirects_to_file(client_with_permission):
+def test_workspace_view_redirects_to_file(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt")
-    response = client_with_permission.get("/workspaces/view/workspace/file.txt/")
+    response = airlock_client.get("/workspaces/view/workspace/file.txt/")
     assert response.status_code == 302
     assert response.headers["Location"] == "/workspaces/view/workspace/file.txt"
 
@@ -158,86 +168,87 @@ def test_workspace_view_redirects_to_file(client_with_permission):
 @pytest.mark.parametrize(
     "user,can_see_form",
     [
-        ({"workspaces": ["workspace"], "output_checker": True}, True),
-        ({"workspaces": ["workspace"], "output_checker": False}, True),
-        ({"workspaces": [], "output_checker": True}, False),
+        (factories.create_user(workspaces=["workspace"], output_checker=True), True),
+        (factories.create_user(workspaces=["workspace"], output_checker=False), True),
+        (factories.create_user(workspaces=[], output_checker=True), False),
     ],
 )
-def test_workspace_view_file_add_to_request(client_with_user, user, can_see_form):
-    client = client_with_user(user)
+def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
+    airlock_client.login_with_user(user)
     factories.write_workspace_file("workspace", "file.txt")
-    response = client.get("/workspaces/view/workspace/file.txt")
+    response = airlock_client.get("/workspaces/view/workspace/file.txt")
     assert (response.context["form"] is None) == (not can_see_form)
 
 
-def test_workspace_view_index_no_user(client):
+def test_workspace_view_index_no_user(airlock_client):
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)
-    response = client.get("/workspaces/view/workspace/")
+    response = airlock_client.get("/workspaces/view/workspace/")
     assert response.status_code == 302
 
 
-def test_workspace_view_with_directory_no_user(client):
+def test_workspace_view_with_directory_no_user(airlock_client):
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)
-    response = client.get("/workspaces/view/workspace/some_dir/")
+    response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 302
 
 
-def test_workspace_view_index_no_permission(client_with_user):
+def test_workspace_view_index_no_permission(airlock_client):
     factories.create_workspace("workspace")
-    forbidden_client = client_with_user({"workspaces": ["another-workspace"]})
-    response = forbidden_client.get("/workspaces/view/workspace/")
+    airlock_client.login(workspaces=["another-workspace"])
+    response = airlock_client.get("/workspaces/view/workspace/")
     assert response.status_code == 403
 
 
-def test_workspace_view_with_directory_no_permission(client_with_user):
+def test_workspace_view_with_directory_no_permission(airlock_client):
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)
-    forbidden_client = client_with_user({"workspaces": ["another-workspace"]})
-    response = forbidden_client.get("/workspaces/view/workspace/some_dir/")
+    airlock_client.login(workspaces=["another-workspace"])
+    response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 403
 
 
-def test_workspace_contents_file(client_with_permission):
+def test_workspace_contents_file(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt", "test")
-    response = client_with_permission.get("/workspaces/content/workspace/file.txt")
+    response = airlock_client.get("/workspaces/content/workspace/file.txt")
     assert response.status_code == 200
     assert list(response.streaming_content) == [b"test"]
 
 
-def test_workspace_contents_dir(client_with_permission):
+def test_workspace_contents_dir(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "foo/file.txt", "test")
-    response = client_with_permission.get("/workspaces/content/workspace/foo")
+    response = airlock_client.get("/workspaces/content/workspace/foo")
     assert response.status_code == 400
 
 
-def test_workspace_contents_not_exists(client_with_permission):
+def test_workspace_contents_not_exists(airlock_client):
+    airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt", "test")
-    response = client_with_permission.get("/workspaces/content/workspace/notexists.txt")
+    response = airlock_client.get("/workspaces/content/workspace/notexists.txt")
     assert response.status_code == 404
 
 
-def test_workspaces_index_no_user(client):
-    response = client.get("/workspaces/")
+def test_workspaces_index_no_user(airlock_client):
+    response = airlock_client.get("/workspaces/")
     assert response.status_code == 302
 
 
-def test_workspaces_index_user_permitted_workspaces(client_with_user):
-    permitted_client = client_with_user(
-        {
-            "workspaces": {
-                "test1a": {"project": "Project 1"},
-                "test1b": {"project": "Project 1"},
-                "test2": {"project": "Project 2"},
-            }
+def test_workspaces_index_user_permitted_workspaces(airlock_client):
+    airlock_client.login(
+        workspaces={
+            "test1a": {"project": "Project 1"},
+            "test1b": {"project": "Project 1"},
+            "test2": {"project": "Project 2"},
         }
     )
     factories.create_workspace("test1a")
     factories.create_workspace("test1b")
     factories.create_workspace("test2")
     factories.create_workspace("not-allowed")
-    response = permitted_client.get("/workspaces/")
+    response = airlock_client.get("/workspaces/")
 
     projects = response.context["projects"]
     assert projects["Project 1"][0].name == "test1a"
@@ -246,42 +257,42 @@ def test_workspaces_index_user_permitted_workspaces(client_with_user):
     assert "not-allowed" not in response.rendered_content
 
 
-def test_workspace_request_file_creates(client_with_user, bll):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
+def test_workspace_request_file_creates(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    assert bll.get_current_request(workspace.name, user) is None
-    response = client.post(
+    assert bll.get_current_request(workspace.name, airlock_client.user) is None
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
 
-    release_request = bll.get_current_request(workspace.name, user)
+    release_request = bll.get_current_request(workspace.name, airlock_client.user)
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert str(filegroup.files[0].relpath) == "test/path.txt"
     assert release_request.abspath("default/test/path.txt").exists()
 
 
-def test_workspace_request_file_request_already_exists(client_with_user, bll):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
+def test_workspace_request_file_request_already_exists(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
-    release_request = factories.create_release_request(workspace, user)
+    release_request = factories.create_release_request(workspace, airlock_client.user)
     assert release_request.filegroups == {}
 
-    response = client.post(
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
     assert response.status_code == 302
-    current_release_request = bll.get_current_request(workspace.name, user)
+    current_release_request = bll.get_current_request(
+        workspace.name, airlock_client.user
+    )
     assert current_release_request.id == release_request.id
     assert current_release_request.abspath("default/test/path.txt").exists()
     filegroup = current_release_request.filegroups["default"]
@@ -289,15 +300,14 @@ def test_workspace_request_file_request_already_exists(client_with_user, bll):
     assert str(filegroup.files[0].relpath) == "test/path.txt"
 
 
-def test_workspace_request_file_with_new_filegroup(client_with_user, bll):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
+def test_workspace_request_file_with_new_filegroup(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    assert bll.get_current_request(workspace.name, user) is None
-    response = client.post(
+    assert bll.get_current_request(workspace.name, airlock_client.user) is None
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
             "path": "test/path.txt",
@@ -308,23 +318,22 @@ def test_workspace_request_file_with_new_filegroup(client_with_user, bll):
     )
     assert response.status_code == 302
 
-    release_request = bll.get_current_request(workspace.name, user)
+    release_request = bll.get_current_request(workspace.name, airlock_client.user)
     filegroup = release_request.filegroups["new_group"]
     assert filegroup.name == "new_group"
 
 
-def test_workspace_request_file_filegroup_already_exists(client_with_user, bll):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
+def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    release_request = factories.create_release_request(workspace, user)
+    release_request = factories.create_release_request(workspace, airlock_client.user)
     filegroupmetadata = factories.create_filegroup(release_request, "default")
     assert not filegroupmetadata.request_files.exists()
 
-    client.post(
+    airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
@@ -333,7 +342,7 @@ def test_workspace_request_file_filegroup_already_exists(client_with_user, bll):
     assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
 
     # Attempt to add the same file again
-    response = client.post(
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
@@ -343,11 +352,11 @@ def test_workspace_request_file_filegroup_already_exists(client_with_user, bll):
     assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
 
 
-def test_workspace_request_file_request_path_does_not_exist(client_with_user):
-    client = client_with_user({"workspaces": ["test1"]})
+def test_workspace_request_file_request_path_does_not_exist(airlock_client):
+    airlock_client.login(workspaces=["test1"])
     factories.create_workspace("test1")
 
-    response = client.post(
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={"path": "test/path.txt", "filegroup": "default"},
     )
@@ -355,17 +364,16 @@ def test_workspace_request_file_request_path_does_not_exist(client_with_user):
     assert response.status_code == 404
 
 
-def test_workspace_request_file_invalid_new_filegroup(client_with_user, bll):
-    client = client_with_user({"workspaces": ["test1"]})
-    user = User.from_session(client.session)
+def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
 
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
-    release_request = factories.create_release_request(workspace, user)
+    release_request = factories.create_release_request(workspace, airlock_client.user)
     filegroupmetadata = factories.create_filegroup(release_request, "test_group")
 
-    response = client.post(
+    response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
             "path": "test/path.txt",

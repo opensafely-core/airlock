@@ -227,7 +227,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
     find_and_click(page.get_by_test_id("nav-requests"))
 
     # View submitted request
-    find_and_click(page.get_by_role("link", name="test-workspace by testuser"))
+    find_and_click(page.get_by_role("link", name="test-workspace by author"))
 
     # Reject request
     find_and_click(page.locator("#reject-request-button"))
@@ -235,4 +235,4 @@ def test_e2e_reject_request(page, live_server, dev_users):
     expect(page.locator("body")).to_contain_text("Request has been rejected")
     # Requests view does not show rejected request
     find_and_click(page.get_by_test_id("nav-requests"))
-    expect(page.locator("body")).not_to_contain_text("test-workspace by testuser")
+    expect(page.locator("body")).not_to_contain_text("test-workspace by author")
