@@ -300,7 +300,9 @@ def test_request_submit_author(airlock_client):
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
     assert response.status_code == 302
-    persisted_request = factories.bll.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
     assert persisted_request.status == Status.SUBMITTED
 
 
@@ -315,7 +317,9 @@ def test_request_submit_not_author(airlock_client):
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.bll.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
     assert persisted_request.status == Status.PENDING
 
 
@@ -332,7 +336,9 @@ def test_request_reject_output_checker(airlock_client):
     response = airlock_client.post(f"/requests/reject/{release_request.id}")
 
     assert response.status_code == 302
-    persisted_request = factories.bll.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
     assert persisted_request.status == Status.REJECTED
 
 
@@ -347,7 +353,9 @@ def test_request_reject_not_output_checker(airlock_client):
     response = airlock_client.post(f"/requests/reject/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.bll.get_release_request(release_request.id)
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
     assert persisted_request.status == Status.SUBMITTED
 
 

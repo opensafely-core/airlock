@@ -8,6 +8,9 @@ from airlock.business_logic import Status, bll
 from tests import factories
 
 
+admin_user = factories.create_user("admin", output_checker=True)
+
+
 @pytest.fixture
 def dev_users(tmp_path, settings):
     settings.AIRLOCK_DEV_USERS_FILE = tmp_path / "dev_users.json"
@@ -192,7 +195,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert download.suggested_filename == "file.txt"
 
     # Mock the responses from job-server
-    release_request = bll.get_release_request(request_id)
+    release_request = bll.get_release_request(request_id, admin_user)
     release_files_stubber(release_request)
 
     # Release the files

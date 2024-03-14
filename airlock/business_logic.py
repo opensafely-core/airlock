@@ -336,9 +336,17 @@ class BusinessLogicLayer:
         """
         return ReleaseRequest.from_dict(self._dal.create_release_request(**kwargs))
 
-    def get_release_request(self, request_id: str) -> ReleaseRequest:
+    def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
-        return ReleaseRequest.from_dict(self._dal.get_release_request(request_id))
+
+        release_request = ReleaseRequest.from_dict(
+            self._dal.get_release_request(request_id)
+        )
+
+        if not user.has_permission(release_request.workspace):
+            raise self.WorkspacePermissionDenied()
+
+        return release_request
 
     def get_current_request(
         self, workspace_name: str, user: User, create: bool = False

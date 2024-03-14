@@ -404,7 +404,7 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     bll.add_file_to_request(release_request, path1, author, "test_group")
     bll.add_file_to_request(release_request, path2, author, "test_group1")
 
-    release_request = bll.get_release_request(release_request.id)
+    release_request = bll.get_release_request(release_request.id, author)
     assert len(release_request.filegroups) == 2
 
     release_request_files = {
@@ -433,7 +433,7 @@ def test_release_request_add_same_file(bll):
     with pytest.raises(bll.APIException):
         bll.add_file_to_request(release_request, path, author, "new_group")
 
-    release_request = bll.get_release_request(release_request.id)
+    release_request = bll.get_release_request(release_request.id, author)
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1

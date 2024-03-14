@@ -26,12 +26,11 @@ def validate_workspace(user, workspace_name):
 def validate_release_request(user, request_id):
     """Ensure the release request exists for this workspace."""
     try:
-        release_request = bll.get_release_request(request_id)
+        release_request = bll.get_release_request(request_id, user)
     except bll.ReleaseRequestNotFound:
         raise Http404()
-
-    # check user permissions for this workspace
-    validate_workspace(user, release_request.workspace)
+    except bll.WorkspacePermissionDenied:
+        raise PermissionDenied()
 
     return release_request
 
