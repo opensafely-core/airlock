@@ -59,28 +59,12 @@
     {% #card title=path_item.name container=True custom_button=add_button %}
 
       <div class="content">
-        {% if path_item.display_type == "iframe" %}
-          <iframe
-            src="{{ path_item.contents_url }}"
-            title="{{ path_item.relpath }}"
-            frameborder=0
-            height=1000
-            style="width: 100%;"
-          >
-          </iframe>
-        {% elif path_item.display_type == "image" %}
-          <div class="content-scroller">
-            <img src="{{ path_item.contents_url }}">
-          </div>
-        {% elif path_item.display_type == "table" %}
-          <div class="content-scroller">
-            {% include "file_browser/csv.html" with contents=path_item.contents %}
-          </div>
-        {% else %}
-          <div class="content-scroller">
-                <pre>{{ path_item.contents }}</pre>
-          </div>
-        {% endif %}
+        <iframe src="{{ path_item.contents_url }}"
+                title="{{ path_item.relpath }}"
+                frameborder=0
+                height=1000
+                style="width: 100%;"
+        />
       </div>
     {% /card %}
 

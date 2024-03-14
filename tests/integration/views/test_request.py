@@ -53,7 +53,9 @@ def test_request_view_with_file(airlock_client):
     factories.write_request_file(release_request, "group", "file.txt", "foobar")
     response = airlock_client.get(f"/requests/view/{release_request.id}/group/file.txt")
     assert response.status_code == 200
-    assert "foobar" in response.rendered_content
+    assert (
+        release_request.get_contents_url("group/file.txt") in response.rendered_content
+    )
     assert response.template_name == "file_browser/index.html"
 
 
@@ -66,7 +68,9 @@ def test_request_view_with_file_htmx(airlock_client):
         headers={"HX-Request": "true"},
     )
     assert response.status_code == 200
-    assert "foobar" in response.rendered_content
+    assert (
+        release_request.get_contents_url("group/file.txt") in response.rendered_content
+    )
     assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
 
@@ -147,8 +151,7 @@ def test_request_contents_file(airlock_client):
     )
     response = airlock_client.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
-    assert not response.as_attachment
-    assert list(response.streaming_content) == [b"test"]
+    assert response.content == b"<pre>test</pre>"
 
 
 def test_request_contents_dir(airlock_client):
