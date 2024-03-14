@@ -9,7 +9,6 @@ class User:
     is a convenience for passing that information around.
     """
 
-    id: int
     username: str
     workspaces: dict = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
@@ -24,11 +23,10 @@ class User:
             return
         workspaces = user.get("workspaces", dict())
         output_checker = user.get("output_checker", False)
-        return cls(user["id"], user["username"], workspaces, output_checker)
+        return cls(user["username"], workspaces, output_checker)
 
     def to_dict(self):
         return {
-            "id": self.id,
             "username": self.username,
             "workspaces": self.workspaces,
             "output_checker": self.output_checker,

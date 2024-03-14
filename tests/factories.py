@@ -18,7 +18,7 @@ def create_user(username="testuser", workspaces=None, output_checker=False):
         workspaces_dict = {
             workspace: {"project": "project"} for workspace in workspaces
         }
-    return User(1, username, workspaces_dict, output_checker)
+    return User(username, workspaces_dict, output_checker)
 
 
 def ensure_workspace(workspace_or_name):
