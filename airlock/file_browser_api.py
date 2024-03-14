@@ -328,7 +328,6 @@ def get_path_tree(
     parent,
     selected_path=ROOT_PATH,
     expanded=False,
-    selected_only=False,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
