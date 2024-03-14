@@ -263,7 +263,6 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
 @pytest.mark.parametrize("filetype", ["OUTPUT", "SUPPORTING"])
 def test_workspace_request_file_creates(airlock_client, bll, filetype):
     airlock_client.login(workspaces=["test1"])
-
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 

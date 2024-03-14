@@ -68,7 +68,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # changed.
     form = None
     file_in_request = (
-        current_request and path_item.relpath in current_request.file_set()
+        current_request and path_item.relpath in current_request.all_files_set()
     )
     if request.user.can_create_request(workspace_name) and (
         current_request is None or not file_in_request

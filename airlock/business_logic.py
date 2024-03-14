@@ -147,6 +147,16 @@ class FileGroup:
     name: str
     files: dict[RequestFile]
 
+    @property
+    def output_files(self):
+        return [f for f in self.files.values() if f.filetype == RequestFileType.OUTPUT]
+
+    @property
+    def supporting_files(self):
+        return [
+            f for f in self.files.values() if f.filetype == RequestFileType.SUPPORTING
+        ]
+
     @classmethod
     def from_dict(cls, attrs):
         return cls(
@@ -237,7 +247,8 @@ class ReleaseRequest:
         request_file = self.get_request_file(relpath)
         return self.root() / request_file.file_id
 
-    def file_set(self):
+    def all_files_set(self):
+        """Return the relpaths for all files on the request, of any filetype"""
         return {
             request_file.relpath
             for filegroup in self.filegroups.values()
@@ -247,10 +258,10 @@ class ReleaseRequest:
     def set_filegroups_from_dict(self, attrs):
         self.filegroups = self._filegroups_from_dict(attrs)
 
-    def get_file_paths(self):
+    def get_output_file_paths(self):
         paths = []
         for file_group in self.filegroups.values():
-            for request_file in file_group.files.values():
+            for request_file in file_group.output_files:
                 relpath = request_file.relpath
                 abspath = self.abspath(file_group.name / relpath)
                 paths.append((relpath, abspath))
@@ -533,7 +544,7 @@ class BusinessLogicLayer:
         # we check this is valid status transition *before* releasing the files
         self.check_status(request, Status.RELEASED, user)
 
-        file_paths = request.get_file_paths()
+        file_paths = request.get_output_file_paths()
         filelist = old_api.create_filelist(file_paths)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username

@@ -337,7 +337,7 @@ def test_add_file_to_request_states(status, success, bll):
 
 def test_add_file_to_request_default_filetype(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file.txt")
+    path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -345,7 +345,7 @@ def test_add_file_to_request_default_filetype(bll):
         user=author,
     )
     bll.add_file_to_request(release_request, path, author)
-    request_file = release_request.filegroups["default"].files[0]
+    request_file = release_request.filegroups["default"].files[path]
     assert request_file.filetype == RequestFileType.OUTPUT
 
 
@@ -369,11 +369,38 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
 
     if success:
         bll.add_file_to_request(release_request, path, author, filetype=filetype)
-        request_file = release_request.filegroups["default"].files[0]
+        request_file = release_request.filegroups["default"].files[UrlPath(path)]
         assert request_file.filetype == filetype
     else:
         with pytest.raises(AttributeError):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
+
+
+def test_request_all_files_set(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file.txt")
+    supporting_path = Path("path/supporting_file.txt")
+    workspace = factories.create_workspace("workspace")
+    for fp in [path, supporting_path]:
+        factories.write_workspace_file(workspace, fp)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    bll.add_file_to_request(
+        release_request, path, author, filetype=RequestFileType.OUTPUT
+    )
+    bll.add_file_to_request(
+        release_request, supporting_path, author, filetype=RequestFileType.SUPPORTING
+    )
+
+    # all_files_set consists of output files and supporting files
+    assert release_request.all_files_set() == {path, supporting_path}
+
+    filegroup = release_request.filegroups["default"]
+    assert len(filegroup.files) == 2
+    assert len(filegroup.output_files) == 1
+    assert len(filegroup.supporting_files) == 1
 
 
 def test_request_release_invalid_state():

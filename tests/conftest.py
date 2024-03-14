@@ -49,7 +49,7 @@ def release_files_stubber(responses):
         )
 
         if not isinstance(body, Exception):
-            for _ in request.get_file_paths():
+            for _ in request.get_output_file_paths():
                 responses.post(
                     f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{jobserver_id}",
                     status=201,

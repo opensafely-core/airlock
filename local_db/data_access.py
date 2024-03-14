@@ -37,16 +37,19 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         except RequestMetadata.DoesNotExist:
             raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
 
+    def _request_file(self, file_metadata: RequestFileMetadata):
+        return dict(
+            relpath=Path(file_metadata.relpath),
+            file_id=file_metadata.file_id,
+            filetype=file_metadata.filetype,
+        )
+
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
         """Unpack file group db data into FileGroup and RequestFile objects."""
         return dict(
             name=filegroup_metadata.name,
             files=[
-                dict(
-                    relpath=Path(file_metadata.relpath),
-                    file_id=file_metadata.file_id,
-                    filetype=file_metadata.filetype,
-                )
+                self._request_file(file_metadata)
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
