@@ -1,22 +1,21 @@
 import pytest
+from django.test import Client
 
-from airlock.users import User
+from tests import factories
 
 
-@pytest.fixture
-def client_with_user(client):
-    def _client(session_user):
-        session_user = {"id": 1, "username": "test", **session_user}
-        session = client.session
-        session["user"] = session_user
+class AirlockClient(Client):
+    def login(self, username="testuser", workspaces=None, output_checker=False):
+        user = factories.create_user(username, workspaces, output_checker)
+        self.login_with_user(user)
+
+    def login_with_user(self, user):
+        session = self.session
+        session["user"] = user.to_dict()
         session.save()
-        client.user = User.from_session(session)
-        return client
-
-    return _client
+        self.user = user
 
 
 @pytest.fixture
-def client_with_permission(client_with_user):
-    output_checker = {"output_checker": True}
-    yield client_with_user(output_checker)
+def airlock_client():
+    return AirlockClient()

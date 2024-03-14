@@ -9,10 +9,12 @@ class User:
     is a convenience for passing that information around.
     """
 
-    id: int
     username: str
     workspaces: dict = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
+
+    def __post_init__(self):
+        assert isinstance(self.workspaces, dict)
 
     @classmethod
     def from_session(cls, session_data):
@@ -21,7 +23,14 @@ class User:
             return
         workspaces = user.get("workspaces", dict())
         output_checker = user.get("output_checker", False)
-        return cls(user["id"], user["username"], workspaces, output_checker)
+        return cls(user["username"], workspaces, output_checker)
+
+    def to_dict(self):
+        return {
+            "username": self.username,
+            "workspaces": self.workspaces,
+            "output_checker": self.output_checker,
+        }
 
     def has_permission(self, workspace_name):
         return (

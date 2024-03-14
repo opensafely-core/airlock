@@ -7,7 +7,6 @@ from django.conf import settings
 
 import old_api
 from airlock.business_logic import BusinessLogicLayer, Status, UrlPath, Workspace
-from airlock.users import User
 from tests import factories
 
 
@@ -52,7 +51,7 @@ def test_provider_get_workspaces_for_user(output_checker):
         "bar": {"project": "project 2"},
         "not-exists": {"project": "project 3"},
     }
-    user = User(1, "test", workspaces, output_checker)
+    user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
 
     bll = BusinessLogicLayer(data_access_layer=None)
 
@@ -71,8 +70,8 @@ def mock_old_api(monkeypatch):
 
 
 def test_provider_request_release_files_not_approved():
-    author = User(1, "author", ["workspace"], False)
-    checker = User(1, "checker", [], True)
+    author = factories.create_user("author", ["workspace"])
+    checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
         user=author,
@@ -87,8 +86,8 @@ def test_provider_request_release_files_not_approved():
 
 def test_provider_request_release_files(mock_old_api):
     old_api.create_release.return_value = "jobserver_id"
-    author = User(1, "author", ["workspace"], False)
-    checker = User(1, "checker", [], True)
+    author = factories.create_user("author", ["workspace"])
+    checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
         user=author,
@@ -129,8 +128,8 @@ def test_provider_request_release_files(mock_old_api):
 
 
 def test_provider_get_requests_authored_by_user(bll):
-    user = User(1, "test", [], True)
-    other_user = User(1, "other", [], True)
+    user = factories.create_user("test", ["workspace"])
+    other_user = factories.create_user("other", ["workspace"])
     factories.create_release_request("workspace", user, id="r1")
     factories.create_release_request("workspace", other_user, id="r2")
 
@@ -148,8 +147,8 @@ def test_provider_get_requests_authored_by_user(bll):
     ],
 )
 def test_provider_get_outstanding_requests_for_review(output_checker, expected, bll):
-    user = User(1, "test", ["workspace"], output_checker)
-    other_user = User(1, "other", ["workspace"], False)
+    user = factories.create_user("test", ["workspace"], output_checker)
+    other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
     factories.create_release_request(
         "workspace", other_user, id="r1", status=Status.SUBMITTED
@@ -171,7 +170,8 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
         ]
     ):
         ws = f"workspace{i}"
-        factories.create_release_request(ws, User(1, f"test_{i}", [ws]), status=status)
+        user_n = factories.create_user(f"test_{i}", [ws])
+        factories.create_release_request(ws, user_n, status=status)
 
     assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
         expected
@@ -180,8 +180,8 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
 
 def test_provider_get_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
-    user = User(1, "testuser", ["workspace"], False)
-    other_user = User(2, "otheruser", ["workspace"], False)
+    user = factories.create_user("testuser", ["workspace"], False)
+    other_user = factories.create_user("otheruser", ["workspace"], False)
 
     assert bll.get_current_request("workspace", user) is None
 
@@ -202,7 +202,7 @@ def test_provider_get_current_request_for_user(bll):
 def test_provider_get_current_request_for_user_output_checker(bll):
     """Output checker must have explict workspace permissions to create requests."""
     factories.create_workspace("workspace")
-    user = User(1, "output_checker", [], True)
+    user = factories.create_user("output_checker", [], True)
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.get_current_request("workspace", user, create=True)
@@ -237,8 +237,8 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     ],
 )
 def test_set_status(current, future, valid_author, valid_checker, bll):
-    author = User(1, "author", ["workspace"], False)
-    checker = User(2, "checker", [], True)
+    author = factories.create_user("author", ["workspace"], False)
+    checker = factories.create_user("checker", [], True)
     release_request1 = factories.create_release_request(
         "workspace", user=author, status=current
     )
@@ -262,7 +262,7 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
 
 
 def test_set_status_cannot_action_own_request(bll):
-    user = User(2, "checker", [], True)
+    user = factories.create_user("checker", [], True)
     release_request1 = factories.create_release_request(
         "workspace", user=user, status=Status.SUBMITTED
     )
@@ -283,8 +283,8 @@ def test_set_status_cannot_action_own_request(bll):
 
 
 def test_add_file_to_request_not_author(bll):
-    author = User(1, "author", ["workspace"], False)
-    other = User(1, "other", ["workspace"], True)
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["workspace"], True)
 
     path = Path("path/file.txt")
     workspace = factories.create_workspace("workspace")
@@ -310,7 +310,7 @@ def test_add_file_to_request_not_author(bll):
     ],
 )
 def test_add_file_to_request_states(status, success, bll):
-    author = User(1, "author", ["workspace"], False)
+    author = factories.create_user("author", ["workspace"], False)
 
     path = Path("path/file.txt")
     workspace = factories.create_workspace("workspace")
@@ -353,7 +353,7 @@ def test_request_release_abspath(bll):
 
 
 def setup_empty_release_request():
-    author = User(1, "author", ["workspace"], False)
+    author = factories.create_user("author", ["workspace"], False)
     path = Path("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)

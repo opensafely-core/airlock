@@ -4,11 +4,21 @@ from airlock.business_logic import Workspace, bll
 from airlock.users import User
 
 
-default_user = User(1, "testuser")
+def create_user(username="testuser", workspaces=None, output_checker=False):
+    """Factory to create a user.
 
-
-def get_user(*, username="testuser", workspaces=[], output_checker=False):
-    return User(1, username, workspaces, output_checker)
+    For ease of use, workspaces can either be a list of workspaces, which is
+    converted into an appropriate dict. Or it can be an explicit dict.
+    """
+    if workspaces is None:
+        workspaces_dict = {}
+    elif isinstance(workspaces, dict):
+        workspaces_dict = workspaces
+    else:
+        workspaces_dict = {
+            workspace: {"project": "project"} for workspace in workspaces
+        }
+    return User(username, workspaces_dict, output_checker)
 
 
 def ensure_workspace(workspace_or_name):
@@ -38,7 +48,7 @@ def create_release_request(workspace, user=None, **kwargs):
 
     # create a default user with permission on workspace
     if user is None:
-        user = get_user(workspaces=[workspace.name])
+        user = create_user("author", workspaces=[workspace.name])
 
     release_request = bll._create_release_request(
         workspace=workspace.name, author=user.username, **kwargs
@@ -56,16 +66,15 @@ def write_request_file(request, group, path, contents="", user=None):
 
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
-        user = get_user(username=request.author, workspaces=[request.workspace])
+        user = create_user(request.author, workspaces=[workspace.name])
 
     bll.add_file_to_request(request, relpath=path, user=user, group_name=group)
 
 
 def create_filegroup(release_request, group_name, filepaths=None):
+    user = create_user(release_request.author, [release_request.workspace])
     for filepath in filepaths or []:  # pragma: nocover
-        bll.add_file_to_request(
-            release_request, filepath, User(1, release_request.author), group_name
-        )
+        bll.add_file_to_request(release_request, filepath, user, group_name)
     return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)
 
 
