@@ -151,7 +151,7 @@ def test_request_contents_file(airlock_client):
     )
     response = airlock_client.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
-    assert response.content == b"<pre>test</pre>"
+    assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
 
 
 def test_request_contents_dir(airlock_client):
