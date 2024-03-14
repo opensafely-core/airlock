@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.business_logic import UrlPath, bll
+from airlock.business_logic import RequestFileType, UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
@@ -122,16 +122,22 @@ def workspace_add_file_to_request(request, workspace_name):
     release_request = bll.get_current_request(workspace_name, request.user, create=True)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
-        group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
+        group_name = form.cleaned_data.get("new_filegroup") or form.cleaned_data.get(
+            "filegroup"
+        )
+        filetype = RequestFileType[form.cleaned_data["filetype"]]
         try:
-            bll.add_file_to_request(release_request, relpath, request.user, group_name)
+            bll.add_file_to_request(
+                release_request, relpath, request.user, group_name, filetype
+            )
         except bll.APIException as err:
             # This exception is raised if the file has already been added
             # (to any group on the request)
             messages.error(request, str(err))
         else:
             messages.success(
-                request, f"File has been added to request (file group '{group_name}')"
+                request,
+                f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
     else:
         for error in form.errors.values():
