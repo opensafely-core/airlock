@@ -356,6 +356,9 @@ class BusinessLogicLayer:
     class RequestPermissionDenied(APIException):
         pass
 
+    class ApprovalPermissionDenied(APIException):
+        pass
+
     def get_workspace(self, name: str, user: User) -> Workspace:
         """Get a workspace object."""
 
@@ -590,6 +593,41 @@ class BusinessLogicLayer:
             old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
         self.set_status(request, RequestStatus.RELEASED, user)
+
+    def get_file_approvals(self, release_request: ReleaseRequest):
+        # TODO: return BusinessLogicLayer.FileReview not LocalDB.FileReview
+        return bll._dal.get_file_approvals(release_request.id)
+
+
+    def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
+        """"Approve a file"""
+
+        if release_request.status != RequestStatus.SUBMITTED:
+            raise self.ApprovalPermissionDenied(
+                f"cannot approve file from request in state {release_request.status.name}"
+            )
+
+        if user.username == release_request.author:
+            raise self.ApprovalPermissionDenied(
+                f"cannot approve files in your own request"
+            )
+
+        if not user.output_checker:
+            raise self.ApprovalPermissionDenied(
+                "only an output checker can approve a file"
+            )
+
+        if path not in release_request.file_set():
+            raise self.ApprovalPermissionDenied(
+                f"file is not part of the request"
+            )
+
+        bll._dal.approve_file(release_request.id, user, path)
+
+    def reject_file(self):
+        """Reject a file"""
+
+        pass
 
 
 def _get_configured_bll():

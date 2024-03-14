@@ -8,7 +8,7 @@ from airlock.business_logic import (
     RequestFileType,
     RequestStatus,
 )
-from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
+from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata, FileReview, FileApprovalStatus
 
 
 class LocalDBDataAccessLayer(DataAccessLayerProtocol):
@@ -140,3 +140,28 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
+
+
+    def get_file_approvals(self, request_id):
+        return FileReview.objects.filter(file__filegroup__request_id=request_id).all()
+
+
+    def approve_file(self, request_id, user, relpath):
+        with transaction.atomic():
+            try:
+                request_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=request_id, relpath=relpath
+                )
+            except RequestFileMetadata.DoesNotExist:
+                raise BusinessLogicLayer.FileNotFound(
+                    f"file {relpath} not part of a request {request_id}"
+                )
+            review, _ = FileReview.objects.get_or_create(
+                file=request_file, reviewer=user
+            )
+            review.status = FileApprovalStatus.APPROVED
+            review.save()
+
+
+    def reject_file(self, request_id, user, relpath):
+        pass

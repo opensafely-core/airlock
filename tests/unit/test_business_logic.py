@@ -8,6 +8,7 @@ from django.conf import settings
 import old_api
 from airlock.business_logic import (
     BusinessLogicLayer,
+    FileApprovalStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
@@ -559,3 +560,72 @@ def test_release_request_add_same_file(bll):
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1
+
+
+def test_approve_file_not_submitted(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, checker, path)
+
+
+def test_approve_file_not_your_own(bll):
+    release_request, path, author = setup_empty_release_request()
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, author, path)
+
+
+def test_approve_file_not_checker(bll):
+    release_request, path, author = setup_empty_release_request()
+    author2 = factories.create_user("author2", [], False)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, author2, path)
+
+
+def test_approve_file_not_part_of_request(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request,
+        to_status=RequestStatus.SUBMITTED,
+        user=author
+    )
+
+    bad_path = Path("path/file2.txt")
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, checker, bad_path)
+
+
+def test_approve_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request,
+        to_status=RequestStatus.SUBMITTED,
+        user=author
+    )
+
+    assert len(bll.get_file_approvals(release_request)) == 0
+    bll.approve_file(release_request, checker, path)
+    assert len(bll.get_file_approvals(release_request)) == 1
+    assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+
