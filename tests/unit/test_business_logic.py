@@ -630,6 +630,7 @@ def test_approve_file(bll):
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+    assert type(bll.get_file_approvals(release_request)[0]) == FileReview
 
 
 def test_reject_file(bll):
@@ -673,4 +674,3 @@ def test_approve_then_reject_file(bll):
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
-

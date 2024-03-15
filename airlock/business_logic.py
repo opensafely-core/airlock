@@ -318,6 +318,29 @@ def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     return digest
 
 
+@dataclass(frozen=True)
+class FileReview:
+    """
+    Represents a review of a file in the context of a release request
+    """
+
+    file: RequestFile
+    reviewer: User
+    status: FileApprovalStatus
+    created_at: datetime
+    updated_at: datetime
+    release_request: ReleaseRequest
+
+    @classmethod
+    def from_dict(cls, attrs):
+        # TODO implement
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "release_request"},
+            release_request=ReleaseRequest.from_dict(attrs.get("release_request", ())),
+            # files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
+        )
+
+
 class DataAccessLayerProtocol:
     """
     Placeholder for a structural type class we can use to define what a data access
@@ -595,9 +618,10 @@ class BusinessLogicLayer:
         self.set_status(request, RequestStatus.RELEASED, user)
 
     def get_file_approvals(self, release_request: ReleaseRequest):
-        # TODO: return BusinessLogicLayer.FileReview not LocalDB.FileReview
-        return bll._dal.get_file_approvals(release_request.id)
-
+        return [
+            FileReview.from_dict(r)
+            for r in bll._dal.get_file_approvals(release_request.id)
+        ]
 
     def _verify_permission_to_review_file(self, release_request: ReleaseRequest, user: User, path: Path):
         if release_request.status != RequestStatus.SUBMITTED:

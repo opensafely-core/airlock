@@ -60,6 +60,17 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             for group_metadata in metadata.filegroups.all()
         }
 
+    def _filereview(self, file_review: FileReview):
+        """Convert a FileReview object into a dict"""
+        return dict(
+            release_request=self._request(file_review.file.filegroup.request),
+            file=self._request_file(file_review.file),
+            reviewer=file_review.reviewer,
+            status=file_review.status,
+            created_at=file_review.created_at,
+            updated_at=file_review.updated_at,    
+        )
+
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
         groupmetadata, _ = FileGroupMetadata.objects.get_or_create(
@@ -143,8 +154,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
 
     def get_file_approvals(self, request_id):
-        # TODO: return dict
-        return FileReview.objects.filter(file__filegroup__request_id=request_id).all()
+        return [
+            self._filereview(r)
+            for r in FileReview.objects.filter(file__filegroup__request_id=request_id).all()
+        ]
 
 
     def approve_file(self, request_id, user, relpath):
