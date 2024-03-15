@@ -57,6 +57,7 @@ exclude_blocks = [
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
 disallow_any_generics = true
+no_implicit_reexport = true
 
 [tool.django-stubs]
 django_settings_module = "airlock.settings"
