@@ -76,6 +76,9 @@ class AirlockContainer(Protocol):
     def is_supporting_file(self, relpath: UrlPath):
         """Is this path a supporting file?"""
 
+    def abspath(self, path: UrlPath) -> Path:
+        """Get the absolute path of the container object with path"""
+
 
 @dataclass(order=True)
 class Workspace:
