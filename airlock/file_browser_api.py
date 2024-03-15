@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
-from airlock.business_logic import ROOT_PATH, AirlockContainer, UrlPath
+from airlock.business_logic import (
+    ROOT_PATH,
+    AirlockContainer,
+    ReleaseRequest,
+    UrlPath,
+    Workspace,
+)
 
 
 class PathType(Enum):
@@ -65,14 +73,14 @@ class PathItem:
         # ensure is UrlPath
         self.relpath = UrlPath(self.relpath)
 
-    def _absolute_path(self):
+    def _absolute_path(self) -> Path:
         return self.container.abspath(self.relpath)
 
-    def is_directory(self):
+    def is_directory(self) -> bool:
         """Does this contain other things?"""
         return self.type != PathType.FILE
 
-    def name(self):
+    def name(self) -> str:
         if self.relpath == ROOT_PATH:
             return self.container.get_id()
         return self.relpath.name
@@ -84,11 +92,11 @@ class PathItem:
 
         return self.name()
 
-    def url(self):
+    def url(self) -> str:
         suffix = "/" if self.is_directory() else ""
         return self.container.get_url(self.relpath) + suffix
 
-    def contents_url(self, download=False):
+    def contents_url(self, download=False) -> str:
         if self.type != PathType.FILE:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(self.relpath, download=download)
@@ -102,7 +110,7 @@ class PathItem:
         else:
             return self.parent.children
 
-    def contents(self):
+    def contents(self) -> str:
         if self.type == PathType.FILE:
             abspath = self._absolute_path()
 
@@ -117,13 +125,13 @@ class PathItem:
             f"contents() called on {self.relpath}, which is of type {self.type}"
         )
 
-    def suffix(self):
+    def suffix(self) -> str:
         return self.relpath.suffix
 
-    def file_type(self):
+    def file_type(self) -> str:
         return self.suffix().lstrip(".")
 
-    def display_type(self):
+    def display_type(self) -> str:
         return self.DISPLAY_TYPES.get(self.file_type(), "preformatted")
 
     def breadcrumbs(self):
@@ -155,7 +163,7 @@ class PathItem:
 
         return " ".join(classes)
 
-    def get_path(self, relpath):
+    def get_path(self, relpath: UrlPath | str) -> PathItem:
         """Walk the tree and return the PathItem for relpath.
 
         Will raise PathNotFound if the path is not found.
@@ -210,7 +218,9 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
-def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
+def get_workspace_tree(
+    workspace: Workspace, selected_path: UrlPath | str = ROOT_PATH, selected_only=False
+) -> PathItem:
     """Recursively build workspace tree from the root dir.
 
     If selected_only==True, we do not build entire tree, as that can be
@@ -251,7 +261,11 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
     return root_node
 
 
-def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=False):
+def get_request_tree(
+    release_request: ReleaseRequest,
+    selected_path: UrlPath | str = ROOT_PATH,
+    selected_only=False,
+) -> PathItem:
     """Build a tree recursively for a ReleaseRequest
 
     For each group, we create a node for that group, and then build a sub-tree
@@ -315,7 +329,7 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
     return root_node
 
 
-def filter_files(selected, files):
+def filter_files(selected: UrlPath, files: list[UrlPath]) -> Iterator[UrlPath]:
     """Filter the list of file paths for the selected file and any immediate children."""
     n = len(selected.parts)
     for f in files:
@@ -333,10 +347,12 @@ def get_path_tree(
     parent,
     selected_path=ROOT_PATH,
     expanded=False,
-):
+) -> list[PathItem]:
     """Walk a flat list of paths and create a tree from them."""
 
-    def build_path_tree(path_parts, parent):
+    def build_path_tree(
+        path_parts: list[tuple[str, ...]], parent: PathItem
+    ) -> list[PathItem]:
         # group multiple paths into groups by first part of path
         grouped: dict[str, NestedStrList] = dict()
         for child, *descendants in path_parts:

@@ -1,9 +1,10 @@
 from email.utils import formatdate
+from pathlib import Path
 
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 
-from airlock.business_logic import bll
+from airlock.business_logic import ReleaseRequest, User, Workspace, bll
 
 
 def login_exempt(view):
@@ -11,7 +12,7 @@ def login_exempt(view):
     return view
 
 
-def get_workspace_or_raise(user, workspace_name):
+def get_workspace_or_raise(user: User, workspace_name: str) -> Workspace:
     """Get the workspace, converting any errors to http codes."""
     try:
         workspace = bll.get_workspace(workspace_name, user)
@@ -23,7 +24,7 @@ def get_workspace_or_raise(user, workspace_name):
     return workspace
 
 
-def get_release_request_or_raise(user, request_id):
+def get_release_request_or_raise(user: User, request_id: str) -> ReleaseRequest:
     """Get the release request, converting any errors to http codes."""
     try:
         release_request = bll.get_release_request(request_id, user)
@@ -35,7 +36,7 @@ def get_release_request_or_raise(user, request_id):
     return release_request
 
 
-def serve_file(abspath, download=False, filename=None):
+def serve_file(abspath: Path, download=False, filename: str = "") -> FileResponse:
     stat = abspath.stat()
     # use same ETag format as whitenoise
     headers = {

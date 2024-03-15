@@ -10,7 +10,7 @@ class AddFileForm(forms.Form):
     filegroup = forms.ChoiceField(required=False)
     new_filegroup = forms.CharField(required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         release_request = kwargs.pop("release_request")
         super().__init__(*args, **kwargs)
         if release_request:

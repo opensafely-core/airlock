@@ -37,7 +37,7 @@ things properly.
 """
 
 
-def get_env_var(name):
+def get_env_var(name: str) -> str:
     try:
         return os.environ[name]
     except KeyError:

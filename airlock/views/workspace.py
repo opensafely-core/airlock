@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Iterable
 
 from django.contrib import messages
 from django.http import Http404, HttpResponseBadRequest
@@ -8,14 +9,16 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.business_logic import UrlPath, bll
+from airlock.business_logic import UrlPath, Workspace, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
 from .helpers import get_workspace_or_raise, serve_file
 
 
-def grouped_workspaces(workspaces):
+def grouped_workspaces(
+    workspaces: Iterable[Workspace],
+) -> Iterable[tuple[str | None, list[Workspace]]]:
     workspaces_by_project = defaultdict(list)
     for workspace in workspaces:
         workspaces_by_project[workspace.project()].append(workspace)

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from django import forms
+from django.http import HttpRequest
 from django.template.response import TemplateResponse
 
 
@@ -40,7 +41,7 @@ class ExampleForm(forms.Form):
         )
 
 
-def components(request):
+def components(request: HttpRequest) -> TemplateResponse:
     example_date = datetime.fromtimestamp(1667317153, tz=UTC)
     form = ExampleForm({"example_select": "french", "example_email": "you@example.com"})
     form.is_valid()

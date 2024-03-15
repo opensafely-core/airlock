@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Any, Self
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,10 +18,10 @@ class User:
         assert isinstance(self.workspaces, dict)
 
     @classmethod
-    def from_session(cls, session_data):
+    def from_session(cls, session_data: dict[str, Any]) -> Self | None:
         user = session_data.get("user")
         if user is None:
-            return
+            return None
         workspaces = user.get("workspaces", dict())
         output_checker = user.get("output_checker", False)
         return cls(user["username"], workspaces, output_checker)
@@ -38,7 +39,7 @@ class User:
             self.output_checker or self.can_create_request(workspace_name)
         )
 
-    def can_create_request(self, workspace_name):
+    def can_create_request(self, workspace_name: str) -> bool:
         # Only users with explict access to the workspace can create release
         # requests.
         return workspace_name in self.workspaces

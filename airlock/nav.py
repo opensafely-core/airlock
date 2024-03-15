@@ -16,7 +16,7 @@ class NavItem:
     predicate: Callable[[HttpRequest], bool] = default_predicate
 
 
-def iter_nav(items, request):
+def iter_nav(items: list[NavItem], request: HttpRequest):
     for item in items:
         if not item.predicate(request):
             continue

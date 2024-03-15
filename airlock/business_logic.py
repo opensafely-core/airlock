@@ -13,7 +13,9 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock.users import User
+
+# Pointless alias tells mypy that we do intend to export this name
+from airlock.users import User as User
 
 
 # We use PurePosixPath as a convenient URL path representation (we reassign rather than
@@ -84,16 +86,16 @@ class Workspace:
         if not self.root().exists():
             raise BusinessLogicLayer.WorkspaceNotFound(self.name)
 
-    def project(self):
+    def project(self) -> str | None:
         return self.metadata.get("project", None)
 
-    def root(self):
+    def root(self) -> Path:
         return settings.WORKSPACE_DIR / self.name
 
     def get_id(self):
         return self.name
 
-    def get_url(self, relpath=ROOT_PATH):
+    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         return reverse(
             "workspace_view",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -105,7 +107,7 @@ class Workspace:
             kwargs={"workspace_name": self.name, "path": relpath},
         )
 
-    def abspath(self, relpath):
+    def abspath(self, relpath: UrlPath | str) -> Path:
         """Get absolute path for file
 
         Protects against traversal, and ensures the path exists."""
@@ -187,13 +189,13 @@ class ReleaseRequest:
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
 
-    def root(self):
+    def root(self) -> Path:
         return settings.REQUEST_DIR / self.workspace / self.id
 
     def get_id(self):
         return self.id
 
-    def get_url(self, relpath=ROOT_PATH):
+    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         return reverse(
             "request_view",
             kwargs={
@@ -211,7 +213,7 @@ class ReleaseRequest:
             url += "?download"
         return url
 
-    def abspath(self, relpath):
+    def abspath(self, relpath: UrlPath | str) -> Path:
         """Returns abspath to the file on disk.
 
         The first part of the relpath is the group, so we parse and validate that first.
@@ -231,7 +233,7 @@ class ReleaseRequest:
 
         return self.root() / request_file.file_id
 
-    def file_set(self):
+    def file_set(self) -> set[UrlPath]:
         return {
             request_file.relpath
             for filegroup in self.filegroups.values()

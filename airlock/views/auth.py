@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.forms import Form
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -41,7 +42,7 @@ def login(request):
     )
 
 
-def get_user_data_or_set_form_errors(form):
+def get_user_data_or_set_form_errors(form: Form):
     if not form.is_valid():
         return
     try:
