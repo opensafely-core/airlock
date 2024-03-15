@@ -8,7 +8,7 @@ from pathlib import Path
 
 # we use PurePosixPath as a convenient url path representation
 from pathlib import PurePosixPath as UrlPath
-from typing import Protocol
+from typing import Protocol, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -717,5 +717,7 @@ def _get_configured_bll():
 
 
 # We follow the Django pattern of using a lazy object which configures itself on first
-# access so as to avoid reading `settings` during import
-bll = SimpleLazyObject(_get_configured_bll)
+# access so as to avoid reading `settings` during import. The `cast` here is a runtime
+# no-op, but indicates to the type-checker that this should be treated as an instance of
+# BusinessLogicLayer not SimpleLazyObject.
+bll = cast(BusinessLogicLayer, SimpleLazyObject(_get_configured_bll))
