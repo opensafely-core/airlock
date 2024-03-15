@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePosixPath
-from typing import Protocol, cast
+from typing import Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -129,7 +129,7 @@ class RequestFile:
     file_id: str
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(**attrs)
 
 
@@ -143,7 +143,7 @@ class FileGroup:
     files: list[RequestFile]
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "files"},
             files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
@@ -171,7 +171,7 @@ class ReleaseRequest:
     selected_path: UrlPath = ROOT_PATH
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "filegroups"},
             filegroups=cls._filegroups_from_dict(attrs.get("filegroups", {})),
