@@ -5,6 +5,7 @@ from django.db import transaction
 from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
+    FileReviewStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
@@ -12,7 +13,6 @@ from airlock.business_logic import (
 from local_db.models import (
     FileGroupMetadata,
     FileReview,
-    FileReviewStatus,
     RequestFileMetadata,
     RequestMetadata,
 )

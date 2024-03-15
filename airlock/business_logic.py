@@ -4,10 +4,7 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-
-# we use PurePosixPath as a convenient url path representation
-from pathlib import PurePosixPath as UrlPath
+from pathlib import Path, PurePosixPath
 from typing import Protocol, cast
 
 from django.conf import settings
@@ -19,6 +16,10 @@ import old_api
 from airlock.renderers import get_renderer
 from airlock.users import User
 
+
+# We use PurePosixPath as a convenient URL path representation (we reassign rather than
+# use `import as` to satisfy mypy that we intend to export this name)
+UrlPath = PurePosixPath
 
 ROOT_PATH = UrlPath()  # empty path
 
