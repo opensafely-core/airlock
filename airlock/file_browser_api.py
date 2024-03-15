@@ -324,6 +324,9 @@ def filter_files(selected, files):
             yield f
 
 
+NestedStrList = list[str] | list["NestedStrList"]
+
+
 def get_path_tree(
     container,
     pathlist,
@@ -335,7 +338,7 @@ def get_path_tree(
 
     def build_path_tree(path_parts, parent):
         # group multiple paths into groups by first part of path
-        grouped = dict()
+        grouped: dict[str, NestedStrList] = dict()
         for child, *descendants in path_parts:
             if child not in grouped:
                 grouped[child] = []
