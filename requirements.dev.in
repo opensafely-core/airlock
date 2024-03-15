@@ -15,3 +15,8 @@ responses
 # Currently using our fork of django_coverage_plugin, pending
 # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
 https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip
+
+# Type-checking and type stubs
+mypy
+django-stubs[compatible-mypy]
+types-requests
