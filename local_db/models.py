@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils import timezone
-from ulid import ulid
+
+# We could create our own type stubs for this module but our use of it is so simple that
+# it's not really worth it
+from ulid import ulid  # type: ignore
 
 from airlock.business_logic import FileReviewStatus, RequestFileType, RequestStatus
 
