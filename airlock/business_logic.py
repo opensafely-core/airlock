@@ -62,6 +62,9 @@ class AirlockContainer(Protocol):
     ) -> str:
         """Get the url for the contents of the container object with path"""
 
+    def abspath(self, path: UrlPath) -> Path:
+        """Get the absolute path of the container object with path"""
+
 
 @dataclass(order=True)
 class Workspace:
