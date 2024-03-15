@@ -524,14 +524,22 @@ class BusinessLogicLayer:
 
         # check permissions
         # author transitions
-        if to_status in [RequestStatus.PENDING, RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN]:
+        if to_status in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
+        ]:
             if user.username != release_request.author:
                 raise self.RequestPermissionDenied(
                     f"only {user.username} can set status to {to_status.name}"
                 )
 
         # output checker transitions
-        if to_status in [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.RELEASED]:
+        if to_status in [
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+            RequestStatus.RELEASED,
+        ]:
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
@@ -577,7 +585,10 @@ class BusinessLogicLayer:
                 f"only author {release_request.author} can add files to this request"
             )
 
-        if release_request.status not in [RequestStatus.PENDING, RequestStatus.SUBMITTED]:
+        if release_request.status not in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+        ]:
             raise self.RequestPermissionDenied(
                 f"cannot add file to request in state {release_request.status.name}"
             )
@@ -623,7 +634,9 @@ class BusinessLogicLayer:
             for r in bll._dal.get_file_approvals(release_request.id)
         ]
 
-    def _verify_permission_to_review_file(self, release_request: ReleaseRequest, user: User, path: Path):
+    def _verify_permission_to_review_file(
+        self, release_request: ReleaseRequest, user: User, path: Path
+    ):
         if release_request.status != RequestStatus.SUBMITTED:
             raise self.ApprovalPermissionDenied(
                 f"cannot approve file from request in state {release_request.status.name}"
@@ -631,7 +644,7 @@ class BusinessLogicLayer:
 
         if user.username == release_request.author:
             raise self.ApprovalPermissionDenied(
-                f"cannot approve files in your own request"
+                "cannot approve files in your own request"
             )
 
         if not user.output_checker:
@@ -640,12 +653,10 @@ class BusinessLogicLayer:
             )
 
         if path not in release_request.file_set():
-            raise self.ApprovalPermissionDenied(
-                f"file is not part of the request"
-            )
+            raise self.ApprovalPermissionDenied("file is not part of the request")
 
     def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
-        """"Approve a file"""
+        """ "Approve a file"""
 
         self._verify_permission_to_review_file(release_request, user, path)
 
@@ -657,6 +668,7 @@ class BusinessLogicLayer:
         self._verify_permission_to_review_file(release_request, user, path)
 
         bll._dal.reject_file(release_request.id, user, path)
+
 
 def _get_configured_bll():
     DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)

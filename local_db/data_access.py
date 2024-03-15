@@ -8,7 +8,13 @@ from airlock.business_logic import (
     RequestFileType,
     RequestStatus,
 )
-from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata, FileReview, FileApprovalStatus
+from local_db.models import (
+    FileApprovalStatus,
+    FileGroupMetadata,
+    FileReview,
+    RequestFileMetadata,
+    RequestMetadata,
+)
 
 
 class LocalDBDataAccessLayer(DataAccessLayerProtocol):
@@ -68,7 +74,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             reviewer=file_review.reviewer,
             status=file_review.status,
             created_at=file_review.created_at,
-            updated_at=file_review.updated_at,    
+            updated_at=file_review.updated_at,
         )
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
@@ -102,7 +108,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_outstanding_requests_for_review(self):
         return [
             self._request(metadata)
-            for metadata in RequestMetadata.objects.filter(status=RequestStatus.SUBMITTED)
+            for metadata in RequestMetadata.objects.filter(
+                status=RequestStatus.SUBMITTED
+            )
         ]
 
     def set_status(self, request_id: str, status: RequestStatus):
@@ -152,13 +160,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
 
-
     def get_file_approvals(self, request_id):
         return [
             self._filereview(r)
-            for r in FileReview.objects.filter(file__filegroup__request_id=request_id).all()
+            for r in FileReview.objects.filter(
+                file__filegroup__request_id=request_id
+            ).all()
         ]
-
 
     def approve_file(self, request_id, user, relpath):
         with transaction.atomic():
@@ -176,7 +184,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review.status = FileApprovalStatus.APPROVED
             review.save()
 
-
     def reject_file(self, request_id, user, relpath):
         with transaction.atomic():
             try:
@@ -192,4 +199,3 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             review.status = FileApprovalStatus.REJECTED
             review.save()
-

@@ -75,6 +75,7 @@ class RequestFileMetadata(models.Model):
     class Meta:
         unique_together = ("relpath", "filegroup")
 
+
 class FileReview(models.Model):
     """An output checker's review of a file"""
 
@@ -82,9 +83,7 @@ class FileReview(models.Model):
         RequestFileMetadata, related_name="reviews", on_delete=models.CASCADE
     )
     reviewer = models.TextField()
-    status = EnumField(
-        default=FileApprovalStatus.REJECTED, enum=FileApprovalStatus
-    )
+    status = EnumField(default=FileApprovalStatus.REJECTED, enum=FileApprovalStatus)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 

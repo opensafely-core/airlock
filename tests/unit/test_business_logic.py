@@ -9,6 +9,7 @@ import old_api
 from airlock.business_logic import (
     BusinessLogicLayer,
     FileApprovalStatus,
+    FileReview,
     RequestFileType,
     RequestStatus,
     UrlPath,
@@ -603,9 +604,7 @@ def test_approve_file_not_part_of_request(bll):
 
     bll.add_file_to_request(release_request, path, author)
     bll.set_status(
-        release_request=release_request,
-        to_status=RequestStatus.SUBMITTED,
-        user=author
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
     bad_path = Path("path/file2.txt")
@@ -619,9 +618,7 @@ def test_approve_file(bll):
 
     bll.add_file_to_request(release_request, path, author)
     bll.set_status(
-        release_request=release_request,
-        to_status=RequestStatus.SUBMITTED,
-        user=author
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
     assert len(bll.get_file_approvals(release_request)) == 0
@@ -629,7 +626,9 @@ def test_approve_file(bll):
     bll.approve_file(release_request, checker, path)
 
     assert len(bll.get_file_approvals(release_request)) == 1
-    assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+    assert (
+        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+    )
     assert type(bll.get_file_approvals(release_request)[0]) == FileReview
 
 
@@ -639,9 +638,7 @@ def test_reject_file(bll):
 
     bll.add_file_to_request(release_request, path, author)
     bll.set_status(
-        release_request=release_request,
-        to_status=RequestStatus.SUBMITTED,
-        user=author
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
     assert len(bll.get_file_approvals(release_request)) == 0
@@ -649,7 +646,9 @@ def test_reject_file(bll):
     bll.reject_file(release_request, checker, path)
 
     assert len(bll.get_file_approvals(release_request)) == 1
-    assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
+    assert (
+        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
+    )
 
 
 def test_approve_then_reject_file(bll):
@@ -658,9 +657,7 @@ def test_approve_then_reject_file(bll):
 
     bll.add_file_to_request(release_request, path, author)
     bll.set_status(
-        release_request=release_request,
-        to_status=RequestStatus.SUBMITTED,
-        user=author
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
     assert len(bll.get_file_approvals(release_request)) == 0
@@ -668,9 +665,13 @@ def test_approve_then_reject_file(bll):
     bll.approve_file(release_request, checker, path)
 
     assert len(bll.get_file_approvals(release_request)) == 1
-    assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+    assert (
+        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
+    )
 
     bll.reject_file(release_request, checker, path)
 
     assert len(bll.get_file_approvals(release_request)) == 1
-    assert bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
+    assert (
+        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
+    )
