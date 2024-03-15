@@ -8,11 +8,11 @@ class ExampleForm(forms.Form):
 
     example_select = forms.ChoiceField(
         choices=[
-            ["", "Please select a language"],
-            ["english", "English"],
-            ["french", "French"],
-            ["german", "German"],
-            ["spanish", "Spanish"],
+            ("", "Please select a language"),
+            ("english", "English"),
+            ("french", "French"),
+            ("german", "German"),
+            ("spanish", "Spanish"),
         ],
         label="Language select",
         initial="french",
@@ -24,10 +24,10 @@ class ExampleForm(forms.Form):
 
     example_radios = forms.ChoiceField(
         choices=[
-            ["english", "English"],
-            ["french", "French"],
-            ["german", "German"],
-            ["spanish", "Spanish"],
+            ("english", "English"),
+            ("french", "French"),
+            ("german", "German"),
+            ("spanish", "Spanish"),
         ],
         label="Language select",
         initial="french",
