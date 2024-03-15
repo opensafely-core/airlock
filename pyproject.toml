@@ -62,6 +62,7 @@ exclude_blocks = [
 plugins = ["mypy_django_plugin.main"]
 disallow_any_generics = true
 no_implicit_reexport = true
+warn_return_any = true
 
 # Don't follow the import chain into the modules containing code vendored from elsewhere
 [[tool.mypy.overrides]]
