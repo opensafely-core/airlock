@@ -143,6 +143,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
 
     def get_file_approvals(self, request_id):
+        # TODO: return dict
         return FileReview.objects.filter(file__filegroup__request_id=request_id).all()
 
 
@@ -164,4 +165,18 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
 
     def reject_file(self, request_id, user, relpath):
-        pass
+        with transaction.atomic():
+            try:
+                request_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=request_id, relpath=relpath
+                )
+            except RequestFileMetadata.DoesNotExist:
+                raise BusinessLogicLayer.FileNotFound(
+                    f"file {relpath} not part of a request {request_id}"
+                )
+            review, _ = FileReview.objects.get_or_create(
+                file=request_file, reviewer=user
+            )
+            review.status = FileApprovalStatus.REJECTED
+            review.save()
+

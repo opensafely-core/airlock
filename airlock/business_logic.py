@@ -599,9 +599,7 @@ class BusinessLogicLayer:
         return bll._dal.get_file_approvals(release_request.id)
 
 
-    def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
-        """"Approve a file"""
-
+    def _verify_permission_to_review_file(self, release_request: ReleaseRequest, user: User, path: Path):
         if release_request.status != RequestStatus.SUBMITTED:
             raise self.ApprovalPermissionDenied(
                 f"cannot approve file from request in state {release_request.status.name}"
@@ -622,13 +620,19 @@ class BusinessLogicLayer:
                 f"file is not part of the request"
             )
 
+    def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
+        """"Approve a file"""
+
+        self._verify_permission_to_review_file(release_request, user, path)
+
         bll._dal.approve_file(release_request.id, user, path)
 
-    def reject_file(self):
+    def reject_file(self, release_request: ReleaseRequest, user: User, path: Path):
         """Reject a file"""
 
-        pass
+        self._verify_permission_to_review_file(release_request, user, path)
 
+        bll._dal.reject_file(release_request.id, user, path)
 
 def _get_configured_bll():
     DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)
