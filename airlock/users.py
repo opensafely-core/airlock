@@ -10,7 +10,7 @@ class User:
     """
 
     username: str
-    workspaces: dict = dataclasses.field(default_factory=dict)
+    workspaces: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
 
     def __post_init__(self):
