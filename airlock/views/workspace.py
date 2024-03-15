@@ -148,8 +148,9 @@ def workspace_add_file_to_request(request, workspace_name):
                 f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
     else:
-        for error in form.errors.values():
-            messages.error(request, error)
+        for error_list in form.errors.values():
+            for error in error_list:
+                messages.error(request, str(error))
 
     # Redirect to the file in the workspace
     return redirect(workspace.get_url(relpath))
