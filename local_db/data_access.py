@@ -6,6 +6,7 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     Status,
+    UrlPath,
 )
 from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
 
@@ -15,7 +16,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     Implementation of DataAccessLayerProtocol using local_db models to store data
     """
 
-    def _request(self, metadata: RequestMetadata = None):
+    def _request(self, metadata: RequestMetadata):
         """Unpack the db data into the Request object."""
         return dict(
             id=metadata.id,
@@ -94,7 +95,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.save()
 
     def add_file_to_request(
-        self, request_id, relpath: Path, file_id: str, group_name: str
+        self, request_id, relpath: UrlPath, file_id: str, group_name: str
     ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
