@@ -119,7 +119,7 @@ def workspace_add_file_to_request(request, workspace_name):
     except bll.FileNotFound:
         raise Http404()
 
-    release_request = bll.get_current_request(workspace_name, request.user, create=True)
+    release_request = bll.get_or_create_current_request(workspace_name, request.user)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
         group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
