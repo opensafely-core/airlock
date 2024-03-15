@@ -24,10 +24,8 @@ class AddFileForm(forms.Form):
             self.filegroup_names = release_request.filegroups.keys()
         else:
             self.filegroup_names = set()
-        group_choices = {
-            (name, name) for name in self.filegroup_names if name != "default"
-        }
-        group_choices = [("default", "default"), *sorted(group_choices)]
+        group_names = sorted(self.filegroup_names - {"default"})
+        group_choices = [(name, name) for name in ["default", *group_names]]
         self.fields["filegroup"].choices = group_choices
         self.fields["new_filegroup"]
 
