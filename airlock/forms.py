@@ -19,6 +19,7 @@ class AddFileForm(forms.Form):
             self.filegroup_names = set()
         group_names = sorted(self.filegroup_names - {"default"})
         group_choices = [(name, name) for name in ["default", *group_names]]
+        assert isinstance(self.fields["filegroup"], forms.ChoiceField)
         self.fields["filegroup"].choices = group_choices
         self.fields["new_filegroup"]
 
