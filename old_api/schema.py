@@ -5,7 +5,6 @@
 #
 # Until then, do not make local changes, rather copy the latest version of this
 # file into your project.
-from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel
@@ -41,7 +40,7 @@ class FileMetadata(BaseModel):
     url: UrlFileName | None = None  # Url to path on release-hatch instance
     size: int  # size in bytes
     sha256: str  # sha256 of file
-    date: datetime  # last modified in ISO date format
+    date: str  # last modified in ISO date format
     metadata: dict[str, str] | None = None  # user supplied metadata about this file
     review: FileReview | None = None  # any review metadata for this file
 

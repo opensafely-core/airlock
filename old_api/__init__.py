@@ -1,5 +1,6 @@
 import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 from django.conf import settings
@@ -63,6 +64,6 @@ def upload_file(release_id, relpath, abspath, username):
     return response
 
 
-def modified_time(path):
+def modified_time(path: Path) -> str:
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
