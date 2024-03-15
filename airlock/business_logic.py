@@ -71,7 +71,7 @@ class Workspace:
     """
 
     name: str
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this workspace
     selected_path: UrlPath = ROOT_PATH

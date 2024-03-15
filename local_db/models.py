@@ -12,7 +12,9 @@ def local_request_id():
     return str(ulid())
 
 
-class StatusField(models.TextField):
+# Without the "ignore" this raises: Missing type parameters for generic type "TextField"
+# https://github.com/typeddjango/django-stubs/issues/285
+class StatusField(models.TextField):  # type: ignore
     """Custom field that ensures correct types for status column.
 
     Specifically, dasta is stored in the db as the string name, e.g.

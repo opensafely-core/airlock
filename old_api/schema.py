@@ -31,7 +31,7 @@ class ReviewStatus(Enum):
 
 class FileReview(BaseModel):
     status: ReviewStatus
-    comments: dict
+    comments: dict[str, str]
 
 
 class FileMetadata(BaseModel):
@@ -42,7 +42,7 @@ class FileMetadata(BaseModel):
     size: int  # size in bytes
     sha256: str  # sha256 of file
     date: datetime  # last modified in ISO date format
-    metadata: dict | None = None  # user supplied metadata about this file
+    metadata: dict[str, str] | None = None  # user supplied metadata about this file
     review: FileReview | None = None  # any review metadata for this file
 
 
@@ -53,8 +53,8 @@ class FileList(BaseModel):
     """
 
     files: list[FileMetadata]
-    metadata: dict | None = None  # user supplied metadata about thse Release
-    review: dict | None = None  # review comments for the whole Release
+    metadata: dict[str, str] | None = None  # user supplied metadata about thse Release
+    review: dict[str, str] | None = None  # review comments for the whole Release
 
     def get(self, name):  # pragma: no cover
         name = str(name)

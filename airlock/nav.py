@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from django.http import HttpRequest
 from django.urls import reverse
 
 
@@ -12,7 +13,7 @@ def default_predicate(request):
 class NavItem:
     name: str
     url_name: str
-    predicate: Callable = default_predicate
+    predicate: Callable[[HttpRequest], bool] = default_predicate
 
 
 def iter_nav(items, request):
