@@ -24,7 +24,7 @@ class AddFileForm(forms.Form):
         self.fields["new_filegroup"]
 
     def clean_new_filegroup(self):
-        new_filegroup = self.cleaned_data.get("new_filegroup").lower()
+        new_filegroup = self.cleaned_data.get("new_filegroup", "").lower()
         if new_filegroup in [fg.lower() for fg in self.filegroup_names]:
             self.add_error(
                 "new_filegroup",
