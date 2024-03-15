@@ -170,14 +170,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def approve_file(self, request_id, user, relpath):
         with transaction.atomic():
-            try:
-                request_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=request_id, relpath=relpath
-                )
-            except RequestFileMetadata.DoesNotExist:
-                raise BusinessLogicLayer.FileNotFound(
-                    f"file {relpath} not part of a request {request_id}"
-                )
+            # nb. the business logic layer approve_file() should confirm that this path
+            # is part of the request before calling this method
+            request_file = RequestFileMetadata.objects.get(
+                filegroup__request_id=request_id, relpath=relpath
+            )
+
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=user
             )
@@ -186,14 +184,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def reject_file(self, request_id, user, relpath):
         with transaction.atomic():
-            try:
-                request_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=request_id, relpath=relpath
-                )
-            except RequestFileMetadata.DoesNotExist:
-                raise BusinessLogicLayer.FileNotFound(
-                    f"file {relpath} not part of a request {request_id}"
-                )
+            request_file = RequestFileMetadata.objects.get(
+                filegroup__request_id=request_id, relpath=relpath
+            )
+
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=user
             )
