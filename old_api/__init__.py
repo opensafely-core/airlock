@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import requests
 from django.conf import settings
 
-from old_api.schema import FileList, FileMetadata
+from old_api.schema import FileList, FileMetadata, UrlFileName
 
 
 session = requests.Session()
@@ -16,11 +16,11 @@ def create_filelist(paths):
     for relpath, abspath in paths:
         files.append(
             FileMetadata(
-                name=str(relpath),
+                name=UrlFileName(relpath),
                 size=abspath.stat().st_size,
                 sha256=hashlib.sha256(abspath.read_bytes()).hexdigest(),
                 date=modified_time(abspath),
-                url=str(relpath),  # not needed, but has to be set
+                url=UrlFileName(relpath),  # not needed, but has to be set
                 metadata={"tool": "airlock"},
             )
         )
