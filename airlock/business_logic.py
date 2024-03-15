@@ -11,7 +11,7 @@ from pathlib import PurePosixPath as UrlPath
 from typing import Protocol
 
 from django.conf import settings
-from django.shortcuts import reverse
+from django.urls import reverse
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
