@@ -134,7 +134,7 @@ class PathItem:
         distinguish file/dirs, and maybe even file types, in the UI, in case we
         need to.
         """
-        classes = [self.type.value.lower()]
+        classes = [self.type.value.lower()] if self.type else []
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
