@@ -12,7 +12,12 @@ from django.views.decorators.vary import vary_on_headers
 from airlock.business_logic import Status, bll
 from airlock.file_browser_api import get_request_tree
 
-from .helpers import download_file, get_release_request_or_raise, serve_file
+from .helpers import (
+    download_file,
+    get_path_item_from_tree_or_404,
+    get_release_request_or_raise,
+    serve_file,
+)
 
 
 def request_index(request):
@@ -45,13 +50,10 @@ def request_view(request, request_id: str, path: str = ""):
         selected_only = True
 
     tree = get_request_tree(release_request, path, selected_only)
-
-    try:
-        path_item = tree.get_path(path)
-    except tree.PathNotFound:
-        raise Http404()
+    path_item = get_path_item_from_tree_or_404(tree, path)
 
     is_directory_url = path.endswith("/") or path == ""
+
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 

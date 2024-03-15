@@ -12,7 +12,7 @@ from airlock.business_logic import RequestFileType, UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
-from .helpers import get_workspace_or_raise, serve_file
+from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
 
 def grouped_workspaces(workspaces):
@@ -45,10 +45,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     tree = get_workspace_tree(workspace, path, selected_only)
 
-    try:
-        path_item = tree.get_path(path)
-    except tree.PathNotFound:
-        raise Http404()
+    path_item = get_path_item_from_tree_or_404(tree, path)
 
     is_directory_url = path.endswith("/") or path == ""
     if path_item.is_directory() != is_directory_url:
