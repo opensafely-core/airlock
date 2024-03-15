@@ -53,3 +53,9 @@ exclude_blocks = [
 
 [tool.ruff.lint.per-file-ignores]
 "airlock/views/__init__.py" = ["F401"]
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "airlock.settings"
