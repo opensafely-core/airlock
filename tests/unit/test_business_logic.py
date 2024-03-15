@@ -102,6 +102,15 @@ def test_provider_request_release_files(mock_old_api):
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, "group", relpath, "test")
+    # Add a supporting file, which should NOT be released
+    supporting_relpath = Path("test/supporting_file.txt")
+    factories.write_request_file(
+        release_request,
+        "group",
+        supporting_relpath,
+        "test",
+        filetype=RequestFileType.SUPPORTING,
+    )
     factories.bll.set_status(release_request, Status.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
