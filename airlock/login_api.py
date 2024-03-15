@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import requests
 from django.conf import settings
@@ -13,7 +14,7 @@ class LoginError(Exception):
 
 def get_user_data(user: str, token: str):
     if settings.AIRLOCK_DEV_USERS_FILE and not settings.AIRLOCK_API_TOKEN:
-        return get_user_data_dev(user, token)
+        return get_user_data_dev(settings.AIRLOCK_DEV_USERS_FILE, user, token)
     else:
         return get_user_data_prod(user, token)
 
@@ -31,9 +32,9 @@ def get_user_data_prod(user: str, token: str):
     return response.json()
 
 
-def get_user_data_dev(user: str, token: str):
+def get_user_data_dev(dev_users_file: Path, user: str, token: str):
     try:
-        dev_users = json.loads(settings.AIRLOCK_DEV_USERS_FILE.read_text())
+        dev_users = json.loads(dev_users_file.read_text())
     except FileNotFoundError as e:  # pragma: no cover
         e.add_note(
             "You may want to run:\n\n    just load-example-data\n\nto create one."
