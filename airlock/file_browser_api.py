@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -35,8 +37,8 @@ class PathItem:
     relpath: UrlPath
 
     type: PathType | None = None
-    children: list["PathItem"] = field(default_factory=list)
-    parent: "PathItem" | None = None
+    children: list[PathItem] = field(default_factory=list)
+    parent: PathItem | None = None
 
     # is this the currently selected path?
     selected: bool = False
