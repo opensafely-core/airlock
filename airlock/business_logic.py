@@ -261,11 +261,36 @@ def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     return digest
 
 
-class DataAccessLayerProtocol:
+class DataAccessLayerProtocol(Protocol):
     """
-    Placeholder for a structural type class we can use to define what a data access
-    layer should look like, once we've settled what that is.
+    Structural type class for the Data Access Layer
+
+    Implementations aren't obliged to subclass this as long as they implement the
+    specified methods, though it may be clearer to do so.
     """
+
+    def get_release_request(self, request_id: str):
+        raise NotImplementedError()
+
+    def create_release_request(self, **kwargs):
+        raise NotImplementedError()
+
+    def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+        raise NotImplementedError()
+
+    def get_requests_authored_by_user(self, username: str):
+        raise NotImplementedError()
+
+    def get_outstanding_requests_for_review(self):
+        raise NotImplementedError()
+
+    def set_status(self, request_id: str, status: Status):
+        raise NotImplementedError()
+
+    def add_file_to_request(
+        self, request_id, relpath: UrlPath, file_id: str, group_name: str
+    ):
+        raise NotImplementedError()
 
 
 class BusinessLogicLayer:
