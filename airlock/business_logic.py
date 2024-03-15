@@ -474,38 +474,47 @@ class BusinessLogicLayer:
         return release_request
 
     def get_current_request(
-        self, workspace_name: str, user: User, create: bool = False
+        self, workspace_name: str, user: User
     ) -> ReleaseRequest | None:
-        """Get the current request for the a workspace/user.
-
-        If create is True, create one.
-        """
+        """Get the current request for a workspace/user."""
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace_name,
             username=user.username,
         )
 
         n = len(active_requests)
-        if n > 1:
-            raise Exception(
-                f"Multiple active release requests for user {user.username} in workspace {workspace_name}"
-            )
+        if n == 0:
+            return None
         elif n == 1:
             return ReleaseRequest.from_dict(active_requests[0])
-        elif create:
-            # To create a request, you must have explicit workspace permissions.
-            # Output checkers can view all workspaces, but are not allowed to
-            # create requests for all workspaces.
-            if workspace_name not in user.workspaces:
-                raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
-
-            new_request = self._dal.create_release_request(
-                workspace=workspace_name,
-                author=user.username,
-            )
-            return ReleaseRequest.from_dict(new_request)
         else:
-            return None
+            raise Exception(
+                f"Multiple active release requests for user {user.username} in "
+                f"workspace {workspace_name}"
+            )
+
+    def get_or_create_current_request(
+        self, workspace_name: str, user: User
+    ) -> ReleaseRequest:
+        """
+        Get the current request for a workspace/user, or create a new one if there is
+        none.
+        """
+        request = self.get_current_request(workspace_name, user)
+        if request is not None:
+            return request
+
+        # To create a request, you must have explicit workspace permissions.  Output
+        # checkers can view all workspaces, but are not allowed to create requests for
+        # all workspaces.
+        if workspace_name not in user.workspaces:
+            raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+
+        new_request = self._dal.create_release_request(
+            workspace=workspace_name,
+            author=user.username,
+        )
+        return ReleaseRequest.from_dict(new_request)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""

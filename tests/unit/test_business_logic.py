@@ -213,7 +213,7 @@ def test_provider_get_current_request_for_user(bll):
     factories.create_release_request(workspace, other_user)
     assert bll.get_current_request("workspace", user) is None
 
-    release_request = bll.get_current_request("workspace", user, create=True)
+    release_request = bll.get_or_create_current_request("workspace", user)
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
@@ -230,7 +230,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     user = factories.create_user("output_checker", [], True)
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.get_current_request("workspace", user, create=True)
+        bll.get_or_create_current_request("workspace", user)
 
 
 @pytest.mark.parametrize(
