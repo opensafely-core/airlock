@@ -8,7 +8,7 @@ from pathlib import Path
 
 # we use PurePosixPath as a convenient url path representation
 from pathlib import PurePosixPath as UrlPath
-from typing import Optional, Protocol
+from typing import Protocol
 
 from django.conf import settings
 from django.shortcuts import reverse
@@ -224,7 +224,7 @@ class ReleaseRequest:
     author: str
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
-    filegroups: dict[FileGroup] = field(default_factory=dict)
+    filegroups: dict[str, FileGroup] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this release request
     selected_path: UrlPath = ROOT_PATH
@@ -438,7 +438,7 @@ class BusinessLogicLayer:
 
     def get_current_request(
         self, workspace_name: str, user: User, create: bool = False
-    ) -> ReleaseRequest:
+    ) -> ReleaseRequest | None:
         """Get the current request for the a workspace/user.
 
         If create is True, create one.
@@ -582,7 +582,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         relpath: UrlPath,
         user: User,
-        group_name: Optional[str] = "default",
+        group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         if user.username != release_request.author:

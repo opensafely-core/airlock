@@ -35,9 +35,9 @@ class PathItem:
     container: AirlockContainer
     relpath: UrlPath
 
-    type: PathType = None
+    type: PathType | None = None
     children: list["PathItem"] = field(default_factory=list)
-    parent: "PathItem" = None
+    parent: "PathItem" | None = None
 
     # is this the currently selected path?
     selected: bool = False
@@ -49,7 +49,7 @@ class PathItem:
 
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
-    display_text: str = None
+    display_text: str | None = None
 
     def __post_init__(self):
         # ensure is UrlPath
