@@ -22,6 +22,10 @@
       cursor: pointer;
     }
 
+    .tree li:has(>a.supporting) {
+      font-style: italic;
+    }
+
     .tree summary:has(>a.selected), .tree li:has(>a.selected) {
       background-color: lightblue;
     }
@@ -49,7 +53,6 @@
     .tree summary {
       padding-left: 0.25rem;
     }
-
 
     .content {
       width:100%;
@@ -122,8 +125,8 @@
           {% include "file_browser/tree.html" with path=root %}
         </ul>
       {% /card %}
-    </div>
 
+    </div>
     <div style="flex-basis: 75%; max-width: 75%">
       {% include "file_browser/contents.html" %}
     </div>

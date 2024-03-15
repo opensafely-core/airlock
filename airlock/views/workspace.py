@@ -79,6 +79,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "workspace": workspace,
             "root": tree,
             "path_item": path_item,
+            "is_supporting_file": False,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
             "request_file_url": reverse(
