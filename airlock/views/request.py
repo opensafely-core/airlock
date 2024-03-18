@@ -12,7 +12,7 @@ from django.views.decorators.vary import vary_on_headers
 from airlock.business_logic import Status, bll
 from airlock.file_browser_api import get_request_tree
 
-from .helpers import get_release_request_or_raise, serve_file
+from .helpers import download_file, get_release_request_or_raise, serve_file
 
 
 def request_index(request):
@@ -104,13 +104,15 @@ def request_contents(request, request_id: str, path: str):
     # Downloads are only allowed for output checkers
     # Downloads are not allowed for request authors (including those that are also
     # output checkers)
-    if download and (
-        not request.user.output_checker
-        or (release_request.author == request.user.username)
-    ):
-        raise PermissionDenied()
+    if download:
+        if not request.user.output_checker or (
+            release_request.author == request.user.username
+        ):
+            raise PermissionDenied()
 
-    return serve_file(abspath, download, filename=path)
+        return download_file(abspath, filename=path)
+
+    return serve_file(request, abspath, filename=path)
 
 
 @require_http_methods(["POST"])

@@ -107,7 +107,7 @@ def workspace_contents(request, workspace_name: str, path: str):
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
-    return serve_file(abspath)
+    return serve_file(request, abspath)
 
 
 @require_http_methods(["POST"])

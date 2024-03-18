@@ -69,8 +69,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     Test full Airlock process to create, submit and release files
     """
     # set up a workspace file in a subdirectory
+    workspace = factories.create_workspace("test-workspace")
     factories.write_workspace_file(
-        "test-workspace", "subdir/file.txt", "I am the file content"
+        workspace, "subdir/file.txt", "I am the file content"
     )
 
     # Log in as a researcher
@@ -92,7 +93,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Click on the first link we find
     find_and_click(page.get_by_role("link", name="subdir").first)
     find_and_click(page.get_by_role("link", name="file.txt").first)
-    expect(page.locator("body")).to_contain_text("I am the file content")
+
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", workspace.get_contents_url("subdir/file.txt")
+    )
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
@@ -106,7 +110,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page).to_have_url(
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
-    expect(page.locator("body")).to_contain_text("I am the file content")
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", workspace.get_contents_url("subdir/file.txt")
+    )
 
     # The "Add file to request" button is disabled
     add_file_button = page.locator("#add-file-modal-button-disabled")
@@ -119,6 +125,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page).to_have_url(url_regex)
     # get the request ID for the just-created request, for later reference
     request_id = url_regex.match(page.url).groups()[0]
+    release_request = bll.get_release_request(request_id, admin_user)
 
     # Find the filegroup in the tree
     # Note: `get_by_role`` gets all links on the page; `locator` searches
@@ -142,7 +149,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
-    expect(page.locator("body")).to_contain_text("I am the file content")
+
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+    )
 
     # Submit request
     submit_button = page.locator("#submit-for-review-button")
@@ -186,7 +196,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Click to open the filegroup tree
     find_and_click(filegroup_link)
     find_and_click(file_link)
-    expect(page.locator("body")).to_contain_text("I am the file content")
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+    )
 
     # Download the file
     with page.expect_download() as download_info:
