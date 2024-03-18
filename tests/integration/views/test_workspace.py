@@ -2,6 +2,7 @@ import pytest
 from django.contrib import messages
 from django.shortcuts import reverse
 
+from airlock.business_logic import UrlPath
 from tests import factories
 
 
@@ -275,7 +276,7 @@ def test_workspace_request_file_creates(airlock_client, bll):
     release_request = bll.get_current_request(workspace.name, airlock_client.user)
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
-    assert str(filegroup.files[0].relpath) == "test/path.txt"
+    assert UrlPath("test/path.txt") in filegroup.files
     assert release_request.abspath("default/test/path.txt").exists()
 
 
@@ -299,7 +300,7 @@ def test_workspace_request_file_request_already_exists(airlock_client, bll):
     assert current_release_request.abspath("default/test/path.txt").exists()
     filegroup = current_release_request.filegroups["default"]
     assert filegroup.name == "default"
-    assert str(filegroup.files[0].relpath) == "test/path.txt"
+    assert UrlPath("test/path.txt") in filegroup.files
 
 
 def test_workspace_request_file_with_new_filegroup(airlock_client, bll):
