@@ -33,6 +33,12 @@ def test_workspace_container():
     )
 
 
+def test_workspace_is_supporting_file(bll):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo/bar.txt")
+    assert not workspace.is_supporting_file("foo/bar.txt")
+
+
 def test_request_container():
     release_request = factories.create_release_request("workspace", id="id")
 
@@ -451,6 +457,19 @@ def test_request_release_abspath(bll):
 
     assert release_request.abspath("default" / path).exists()
     assert release_request.abspath("default" / supporting_path).exists()
+
+
+def test_request_release_is_supporting_file(bll):
+    path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
+    release_request = factories.create_release_request("id")
+    factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
+
+    assert not release_request.is_supporting_file("default" / path)
+    assert release_request.is_supporting_file("default" / supporting_path)
 
 
 def setup_empty_release_request():

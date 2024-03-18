@@ -66,6 +66,9 @@ class AirlockContainer(Protocol):
     ) -> str:
         """Get the url for the contents of the container object with path"""
 
+    def is_supporting_file(self, relpath: UrlPath):
+        """Is this path a supporting file?"""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -121,6 +124,9 @@ class Workspace:
             raise BusinessLogicLayer.FileNotFound(path)
 
         return path
+
+    def is_supporting_file(self, relpath):
+        return False
 
 
 @dataclass(frozen=True)
@@ -254,6 +260,9 @@ class ReleaseRequest:
             for filegroup in self.filegroups.values()
             for request_file in filegroup.files.values()
         }
+
+    def is_supporting_file(self, relpath):
+        return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
 
     def output_files_with_group(self):
         return [
