@@ -6,5 +6,5 @@ django-htmx
 whitenoise
 gunicorn
 requests
-pydantic<2.0
+pydantic<3.0
 ulid
