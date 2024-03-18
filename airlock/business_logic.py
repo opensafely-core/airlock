@@ -139,13 +139,16 @@ class FileGroup:
     """
 
     name: str
-    files: list[RequestFile]
+    files: dict[RequestFile]
 
     @classmethod
     def from_dict(cls, attrs):
         return cls(
             **{k: v for k, v in attrs.items() if k != "files"},
-            files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
+            files={
+                UrlPath(value["relpath"]): RequestFile.from_dict(value)
+                for value in attrs.get("files", ())
+            },
         )
 
 
@@ -219,11 +222,9 @@ class ReleaseRequest:
         if not (filegroup := self.filegroups.get(group)):
             raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
 
-        matching_files = [f for f in filegroup.files if f.relpath == file_relpath]
-        if not matching_files:
+        request_file = filegroup.files.get(file_relpath)
+        if not request_file:
             raise BusinessLogicLayer.FileNotFound(relpath)
-        assert len(matching_files) == 1
-        request_file = matching_files[0]
 
         return self.root() / request_file.file_id
 
@@ -231,7 +232,7 @@ class ReleaseRequest:
         return {
             request_file.relpath
             for filegroup in self.filegroups.values()
-            for request_file in filegroup.files
+            for request_file in filegroup.files.values()
         }
 
     def set_filegroups_from_dict(self, attrs):
@@ -240,7 +241,7 @@ class ReleaseRequest:
     def get_file_paths(self):
         paths = []
         for file_group in self.filegroups.values():
-            for request_file in file_group.files:
+            for request_file in file_group.files.values():
                 relpath = request_file.relpath
                 abspath = self.abspath(file_group.name / relpath)
                 paths.append((relpath, abspath))

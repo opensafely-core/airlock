@@ -377,7 +377,7 @@ def test_release_request_filegroups_default_filegroup(bll):
     filegroup = release_request.filegroups["default"]
     assert filegroup.name == "default"
     assert len(filegroup.files) == 1
-    assert filegroup.files[0].relpath == path
+    assert path in filegroup.files
 
 
 def test_release_request_filegroups_named_filegroup(bll):
@@ -388,7 +388,7 @@ def test_release_request_filegroups_named_filegroup(bll):
     filegroup = release_request.filegroups["test_group"]
     assert filegroup.name == "test_group"
     assert len(filegroup.files) == 1
-    assert filegroup.files[0].relpath == path
+    assert path in filegroup.files
 
 
 def test_release_request_filegroups_multiple_filegroups(bll):
@@ -408,7 +408,7 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     assert len(release_request.filegroups) == 2
 
     release_request_files = {
-        filegroup.name: [file.relpath for file in filegroup.files]
+        filegroup.name: list(filegroup.files)
         for filegroup in release_request.filegroups.values()
     }
 
