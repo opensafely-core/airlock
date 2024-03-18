@@ -75,6 +75,35 @@ def tree_element_is_selected(page, locator):
 def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     """
     Test full Airlock process to create, submit and release files
+
+    1) Login as researcher
+    - Go to Workspaces
+    - Click on a Workspace
+    - Expand the tree
+    - View a file in a sub directory
+    - Add output file to request, with new group name
+      - Check add-to-file button now disabled
+    - Click the "Current release request" button to go to the request
+    - Open the filegroup tree
+    - View contents of directory in tree
+    - View contents of output file
+    - Use the "Workspace Home" button to go back to the workspave
+    - Add a supporting file to the same (existing) group
+    - Go back to the request
+    - View supporting file
+    - Ensure selected classes are added properly when selecting
+      output and supporting files
+    - Submit request
+    - View requests list again and check status
+    - Log out
+
+    2) Log in as output checker
+    - View requests list
+    - Click and view submitted request
+    - View output file
+    - Download output file
+    - Release files
+    - View requests list again and confirm released request is not shown
     """
     # set up a workspace file in a subdirectory
     workspace = factories.create_workspace("test-workspace")
@@ -219,7 +248,8 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert tree_element_is_selected(page, supporting_file_link)
     assert not tree_element_is_selected(page, file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/supporting_file.txt")
+        "src",
+        release_request.get_contents_url("my-new-group/subdir/supporting_file.txt"),
     )
 
     # Click back to the output file link and ensure the selected classes are correctly applied
