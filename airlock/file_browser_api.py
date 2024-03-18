@@ -43,12 +43,12 @@ class PathItem:
     # should this node be expanded in the tree?
     expanded: bool = False
 
+    # Is this a supporting file?
+    supporting_file: bool = False
+
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
     display_text: str = None
-
-    # Additional html classes that can be added to this node
-    extra_html_classes: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         # ensure is UrlPath
@@ -139,7 +139,8 @@ class PathItem:
         if self.selected:
             classes.append("selected")
 
-        classes.extend(self.extra_html_classes)
+        if self.supporting_file:
+            classes.append("supporting")
 
         return " ".join(classes)
 
@@ -259,17 +260,6 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
         expanded=True,
     )
 
-    relpath_to_html_class = {
-        **{
-            path_with_group: ["output"]
-            for path_with_group in release_request.output_files_with_group()
-        },
-        **{
-            path_with_group: ["supporting"]
-            for path_with_group in release_request.supporting_files_with_group()
-        },
-    }
-
     def _pluralise(input_list):
         if len(input_list) != 1:
             return "s"
@@ -313,7 +303,6 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             parent=group_node,
             selected_path=selected_path,
             expanded=expanded,
-            html_classes_dict=relpath_to_html_class,
         )
         root_node.children.append(group_node)
 
@@ -335,11 +324,8 @@ def get_path_tree(
     parent,
     selected_path=ROOT_PATH,
     expanded=False,
-    html_classes_dict=None,
 ):
     """Walk a flat list of paths and create a tree from them."""
-
-    html_classes_dict = html_classes_dict or {}
 
     def build_path_tree(path_parts, parent):
         # group multiple paths into groups by first part of path
@@ -362,7 +348,7 @@ def get_path_tree(
                 relpath=path,
                 parent=parent,
                 selected=selected,
-                extra_html_classes=html_classes_dict.get(path, []),
+                supporting_file=container.is_supporting_file(path),
             )
 
             # If it has decendants, it is a directory. However, an empty

@@ -22,7 +22,7 @@
   {% else %}
     {% fragment as add_button %}
       <div class="flex items-center gap-2">
-        {% if is_supporting_file %}
+        {% if path_item.supporting_file %}
           {% #description_item title="Supporting file" %}This is a supporting file and will not be releaed.{% /description_item%}
         {% endif %}
         {% if context == "workspace" %}

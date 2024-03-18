@@ -112,7 +112,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     )
     factories.write_workspace_file(
         workspace,
-        "subdir/supporting_file.txt",
+        "subdir/supporting.txt",
         "I am the supporting file content",
     )
 
@@ -182,7 +182,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
 
     # In the initial request view, the tree is collapsed
-    file_link = page.get_by_role("link").locator(".output.file:scope")
+    # Locate the link by its name, because later when we're looking at
+    # the request, there will be 2 files that match .locator(".file:scope")
+    file_link = page.get_by_role("link", name="file.txt").locator(".file:scope")
     assert file_link.all() == []
 
     # Click to open the filegroup tree
@@ -198,7 +200,6 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("iframe")).to_have_attribute(
         "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
     )
-    assert "output" in file_link.get_attribute("class")
 
     # Go back to the Workspace view so we can add a supporting file
     find_and_click(page.locator("#workspace-home-button"))
@@ -206,7 +207,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Expand the tree and click on the supporting file
     find_and_click(page.get_by_role("link", name="subdir").first)
-    find_and_click(page.get_by_role("link", name="supporting_file.txt").first)
+    find_and_click(page.get_by_role("link", name="supporting.txt").first)
 
     # Add supporting file to request, choosing the group we created previously
     # Find the add file button and click on it to open the modal
@@ -249,7 +250,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert not tree_element_is_selected(page, file_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src",
-        release_request.get_contents_url("my-new-group/subdir/supporting_file.txt"),
+        release_request.get_contents_url("my-new-group/subdir/supporting.txt"),
     )
 
     # Click back to the output file link and ensure the selected classes are correctly applied

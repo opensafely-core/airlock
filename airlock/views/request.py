@@ -79,8 +79,6 @@ def request_view(request, request_id: str, path: str = ""):
         "release_request": release_request,
         "root": tree,
         "path_item": path_item,
-        "is_supporting_file": path_item.relpath
-        in release_request.supporting_files_with_group(),
         "context": "request",
         "title": f"Request for {release_request.workspace} by {release_request.author}",
         # TODO file these in from user/models

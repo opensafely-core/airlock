@@ -262,22 +262,10 @@ class ReleaseRequest:
         }
 
     def is_supporting_file(self, relpath):
-        return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
-
-    def output_files_with_group(self):
-        return [
-            UrlPath(filegroup.name, request_file.relpath)
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.output_files
-        ]
-
-    def supporting_files_with_group(self):
-        """Return the relpaths for all files on the request, of any filetype"""
-        return [
-            UrlPath(filegroup.name, request_file.relpath)
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.supporting_files
-        ]
+        try:
+            return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
+        except BusinessLogicLayer.FileNotFound:
+            return False
 
     def set_filegroups_from_dict(self, attrs):
         self.filegroups = self._filegroups_from_dict(attrs)
