@@ -1,7 +1,6 @@
 import os
 
 import pytest
-from django.test import RequestFactory
 
 from airlock.views import helpers
 
@@ -15,9 +14,7 @@ from airlock.views import helpers
         (".txt", "text/html", "airlock/templates/file_browser/text.html"),
     ],
 )
-def test_serve_file_rendered(tmp_path, suffix, mimetype, template_path):
-    rf = RequestFactory()
-
+def test_serve_file_rendered(tmp_path, rf, suffix, mimetype, template_path):
     path = tmp_path / ("test" + suffix)
     # use a csv as test data, it works for other types too
     path.write_text("a,b,c\n1,2,3")
@@ -38,9 +35,7 @@ def test_serve_file_rendered(tmp_path, suffix, mimetype, template_path):
     assert response.headers["Etag"] == etag
 
 
-def test_serve_file_rendered_with_filename(tmp_path):
-    rf = RequestFactory()
-
+def test_serve_file_rendered_with_filename(tmp_path, rf):
     path = tmp_path / "hash"
     path.write_text("data")
 
@@ -63,8 +58,7 @@ def test_serve_file_rendered_with_filename(tmp_path):
         (".txt", "airlock/templates/file_browser/text.html"),
     ],
 )
-def test_serve_file_not_modified(tmp_path, suffix, template_path):
-    rf = RequestFactory()
+def test_serve_file_not_modified(tmp_path, rf, suffix, template_path):
     path = tmp_path / ("test" + suffix)
     # use a csv as test data, it renders fine as text
     path.write_text("a,b,c\n1,2,3")
@@ -90,9 +84,7 @@ def test_serve_file_not_modified(tmp_path, suffix, template_path):
     assert response.status_code == 200
 
 
-def test_serve_file_no_suffix(tmp_path):
-    rf = RequestFactory()
-
+def test_serve_file_no_suffix(tmp_path, rf):
     path = tmp_path / "nosuffix"
     path.touch()
 
