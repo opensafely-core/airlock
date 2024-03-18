@@ -21,6 +21,7 @@ pytestmark = pytest.mark.django_db
 
 def test_workspace_container():
     workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo/bar.html")
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
@@ -28,8 +29,8 @@ def test_workspace_container():
         workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
     )
     assert (
-        workspace.get_contents_url("foo/bar.html")
-        == "/workspaces/content/workspace/foo/bar.html"
+        "/workspaces/content/workspace/foo/bar.html?cache_id="
+        in workspace.get_contents_url("foo/bar.html")
     )
 
 
@@ -41,6 +42,7 @@ def test_workspace_is_supporting_file(bll):
 
 def test_request_container():
     release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(release_request, "group", "bar.html")
 
     assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
     assert release_request.get_id() == "id"
@@ -48,8 +50,8 @@ def test_request_container():
         release_request.get_url("group/bar.html") == "/requests/view/id/group/bar.html"
     )
     assert (
-        release_request.get_contents_url("group/bar.html")
-        == "/requests/content/id/group/bar.html"
+        "/requests/content/id/group/bar.html?cache_id="
+        in release_request.get_contents_url("group/bar.html")
     )
 
 

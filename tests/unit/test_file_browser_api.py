@@ -218,11 +218,9 @@ def test_workspace_tree_urls(workspace, path, url):
 
 def test_workspace_tree_content_urls(workspace):
     tree = get_workspace_tree(workspace)
-    assert (
-        tree.get_path("some_dir/file_a.txt")
-        .contents_url()
-        .endswith("some_dir/file_a.txt")
-    )
+    url = tree.get_path("some_dir/file_a.txt").contents_url()
+    assert "some_dir/file_a.txt" in url
+    assert "cache_id=" in url
 
     with pytest.raises(Exception):
         assert tree.get_path("some_dir").contents_url()

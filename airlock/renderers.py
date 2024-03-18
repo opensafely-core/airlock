@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 from dataclasses import dataclass
 from email.utils import formatdate
@@ -7,8 +9,6 @@ from pathlib import Path
 from django.http import FileResponse
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
-
-from airlock.business_logic import RequestFile
 
 
 @dataclass
@@ -27,6 +27,7 @@ class RendererTemplate:
 
 @dataclass
 class Renderer:
+    MAX_AGE = 365 * 24 * 60 * 60  # 1 year
     template = None
 
     abspath: Path
@@ -66,6 +67,7 @@ class Renderer:
         return {
             "ETag": self.etag,
             "Last-Modified": self.last_modified,
+            "Cache-Control": f"max-age={self.MAX_AGE}",
         }
 
 

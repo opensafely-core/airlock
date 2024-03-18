@@ -84,7 +84,7 @@ def test_workspace_view_with_html_file(airlock_client):
         "workspace_contents",
         kwargs={"workspace_name": "workspace", "path": "file.html"},
     )
-    assert f'src="{url}"' in response.rendered_content
+    assert f"{url}?cache_id=" in response.rendered_content
 
 
 def test_workspace_view_with_svg_file(airlock_client):
@@ -124,7 +124,7 @@ def test_workspace_view_with_svg_file(airlock_client):
         "workspace_contents",
         kwargs={"workspace_name": "workspace", "path": "file.svg"},
     )
-    assert f'src="{url}"' in response.rendered_content
+    assert f"{url}?cache_id=" in response.rendered_content
 
 
 def test_workspace_view_with_csv_file(airlock_client):

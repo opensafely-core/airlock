@@ -16,6 +16,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
+from airlock.renderers import get_renderer
 from airlock.users import User
 
 
@@ -104,10 +105,16 @@ class Workspace:
         )
 
     def get_contents_url(self, relpath, download=False):
-        return reverse(
+        url = reverse(
             "workspace_contents",
             kwargs={"workspace_name": self.name, "path": relpath},
         )
+
+        # what renderer would render this file?
+        renderer = get_renderer(self.abspath(relpath))
+        url += f"?cache_id={renderer.cache_id}"
+
+        return url
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -230,6 +237,12 @@ class ReleaseRequest:
         )
         if download:
             url += "?download"
+        else:
+            # what renderer would render this file?
+            request_file = self.get_request_file(relpath)
+            renderer = get_renderer(self.abspath(relpath), request_file)
+            url += f"?cache_id={renderer.cache_id}"
+
         return url
 
     def get_request_file(self, relpath: UrlPath | str):
