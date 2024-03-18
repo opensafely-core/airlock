@@ -338,16 +338,25 @@ def test_request_release_invalid_state():
         )
 
 
-def test_request_release_abspath(bll):
+def test_request_release_get_request_file(bll):
     path = UrlPath("foo/bar.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
 
     with pytest.raises(bll.FileNotFound):
-        release_request.abspath("badgroup" / path)
+        release_request.get_request_file("badgroup" / path)
 
     with pytest.raises(bll.FileNotFound):
-        release_request.abspath("default/does/not/exist")
+        release_request.get_request_file("default/does/not/exist")
+
+    request_file = release_request.get_request_file("default" / path)
+    assert request_file.relpath == path
+
+
+def test_request_release_abspath(bll):
+    path = UrlPath("foo/bar.txt")
+    release_request = factories.create_release_request("id")
+    factories.write_request_file(release_request, "default", path)
 
     assert release_request.abspath("default" / path).exists()
 

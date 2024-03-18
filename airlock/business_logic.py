@@ -210,11 +210,7 @@ class ReleaseRequest:
             url += "?download"
         return url
 
-    def abspath(self, relpath):
-        """Returns abspath to the file on disk.
-
-        The first part of the relpath is the group, so we parse and validate that first.
-        """
+    def get_request_file(self, relpath: UrlPath | str):
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
         file_relpath = UrlPath(*relpath.parts[1:])
@@ -222,10 +218,17 @@ class ReleaseRequest:
         if not (filegroup := self.filegroups.get(group)):
             raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
 
-        request_file = filegroup.files.get(file_relpath)
-        if not request_file:
+        if not (request_file := filegroup.files.get(file_relpath)):
             raise BusinessLogicLayer.FileNotFound(relpath)
 
+        return request_file
+
+    def abspath(self, relpath):
+        """Returns abspath to the file on disk.
+
+        The first part of the relpath is the group, so we parse and validate that first.
+        """
+        request_file = self.get_request_file(relpath)
         return self.root() / request_file.file_id
 
     def file_set(self):
