@@ -1,9 +1,27 @@
 import pytest
 import responses as _responses
 from django.conf import settings
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 import airlock.business_logic
 import tests.factories
+import tracing
+
+
+# set up tracing for tests
+test_exporter = InMemorySpanExporter()
+tracing.add_exporter(tracing.get_provider(), test_exporter, SimpleSpanProcessor)
+
+
+def get_trace():
+    """Return all spans traced during this test."""
+    return test_exporter.get_finished_spans()  # pragma: no cover
+
+
+@pytest.fixture(autouse=True)
+def clear_all_traces():
+    test_exporter.clear()
 
 
 # Fail the test run if we see any warnings
