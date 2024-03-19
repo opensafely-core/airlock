@@ -113,7 +113,7 @@ def request_contents(request, request_id: str, path: str):
 
         return download_file(abspath, filename=path)
 
-    return serve_file(request, abspath, filename=path)
+    return serve_file(request, abspath, release_request.get_request_file(path))
 
 
 @require_http_methods(["POST"])

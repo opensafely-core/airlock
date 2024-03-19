@@ -220,6 +220,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
+    # refresh release_request
+    release_request = bll.get_release_request(request_id, admin_user)
+
     # Go back to the request
     find_and_click(page.locator("#current-request-button"))
 
