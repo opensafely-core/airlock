@@ -285,6 +285,14 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
+    def output_files_set(self):
+        """Return the relpaths for output files on the request"""
+        return {
+            request_file.relpath
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.output_files
+        }
+
     def is_supporting_file(self, urlpath: UrlPath):
         try:
             return self.get_request_file(urlpath).filetype == RequestFileType.SUPPORTING
@@ -652,8 +660,10 @@ class BusinessLogicLayer:
                 "only an output checker can approve a file"
             )
 
-        if path not in release_request.file_set():
-            raise self.ApprovalPermissionDenied("file is not part of the request")
+        if path not in release_request.output_files_set():
+            raise self.ApprovalPermissionDenied(
+                "file is not an output file on this request"
+            )
 
     def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
         """ "Approve a file"""

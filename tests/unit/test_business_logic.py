@@ -612,6 +612,20 @@ def test_approve_file_not_part_of_request(bll):
         bll.approve_file(release_request, checker, bad_path)
 
 
+def test_approve_supporting_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(
+        release_request, path, author, filetype=RequestFileType.SUPPORTING
+    )
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, checker, path)
+
+
 def test_approve_file(bll):
     release_request, path, author = setup_empty_release_request()
     checker = factories.create_user("checker", [], True)
