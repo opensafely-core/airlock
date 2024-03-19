@@ -64,14 +64,56 @@ def login_as(live_server, page, username):
     expect(page.locator("body")).to_contain_text(f"Logged in as: {username}")
 
 
+def tree_element_is_selected(page, locator):
+    # We need to wait for a tiny amount to ensure the js that swaps the
+    # selected classes around has run. An arbitrary 20ms seems to be enough.
+    page.wait_for_timeout(20)
+    classes = locator.get_attribute("class")
+    return "selected" in classes
+
+
 def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     """
     Test full Airlock process to create, submit and release files
+
+    1) Login as researcher
+    - Go to Workspaces
+    - Click on a Workspace
+    - Expand the tree
+    - View a file in a sub directory
+    - Add output file to request, with new group name
+      - Check add-to-file button now disabled
+    - Click the "Current release request" button to go to the request
+    - Open the filegroup tree
+    - View contents of directory in tree
+    - View contents of output file
+    - Use the "Workspace Home" button to go back to the workspave
+    - Add a supporting file to the same (existing) group
+    - Go back to the request
+    - View supporting file
+    - Ensure selected classes are added properly when selecting
+      output and supporting files
+    - Submit request
+    - View requests list again and check status
+    - Log out
+
+    2) Log in as output checker
+    - View requests list
+    - Click and view submitted request
+    - View output file
+    - Download output file
+    - Release files
+    - View requests list again and confirm released request is not shown
     """
     # set up a workspace file in a subdirectory
     workspace = factories.create_workspace("test-workspace")
     factories.write_workspace_file(
         workspace, "subdir/file.txt", "I am the file content"
+    )
+    factories.write_workspace_file(
+        workspace,
+        "subdir/supporting.txt",
+        "I am the supporting file content",
     )
 
     # Log in as a researcher
@@ -103,6 +145,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     find_and_click(page.locator("[data-modal=addRequestFile]"))
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
+
+    # By default, the selected filetype is OUTPUT
+    expect(page.locator("#id_filetype1")).to_be_checked()
+    expect(page.locator("#id_filetype2")).not_to_be_checked()
 
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
@@ -136,20 +182,81 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
 
     # In the initial request view, the tree is collapsed
-    file_link = page.get_by_role("link").locator(".file:scope")
+    # Locate the link by its name, because later when we're looking at
+    # the request, there will be 2 files that match .locator(".file:scope")
+    file_link = page.get_by_role("link", name="file.txt").locator(".file:scope")
     assert file_link.all() == []
 
     # Click to open the filegroup tree
     filegroup_link.click()
 
-    # Click on the directory to ensure that renders correctly.
+    # Click on the output directory to ensure that renders correctly.
     subdir_link = page.get_by_role("link").locator(".directory:scope")
     find_and_click(subdir_link)
     expect(page.locator("#selected-contents")).to_contain_text("file.txt")
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+    )
 
+    # Go back to the Workspace view so we can add a supporting file
+    find_and_click(page.locator("#workspace-home-button"))
+    expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
+
+    # Expand the tree and click on the supporting file
+    find_and_click(page.get_by_role("link", name="subdir").first)
+    find_and_click(page.get_by_role("link", name="supporting.txt").first)
+
+    # Add supporting file to request, choosing the group we created previously
+    # Find the add file button and click on it to open the modal
+    find_and_click(page.locator("[data-modal=addRequestFile]"))
+
+    page.locator("#id_filegroup").select_option("my-new-group")
+    # Select supporting file
+    page.locator("#id_filetype2").check()
+
+    # Click the button to add the file to a release request
+    find_and_click(page.get_by_role("form").locator("#add-file-button"))
+
+    # Go back to the request
+    find_and_click(page.locator("#current-request-button"))
+
+    # Expand the tree
+    filegroup_link.click()
+
+    # Click on the output directory to ensure that renders correctly.
+    subdir_link = page.get_by_role("link").locator(".directory:scope")
+    assert not tree_element_is_selected(page, subdir_link)
+    find_and_click(subdir_link)
+    # subdir link is shown as selected
+    assert tree_element_is_selected(page, subdir_link)
+    expect(page.locator("#selected-contents")).to_contain_text("file.txt")
+
+    # Tree opens fully expanded, so now the file (in its subdir) is visible
+    find_and_click(file_link)
+    # File is selected, subdir is now unselected
+    assert tree_element_is_selected(page, file_link)
+    assert not tree_element_is_selected(page, subdir_link)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+    )
+
+    # Click on the supporting file link.
+    supporting_file_link = page.get_by_role("link").locator(".supporting.file:scope")
+    find_and_click(supporting_file_link)
+    assert tree_element_is_selected(page, supporting_file_link)
+    assert not tree_element_is_selected(page, file_link)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src",
+        release_request.get_contents_url("my-new-group/subdir/supporting.txt"),
+    )
+
+    # Click back to the output file link and ensure the selected classes are correctly applied
+    find_and_click(file_link)
+    assert tree_element_is_selected(page, file_link)
+    assert not tree_element_is_selected(page, supporting_file_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
     )
@@ -160,10 +267,6 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("body")).to_contain_text("SUBMITTED")
     # After the request is submitted, the submit button is no longer visible
     expect(submit_button).not_to_be_visible()
-
-    # Ensure researcher can go back to the Workspace view
-    find_and_click(page.locator("#workspace-home-button"))
-    expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
 
     # Before we log the researcher out and continue, let's just check
     # their requests

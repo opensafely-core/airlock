@@ -8,11 +8,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.business_logic import UrlPath, bll
+from airlock.business_logic import RequestFileType, UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
-from .helpers import get_workspace_or_raise, serve_file
+from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
 
 def grouped_workspaces(workspaces):
@@ -45,10 +45,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     tree = get_workspace_tree(workspace, path, selected_only)
 
-    try:
-        path_item = tree.get_path(path)
-    except tree.PathNotFound:
-        raise Http404()
+    path_item = get_path_item_from_tree_or_404(tree, path)
 
     is_directory_url = path.endswith("/") or path == ""
     if path_item.is_directory() != is_directory_url:
@@ -68,7 +65,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # changed.
     form = None
     file_in_request = (
-        current_request and path_item.relpath in current_request.file_set()
+        current_request and path_item.relpath in current_request.all_files_set()
     )
     if request.user.can_create_request(workspace_name) and (
         current_request is None or not file_in_request
@@ -82,6 +79,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "workspace": workspace,
             "root": tree,
             "path_item": path_item,
+            "is_supporting_file": False,
             "context": "workspace",
             "title": f"Files for workspace {workspace_name}",
             "request_file_url": reverse(
@@ -122,16 +120,22 @@ def workspace_add_file_to_request(request, workspace_name):
     release_request = bll.get_current_request(workspace_name, request.user, create=True)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
-        group_name = request.POST.get("new_filegroup") or request.POST.get("filegroup")
+        group_name = form.cleaned_data.get("new_filegroup") or form.cleaned_data.get(
+            "filegroup"
+        )
+        filetype = RequestFileType[form.cleaned_data["filetype"]]
         try:
-            bll.add_file_to_request(release_request, relpath, request.user, group_name)
+            bll.add_file_to_request(
+                release_request, relpath, request.user, group_name, filetype
+            )
         except bll.APIException as err:
             # This exception is raised if the file has already been added
             # (to any group on the request)
             messages.error(request, str(err))
         else:
             messages.success(
-                request, f"File has been added to request (file group '{group_name}')"
+                request,
+                f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
     else:
         for error in form.errors.values():

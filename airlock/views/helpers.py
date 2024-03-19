@@ -145,3 +145,10 @@ def serve_file(request, abspath, filename=None):
     response.headers["ETag"] = etag
 
     return response
+
+
+def get_path_item_from_tree_or_404(tree, path):
+    try:
+        return tree.get_path(path)
+    except tree.PathNotFound:
+        raise Http404()

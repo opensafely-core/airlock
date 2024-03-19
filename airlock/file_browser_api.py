@@ -43,6 +43,9 @@ class PathItem:
     # should this node be expanded in the tree?
     expanded: bool = False
 
+    # Is this a supporting file?
+    supporting_file: bool = False
+
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
     display_text: str = None
@@ -135,6 +138,9 @@ class PathItem:
 
         if self.selected:
             classes.append("selected")
+
+        if self.supporting_file:
+            classes.append("supporting")
 
         return " ".join(classes)
 
@@ -254,6 +260,11 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
         expanded=True,
     )
 
+    def _pluralise(input_list):
+        if len(input_list) != 1:
+            return "s"
+        return ""
+
     for name, group in release_request.filegroups.items():
         group_path = UrlPath(name)
         selected = group_path == selected_path
@@ -263,7 +274,10 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             relpath=UrlPath(name),
             type=PathType.FILEGROUP,
             parent=root_node,
-            display_text=f"{name} ({len(group.files)} files)",
+            display_text=(
+                f"{name} ({len(group.output_files)} output file{_pluralise(group.output_files)}, "
+                f"{len(group.supporting_files)} supporting file{_pluralise(group.supporting_files)})"
+            ),
             selected=selected,
             expanded=selected or expanded,
         )
@@ -290,7 +304,6 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             selected_path=selected_path,
             expanded=expanded,
         )
-
         root_node.children.append(group_node)
 
     return root_node
@@ -335,6 +348,7 @@ def get_path_tree(
                 relpath=path,
                 parent=parent,
                 selected=selected,
+                supporting_file=container.is_supporting_file(path),
             )
 
             # If it has decendants, it is a directory. However, an empty

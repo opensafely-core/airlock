@@ -35,6 +35,11 @@ class Status(Enum):
     RELEASED = "RELEASED"
 
 
+class RequestFileType(Enum):
+    OUTPUT = "output"
+    SUPPORTING = "supporting"
+
+
 class AirlockContainer(Protocol):
     """Structural typing class for a instance of a Workspace or ReleaseRequest
 
@@ -60,6 +65,9 @@ class AirlockContainer(Protocol):
         self, path: UrlPath = ROOT_PATH, download: bool = False
     ) -> str:
         """Get the url for the contents of the container object with path"""
+
+    def is_supporting_file(self, relpath: UrlPath):
+        """Is this path a supporting file?"""
 
 
 @dataclass(order=True)
@@ -117,6 +125,9 @@ class Workspace:
 
         return path
 
+    def is_supporting_file(self, relpath):
+        return False
+
 
 @dataclass(frozen=True)
 class RequestFile:
@@ -126,6 +137,7 @@ class RequestFile:
 
     relpath: UrlPath
     file_id: str
+    filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
     def from_dict(cls, attrs):
@@ -140,6 +152,16 @@ class FileGroup:
 
     name: str
     files: dict[RequestFile]
+
+    @property
+    def output_files(self):
+        return [f for f in self.files.values() if f.filetype == RequestFileType.OUTPUT]
+
+    @property
+    def supporting_files(self):
+        return [
+            f for f in self.files.values() if f.filetype == RequestFileType.SUPPORTING
+        ]
 
     @classmethod
     def from_dict(cls, attrs):
@@ -231,20 +253,27 @@ class ReleaseRequest:
         request_file = self.get_request_file(relpath)
         return self.root() / request_file.file_id
 
-    def file_set(self):
+    def all_files_set(self):
+        """Return the relpaths for all files on the request, of any filetype"""
         return {
             request_file.relpath
             for filegroup in self.filegroups.values()
             for request_file in filegroup.files.values()
         }
 
+    def is_supporting_file(self, relpath):
+        try:
+            return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
+        except BusinessLogicLayer.FileNotFound:
+            return False
+
     def set_filegroups_from_dict(self, attrs):
         self.filegroups = self._filegroups_from_dict(attrs)
 
-    def get_file_paths(self):
+    def get_output_file_paths(self):
         paths = []
         for file_group in self.filegroups.values():
-            for request_file in file_group.files.values():
+            for request_file in file_group.output_files:
                 relpath = request_file.relpath
                 abspath = self.abspath(file_group.name / relpath)
                 paths.append((relpath, abspath))
@@ -491,6 +520,7 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
         group_name: Optional[str] = "default",
+        filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         if user.username != release_request.author:
             raise self.RequestPermissionDenied(
@@ -511,6 +541,7 @@ class BusinessLogicLayer:
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
+            filetype=filetype,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
@@ -525,7 +556,7 @@ class BusinessLogicLayer:
         # we check this is valid status transition *before* releasing the files
         self.check_status(request, Status.RELEASED, user)
 
-        file_paths = request.get_file_paths()
+        file_paths = request.get_output_file_paths()
         filelist = old_api.create_filelist(file_paths)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username

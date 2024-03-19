@@ -6,7 +6,13 @@ import pytest
 from django.conf import settings
 
 import old_api
-from airlock.business_logic import BusinessLogicLayer, Status, UrlPath, Workspace
+from airlock.business_logic import (
+    BusinessLogicLayer,
+    RequestFileType,
+    Status,
+    UrlPath,
+    Workspace,
+)
 from tests import factories
 
 
@@ -25,6 +31,12 @@ def test_workspace_container():
         workspace.get_contents_url("foo/bar.html")
         == "/workspaces/content/workspace/foo/bar.html"
     )
+
+
+def test_workspace_is_supporting_file(bll):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo/bar.txt")
+    assert not workspace.is_supporting_file("foo/bar.txt")
 
 
 def test_request_container():
@@ -96,6 +108,15 @@ def test_provider_request_release_files(mock_old_api):
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, "group", relpath, "test")
+    # Add a supporting file, which should NOT be released
+    supporting_relpath = Path("test/supporting_file.txt")
+    factories.write_request_file(
+        release_request,
+        "group",
+        supporting_relpath,
+        "test",
+        filetype=RequestFileType.SUPPORTING,
+    )
     factories.bll.set_status(release_request, Status.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
@@ -329,6 +350,74 @@ def test_add_file_to_request_states(status, success, bll):
             bll.add_file_to_request(release_request, path, author)
 
 
+def test_add_file_to_request_default_filetype(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    bll.add_file_to_request(release_request, path, author)
+    request_file = release_request.filegroups["default"].files[path]
+    assert request_file.filetype == RequestFileType.OUTPUT
+
+
+@pytest.mark.parametrize(
+    "filetype,success",
+    [
+        (RequestFileType.OUTPUT, True),
+        (RequestFileType.SUPPORTING, True),
+        ("unknown", False),
+    ],
+)
+def test_add_file_to_request_with_filetype(bll, filetype, success):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    if success:
+        bll.add_file_to_request(release_request, path, author, filetype=filetype)
+        request_file = release_request.filegroups["default"].files[UrlPath(path)]
+        assert request_file.filetype == filetype
+    else:
+        with pytest.raises(AttributeError):
+            bll.add_file_to_request(release_request, path, author, filetype=filetype)
+
+
+def test_request_all_files_set(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file.txt")
+    supporting_path = Path("path/supporting_file.txt")
+    workspace = factories.create_workspace("workspace")
+    for fp in [path, supporting_path]:
+        factories.write_workspace_file(workspace, fp)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    bll.add_file_to_request(
+        release_request, path, author, filetype=RequestFileType.OUTPUT
+    )
+    bll.add_file_to_request(
+        release_request, supporting_path, author, filetype=RequestFileType.SUPPORTING
+    )
+
+    # all_files_set consists of output files and supporting files
+    assert release_request.all_files_set() == {path, supporting_path}
+
+    filegroup = release_request.filegroups["default"]
+    assert len(filegroup.files) == 2
+    assert len(filegroup.output_files) == 1
+    assert len(filegroup.supporting_files) == 1
+
+
 def test_request_release_invalid_state():
     factories.create_workspace("workspace")
     with pytest.raises(AttributeError):
@@ -340,8 +429,12 @@ def test_request_release_invalid_state():
 
 def test_request_release_get_request_file(bll):
     path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
 
     with pytest.raises(bll.FileNotFound):
         release_request.get_request_file("badgroup" / path)
@@ -355,10 +448,28 @@ def test_request_release_get_request_file(bll):
 
 def test_request_release_abspath(bll):
     path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
     factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
 
     assert release_request.abspath("default" / path).exists()
+    assert release_request.abspath("default" / supporting_path).exists()
+
+
+def test_request_release_is_supporting_file(bll):
+    path = UrlPath("foo/bar.txt")
+    supporting_path = UrlPath("foo/bar1.txt")
+    release_request = factories.create_release_request("id")
+    factories.write_request_file(release_request, "default", path)
+    factories.write_request_file(
+        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    )
+
+    assert not release_request.is_supporting_file("default" / path)
+    assert release_request.is_supporting_file("default" / supporting_path)
 
 
 def setup_empty_release_request():

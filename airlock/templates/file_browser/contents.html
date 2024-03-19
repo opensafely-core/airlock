@@ -22,12 +22,16 @@
   {% else %}
     {% fragment as add_button %}
       <div class="flex items-center gap-2">
+        {% if path_item.supporting_file %}
+          {% #description_item title="Supporting file" %}This is a supporting file and will not be releaed.{% /description_item%}
+        {% endif %}
         {% if context == "workspace" %}
           {% if form %}
             {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
               {% #card container=True title="Add a file" %}
                 <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
                   {% csrf_token %}
+                  {% form_radios class="w-full max-w-lg mx-auto" label="Type of file" field=form.filetype selected=form.filetype.value %}
                   {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
                   {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
                   <input type=hidden name="path" value="{{ path_item.relpath }}"/>
@@ -57,10 +61,10 @@
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
       </div>
+
     {% endfragment %}
 
     {% #card title=path_item.name container=True custom_button=add_button %}
-
       <div class="content">
         <iframe src="{{ path_item.contents_url }}"
                 title="{{ path_item.relpath }}"

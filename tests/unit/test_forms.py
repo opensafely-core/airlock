@@ -62,6 +62,7 @@ def test_add_file_form_new_filegroup(new_group_name, is_valid):
         # new_filegroup also present
         "filegroup": "default",
         "new_filegroup": new_group_name,
+        "filetype": "OUTPUT",
     }
     form = AddFileForm(data, release_request=release_request)
     assert form.is_valid() == is_valid

@@ -2,7 +2,7 @@ import pytest
 from django.contrib import messages
 from django.shortcuts import reverse
 
-from airlock.business_logic import UrlPath
+from airlock.business_logic import RequestFileType, UrlPath
 from tests import factories
 
 
@@ -260,16 +260,16 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
     assert "not-allowed" not in response.rendered_content
 
 
-def test_workspace_request_file_creates(airlock_client, bll):
+@pytest.mark.parametrize("filetype", ["OUTPUT", "SUPPORTING"])
+def test_workspace_request_file_creates(airlock_client, bll, filetype):
     airlock_client.login(workspaces=["test1"])
-
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path.txt")
 
     assert bll.get_current_request(workspace.name, airlock_client.user) is None
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={"path": "test/path.txt", "filegroup": "default"},
+        data={"path": "test/path.txt", "filegroup": "default", "filetype": filetype},
     )
     assert response.status_code == 302
 
@@ -278,6 +278,8 @@ def test_workspace_request_file_creates(airlock_client, bll):
     assert filegroup.name == "default"
     assert UrlPath("test/path.txt") in filegroup.files
     assert release_request.abspath("default/test/path.txt").exists()
+    release_file = filegroup.files[UrlPath("test/path.txt")]
+    assert release_file.filetype == RequestFileType[filetype]
 
 
 def test_workspace_request_file_request_already_exists(airlock_client, bll):
@@ -290,7 +292,7 @@ def test_workspace_request_file_request_already_exists(airlock_client, bll):
 
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={"path": "test/path.txt", "filegroup": "default"},
+        data={"path": "test/path.txt", "filegroup": "default", "filetype": "OUTPUT"},
     )
     assert response.status_code == 302
     current_release_request = bll.get_current_request(
@@ -317,6 +319,7 @@ def test_workspace_request_file_with_new_filegroup(airlock_client, bll):
             # new filegroup overrides a selected existing one (or the default)
             "filegroup": "default",
             "new_filegroup": "new_group",
+            "filetype": "OUTPUT",
         },
     )
     assert response.status_code == 302
@@ -338,7 +341,7 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
 
     airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={"path": "test/path.txt", "filegroup": "default"},
+        data={"path": "test/path.txt", "filegroup": "default", "filetype": "OUTPUT"},
     )
 
     assert filegroupmetadata.request_files.count() == 1
@@ -347,7 +350,7 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
     # Attempt to add the same file again
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={"path": "test/path.txt", "filegroup": "default"},
+        data={"path": "test/path.txt", "filegroup": "default", "filetype": "OUTPUT"},
     )
     assert response.status_code == 302
     # No new file created
@@ -361,7 +364,7 @@ def test_workspace_request_file_request_path_does_not_exist(airlock_client):
 
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={"path": "test/path.txt", "filegroup": "default"},
+        data={"path": "test/path.txt", "filegroup": "default", "filetype": "OUTPUT"},
     )
 
     assert response.status_code == 404
@@ -382,6 +385,7 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
             "path": "test/path.txt",
             "filegroup": "default",
             "new_filegroup": "test_group",
+            "filetype": "OUTPUT",
         },
         follow=True,
     )

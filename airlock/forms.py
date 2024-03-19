@@ -1,5 +1,7 @@
 from django import forms
 
+from airlock.business_logic import RequestFileType
+
 
 class TokenLoginForm(forms.Form):
     user = forms.CharField()
@@ -9,6 +11,11 @@ class TokenLoginForm(forms.Form):
 class AddFileForm(forms.Form):
     filegroup = forms.ChoiceField(required=False)
     new_filegroup = forms.CharField(required=False)
+    filetype = forms.ChoiceField(
+        required=True,
+        choices=[(i.name, i.name.title()) for i in RequestFileType],
+        initial=RequestFileType.OUTPUT.name,
+    )
 
     def __init__(self, *args, **kwargs):
         release_request = kwargs.pop("release_request")

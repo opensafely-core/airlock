@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 import requests
 
-from airlock.business_logic import Status
+from airlock.business_logic import RequestFileType, Status
 from tests import factories
 
 
@@ -47,10 +47,15 @@ def test_request_view_with_directory(airlock_client):
     assert "file.txt" in response.rendered_content
 
 
-def test_request_view_with_file(airlock_client):
-    airlock_client.login(output_checker=True)
+@pytest.mark.parametrize(
+    "filetype", [RequestFileType.OUTPUT, RequestFileType.SUPPORTING]
+)
+def test_request_view_with_file(airlock_client, filetype):
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    airlock_client.login(output_checker=True)
+    factories.write_request_file(
+        release_request, "group", "file.txt", "foobar", filetype=filetype
+    )
     response = airlock_client.get(f"/requests/view/{release_request.id}/group/file.txt")
     assert response.status_code == 200
     assert (
@@ -102,6 +107,23 @@ def test_request_view_with_authored_request_file(airlock_client):
 def test_request_view_with_404(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/no_such_file.txt"
+    )
+    assert response.status_code == 404
+
+
+def test_request_view_404_with_files(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request("workspace")
+    # write a file and a supporting file to the group
+    factories.write_request_file(release_request, "group", "file.txt")
+    factories.write_request_file(
+        release_request,
+        "group",
+        "supporting_file.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/no_such_file.txt"
     )
