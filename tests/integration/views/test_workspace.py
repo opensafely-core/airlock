@@ -4,6 +4,7 @@ from django.shortcuts import reverse
 
 from airlock.business_logic import RequestFileType, UrlPath
 from tests import factories
+from tests.conftest import get_trace
 
 
 pytestmark = pytest.mark.django_db
@@ -21,6 +22,12 @@ def test_workspace_view(airlock_client):
     response = airlock_client.get("/workspaces/view/workspace/")
     assert "file.txt" in response.rendered_content
     assert "release-request-button" not in response.rendered_content
+
+    traces = get_trace()
+    # We have one trace in this view, for the workspace tree
+    assert len(traces) == 1
+    trace = traces[0]
+    assert trace.name == "build_workspace_tree"
 
 
 def test_workspace_view_with_existing_request_for_user(airlock_client):

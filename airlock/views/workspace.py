@@ -7,12 +7,16 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
+from opentelemetry import trace
 
 from airlock.business_logic import RequestFileType, UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 
 from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
+
+
+tracer = trace.get_tracer_provider().get_tracer(__name__)
 
 
 def grouped_workspaces(workspaces):
@@ -43,7 +47,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_workspace_tree(workspace, path, selected_only)
+    with tracer.start_as_current_span("build_workspace_tree") as _span:
+        tree = get_workspace_tree(workspace, path, selected_only)
 
     path_item = get_path_item_from_tree_or_404(tree, path)
 
