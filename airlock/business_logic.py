@@ -285,9 +285,9 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
-    def is_supporting_file(self, relpath):
+    def is_supporting_file(self, urlpath: UrlPath):
         try:
-            return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
+            return self.get_request_file(urlpath).filetype == RequestFileType.SUPPORTING
         except BusinessLogicLayer.FileNotFound:
             return False
 
