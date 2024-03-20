@@ -12,6 +12,7 @@ from opentelemetry import trace
 from airlock.business_logic import RequestFileType, UrlPath, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
+from services.tracing import instrument
 
 from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
@@ -28,6 +29,7 @@ def grouped_workspaces(workspaces):
         yield project, list(sorted(workspaces))
 
 
+@instrument
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
@@ -37,6 +39,7 @@ def workspace_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
+@instrument(kwarg_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
 
@@ -98,6 +101,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
 
+@instrument(kwarg_attributes={"workspace": "workspace_name"})
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
@@ -113,6 +117,7 @@ def workspace_contents(request, workspace_name: str, path: str):
     return serve_file(request, abspath)
 
 
+@instrument(kwarg_attributes={"workspace": "workspace_name"})
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = get_workspace_or_raise(request.user, workspace_name)

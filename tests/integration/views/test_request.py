@@ -5,6 +5,7 @@ import requests
 
 from airlock.business_logic import RequestFileType, Status
 from tests import factories
+from tests.conftest import get_trace
 
 
 pytestmark = pytest.mark.django_db
@@ -505,3 +506,56 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
 
     with pytest.raises(requests.HTTPError):
         airlock_client.post("/requests/release/request_id")
+
+
+@pytest.mark.parametrize(
+    "urlpath,post_data,login_as,status,stub",
+    [
+        (
+            "/requests/view/request-id/default/",
+            None,
+            "output_checker",
+            Status.PENDING,
+            False,
+        ),
+        (
+            "/requests/view/request-id/default/file.txt",
+            None,
+            "output_checker",
+            Status.PENDING,
+            False,
+        ),
+        (
+            "/requests/content/request-id/default/file.txt",
+            None,
+            "output_checker",
+            Status.PENDING,
+            False,
+        ),
+        ("/requests/submit/request-id", {}, "author", Status.PENDING, False),
+        ("/requests/reject/request-id", {}, "output_checker", Status.SUBMITTED, False),
+        ("/requests/release/request-id", {}, "output_checker", Status.SUBMITTED, True),
+    ],
+)
+def test_request_view_tracing_with_request_attribute(
+    airlock_client, release_files_stubber, urlpath, post_data, login_as, status, stub
+):
+    author = factories.create_user("author", ["test-workspace"])
+    factories.create_user("output_checker", output_checker=True)
+    airlock_client.login(username=login_as, output_checker=True)
+    release_request = factories.create_release_request(
+        "test-workspace", id="request-id", user=author, status=status
+    )
+    factories.write_request_file(
+        release_request, "default", "file.txt", contents="test"
+    )
+    if stub:
+        release_files_stubber(release_request)
+
+    if post_data is not None:
+        airlock_client.post(urlpath, post_data)
+    else:
+        airlock_client.get(urlpath)
+    traces = get_trace()
+    last_trace = traces[-1]
+    assert last_trace.attributes == {"release_request": "request-id"}

@@ -23,12 +23,6 @@ def test_workspace_view(airlock_client):
     assert "file.txt" in response.rendered_content
     assert "release-request-button" not in response.rendered_content
 
-    traces = get_trace()
-    # We have one trace in this view, for the workspace tree
-    assert len(traces) == 1
-    trace = traces[0]
-    assert trace.name == "build_workspace_tree"
-
 
 def test_workspace_view_with_existing_request_for_user(airlock_client):
     user = factories.create_user(output_checker=True)
@@ -406,3 +400,33 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "already exists" in message.message
+
+
+@pytest.mark.parametrize(
+    "urlpath,post_data",
+    [
+        ("/workspaces/view/test-workspace/", None),
+        ("/workspaces/view/test-workspace/file.txt", None),
+        ("/workspaces/content/test-workspace/file.txt", None),
+        (
+            "/workspaces/add-file-to-request/test-workspace",
+            {
+                "path": "test-workspace/file.txt",
+                "filegroup": "default",
+                "filetype": RequestFileType.OUTPUT,
+            },
+        ),
+    ],
+)
+def test_workspace_view_tracing_with_workspace_attribute(
+    airlock_client, urlpath, post_data
+):
+    airlock_client.login(workspaces=["test-workspace"])
+    factories.write_workspace_file("test-workspace", "file.txt")
+    if post_data is not None:
+        airlock_client.post(urlpath, post_data)
+    else:
+        airlock_client.get(urlpath)
+    traces = get_trace()
+    last_trace = traces[-1]
+    assert last_trace.attributes == {"workspace": "test-workspace"}
