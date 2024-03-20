@@ -128,8 +128,10 @@ def workspace_add_file_to_request(request, workspace_name):
     release_request = bll.get_current_request(workspace_name, request.user, create=True)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
-        group_name = form.cleaned_data.get("new_filegroup") or form.cleaned_data.get(
-            "filegroup"
+        group_name = (
+            form.cleaned_data.get("new_filegroup")
+            or form.cleaned_data.get("filegroup")
+            or ""
         )
         filetype = RequestFileType[form.cleaned_data["filetype"]]
         try:
