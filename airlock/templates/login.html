@@ -18,9 +18,8 @@
       <form class="gap-2 flex-wrap md:flex-nowrap" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" >
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next_url }}" />
-
-        {% form_input type="text" field=token_login_form.user label="GitHub username or Email address" class="mb-3" placeholder="opensafely" input_class="max-w-md" %}
-        {% form_input type="text" field=token_login_form.token label="Single Use Token" placeholder="three random words" show_placeholder=True class="mb-3" input_class="max-w-md" %}
+        {% form_input type="text" field=token_login_form.user required=True label="GitHub username or Email address" class="mb-3" placeholder="opensafely" input_class="max-w-md" %}
+        {% form_input type="text" field=token_login_form.token required=True label="Single Use Token" placeholder="three random words" show_placeholder=True class="mb-3" input_class="max-w-md" %}
 
         {% #button type="submit" variant="primary-outline" id="login-button" %}
           Log in with token
