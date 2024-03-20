@@ -68,19 +68,27 @@ def instrument(
     span_name: str = "",
     record_exception: bool = True,
     attributes: Dict[str, str] = None,
+    arg_attributes: Dict[str, int] = None,
+    kwarg_attributes: Dict[str, str] = None,
     existing_tracer: trace.Tracer = None,
 ):
     """
     A decorator to instrument a function with an OTEL tracing span.
+    attributes: custom attributes to set on the span
+    arg_attributes: k, v pairs of attribute name to index of positional
+       arg. Sets the span attribute k to the str representation of the
+       the arg at index v
+    kwarg_attributes: k, v pairs of attribute name to function
+       kwarg. Sets the span attribute k to the str representation of
+       the function kwarg v
     """
 
     def span_decorator(func):
         tracer = existing_tracer or trace.get_tracer("airlock")
 
         def _set_attributes(span, attributes_dict):
-            if attributes_dict:
-                for att in attributes_dict:
-                    span.set_attribute(att, attributes_dict[att])
+            for att in attributes_dict:
+                span.set_attribute(att, attributes_dict[att])
 
         @wraps(func)
         def wrap_with_span(*args, **kwargs):
@@ -88,7 +96,20 @@ def instrument(
             with tracer.start_as_current_span(
                 name, record_exception=record_exception
             ) as span:
-                _set_attributes(span, attributes)
+                attributes_dict = attributes or {}
+                if kwarg_attributes:
+                    attributes_dict.update(
+                        {
+                            k: str(kwargs[v])
+                            for k, v in kwarg_attributes.items()
+                            if v in kwargs
+                        }
+                    )
+                if arg_attributes:
+                    attributes_dict.update(
+                        {k: str(args[v]) for k, v in arg_attributes.items()}
+                    )
+                _set_attributes(span, attributes_dict)
                 return func(*args, **kwargs)
 
         return wrap_with_span

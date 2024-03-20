@@ -78,3 +78,14 @@ def test_instrument_decorator_with_name_and_attributes():
     assert current_span.is_recording() is True
     assert current_span.name == "testing"
     assert current_span.attributes == {"foo": "bar"}
+
+
+@tracing.instrument(kwarg_attributes={"number": "num"})
+def assert_function_attributes(*, num):
+    current_span = tracing.trace.get_current_span()
+    assert current_span.attributes == {"number": num}
+    return num
+
+
+def test_instrument_decorator_with_function_attributes():
+    assert_function_attributes(num=1)
