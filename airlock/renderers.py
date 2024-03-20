@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
 from pathlib import Path
+from typing import Self
 
 from django.http import FileResponse
 from django.template import Template, loader
@@ -14,12 +15,13 @@ from django.template.response import SimpleTemplateResponse
 @dataclass
 class RendererTemplate:
     name: str
-    path: Path = None
-    template: Template = None
+    path: Path
+    template: Template
 
-    def __post_init__(self):
-        self.template = loader.get_template(self.name)
-        self.path = Path(self.template.template.origin.name)
+    @classmethod
+    def from_name(cls, name: str) -> Self:
+        template = loader.get_template(name)
+        return cls(name, template=template, path=Path(template.template.origin.name))
 
     def cache_id(self):
         return filesystem_key(self.path.stat())
@@ -72,7 +74,7 @@ class Renderer:
 
 
 class CSVRenderer(Renderer):
-    template = RendererTemplate("file_browser/csv.html")
+    template = RendererTemplate.from_name("file_browser/csv.html")
 
     def context(self):
         reader = csv.reader(self.abspath.open())
@@ -81,7 +83,7 @@ class CSVRenderer(Renderer):
 
 
 class TextRenderer(Renderer):
-    template = RendererTemplate("file_browser/text.html")
+    template = RendererTemplate.from_name("file_browser/text.html")
 
     def context(self):
         return {
