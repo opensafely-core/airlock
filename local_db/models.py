@@ -85,7 +85,7 @@ class FileReview(models.Model):
     reviewer = models.TextField()
     status = EnumField(default=FileApprovalStatus.REJECTED, enum=FileApprovalStatus)
     created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("file", "reviewer")
