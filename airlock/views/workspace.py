@@ -16,7 +16,7 @@ from airlock.forms import AddFileForm
 from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
 
-tracer = trace.get_tracer_provider().get_tracer(__name__)
+tracer = trace.get_tracer_provider().get_tracer("airlock")
 
 
 def grouped_workspaces(workspaces):
