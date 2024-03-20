@@ -146,6 +146,7 @@ test *ARGS: devenv
       --cov=local_db \
       --cov=tests \
       --cov=old_api \
+      --cov=services \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
 

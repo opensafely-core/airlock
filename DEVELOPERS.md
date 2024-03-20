@@ -98,6 +98,11 @@ And then update with the latest upstream assets:
 just assets/update
 ```
 
+## Opentelemetry
+
+To log opentelemetry traces to the console in local environments,
+set the `OTEL_EXPORTER_CONSOLE` environment variable in your `.env` file. 
+
 ## Testing
 
 ### Test categories

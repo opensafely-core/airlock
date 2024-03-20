@@ -8,3 +8,8 @@ gunicorn
 requests
 pydantic<2.0
 ulid
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-django
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-sqlite3
+opentelemetry-sdk
