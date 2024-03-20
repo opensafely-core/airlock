@@ -1,4 +1,6 @@
 import os
+from functools import wraps
+from typing import Dict
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -58,3 +60,40 @@ def setup_default_tracing(set_global=True):
     )
 
     return provider
+
+
+def instrument(
+    _func=None,
+    *,
+    span_name: str = "",
+    record_exception: bool = True,
+    attributes: Dict[str, str] = None,
+    existing_tracer: trace.Tracer = None,
+):
+    """
+    A decorator to instrument a function with an OTEL tracing span.
+    """
+
+    def span_decorator(func):
+        tracer = existing_tracer or trace.get_tracer("airlock")
+
+        def _set_attributes(span, attributes_dict):
+            if attributes_dict:
+                for att in attributes_dict:
+                    span.set_attribute(att, attributes_dict[att])
+
+        @wraps(func)
+        def wrap_with_span(*args, **kwargs):
+            name = span_name or func.__qualname__
+            with tracer.start_as_current_span(
+                name, record_exception=record_exception
+            ) as span:
+                _set_attributes(span, attributes)
+                return func(*args, **kwargs)
+
+        return wrap_with_span
+
+    if _func is None:
+        return span_decorator
+    else:
+        return span_decorator(_func)

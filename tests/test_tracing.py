@@ -59,3 +59,22 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
     assert isinstance(exporter, OTLPSpanExporter)
     assert exporter._endpoint == "https://endpoint/v1/traces"
     assert exporter._headers == {"foo": "bar"}
+
+
+def test_not_instrument_decorator():
+    assert tracing.trace.get_current_span().is_recording() is False
+
+
+@tracing.instrument
+def test_instrument_decorator():
+    current_span = tracing.trace.get_current_span()
+    assert current_span.is_recording() is True
+    assert current_span.name == "test_instrument_decorator"
+
+
+@tracing.instrument(span_name="testing", attributes={"foo": "bar"})
+def test_instrument_decorator_with_name_and_attributes():
+    current_span = tracing.trace.get_current_span()
+    assert current_span.is_recording() is True
+    assert current_span.name == "testing"
+    assert current_span.attributes == {"foo": "bar"}
