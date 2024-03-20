@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Self
+from typing import ClassVar, Self, cast
 
 from django.http import FileResponse
 from django.template import Template, loader
@@ -20,8 +20,8 @@ class RendererTemplate:
 
     @classmethod
     def from_name(cls, name: str) -> Self:
-        template = loader.get_template(name)
-        return cls(name, template=template, path=Path(template.template.origin.name))
+        template = cast(Template, loader.get_template(name))
+        return cls(name, template=template, path=Path(template.origin.name))
 
     def cache_id(self):
         return filesystem_key(self.path.stat())
