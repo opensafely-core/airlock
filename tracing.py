@@ -2,12 +2,20 @@ import os
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 
 
 def get_provider():
-    provider = TracerProvider()
+    # https://github.com/open-telemetry/semantic-conventions/tree/main/docs/resource#service
+    resource = Resource.create(
+        attributes={
+            "service.name": "airlock",
+            "service.namespace": os.environ.get("BACKEND", "unknown"),
+        }
+    )
+    provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
     return provider
 
@@ -32,9 +40,7 @@ def setup_default_tracing():
     """Inspect environment variables and set up exporters accordingly."""
     if "OTEL_EXPORTER_OTLP_HEADERS" in os.environ:
         if "OTEL_SERVICE_NAME" not in os.environ:
-            raise Exception(
-                "OTEL_EXPORTER_OTLP_HEADERS is configured, but missing OTEL_SERVICE_NAME"
-            )
+            os.environ["OTEL_SERVICE_NAME"] = "airlock"
         if "OTEL_EXPORTER_OTLP_ENDPOINT" not in os.environ:
             os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://api.honeycomb.io"
 
