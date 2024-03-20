@@ -643,7 +643,7 @@ class BusinessLogicLayer:
         ]
 
     def _verify_permission_to_review_file(
-        self, release_request: ReleaseRequest, user: User, path: Path
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
     ):
         if release_request.status != RequestStatus.SUBMITTED:
             raise self.ApprovalPermissionDenied(
@@ -660,24 +660,28 @@ class BusinessLogicLayer:
                 "only an output checker can approve a file"
             )
 
-        if path not in release_request.output_files_set():
+        if relpath not in release_request.output_files_set():
             raise self.ApprovalPermissionDenied(
                 "file is not an output file on this request"
             )
 
-    def approve_file(self, release_request: ReleaseRequest, user: User, path: Path):
+    def approve_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
         """ "Approve a file"""
 
-        self._verify_permission_to_review_file(release_request, user, path)
+        self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.approve_file(release_request.id, user, path)
+        bll._dal.approve_file(release_request.id, relpath, user)
 
-    def reject_file(self, release_request: ReleaseRequest, user: User, path: Path):
+    def reject_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
         """Reject a file"""
 
-        self._verify_permission_to_review_file(release_request, user, path)
+        self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.reject_file(release_request.id, user, path)
+        bll._dal.reject_file(release_request.id, relpath, user)
 
 
 def _get_configured_bll():

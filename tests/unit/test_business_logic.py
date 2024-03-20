@@ -570,7 +570,7 @@ def test_approve_file_not_submitted(bll):
     bll.add_file_to_request(release_request, path, author)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, checker, path)
+        bll.approve_file(release_request, path, checker)
 
 
 def test_approve_file_not_your_own(bll):
@@ -582,7 +582,7 @@ def test_approve_file_not_your_own(bll):
     )
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, author, path)
+        bll.approve_file(release_request, path, author)
 
 
 def test_approve_file_not_checker(bll):
@@ -595,7 +595,7 @@ def test_approve_file_not_checker(bll):
     )
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, author2, path)
+        bll.approve_file(release_request, path, author2)
 
 
 def test_approve_file_not_part_of_request(bll):
@@ -609,7 +609,7 @@ def test_approve_file_not_part_of_request(bll):
 
     bad_path = Path("path/file2.txt")
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, checker, bad_path)
+        bll.approve_file(release_request, bad_path, checker)
 
 
 def test_approve_supporting_file(bll):
@@ -623,7 +623,7 @@ def test_approve_supporting_file(bll):
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, checker, path)
+        bll.approve_file(release_request, path, checker)
 
 
 def test_approve_file(bll):
@@ -637,7 +637,7 @@ def test_approve_file(bll):
 
     assert len(bll.get_file_approvals(release_request)) == 0
 
-    bll.approve_file(release_request, checker, path)
+    bll.approve_file(release_request, path, checker)
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert (
@@ -657,7 +657,7 @@ def test_reject_file(bll):
 
     assert len(bll.get_file_approvals(release_request)) == 0
 
-    bll.reject_file(release_request, checker, path)
+    bll.reject_file(release_request, path, checker)
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert (
@@ -676,14 +676,14 @@ def test_approve_then_reject_file(bll):
 
     assert len(bll.get_file_approvals(release_request)) == 0
 
-    bll.approve_file(release_request, checker, path)
+    bll.approve_file(release_request, path, checker)
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert (
         bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
     )
 
-    bll.reject_file(release_request, checker, path)
+    bll.reject_file(release_request, path, checker)
 
     assert len(bll.get_file_approvals(release_request)) == 1
     assert (

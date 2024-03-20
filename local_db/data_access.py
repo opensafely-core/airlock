@@ -168,7 +168,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             ).all()
         ]
 
-    def approve_file(self, request_id, user, relpath):
+    def approve_file(self, request_id, relpath, user):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
             # is part of the request before calling this method
@@ -182,7 +182,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review.status = FileApprovalStatus.APPROVED
             review.save()
 
-    def reject_file(self, request_id, user, relpath):
+    def reject_file(self, request_id, relpath, user):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 filegroup__request_id=request_id, relpath=relpath
