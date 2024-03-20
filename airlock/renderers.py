@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
 from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
 
 from django.http import FileResponse
 from django.template import Template, loader
@@ -30,7 +30,7 @@ class RendererTemplate:
 @dataclass
 class Renderer:
     MAX_AGE = 365 * 24 * 60 * 60  # 1 year
-    template = None
+    template: ClassVar[RendererTemplate | None] = None
 
     abspath: Path
     file_cache_id: str
