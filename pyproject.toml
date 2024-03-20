@@ -25,6 +25,9 @@ DJANGO_SETTINGS_MODULE = "airlock.settings"
 testpaths = [
    "tests"
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning:opentelemetry.*:",
+]
 
 [tool.coverage.run]
 branch = true

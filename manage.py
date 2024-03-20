@@ -4,7 +4,7 @@
 import os
 import sys
 
-import tracing
+import services.tracing as tracing
 
 
 def main():

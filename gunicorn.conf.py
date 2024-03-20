@@ -1,4 +1,4 @@
-import tracing
+import services.tracing as tracing
 
 
 # workers

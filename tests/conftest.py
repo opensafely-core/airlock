@@ -5,13 +5,15 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 import airlock.business_logic
+import services.tracing as tracing
 import tests.factories
-import tracing
 
 
 # set up tracing for tests
+provider = tracing.get_provider()
+tracing.trace.set_tracer_provider(provider)
 test_exporter = InMemorySpanExporter()
-tracing.add_exporter(tracing.get_provider(), test_exporter, SimpleSpanProcessor)
+tracing.add_exporter(provider, test_exporter, SimpleSpanProcessor)
 
 
 def get_trace():
