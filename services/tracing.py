@@ -37,6 +37,11 @@ def setup_default_tracing(set_global=True):
 
     """Inspect environment variables and set up exporters accordingly."""
     if "OTEL_EXPORTER_OTLP_HEADERS" in os.environ:
+        # workaround for env file parsing issues
+        cleaned_headers = os.environ["OTEL_EXPORTER_OTLP_HEADERS"].strip("\"'")
+        # put back into env to be parsed properlh
+        os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = cleaned_headers
+
         if "OTEL_EXPORTER_OTLP_ENDPOINT" not in os.environ:
             os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://api.honeycomb.io"
 
