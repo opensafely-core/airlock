@@ -1,3 +1,6 @@
+import enum
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils import timezone
 
@@ -12,7 +15,32 @@ def local_request_id():
     return str(ulid())
 
 
-class EnumField(models.TextField):
+if TYPE_CHECKING:  # pragma: no cover
+    # This works around a couple of issues with Django/Django-stubs/mypy:
+    #
+    # 1. Django-stubs requires `Field` subclasses to provide type arguments, but the
+    #    actual Django `Field` class doesn't accept type arguments so it will pass type
+    #    checking but fail at runtime. You can work around this by applying
+    #    `django_stubs_ext.monkeypatch()` but yuck no thanks.
+    #
+    # 2. Django-stubs sets the type arguments on `TextField` to `str` and we don't seem
+    #    to be able to override this to say that we accept/return enums.
+    #
+    # Even so, the type signature below is not actually quite what we want. Each
+    # instance of `EnumField` accepts/returns just a single class of enum, not all enums
+    # in general. And it should be a type error to use the wrong kind of enum with the
+    # field. It's perfectly possible to specify this kind of behaviour in Python using
+    # generics and type variables, but for whatever reason Django-stubs doesn't support
+    # this (see issues below) so we just enforce that the field is used with _some_ enum
+    # class rather than, say, a string – which should at least catch some errors.
+    # https://github.com/typeddjango/django-stubs/issues/545
+    # https://github.com/typeddjango/django-stubs/issues/336
+    BaseTextField = models.Field[enum.Enum, enum.Enum]
+else:
+    BaseTextField = models.TextField
+
+
+class EnumField(BaseTextField):
     """Custom field that ensures correct types for a column, defined by an Enum.
 
     Specifically, data is stored in the db as the string name, e.g.
