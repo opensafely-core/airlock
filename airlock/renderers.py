@@ -7,7 +7,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import ClassVar, Self, cast
 
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseBase
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
 
@@ -40,7 +40,9 @@ class Renderer:
     def get_response(self):
         if self.template:
             context = self.context()
-            response = SimpleTemplateResponse(self.template.template, context)
+            response: HttpResponseBase = SimpleTemplateResponse(
+                self.template.template, context
+            )
         else:
             response = FileResponse(self.abspath.open("rb"), filename=self.filename)
 
