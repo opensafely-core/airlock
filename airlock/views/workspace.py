@@ -42,7 +42,6 @@ def workspace_index(request):
 @instrument(kwarg_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-
     template = "file_browser/index.html"
     selected_only = False
 
@@ -50,8 +49,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    with tracer.start_as_current_span("build_workspace_tree") as _span:
-        tree = get_workspace_tree(workspace, path, selected_only)
+    tree = get_workspace_tree(workspace, path, selected_only)
 
     path_item = get_path_item_from_tree_or_404(tree, path)
 

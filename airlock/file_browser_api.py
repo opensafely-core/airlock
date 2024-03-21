@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from airlock.business_logic import ROOT_PATH, AirlockContainer, UrlPath
+from services.tracing import instrument
 
 
 class PathType(Enum):
@@ -199,6 +200,7 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
+@instrument(arg_attributes={"workspace": 0})
 def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
     """Recursively build workspace tree from the root dir.
 
@@ -240,6 +242,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
     return root_node
 
 
+@instrument(arg_attributes={"release_request": 0})
 def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=False):
     """Build a tree recursively for a ReleaseRequest
 
