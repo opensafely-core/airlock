@@ -8,9 +8,11 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
+from opentelemetry import trace
 
 from airlock.business_logic import Status, bll
 from airlock.file_browser_api import get_request_tree
+from services.tracing import instrument
 
 from .helpers import (
     download_file,
@@ -20,6 +22,10 @@ from .helpers import (
 )
 
 
+tracer = trace.get_tracer_provider().get_tracer("airlock")
+
+
+@instrument
 def request_index(request):
     authored_requests = bll.get_requests_authored_by_user(request.user)
 
@@ -39,6 +45,7 @@ def request_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
+@instrument(kwarg_attributes={"release_request": "request_id"})
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
@@ -92,6 +99,7 @@ def request_view(request, request_id: str, path: str = ""):
     return TemplateResponse(request, template, context)
 
 
+@instrument(kwarg_attributes={"release_request": "request_id"})
 @require_http_methods(["GET"])
 def request_contents(request, request_id: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -116,6 +124,7 @@ def request_contents(request, request_id: str, path: str):
     return serve_file(request, abspath, release_request.get_request_file(path))
 
 
+@instrument(kwarg_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_submit(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -129,6 +138,7 @@ def request_submit(request, request_id):
     return redirect(release_request.get_url())
 
 
+@instrument(kwarg_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_reject(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -142,6 +152,7 @@ def request_reject(request, request_id):
     return redirect(release_request.get_url())
 
 
+@instrument(kwarg_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)

@@ -11,6 +11,7 @@ from airlock.file_browser_api import (
     get_workspace_tree,
 )
 from tests import factories
+from tests.conftest import get_trace
 
 
 @pytest.fixture
@@ -421,3 +422,21 @@ def test_filter_files():
         UrlPath("foo/bar/child1"),
         UrlPath("foo/bar/child2"),
     ]
+
+
+def test_get_workspace_tree_tracing(workspace):
+    selected_path = UrlPath("some_dir/file_a.txt")
+    get_workspace_tree(workspace, selected_path)
+    traces = get_trace()
+    assert len(traces) == 1
+    trace = traces[0]
+    assert trace.attributes == {"workspace": workspace.name}
+
+
+@pytest.mark.django_db
+def test_get_request_tree_tracing(release_request):
+    get_request_tree(release_request)
+    traces = get_trace()
+    assert len(traces) == 1
+    trace = traces[0]
+    assert trace.attributes == {"release_request": release_request.id}
