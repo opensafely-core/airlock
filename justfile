@@ -126,10 +126,13 @@ fix: devenv
     $BIN/ruff --fix .
     $BIN/djhtml --tabwidth 2 airlock/
 
-
+# run airlock with django dev server
 run *ARGS: devenv
     $BIN/python manage.py runserver "$@"
 
+# run airlock with gunicorn, like in production
+gunicorn *args: devenv
+    $BIN/gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
 # run Django's manage.py entrypoint
 manage *ARGS: devenv

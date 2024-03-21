@@ -21,13 +21,9 @@ AIRLOCK_API_TOKEN=
 AIRLOCK_API_ENDPOINT="https://localhost:9000/api/v2"
 
 # Opentelemetry
-export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.honeycomb.io"
-# key will be for specific prod/test/dev honeycomb environment
-export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=VALIDKEY1234"
-
 # Set to True to log opentelemetry traces to the console in local env
-export OTEL_EXPORTER_CONSOLE=True
+# Warning can be verbose:
+OTEL_EXPORTER_CONSOLE=False
 
-# OTEL requires these, it needs to access settings before other stuff has initialised
-DJANGO_SETTINGS_MODULE="airlock.settings"
-PYTHONPATH="/usr/local/bin/python"
+# To send to honecomb in dev, create a token for the development and set it here.
+# OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=TOKEN34"

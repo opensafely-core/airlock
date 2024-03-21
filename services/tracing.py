@@ -50,12 +50,14 @@ def setup_default_tracing(set_global=True):
 
         add_exporter(provider, OTLPSpanExporter())
 
-    if "OTEL_EXPORTER_CONSOLE" in os.environ:
+    if os.environ.get("OTEL_EXPORTER_CONSOLE", "").lower() == "true":
         add_exporter(provider, ConsoleSpanExporter())
 
     if set_global:  # pragma: nocover
         trace.set_tracer_provider(provider)
 
+    # bug: this code requires some envvars to be set, so ensure they are
+    os.environ.setdefault("PYTHONPATH", "")
     from opentelemetry.instrumentation.auto_instrumentation import (  # noqa: F401
         sitecustomize,
     )
