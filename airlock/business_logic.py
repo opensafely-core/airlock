@@ -89,6 +89,9 @@ class Workspace:
         if not self.root().exists():
             raise BusinessLogicLayer.WorkspaceNotFound(self.name)
 
+    def __str__(self):
+        return self.get_id()
+
     def project(self):
         return self.metadata.get("project", None)
 
@@ -214,6 +217,9 @@ class ReleaseRequest:
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
+
+    def __str__(self):
+        return self.get_id()
 
     def root(self):
         return settings.REQUEST_DIR / self.workspace / self.id
