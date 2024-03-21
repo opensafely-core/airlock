@@ -67,7 +67,7 @@ class Renderer:
         return {
             "ETag": self.etag,
             "Last-Modified": self.last_modified,
-            "Cache-Control": f"max-age={self.MAX_AGE}",
+            "Cache-Control": f"max-age={self.MAX_AGE}, immutable",
         }
 
 
