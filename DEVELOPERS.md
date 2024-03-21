@@ -101,7 +101,15 @@ just assets/update
 ## Opentelemetry
 
 To log opentelemetry traces to the console in local environments,
-set the `OTEL_EXPORTER_CONSOLE` environment variable in your `.env` file. 
+set the `OTEL_EXPORTER_CONSOLE` environment variable in your `.env` file.
+
+To reduce some of the noise for local development, some instrumentations
+can be turned off; to run a local server and disable everything except
+tracing we explicitly add in Airlock code, run:
+
+```
+OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=django,sqlite3,requests
+```
 
 ## Testing
 
