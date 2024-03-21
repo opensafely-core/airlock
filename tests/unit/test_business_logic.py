@@ -565,9 +565,12 @@ def test_release_request_add_same_file(bll):
 
 def _get_current_file_reviews(bll, release_request, path, author):
     """Syntactic sugar to make the tests a little more readable"""
-    return bll.get_release_request(release_request.id, author).filegroups["default"].files[
-        path
-    ].reviews
+    return (
+        bll.get_release_request(release_request.id, author)
+        .filegroups["default"]
+        .files[path]
+        .reviews
+    )
 
 
 def test_approve_file_not_submitted(bll):
