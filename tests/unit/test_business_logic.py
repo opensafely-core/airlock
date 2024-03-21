@@ -563,6 +563,13 @@ def test_release_request_add_same_file(bll):
     assert len(release_request.filegroups["default"].files) == 1
 
 
+def _get_current_file_reviews(bll, release_request, path, author):
+    """Syntactic sugar to make the tests a little more readable"""
+    return bll.get_release_request(release_request.id, author).filegroups["default"].files[
+        path
+    ].reviews
+
+
 def test_approve_file_not_submitted(bll):
     release_request, path, author = setup_empty_release_request()
     checker = factories.create_user("checker", [], True)
@@ -571,6 +578,8 @@ def test_approve_file_not_submitted(bll):
 
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, checker)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
 
 def test_approve_file_not_your_own(bll):
@@ -584,6 +593,8 @@ def test_approve_file_not_your_own(bll):
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, author)
 
+    assert len(_get_current_file_reviews(bll, release_request, path, author)) == 0
+
 
 def test_approve_file_not_checker(bll):
     release_request, path, author = setup_empty_release_request()
@@ -596,6 +607,8 @@ def test_approve_file_not_checker(bll):
 
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, author2)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, author)) == 0
 
 
 def test_approve_file_not_part_of_request(bll):
@@ -611,6 +624,8 @@ def test_approve_file_not_part_of_request(bll):
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, bad_path, checker)
 
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
 
 def test_approve_supporting_file(bll):
     release_request, path, author = setup_empty_release_request()
@@ -625,6 +640,8 @@ def test_approve_supporting_file(bll):
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, checker)
 
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
 
 def test_approve_file(bll):
     release_request, path, author = setup_empty_release_request()
@@ -635,15 +652,15 @@ def test_approve_file(bll):
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
-    assert len(bll.get_file_approvals(release_request)) == 0
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
     bll.approve_file(release_request, path, checker)
 
-    assert len(bll.get_file_approvals(release_request)) == 1
-    assert (
-        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
-    )
-    assert type(bll.get_file_approvals(release_request)[0]) == FileReview
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileApprovalStatus.APPROVED
+    assert type(current_reviews[0]) == FileReview
 
 
 def test_reject_file(bll):
@@ -655,14 +672,16 @@ def test_reject_file(bll):
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
-    assert len(bll.get_file_approvals(release_request)) == 0
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
     bll.reject_file(release_request, path, checker)
 
-    assert len(bll.get_file_approvals(release_request)) == 1
-    assert (
-        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
-    )
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileApprovalStatus.REJECTED
+    assert type(current_reviews[0]) == FileReview
+    assert len(current_reviews) == 1
 
 
 def test_approve_then_reject_file(bll):
@@ -674,18 +693,22 @@ def test_approve_then_reject_file(bll):
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
-    assert len(bll.get_file_approvals(release_request)) == 0
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
     bll.approve_file(release_request, path, checker)
 
-    assert len(bll.get_file_approvals(release_request)) == 1
-    assert (
-        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.APPROVED
-    )
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    print(current_reviews)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileApprovalStatus.APPROVED
+    assert type(current_reviews[0]) == FileReview
 
     bll.reject_file(release_request, path, checker)
 
-    assert len(bll.get_file_approvals(release_request)) == 1
-    assert (
-        bll.get_file_approvals(release_request)[0].status == FileApprovalStatus.REJECTED
-    )
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileApprovalStatus.REJECTED
+    assert type(current_reviews[0]) == FileReview
+    assert len(current_reviews) == 1

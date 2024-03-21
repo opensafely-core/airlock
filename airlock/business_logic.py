@@ -145,6 +145,22 @@ class Workspace:
 
 
 @dataclass(frozen=True)
+class FileReview:
+    """
+    Represents a review of a file in the context of a release request
+    """
+
+    reviewer: str
+    status: FileApprovalStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(**attrs)
+
+
+@dataclass(frozen=True)
 class RequestFile:
     """
     Represents a single file within a release request
@@ -152,11 +168,15 @@ class RequestFile:
 
     relpath: UrlPath
     file_id: str
+    reviews: list[FileReview]
     filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
     def from_dict(cls, attrs):
-        return cls(**attrs)
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "reviews"},
+            reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
+        )
 
 
 @dataclass(frozen=True)
@@ -324,29 +344,6 @@ def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
         digest = hashlib.file_digest(f, "sha256").hexdigest()
     tmp_path.rename(release_request.root() / digest)
     return digest
-
-
-@dataclass(frozen=True)
-class FileReview:
-    """
-    Represents a review of a file in the context of a release request
-    """
-
-    file: RequestFile
-    reviewer: User
-    status: FileApprovalStatus
-    created_at: datetime
-    updated_at: datetime
-    release_request: ReleaseRequest
-
-    @classmethod
-    def from_dict(cls, attrs):
-        # TODO implement
-        return cls(
-            **{k: v for k, v in attrs.items() if k != "release_request"},
-            release_request=ReleaseRequest.from_dict(attrs.get("release_request", ())),
-            # files=[RequestFile.from_dict(value) for value in attrs.get("files", ())],
-        )
 
 
 class DataAccessLayerProtocol:
@@ -635,12 +632,6 @@ class BusinessLogicLayer:
             old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
         self.set_status(request, RequestStatus.RELEASED, user)
-
-    def get_file_approvals(self, release_request: ReleaseRequest):
-        return [
-            FileReview.from_dict(r)
-            for r in bll._dal.get_file_approvals(release_request.id)
-        ]
 
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User

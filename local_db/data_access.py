@@ -48,6 +48,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             relpath=Path(file_metadata.relpath),
             file_id=file_metadata.file_id,
             filetype=file_metadata.filetype,
+            reviews=[
+                self._filereview(file_review)
+                for file_review in file_metadata.reviews.all()
+            ],
         )
 
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
@@ -69,8 +73,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def _filereview(self, file_review: FileReview):
         """Convert a FileReview object into a dict"""
         return dict(
-            release_request=self._request(file_review.file.filegroup.request),
-            file=self._request_file(file_review.file),
             reviewer=file_review.reviewer,
             status=file_review.status,
             created_at=file_review.created_at,
@@ -160,14 +162,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
 
-    def get_file_approvals(self, request_id):
-        return [
-            self._filereview(r)
-            for r in FileReview.objects.filter(
-                file__filegroup__request_id=request_id
-            ).all()
-        ]
-
     def approve_file(self, request_id, relpath, user):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
@@ -177,7 +171,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
 
             review, _ = FileReview.objects.get_or_create(
-                file=request_file, reviewer=user
+                file=request_file, reviewer=user.username
             )
             review.status = FileApprovalStatus.APPROVED
             review.save()
@@ -189,7 +183,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
 
             review, _ = FileReview.objects.get_or_create(
-                file=request_file, reviewer=user
+                file=request_file, reviewer=user.username
             )
             review.status = FileApprovalStatus.REJECTED
             review.save()
