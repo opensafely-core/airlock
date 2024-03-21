@@ -97,18 +97,20 @@ def instrument(
                 name, record_exception=record_exception
             ) as span:
                 attributes_dict = attributes or {}
-                if kwarg_attributes:
-                    attributes_dict.update(
-                        {
-                            k: str(kwargs[v])
-                            for k, v in kwarg_attributes.items()
-                            if v in kwargs
-                        }
-                    )
-                if arg_attributes:
-                    attributes_dict.update(
-                        {k: str(args[v]) for k, v in arg_attributes.items()}
-                    )
+                if kwarg_attributes is not None:
+                    for k, v in kwarg_attributes.items():
+                        assert (
+                            v in kwargs
+                        ), f"Expected kwarg {v} not found in function signature"
+                        attributes_dict[k] = str(kwargs[v])
+
+                if arg_attributes is not None:
+                    for k, v in arg_attributes.items():
+                        assert (
+                            len(args) > v
+                        ), f"Expected positional arg at index {v} not found in function signature"
+                        attributes_dict[k] = str(args[v])
+
                 _set_attributes(span, attributes_dict)
                 return func(*args, **kwargs)
 
