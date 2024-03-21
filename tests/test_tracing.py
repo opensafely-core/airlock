@@ -24,7 +24,8 @@ def test_setup_default_tracing_console(monkeypatch):
 
 
 def test_setup_default_tracing_otlp_defaults(monkeypatch):
-    env = {"PYTHONPATH": "", "OTEL_EXPORTER_OTLP_HEADERS": "foo=bar"}
+    # add single quotes to test quote stripping
+    env = {"PYTHONPATH": "", "OTEL_EXPORTER_OTLP_HEADERS": "'foo=bar'"}
     monkeypatch.setattr(os, "environ", env)
     monkeypatch.setattr(
         opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
