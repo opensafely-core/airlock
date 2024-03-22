@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePosixPath
-from typing import Protocol, Self, cast
+from typing import TYPE_CHECKING, Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -17,9 +17,16 @@ from airlock.renderers import get_renderer
 from airlock.users import User
 
 
-# We use PurePosixPath as a convenient URL path representation (we reassign rather than
-# use `import as` to satisfy mypy that we intend to export this name)
-UrlPath = PurePosixPath
+# We use PurePosixPath as a convenient URL path representation. In theory we could use
+# `NewType` here to indicate that we want this to be treated as a distinct type without
+# actually creating one. But doing so results in a number of spurious type errors for
+# reasons I don't fully understand (possibly because PurePosixPath isn't itself type
+# annotated?).
+if TYPE_CHECKING:  # pragma: no cover
+
+    class UrlPath(PurePosixPath): ...
+else:
+    UrlPath = PurePosixPath
 
 ROOT_PATH = UrlPath()  # empty path
 
