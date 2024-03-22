@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="requestmetadata",
             name="status",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.Status["PENDING"]
+                default=airlock.business_logic.RequestStatus["PENDING"]
             ),
         ),
     ]

@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from ulid import ulid
 
-from airlock.business_logic import RequestFileType, Status
+from airlock.business_logic import FileReviewStatus, RequestFileType, RequestStatus
 
 
 def local_request_id():
@@ -14,10 +14,10 @@ class EnumField(models.TextField):
 
     Specifically, data is stored in the db as the string name, e.g.
     "PENDING"`, and when loaded from the db, is deserialized into the correct
-    enum instance e.g. `Status.PENDING`.
+    enum instance e.g. `RequestStatus.PENDING`.
     """
 
-    def __init__(self, *args, enum=Status, **kwargs):
+    def __init__(self, *args, enum=RequestStatus, **kwargs):
         self.enum = enum
         self.choices = [(i.value, i.name) for i in self.enum]
         super().__init__(*args, **kwargs)
@@ -43,7 +43,7 @@ class RequestMetadata(models.Model):
     )
 
     workspace = models.TextField()
-    status = EnumField(default=Status.PENDING, enum=Status)
+    status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -74,3 +74,18 @@ class RequestFileMetadata(models.Model):
 
     class Meta:
         unique_together = ("relpath", "filegroup")
+
+
+class FileReview(models.Model):
+    """An output checker's review of a file"""
+
+    file = models.ForeignKey(
+        RequestFileMetadata, related_name="reviews", on_delete=models.CASCADE
+    )
+    reviewer = models.TextField()
+    status = EnumField(default=FileReviewStatus.REJECTED, enum=FileReviewStatus)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("file", "reviewer")

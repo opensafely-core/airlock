@@ -8,8 +8,10 @@ from django.conf import settings
 import old_api
 from airlock.business_logic import (
     BusinessLogicLayer,
+    FileReview,
+    FileReviewStatus,
     RequestFileType,
-    Status,
+    RequestStatus,
     UrlPath,
     Workspace,
 )
@@ -90,7 +92,7 @@ def test_provider_request_release_files_not_approved():
         "workspace",
         user=author,
         id="request_id",
-        status=Status.SUBMITTED,
+        status=RequestStatus.SUBMITTED,
     )
 
     bll = BusinessLogicLayer(data_access_layer=None)
@@ -106,7 +108,7 @@ def test_provider_request_release_files(mock_old_api):
         "workspace",
         user=author,
         id="request_id",
-        status=Status.SUBMITTED,
+        status=RequestStatus.SUBMITTED,
     )
     relpath = Path("test/file.txt")
     factories.write_request_file(release_request, "group", relpath, "test")
@@ -119,7 +121,7 @@ def test_provider_request_release_files(mock_old_api):
         "test",
         filetype=RequestFileType.SUPPORTING,
     )
-    factories.bll.set_status(release_request, Status.APPROVED, checker)
+    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
 
@@ -174,22 +176,22 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
     factories.create_release_request(
-        "workspace", other_user, id="r1", status=Status.SUBMITTED
+        "workspace", other_user, id="r1", status=RequestStatus.SUBMITTED
     )
 
     # requests not visible to output checker
     # status submitted, but authored by output checker
     factories.create_release_request(
-        "workspace", user, id="r2", status=Status.SUBMITTED
+        "workspace", user, id="r2", status=RequestStatus.SUBMITTED
     )
     # requests authored by other users, status other than pending
     for i, status in enumerate(
         [
-            Status.PENDING,
-            Status.WITHDRAWN,
-            Status.APPROVED,
-            Status.REJECTED,
-            Status.RELEASED,
+            RequestStatus.PENDING,
+            RequestStatus.WITHDRAWN,
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+            RequestStatus.RELEASED,
         ]
     ):
         ws = f"workspace{i}"
@@ -234,29 +236,29 @@ def test_provider_get_current_request_for_user_output_checker(bll):
 @pytest.mark.parametrize(
     "current,future,valid_author,valid_checker",
     [
-        (Status.PENDING, Status.SUBMITTED, True, False),
-        (Status.PENDING, Status.WITHDRAWN, True, False),
-        (Status.PENDING, Status.APPROVED, False, False),
-        (Status.PENDING, Status.REJECTED, False, False),
-        (Status.PENDING, Status.RELEASED, False, False),
-        (Status.SUBMITTED, Status.APPROVED, False, True),
-        (Status.SUBMITTED, Status.REJECTED, False, True),
-        (Status.SUBMITTED, Status.WITHDRAWN, True, False),
-        (Status.SUBMITTED, Status.PENDING, True, False),
-        (Status.SUBMITTED, Status.RELEASED, False, False),
-        (Status.APPROVED, Status.RELEASED, False, True),
-        (Status.APPROVED, Status.REJECTED, False, True),
-        (Status.APPROVED, Status.WITHDRAWN, True, False),
-        (Status.REJECTED, Status.PENDING, False, False),
-        (Status.REJECTED, Status.SUBMITTED, False, False),
-        (Status.REJECTED, Status.APPROVED, False, True),
-        (Status.REJECTED, Status.WITHDRAWN, False, False),
-        (Status.RELEASED, Status.REJECTED, False, False),
-        (Status.RELEASED, Status.PENDING, False, False),
-        (Status.RELEASED, Status.SUBMITTED, False, False),
-        (Status.RELEASED, Status.APPROVED, False, False),
-        (Status.RELEASED, Status.REJECTED, False, False),
-        (Status.RELEASED, Status.WITHDRAWN, False, False),
+        (RequestStatus.PENDING, RequestStatus.SUBMITTED, True, False),
+        (RequestStatus.PENDING, RequestStatus.WITHDRAWN, True, False),
+        (RequestStatus.PENDING, RequestStatus.APPROVED, False, False),
+        (RequestStatus.PENDING, RequestStatus.REJECTED, False, False),
+        (RequestStatus.PENDING, RequestStatus.RELEASED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.APPROVED, False, True),
+        (RequestStatus.SUBMITTED, RequestStatus.REJECTED, False, True),
+        (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, True, False),
+        (RequestStatus.SUBMITTED, RequestStatus.PENDING, True, False),
+        (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False),
+        (RequestStatus.APPROVED, RequestStatus.RELEASED, False, True),
+        (RequestStatus.APPROVED, RequestStatus.REJECTED, False, True),
+        (RequestStatus.APPROVED, RequestStatus.WITHDRAWN, True, False),
+        (RequestStatus.REJECTED, RequestStatus.PENDING, False, False),
+        (RequestStatus.REJECTED, RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, True),
+        (RequestStatus.REJECTED, RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.RELEASED, RequestStatus.REJECTED, False, False),
+        (RequestStatus.RELEASED, RequestStatus.PENDING, False, False),
+        (RequestStatus.RELEASED, RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.RELEASED, RequestStatus.APPROVED, False, False),
+        (RequestStatus.RELEASED, RequestStatus.REJECTED, False, False),
+        (RequestStatus.RELEASED, RequestStatus.WITHDRAWN, False, False),
     ],
 )
 def test_set_status(current, future, valid_author, valid_checker, bll):
@@ -287,22 +289,22 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
 def test_set_status_cannot_action_own_request(bll):
     user = factories.create_user("checker", [], True)
     release_request1 = factories.create_release_request(
-        "workspace", user=user, status=Status.SUBMITTED
+        "workspace", user=user, status=RequestStatus.SUBMITTED
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request1, Status.APPROVED, user=user)
+        bll.set_status(release_request1, RequestStatus.APPROVED, user=user)
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request1, Status.REJECTED, user=user)
+        bll.set_status(release_request1, RequestStatus.REJECTED, user=user)
 
     release_request2 = factories.create_release_request(
         "workspace",
         user=user,
-        status=Status.APPROVED,
+        status=RequestStatus.APPROVED,
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request2, Status.RELEASED, user=user)
+        bll.set_status(release_request2, RequestStatus.RELEASED, user=user)
 
 
 def test_add_file_to_request_not_author(bll):
@@ -324,12 +326,12 @@ def test_add_file_to_request_not_author(bll):
 @pytest.mark.parametrize(
     "status,success",
     [
-        (Status.PENDING, True),
-        (Status.SUBMITTED, True),
-        (Status.APPROVED, False),
-        (Status.REJECTED, False),
-        (Status.RELEASED, False),
-        (Status.WITHDRAWN, False),
+        (RequestStatus.PENDING, True),
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.REJECTED, False),
+        (RequestStatus.RELEASED, False),
+        (RequestStatus.WITHDRAWN, False),
     ],
 )
 def test_add_file_to_request_states(status, success, bll):
@@ -559,3 +561,157 @@ def test_release_request_add_same_file(bll):
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1
+
+
+def _get_current_file_reviews(bll, release_request, path, author):
+    """Syntactic sugar to make the tests a little more readable"""
+    return (
+        bll.get_release_request(release_request.id, author)
+        .filegroups["default"]
+        .files[path]
+        .reviews
+    )
+
+
+def test_approve_file_not_submitted(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, path, checker)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+
+def test_approve_file_not_your_own(bll):
+    release_request, path, author = setup_empty_release_request()
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, path, author)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, author)) == 0
+
+
+def test_approve_file_not_checker(bll):
+    release_request, path, author = setup_empty_release_request()
+    author2 = factories.create_user("author2", [], False)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, path, author2)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, author)) == 0
+
+
+def test_approve_file_not_part_of_request(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    bad_path = Path("path/file2.txt")
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, bad_path, checker)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+
+def test_approve_supporting_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(
+        release_request, path, author, filetype=RequestFileType.SUPPORTING
+    )
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.approve_file(release_request, path, checker)
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+
+def test_approve_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+    bll.approve_file(release_request, path, checker)
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileReviewStatus.APPROVED
+    assert type(current_reviews[0]) == FileReview
+
+
+def test_reject_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+    bll.reject_file(release_request, path, checker)
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileReviewStatus.REJECTED
+    assert type(current_reviews[0]) == FileReview
+    assert len(current_reviews) == 1
+
+
+def test_approve_then_reject_file(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+
+    bll.approve_file(release_request, path, checker)
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    print(current_reviews)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileReviewStatus.APPROVED
+    assert type(current_reviews[0]) == FileReview
+
+    bll.reject_file(release_request, path, checker)
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 1
+    assert current_reviews[0].reviewer == "checker"
+    assert current_reviews[0].status == FileReviewStatus.REJECTED
+    assert type(current_reviews[0]) == FileReview
+    assert len(current_reviews) == 1

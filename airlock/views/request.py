@@ -10,7 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock.business_logic import Status, bll
+from airlock.business_logic import RequestStatus, bll
 from airlock.file_browser_api import get_request_tree
 from services.tracing import instrument
 
@@ -130,7 +130,7 @@ def request_submit(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        bll.set_status(release_request, Status.SUBMITTED, request.user)
+        bll.set_status(release_request, RequestStatus.SUBMITTED, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
@@ -144,7 +144,7 @@ def request_reject(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        bll.set_status(release_request, Status.REJECTED, request.user)
+        bll.set_status(release_request, RequestStatus.REJECTED, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
@@ -159,7 +159,7 @@ def request_release_files(request, request_id):
 
     try:
         # For now, we just implicitly approve when release files is requested
-        bll.set_status(release_request, Status.APPROVED, request.user)
+        bll.set_status(release_request, RequestStatus.APPROVED, request.user)
         bll.release_files(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))

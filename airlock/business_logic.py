@@ -23,7 +23,7 @@ from airlock.users import User
 ROOT_PATH = UrlPath()  # empty path
 
 
-class Status(Enum):
+class RequestStatus(Enum):
     """Status for release Requests"""
 
     # author set statuses
@@ -39,6 +39,11 @@ class Status(Enum):
 class RequestFileType(Enum):
     OUTPUT = "output"
     SUPPORTING = "supporting"
+
+
+class FileReviewStatus(Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class AirlockContainer(Protocol):
@@ -140,6 +145,22 @@ class Workspace:
 
 
 @dataclass(frozen=True)
+class FileReview:
+    """
+    Represents a review of a file in the context of a release request
+    """
+
+    reviewer: str
+    status: FileReviewStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return cls(**attrs)
+
+
+@dataclass(frozen=True)
 class RequestFile:
     """
     Represents a single file within a release request
@@ -147,11 +168,15 @@ class RequestFile:
 
     relpath: UrlPath
     file_id: str
+    reviews: list[FileReview]
     filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
     def from_dict(cls, attrs):
-        return cls(**attrs)
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "reviews"},
+            reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
+        )
 
 
 @dataclass(frozen=True)
@@ -198,7 +223,7 @@ class ReleaseRequest:
     workspace: str
     author: str
     created_at: datetime
-    status: Status = Status.PENDING
+    status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[FileGroup] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this release request
@@ -280,9 +305,17 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
-    def is_supporting_file(self, relpath):
+    def output_files_set(self):
+        """Return the relpaths for output files on the request"""
+        return {
+            request_file.relpath
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.output_files
+        }
+
+    def is_supporting_file(self, urlpath: UrlPath):
         try:
-            return self.get_request_file(relpath).filetype == RequestFileType.SUPPORTING
+            return self.get_request_file(urlpath).filetype == RequestFileType.SUPPORTING
         except BusinessLogicLayer.FileNotFound:
             return False
 
@@ -349,6 +382,9 @@ class BusinessLogicLayer:
         pass
 
     class RequestPermissionDenied(APIException):
+        pass
+
+    class ApprovalPermissionDenied(APIException):
         pass
 
     def get_workspace(self, name: str, user: User) -> Workspace:
@@ -455,28 +491,28 @@ class BusinessLogicLayer:
         ]
 
     VALID_STATE_TRANSITIONS = {
-        Status.PENDING: [
-            Status.SUBMITTED,
-            Status.WITHDRAWN,
+        RequestStatus.PENDING: [
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
         ],
-        Status.SUBMITTED: [
-            Status.APPROVED,
-            Status.REJECTED,
-            Status.PENDING,  # allow un-submission
-            Status.WITHDRAWN,
+        RequestStatus.SUBMITTED: [
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+            RequestStatus.PENDING,  # allow un-submission
+            RequestStatus.WITHDRAWN,
         ],
-        Status.APPROVED: [
-            Status.RELEASED,
-            Status.REJECTED,  # allow fixing mistake *before* release
-            Status.WITHDRAWN,  # allow user to withdraw before released
+        RequestStatus.APPROVED: [
+            RequestStatus.RELEASED,
+            RequestStatus.REJECTED,  # allow fixing mistake *before* release
+            RequestStatus.WITHDRAWN,  # allow user to withdraw before released
         ],
-        Status.REJECTED: [
-            Status.APPROVED,  # allow mind changed
+        RequestStatus.REJECTED: [
+            RequestStatus.APPROVED,  # allow mind changed
         ],
     }
 
     def check_status(
-        self, release_request: ReleaseRequest, to_status: Status, user: User
+        self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
         """Check that a given status transtion is valid for this request and this user.
 
@@ -493,14 +529,22 @@ class BusinessLogicLayer:
 
         # check permissions
         # author transitions
-        if to_status in [Status.PENDING, Status.SUBMITTED, Status.WITHDRAWN]:
+        if to_status in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
+        ]:
             if user.username != release_request.author:
                 raise self.RequestPermissionDenied(
                     f"only {user.username} can set status to {to_status.name}"
                 )
 
         # output checker transitions
-        if to_status in [Status.APPROVED, Status.REJECTED, Status.RELEASED]:
+        if to_status in [
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+            RequestStatus.RELEASED,
+        ]:
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
@@ -512,7 +556,7 @@ class BusinessLogicLayer:
                 )
 
     def set_status(
-        self, release_request: ReleaseRequest, to_status: Status, user: User
+        self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
         """Set the status of the request.
 
@@ -546,7 +590,10 @@ class BusinessLogicLayer:
                 f"only author {release_request.author} can add files to this request"
             )
 
-        if release_request.status not in [Status.PENDING, Status.SUBMITTED]:
+        if release_request.status not in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+        ]:
             raise self.RequestPermissionDenied(
                 f"cannot add file to request in state {release_request.status.name}"
             )
@@ -573,7 +620,7 @@ class BusinessLogicLayer:
         """
 
         # we check this is valid status transition *before* releasing the files
-        self.check_status(request, Status.RELEASED, user)
+        self.check_status(request, RequestStatus.RELEASED, user)
 
         file_paths = request.get_output_file_paths()
         filelist = old_api.create_filelist(file_paths)
@@ -584,7 +631,48 @@ class BusinessLogicLayer:
         for relpath, abspath in file_paths:
             old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
-        self.set_status(request, Status.RELEASED, user)
+        self.set_status(request, RequestStatus.RELEASED, user)
+
+    def _verify_permission_to_review_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        if release_request.status != RequestStatus.SUBMITTED:
+            raise self.ApprovalPermissionDenied(
+                f"cannot approve file from request in state {release_request.status.name}"
+            )
+
+        if user.username == release_request.author:
+            raise self.ApprovalPermissionDenied(
+                "cannot approve files in your own request"
+            )
+
+        if not user.output_checker:
+            raise self.ApprovalPermissionDenied(
+                "only an output checker can approve a file"
+            )
+
+        if relpath not in release_request.output_files_set():
+            raise self.ApprovalPermissionDenied(
+                "file is not an output file on this request"
+            )
+
+    def approve_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        """ "Approve a file"""
+
+        self._verify_permission_to_review_file(release_request, relpath, user)
+
+        bll._dal.approve_file(release_request.id, relpath, user)
+
+    def reject_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        """Reject a file"""
+
+        self._verify_permission_to_review_file(release_request, relpath, user)
+
+        bll._dal.reject_file(release_request.id, relpath, user)
 
 
 def _get_configured_bll():

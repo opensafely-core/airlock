@@ -6,9 +6,15 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     RequestFileType,
-    Status,
+    RequestStatus,
 )
-from local_db.models import FileGroupMetadata, RequestFileMetadata, RequestMetadata
+from local_db.models import (
+    FileGroupMetadata,
+    FileReview,
+    FileReviewStatus,
+    RequestFileMetadata,
+    RequestMetadata,
+)
 
 
 class LocalDBDataAccessLayer(DataAccessLayerProtocol):
@@ -42,6 +48,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             relpath=Path(file_metadata.relpath),
             file_id=file_metadata.file_id,
             filetype=file_metadata.filetype,
+            reviews=[
+                self._filereview(file_review)
+                for file_review in file_metadata.reviews.all()
+            ],
         )
 
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
@@ -60,6 +70,15 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             for group_metadata in metadata.filegroups.all()
         }
 
+    def _filereview(self, file_review: FileReview):
+        """Convert a FileReview object into a dict"""
+        return dict(
+            reviewer=file_review.reviewer,
+            status=file_review.status,
+            created_at=file_review.created_at,
+            updated_at=file_review.updated_at,
+        )
+
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
         groupmetadata, _ = FileGroupMetadata.objects.get_or_create(
@@ -76,7 +95,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
-                status__in=[Status.PENDING, Status.SUBMITTED],
+                status__in=[RequestStatus.PENDING, RequestStatus.SUBMITTED],
             )
         ]
 
@@ -91,10 +110,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_outstanding_requests_for_review(self):
         return [
             self._request(metadata)
-            for metadata in RequestMetadata.objects.filter(status=Status.SUBMITTED)
+            for metadata in RequestMetadata.objects.filter(
+                status=RequestStatus.SUBMITTED
+            )
         ]
 
-    def set_status(self, request_id: str, status: Status):
+    def set_status(self, request_id: str, status: RequestStatus):
         with transaction.atomic():
             # persist state change
             metadata = self._find_metadata(request_id)
@@ -140,3 +161,29 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
+
+    def approve_file(self, request_id, relpath, user):
+        with transaction.atomic():
+            # nb. the business logic layer approve_file() should confirm that this path
+            # is part of the request before calling this method
+            request_file = RequestFileMetadata.objects.get(
+                filegroup__request_id=request_id, relpath=relpath
+            )
+
+            review, _ = FileReview.objects.get_or_create(
+                file=request_file, reviewer=user.username
+            )
+            review.status = FileReviewStatus.APPROVED
+            review.save()
+
+    def reject_file(self, request_id, relpath, user):
+        with transaction.atomic():
+            request_file = RequestFileMetadata.objects.get(
+                filegroup__request_id=request_id, relpath=relpath
+            )
+
+            review, _ = FileReview.objects.get_or_create(
+                file=request_file, reviewer=user.username
+            )
+            review.status = FileReviewStatus.REJECTED
+            review.save()
