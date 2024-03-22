@@ -41,7 +41,7 @@ class RequestFileType(Enum):
     SUPPORTING = "supporting"
 
 
-class FileApprovalStatus(Enum):
+class FileReviewStatus(Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
@@ -151,7 +151,7 @@ class FileReview:
     """
 
     reviewer: str
-    status: FileApprovalStatus
+    status: FileReviewStatus
     created_at: datetime
     updated_at: datetime
 

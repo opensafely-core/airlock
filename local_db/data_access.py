@@ -9,9 +9,9 @@ from airlock.business_logic import (
     RequestStatus,
 )
 from local_db.models import (
-    FileApprovalStatus,
     FileGroupMetadata,
     FileReview,
+    FileReviewStatus,
     RequestFileMetadata,
     RequestMetadata,
 )
@@ -173,7 +173,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=user.username
             )
-            review.status = FileApprovalStatus.APPROVED
+            review.status = FileReviewStatus.APPROVED
             review.save()
 
     def reject_file(self, request_id, relpath, user):
@@ -185,5 +185,5 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=user.username
             )
-            review.status = FileApprovalStatus.REJECTED
+            review.status = FileReviewStatus.REJECTED
             review.save()

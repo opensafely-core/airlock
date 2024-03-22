@@ -8,8 +8,8 @@ from django.conf import settings
 import old_api
 from airlock.business_logic import (
     BusinessLogicLayer,
-    FileApprovalStatus,
     FileReview,
+    FileReviewStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
@@ -662,7 +662,7 @@ def test_approve_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileApprovalStatus.APPROVED
+    assert current_reviews[0].status == FileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
 
@@ -682,7 +682,7 @@ def test_reject_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileApprovalStatus.REJECTED
+    assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
 
@@ -704,7 +704,7 @@ def test_approve_then_reject_file(bll):
     print(current_reviews)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileApprovalStatus.APPROVED
+    assert current_reviews[0].status == FileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
     bll.reject_file(release_request, path, checker)
@@ -712,6 +712,6 @@ def test_approve_then_reject_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileApprovalStatus.REJECTED
+    assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1

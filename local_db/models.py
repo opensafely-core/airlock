@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from ulid import ulid
 
-from airlock.business_logic import FileApprovalStatus, RequestFileType, RequestStatus
+from airlock.business_logic import FileReviewStatus, RequestFileType, RequestStatus
 
 
 def local_request_id():
@@ -83,7 +83,7 @@ class FileReview(models.Model):
         RequestFileMetadata, related_name="reviews", on_delete=models.CASCADE
     )
     reviewer = models.TextField()
-    status = EnumField(default=FileApprovalStatus.REJECTED, enum=FileApprovalStatus)
+    status = EnumField(default=FileReviewStatus.REJECTED, enum=FileReviewStatus)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
