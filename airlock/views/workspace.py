@@ -125,11 +125,13 @@ def workspace_add_file_to_request(request, workspace_name):
     except bll.FileNotFound:
         raise Http404()
 
-    release_request = bll.get_current_request(workspace_name, request.user, create=True)
+    release_request = bll.get_or_create_current_request(workspace_name, request.user)
     form = AddFileForm(request.POST, release_request=release_request)
     if form.is_valid():
-        group_name = form.cleaned_data.get("new_filegroup") or form.cleaned_data.get(
-            "filegroup"
+        group_name = (
+            form.cleaned_data.get("new_filegroup")
+            or form.cleaned_data.get("filegroup")
+            or ""
         )
         filetype = RequestFileType[form.cleaned_data["filetype"]]
         try:
@@ -146,8 +148,9 @@ def workspace_add_file_to_request(request, workspace_name):
                 f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
     else:
-        for error in form.errors.values():
-            messages.error(request, error)
+        for error_list in form.errors.values():
+            for error in error_list:
+                messages.error(request, str(error))
 
     # Redirect to the file in the workspace
     return redirect(workspace.get_url(relpath))

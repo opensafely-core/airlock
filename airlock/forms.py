@@ -24,15 +24,15 @@ class AddFileForm(forms.Form):
             self.filegroup_names = release_request.filegroups.keys()
         else:
             self.filegroup_names = set()
-        group_choices = {
-            (name, name) for name in self.filegroup_names if name != "default"
-        }
-        group_choices = [("default", "default"), *sorted(group_choices)]
+        group_names = sorted(self.filegroup_names - {"default"})
+        group_choices = [(name, name) for name in ["default", *group_names]]
+        # Use type narrowing to persuade mpy this has a `choices` attr
+        assert isinstance(self.fields["filegroup"], forms.ChoiceField)
         self.fields["filegroup"].choices = group_choices
         self.fields["new_filegroup"]
 
     def clean_new_filegroup(self):
-        new_filegroup = self.cleaned_data.get("new_filegroup").lower()
+        new_filegroup = self.cleaned_data.get("new_filegroup", "").lower()
         if new_filegroup in [fg.lower() for fg in self.filegroup_names]:
             self.add_error(
                 "new_filegroup",

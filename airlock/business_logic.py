@@ -4,14 +4,11 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-
-# we use PurePosixPath as a convenient url path representation
-from pathlib import PurePosixPath as UrlPath
-from typing import Optional, Protocol
+from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING, Protocol, Self, cast
 
 from django.conf import settings
-from django.shortcuts import reverse
+from django.urls import reverse
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
@@ -19,6 +16,17 @@ import old_api
 from airlock.renderers import get_renderer
 from airlock.users import User
 
+
+# We use PurePosixPath as a convenient URL path representation. In theory we could use
+# `NewType` here to indicate that we want this to be treated as a distinct type without
+# actually creating one. But doing so results in a number of spurious type errors for
+# reasons I don't fully understand (possibly because PurePosixPath isn't itself type
+# annotated?).
+if TYPE_CHECKING:  # pragma: no cover
+
+    class UrlPath(PurePosixPath): ...
+else:
+    UrlPath = PurePosixPath
 
 ROOT_PATH = UrlPath()  # empty path
 
@@ -75,6 +83,9 @@ class AirlockContainer(Protocol):
     def is_supporting_file(self, relpath: UrlPath):
         """Is this path a supporting file?"""
 
+    def abspath(self, path: UrlPath) -> Path:
+        """Get the absolute path of the container object with path"""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -85,7 +96,7 @@ class Workspace:
     """
 
     name: str
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this workspace
     selected_path: UrlPath = ROOT_PATH
@@ -172,7 +183,7 @@ class RequestFile:
     filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "reviews"},
             reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
@@ -186,7 +197,7 @@ class FileGroup:
     """
 
     name: str
-    files: dict[RequestFile]
+    files: dict[UrlPath, RequestFile]
 
     @property
     def output_files(self):
@@ -199,7 +210,7 @@ class FileGroup:
         ]
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "files"},
             files={
@@ -224,13 +235,13 @@ class ReleaseRequest:
     author: str
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
-    filegroups: dict[FileGroup] = field(default_factory=dict)
+    filegroups: dict[str, FileGroup] = field(default_factory=dict)
 
     # can be set to mark the currently selected path in this release request
     selected_path: UrlPath = ROOT_PATH
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "filegroups"},
             filegroups=cls._filegroups_from_dict(attrs.get("filegroups", {})),
@@ -346,11 +357,47 @@ def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     return digest
 
 
-class DataAccessLayerProtocol:
+class DataAccessLayerProtocol(Protocol):
     """
-    Placeholder for a structural type class we can use to define what a data access
-    layer should look like, once we've settled what that is.
+    Structural type class for the Data Access Layer
+
+    Implementations aren't obliged to subclass this as long as they implement the
+    specified methods, though it may be clearer to do so.
     """
+
+    def get_release_request(self, request_id: str):
+        raise NotImplementedError()
+
+    def create_release_request(self, **kwargs):
+        raise NotImplementedError()
+
+    def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+        raise NotImplementedError()
+
+    def get_requests_authored_by_user(self, username: str):
+        raise NotImplementedError()
+
+    def get_outstanding_requests_for_review(self):
+        raise NotImplementedError()
+
+    def set_status(self, request_id: str, status: RequestStatus):
+        raise NotImplementedError()
+
+    def add_file_to_request(
+        self,
+        request_id,
+        relpath: UrlPath,
+        file_id: str,
+        group_name: str,
+        filetype: RequestFileType,
+    ):
+        raise NotImplementedError()
+
+    def approve_file(self, request_id: str, relpath: UrlPath, username: str):
+        raise NotImplementedError()
+
+    def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+        raise NotImplementedError()
 
 
 class BusinessLogicLayer:
@@ -437,38 +484,47 @@ class BusinessLogicLayer:
         return release_request
 
     def get_current_request(
-        self, workspace_name: str, user: User, create: bool = False
-    ) -> ReleaseRequest:
-        """Get the current request for the a workspace/user.
-
-        If create is True, create one.
-        """
+        self, workspace_name: str, user: User
+    ) -> ReleaseRequest | None:
+        """Get the current request for a workspace/user."""
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace_name,
             username=user.username,
         )
 
         n = len(active_requests)
-        if n > 1:
-            raise Exception(
-                f"Multiple active release requests for user {user.username} in workspace {workspace_name}"
-            )
+        if n == 0:
+            return None
         elif n == 1:
             return ReleaseRequest.from_dict(active_requests[0])
-        elif create:
-            # To create a request, you must have explicit workspace permissions.
-            # Output checkers can view all workspaces, but are not allowed to
-            # create requests for all workspaces.
-            if workspace_name not in user.workspaces:
-                raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
-
-            new_request = self._dal.create_release_request(
-                workspace=workspace_name,
-                author=user.username,
-            )
-            return ReleaseRequest.from_dict(new_request)
         else:
-            return None
+            raise Exception(
+                f"Multiple active release requests for user {user.username} in "
+                f"workspace {workspace_name}"
+            )
+
+    def get_or_create_current_request(
+        self, workspace_name: str, user: User
+    ) -> ReleaseRequest:
+        """
+        Get the current request for a workspace/user, or create a new one if there is
+        none.
+        """
+        request = self.get_current_request(workspace_name, user)
+        if request is not None:
+            return request
+
+        # To create a request, you must have explicit workspace permissions.  Output
+        # checkers can view all workspaces, but are not allowed to create requests for
+        # all workspaces.
+        if workspace_name not in user.workspaces:
+            raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+
+        new_request = self._dal.create_release_request(
+            workspace=workspace_name,
+            author=user.username,
+        )
+        return ReleaseRequest.from_dict(new_request)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
@@ -582,7 +638,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         relpath: UrlPath,
         user: User,
-        group_name: Optional[str] = "default",
+        group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         if user.username != release_request.author:
@@ -663,7 +719,7 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.approve_file(release_request.id, relpath, user)
+        bll._dal.approve_file(release_request.id, relpath, user.username)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -672,7 +728,7 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.reject_file(release_request.id, relpath, user)
+        bll._dal.reject_file(release_request.id, relpath, user.username)
 
 
 def _get_configured_bll():
@@ -681,5 +737,7 @@ def _get_configured_bll():
 
 
 # We follow the Django pattern of using a lazy object which configures itself on first
-# access so as to avoid reading `settings` during import
-bll = SimpleLazyObject(_get_configured_bll)
+# access so as to avoid reading `settings` during import. The `cast` here is a runtime
+# no-op, but indicates to the type-checker that this should be treated as an instance of
+# BusinessLogicLayer not SimpleLazyObject.
+bll = cast(BusinessLogicLayer, SimpleLazyObject(_get_configured_bll))

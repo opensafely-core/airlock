@@ -57,3 +57,21 @@ exclude_blocks = [
 
 [tool.ruff.lint.per-file-ignores]
 "airlock/views/__init__.py" = ["F401"]
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+disallow_any_generics = true
+no_implicit_reexport = true
+warn_return_any = true
+check_untyped_defs = true
+
+# Don't follow the import chain into the modules containing code vendored from elsewhere
+[[tool.mypy.overrides]]
+module = "assets.base_views"
+follow_imports = "skip"
+[[tool.mypy.overrides]]
+module = "services.tracing"
+follow_imports = "skip"
+
+[tool.django-stubs]
+django_settings_module = "airlock.settings"

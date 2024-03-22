@@ -1,10 +1,11 @@
 import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 from django.conf import settings
 
-from old_api.schema import FileList, FileMetadata
+from old_api.schema import FileList, FileMetadata, UrlFileName
 
 
 session = requests.Session()
@@ -16,11 +17,15 @@ def create_filelist(paths):
     for relpath, abspath in paths:
         files.append(
             FileMetadata(
-                name=str(relpath),
+                name=UrlFileName(relpath),
                 size=abspath.stat().st_size,
                 sha256=hashlib.sha256(abspath.read_bytes()).hexdigest(),
-                date=modified_time(abspath),
-                url=str(relpath),  # not needed, but has to be set
+                # The schema is defined to take a datetime here but we're giving it a
+                # string. Given that this is legacy code which interacts with an
+                # external API and manifestly _does_ work, we'd rather leave it as is
+                # that make changes which risk changing the output format.
+                date=modified_time(abspath),  # type: ignore[arg-type]
+                url=UrlFileName(relpath),  # not needed, but has to be set
                 metadata={"tool": "airlock"},
             )
         )
@@ -63,6 +68,6 @@ def upload_file(release_id, relpath, abspath, username):
     return response
 
 
-def modified_time(path):
+def modified_time(path: Path) -> str:
     mtime = path.stat().st_mtime
     return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()

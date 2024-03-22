@@ -105,6 +105,7 @@ check: devenv
     check "$BIN/djhtml --tabwidth 2 --check airlock/"
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
+    check "$BIN/mypy airlock/ local_db/"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
@@ -112,6 +113,11 @@ check: devenv
       echo -e "\e[0m"
       exit 1
     fi
+
+
+# run mypy type checker
+mypy *ARGS: devenv
+    $BIN/mypy airlock/ local_db/ "$@"
 
 
 # fix formatting and import sort ordering

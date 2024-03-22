@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -35,9 +37,9 @@ class PathItem:
     container: AirlockContainer
     relpath: UrlPath
 
-    type: PathType = None
-    children: list["PathItem"] = field(default_factory=list)
-    parent: "PathItem" = None
+    type: PathType | None = None
+    children: list[PathItem] = field(default_factory=list)
+    parent: PathItem | None = None
 
     # is this the currently selected path?
     selected: bool = False
@@ -49,7 +51,7 @@ class PathItem:
 
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
-    display_text: str = None
+    display_text: str | None = None
 
     def __post_init__(self):
         # ensure is UrlPath
@@ -76,18 +78,18 @@ class PathItem:
 
     def url(self):
         suffix = "/" if self.is_directory() else ""
-        return self.container.get_url(f"{self.relpath}{suffix}")
+        return self.container.get_url(self.relpath) + suffix
 
     def contents_url(self, download=False):
         if self.type != PathType.FILE:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
-        return self.container.get_contents_url(f"{self.relpath}", download=download)
+        return self.container.get_contents_url(self.relpath, download=download)
 
     def download_url(self):
         return self.contents_url(download=True)
 
     def siblings(self):
-        if not self.relpath.parents:
+        if self.parent is None:
             return []
         else:
             return self.parent.children
@@ -132,7 +134,7 @@ class PathItem:
         distinguish file/dirs, and maybe even file types, in the UI, in case we
         need to.
         """
-        classes = [self.type.value.lower()]
+        classes = [self.type.value.lower()] if self.type else []
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
@@ -330,14 +332,16 @@ def get_path_tree(
 ):
     """Walk a flat list of paths and create a tree from them."""
 
-    def build_path_tree(path_parts, parent):
+    def build_path_tree(
+        path_parts: list[list[str]], parent: PathItem
+    ) -> list[PathItem]:
         # group multiple paths into groups by first part of path
-        grouped = dict()
-        for child, *descendants in path_parts:
+        grouped: dict[str, list[list[str]]] = dict()
+        for child, *descendant_parts in path_parts:
             if child not in grouped:
                 grouped[child] = []
-            if descendants:
-                grouped[child].append(descendants)
+            if descendant_parts:
+                grouped[child].append(descendant_parts)
 
         tree = []
 

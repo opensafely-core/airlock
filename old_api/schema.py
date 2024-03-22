@@ -31,19 +31,19 @@ class ReviewStatus(Enum):
 
 class FileReview(BaseModel):
     status: ReviewStatus
-    comments: dict
+    comments: dict[str, str]
 
 
 class FileMetadata(BaseModel):
     """Metadata for a workspace file."""
 
     name: UrlFileName
-    url: UrlFileName = None  # Url to path on release-hatch instance
+    url: UrlFileName | None = None  # Url to path on release-hatch instance
     size: int  # size in bytes
     sha256: str  # sha256 of file
     date: datetime  # last modified in ISO date format
-    metadata: dict = None  # user supplied metadata about this file
-    review: FileReview = None  # any review metadata for this file
+    metadata: dict[str, str] | None = None  # user supplied metadata about this file
+    review: FileReview | None = None  # any review metadata for this file
 
 
 class FileList(BaseModel):
@@ -53,8 +53,8 @@ class FileList(BaseModel):
     """
 
     files: list[FileMetadata]
-    metadata: dict = None  # user supplied metadata about thse Release
-    review: dict = None  # review comments for the whole Release
+    metadata: dict[str, str] | None = None  # user supplied metadata about thse Release
+    review: dict[str, str] | None = None  # review comments for the whole Release
 
     def get(self, name):  # pragma: no cover
         name = str(name)
