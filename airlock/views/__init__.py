@@ -1,5 +1,7 @@
 from .auth import login, logout
 from .request import (
+    file_approve,
+    file_reject,
     request_contents,
     request_index,
     request_reject,
@@ -20,6 +22,8 @@ __all__ = [
     "login",
     "logout",
     "index",
+    "file_approve",
+    "file_reject",
     "request_contents",
     "request_index",
     "request_reject",

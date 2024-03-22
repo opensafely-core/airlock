@@ -191,6 +191,44 @@ def request_withdraw(request, request_id):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
+def file_approve(request, request_id, path: str):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    try:
+        relpath = release_request.get_request_file(path).relpath
+    except bll.FileNotFound:
+        raise Http404()
+
+    try:
+        bll.approve_file(release_request, relpath, request.user)
+    except bll.ApprovalPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.success(request, "File has been approved")
+    return redirect(release_request.get_url(path))
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def file_reject(request, request_id, path: str):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    try:
+        relpath = release_request.get_request_file(path).relpath
+    except bll.FileNotFound:
+        raise Http404()
+
+    try:
+        bll.reject_file(release_request, relpath, request.user)
+    except bll.ApprovalPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.success(request, "File has been rejected")
+    return redirect(release_request.get_url(path))
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
 def request_release_files(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 

@@ -5,6 +5,7 @@ import requests
 
 from airlock.business_logic import (
     AuditEventType,
+    FileReviewStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
@@ -374,6 +375,116 @@ def test_request_submit_not_author(airlock_client):
         release_request.id, airlock_client.user
     )
     assert persisted_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.parametrize("review", [("approve"), ("reject")])
+def test_file_review_bad_user(airlock_client, review):
+    workspace = "test1"
+    airlock_client.login(workspaces=[workspace], output_checker=False)
+    author = factories.create_user("author", [workspace], False)
+    release_request = factories.create_release_request(
+        workspace,
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    path = "path/test.txt"
+    factories.write_request_file(release_request, "group", path, contents="test")
+
+    response = airlock_client.post(
+        f"/requests/{review}/{release_request.id}/group/{path}"
+    )
+    assert response.status_code == 403
+    relpath = UrlPath(path)
+    assert (
+        len(
+            factories.bll.get_release_request(release_request.id, author)
+            .filegroups["group"]
+            .files[relpath]
+            .reviews
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("review", [("approve"), ("reject")])
+def test_file_review_bad_file(airlock_client, review):
+    airlock_client.login(output_checker=True)
+    author = factories.create_user("author", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    path = "path/test.txt"
+    factories.write_request_file(release_request, "group", path, contents="test")
+
+    bad_path = "path/bad.txt"
+    response = airlock_client.post(
+        f"/requests/{review}/{release_request.id}/group/{bad_path}"
+    )
+    assert response.status_code == 404
+    relpath = UrlPath(path)
+    assert (
+        len(
+            factories.bll.get_release_request(release_request.id, author)
+            .filegroups["group"]
+            .files[relpath]
+            .reviews
+        )
+        == 0
+    )
+
+
+def test_file_approve(airlock_client):
+    airlock_client.login(output_checker=True)
+    author = factories.create_user("author", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    path = "path/test.txt"
+    factories.write_request_file(release_request, "group", path, contents="test")
+
+    response = airlock_client.post(
+        f"/requests/approve/{release_request.id}/group/{path}"
+    )
+    assert response.status_code == 302
+    relpath = UrlPath(path)
+    review = (
+        factories.bll.get_release_request(release_request.id, author)
+        .filegroups["group"]
+        .files[relpath]
+        .reviews[0]
+    )
+    assert review.status == FileReviewStatus.APPROVED
+    assert review.reviewer == "testuser"
+
+
+def test_file_reject(airlock_client):
+    airlock_client.login(output_checker=True)
+    author = factories.create_user("author", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    path = "path/test.txt"
+    factories.write_request_file(release_request, "group", path, contents="test")
+
+    response = airlock_client.post(
+        f"/requests/reject/{release_request.id}/group/{path}"
+    )
+    assert response.status_code == 302
+    relpath = UrlPath(path)
+    review = (
+        factories.bll.get_release_request(release_request.id, author)
+        .filegroups["group"]
+        .files[relpath]
+        .reviews[0]
+    )
+    assert review.status == FileReviewStatus.REJECTED
+    assert review.reviewer == "testuser"
 
 
 def test_request_reject_output_checker(airlock_client):
