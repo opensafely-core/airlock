@@ -45,7 +45,7 @@ def test_renderers_get_renderer_workspace(
     assert response.headers["Content-Type"].split(";")[0] == mimetype
     assert response.headers["Last-Modified"] == renderer.last_modified
     assert response.headers["ETag"] == renderer.etag
-    assert response.headers["Cache-Control"] == "max-age=31536000"
+    assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
 
 
 @pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
@@ -80,4 +80,4 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     assert response.headers["Content-Type"].split(";")[0] == mimetype
     assert response.headers["Last-Modified"] == renderer.last_modified
     assert response.headers["ETag"] == renderer.etag
-    assert response.headers["Cache-Control"] == "max-age=31536000"
+    assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
