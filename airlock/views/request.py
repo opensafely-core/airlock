@@ -45,7 +45,7 @@ def request_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
-@instrument(kwarg_attributes={"release_request": "request_id"})
+@instrument(func_attributes={"release_request": "request_id"})
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
@@ -99,7 +99,7 @@ def request_view(request, request_id: str, path: str = ""):
     return TemplateResponse(request, template, context)
 
 
-@instrument(kwarg_attributes={"release_request": "request_id"})
+@instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["GET"])
 def request_contents(request, request_id: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -124,7 +124,7 @@ def request_contents(request, request_id: str, path: str):
     return serve_file(request, abspath, release_request.get_request_file(path))
 
 
-@instrument(kwarg_attributes={"release_request": "request_id"})
+@instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_submit(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -138,7 +138,7 @@ def request_submit(request, request_id):
     return redirect(release_request.get_url())
 
 
-@instrument(kwarg_attributes={"release_request": "request_id"})
+@instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_reject(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
@@ -152,7 +152,7 @@ def request_reject(request, request_id):
     return redirect(release_request.get_url())
 
 
-@instrument(kwarg_attributes={"release_request": "request_id"})
+@instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)

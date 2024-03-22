@@ -39,7 +39,7 @@ def workspace_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
-@instrument(kwarg_attributes={"workspace": "workspace_name"})
+@instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
     template = "file_browser/index.html"
@@ -99,7 +99,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
 
-@instrument(kwarg_attributes={"workspace": "workspace_name"})
+@instrument(func_attributes={"workspace": "workspace_name"})
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
@@ -115,7 +115,7 @@ def workspace_contents(request, workspace_name: str, path: str):
     return serve_file(request, abspath)
 
 
-@instrument(kwarg_attributes={"workspace": "workspace_name"})
+@instrument(func_attributes={"workspace": "workspace_name"})
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = get_workspace_or_raise(request.user, workspace_name)
