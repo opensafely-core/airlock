@@ -663,7 +663,7 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.approve_file(release_request.id, relpath, user)
+        bll._dal.approve_file(release_request.id, relpath, user.username)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -672,7 +672,7 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.reject_file(release_request.id, relpath, user)
+        bll._dal.reject_file(release_request.id, relpath, user.username)
 
 
 def _get_configured_bll():
