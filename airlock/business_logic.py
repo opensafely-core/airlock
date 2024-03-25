@@ -430,13 +430,18 @@ class DataAccessLayerProtocol(Protocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        audit: AuditEvent,
     ):
         raise NotImplementedError()
 
-    def approve_file(self, request_id: str, relpath: UrlPath, username: str):
+    def approve_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         raise NotImplementedError()
 
-    def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+    def reject_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         raise NotImplementedError()
 
     def audit_event(self, audit: AuditEvent):
@@ -739,12 +744,25 @@ class BusinessLogicLayer:
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_FILE_ADD,
+            user=user.username,
+            workspace=release_request.workspace,
+            request=release_request.id,
+            path=str(relpath),
+            extra={
+                "group": group_name,
+                "type": filetype.name,
+            },
+        )
+
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
             filetype=filetype,
+            audit=audit,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
@@ -800,7 +818,15 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.approve_file(release_request.id, relpath, user.username)
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_FILE_APPROVE,
+            user=user.username,
+            workspace=release_request.workspace,
+            request=release_request.id,
+            path=str(relpath),
+        )
+
+        bll._dal.approve_file(release_request.id, relpath, user.username, audit)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -809,7 +835,15 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.reject_file(release_request.id, relpath, user.username)
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_FILE_REJECT,
+            user=user.username,
+            workspace=release_request.workspace,
+            request=release_request.id,
+            path=str(relpath),
+        )
+
+        bll._dal.reject_file(release_request.id, relpath, user.username, audit)
 
     def get_audit_log(
         self,

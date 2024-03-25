@@ -151,6 +151,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        audit: AuditEvent,
     ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
@@ -180,11 +181,15 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 
+            self._create_audit_log(audit)
+
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
 
-    def approve_file(self, request_id: str, relpath: UrlPath, username: str):
+    def approve_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
             # is part of the request before calling this method
@@ -198,7 +203,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review.status = FileReviewStatus.APPROVED
             review.save()
 
-    def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+            self._create_audit_log(audit)
+
+    def reject_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 filegroup__request_id=request_id, relpath=relpath
@@ -209,6 +218,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             review.status = FileReviewStatus.REJECTED
             review.save()
+
+            self._create_audit_log(audit)
 
     def _create_audit_log(self, audit: AuditEvent) -> AuditLog:
         event = AuditLog.objects.create(

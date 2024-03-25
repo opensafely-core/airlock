@@ -373,6 +373,19 @@ def test_add_file_to_request_states(status, success, bll):
     if success:
         bll.add_file_to_request(release_request, path, author)
         assert release_request.abspath("default" / path).exists()
+
+        audit_log = bll.get_audit_log(request=release_request.id)
+        assert audit_log[0] == AuditEvent(
+            type=AuditEventType.REQUEST_FILE_ADD,
+            user=author.username,
+            workspace="workspace",
+            request=release_request.id,
+            path=str(path),
+            extra={
+                "group": "default",
+                "type": "OUTPUT",
+            },
+        )
     else:
         with pytest.raises(bll.RequestPermissionDenied):
             bll.add_file_to_request(release_request, path, author)
@@ -680,6 +693,15 @@ def test_approve_file(bll):
     assert current_reviews[0].status == FileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent(
+        type=AuditEventType.REQUEST_FILE_APPROVE,
+        user=checker.username,
+        workspace="workspace",
+        request=release_request.id,
+        path=str(path),
+    )
+
 
 def test_reject_file(bll):
     release_request, path, author = setup_empty_release_request()
@@ -700,6 +722,15 @@ def test_reject_file(bll):
     assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent(
+        type=AuditEventType.REQUEST_FILE_REJECT,
+        user=checker.username,
+        workspace="workspace",
+        request=release_request.id,
+        path=str(path),
+    )
 
 
 def test_approve_then_reject_file(bll):
