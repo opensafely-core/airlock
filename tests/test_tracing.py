@@ -17,7 +17,7 @@ def test_setup_default_tracing_empty_env(monkeypatch):
 
 
 def test_setup_default_tracing_console(monkeypatch):
-    env = {"PYTHONPATH": "", "OTEL_EXPORTER_CONSOLE": "1"}
+    env = {"PYTHONPATH": "", "OTEL_EXPORTER_CONSOLE": "true"}
     monkeypatch.setattr(os, "environ", env)
     provider = setup_default_tracing(set_global=False)
 
