@@ -118,12 +118,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
-    def set_status(self, request_id: str, status: RequestStatus):
+    def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         with transaction.atomic():
             # persist state change
             metadata = self._find_metadata(request_id)
             metadata.status = status
             metadata.save()
+            self._create_audit_log(audit)
 
     def add_file_to_request(
         self,
@@ -191,7 +192,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review.status = FileReviewStatus.REJECTED
             review.save()
 
-    def _create_audit_log(self, audit: AuditEvent):
+    def _create_audit_log(self, audit: AuditEvent) -> AuditLog:
         event = AuditLog.objects.create(
             type=audit.type,
             user=audit.user,

@@ -7,6 +7,8 @@ from django.conf import settings
 
 import old_api
 from airlock.business_logic import (
+    AuditEvent,
+    AuditEventType,
     BusinessLogicLayer,
     FileReview,
     FileReviewStatus,
@@ -264,6 +266,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
 def test_set_status(current, future, valid_author, valid_checker, bll):
     author = factories.create_user("author", ["workspace"], False)
     checker = factories.create_user("checker", [], True)
+    audit_type = bll.STATUS_AUDIT_EVENT[future]
     release_request1 = factories.create_release_request(
         "workspace", user=author, status=current
     )
@@ -274,6 +277,11 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     if valid_author:
         bll.set_status(release_request1, future, user=author)
         assert release_request1.status == future
+        audit_log = bll.get_audit_log(request=release_request1.id)
+        assert audit_log[0].type == audit_type
+        assert audit_log[0].user == author.username
+        assert audit_log[0].request == release_request1.id
+        assert audit_log[0].workspace == "workspace"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request1, future, user=author)
@@ -281,6 +289,12 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     if valid_checker:
         bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
+
+        audit_log = bll.get_audit_log(request=release_request2.id)
+        assert audit_log[0].type == audit_type
+        assert audit_log[0].user == checker.username
+        assert audit_log[0].request == release_request2.id
+        assert audit_log[0].workspace == "workspace"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request2, future, user=checker)

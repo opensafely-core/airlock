@@ -413,7 +413,7 @@ class DataAccessLayerProtocol(Protocol):
     def get_outstanding_requests_for_review(self):
         raise NotImplementedError()
 
-    def set_status(self, request_id: str, status: RequestStatus):
+    def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -611,6 +611,15 @@ class BusinessLogicLayer:
         ],
     }
 
+    STATUS_AUDIT_EVENT = {
+        RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
+        RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
+        RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
+        RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
+        RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
+        RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
+    }
+
     def check_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
@@ -674,7 +683,13 @@ class BusinessLogicLayer:
 
         # validate first
         self.check_status(release_request, to_status, user)
-        self._dal.set_status(release_request.id, to_status)
+        audit = AuditEvent(
+            type=self.STATUS_AUDIT_EVENT[to_status],
+            user=user.username,
+            workspace=release_request.workspace,
+            request=release_request.id,
+        )
+        self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
 
     def add_file_to_request(
