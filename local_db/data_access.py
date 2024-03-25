@@ -36,8 +36,26 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             filegroups=self._get_filegroups(metadata),
         )
 
-    def create_release_request(self, **kwargs):
-        metadata = RequestMetadata.objects.create(**kwargs)
+    def create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus,
+        audit: AuditEvent,
+        id: str | None = None,  # noqa: A002
+    ):
+        # Note: id is created automatically, but can be set manually if needed
+        with transaction.atomic():
+            metadata = RequestMetadata.objects.create(
+                workspace=workspace,
+                author=author,
+                status=status,
+                id=id,  # noqa: A002
+            )
+            # ensure correct id
+            audit.request = metadata.id
+            self._create_audit_log(audit)
+
         return self._request(metadata)
 
     def _find_metadata(self, request_id: str):

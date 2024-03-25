@@ -401,7 +401,14 @@ class DataAccessLayerProtocol(Protocol):
     def get_release_request(self, request_id: str):
         raise NotImplementedError()
 
-    def create_release_request(self, **kwargs):
+    def create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus,
+        audit: AuditEvent,
+        id: str | None = None,  # noqa: A002
+    ):
         raise NotImplementedError()
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
@@ -505,15 +512,34 @@ class BusinessLogicLayer:
 
         return workspaces
 
-    def _create_release_request(self, **kwargs):
+    def _create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus = RequestStatus.PENDING,
+        id: str | None = None,  # noqa: A002
+    ) -> ReleaseRequest:
         """Factory function to create a release_request.
 
-        The kwargs should match the public ReleaseRequest fields.
-
-        Is private because it is mean to only be used by our test factories to
-        set up state - it is not part of the public API.
+        Is private because it is mean also used directly by our test factories
+        to set up state - it is not part of the public API.
         """
-        return ReleaseRequest.from_dict(self._dal.create_release_request(**kwargs))
+        # id is used to set specific ids in tests. We should probbably not allow this.
+        audit = AuditEvent(
+            type=self.STATUS_AUDIT_EVENT[status],
+            user=author,
+            workspace=workspace,
+            # DAL will set request id once its created
+        )
+        return ReleaseRequest.from_dict(
+            self._dal.create_release_request(
+                workspace=workspace,
+                author=author,
+                status=status,
+                audit=audit,
+                id=id,
+            )
+        )
 
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
@@ -564,11 +590,7 @@ class BusinessLogicLayer:
         if workspace_name not in user.workspaces:
             raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
 
-        new_request = self._dal.create_release_request(
-            workspace=workspace_name,
-            author=user.username,
-        )
-        return ReleaseRequest.from_dict(new_request)
+        return self._create_release_request(workspace_name, user.username)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""

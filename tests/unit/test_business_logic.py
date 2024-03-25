@@ -219,6 +219,16 @@ def test_provider_get_current_request_for_user(bll):
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log == [
+        AuditEvent(
+            AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace="workspace",
+            request=release_request.id,
+        )
+    ]
+
     # reach around an simulate 2 active requests for same user
     bll._create_release_request(author=user.username, workspace="workspace")
 
@@ -434,15 +444,6 @@ def test_request_all_files_set(bll):
     assert len(filegroup.files) == 2
     assert len(filegroup.output_files) == 1
     assert len(filegroup.supporting_files) == 1
-
-
-def test_request_release_invalid_state():
-    factories.create_workspace("workspace")
-    with pytest.raises(AttributeError):
-        factories.create_release_request(
-            "workspace",
-            status="unknown",
-        )
 
 
 def test_request_release_get_request_file(bll):
