@@ -2,23 +2,24 @@ import os
 
 import opentelemetry.exporter.otlp.proto.http.trace_exporter
 import pytest
+from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-import services.tracing as tracing
+from services.tracing import instrument, setup_default_tracing
 
 
 def test_setup_default_tracing_empty_env(monkeypatch):
     env = {"PYTHONPATH": ""}
     monkeypatch.setattr(os, "environ", env)
-    provider = tracing.setup_default_tracing(set_global=False)
+    provider = setup_default_tracing(set_global=False)
     assert provider._active_span_processor._span_processors == ()
 
 
 def test_setup_default_tracing_console(monkeypatch):
     env = {"PYTHONPATH": "", "OTEL_EXPORTER_CONSOLE": "1"}
     monkeypatch.setattr(os, "environ", env)
-    provider = tracing.setup_default_tracing(set_global=False)
+    provider = setup_default_tracing(set_global=False)
 
     processor = provider._active_span_processor._span_processors[0]
     assert isinstance(processor.span_exporter, ConsoleSpanExporter)
@@ -31,7 +32,7 @@ def test_setup_default_tracing_otlp_defaults(monkeypatch):
     monkeypatch.setattr(
         opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
     )
-    provider = tracing.setup_default_tracing(set_global=False)
+    provider = setup_default_tracing(set_global=False)
     assert provider.resource.attributes["service.name"] == "airlock"
 
     exporter = provider._active_span_processor._span_processors[0].span_exporter
@@ -52,7 +53,7 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
     monkeypatch.setattr(
         opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
     )
-    provider = tracing.setup_default_tracing(set_global=False)
+    provider = setup_default_tracing(set_global=False)
     assert provider.resource.attributes["service.name"] == "service"
 
     exporter = provider._active_span_processor._span_processors[0].span_exporter
@@ -63,60 +64,84 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
 
 
 def test_not_instrument_decorator():
-    assert tracing.trace.get_current_span().is_recording() is False
+    assert trace.get_current_span().is_recording() is False
 
 
-@tracing.instrument
+@instrument
 def test_instrument_decorator():
-    current_span = tracing.trace.get_current_span()
+    current_span = trace.get_current_span()
     assert current_span.is_recording() is True
     assert current_span.name == "test_instrument_decorator"
 
 
-@tracing.instrument(span_name="testing", attributes={"foo": "bar"})
+@instrument(span_name="testing", attributes={"foo": "bar"})
 def test_instrument_decorator_with_name_and_attributes():
-    current_span = tracing.trace.get_current_span()
+    current_span = trace.get_current_span()
     assert current_span.is_recording() is True
     assert current_span.name == "testing"
     assert current_span.attributes == {"foo": "bar"}
 
 
-def test_instrument_decorator_with_function_kwarg_attributes():
-    @tracing.instrument(kwarg_attributes={"number": "num"})
-    def assert_function_kwarg_attributes(*, num):
-        current_span = tracing.trace.get_current_span()
-        assert current_span.attributes == {"number": str(num)}
+@pytest.mark.parametrize(
+    "func_attributes,func_args,func_kwargs,expected_attributes",
+    [
+        # positional arg
+        ({"func_attributes": {"number": "num"}}, (1,), {}, {"number": "1"}),
+        # keyword arg
+        (
+            {"func_attributes": {"text": "string"}},
+            (1,),
+            {"string": "bar"},
+            {"text": "bar"},
+        ),
+        # default keyword arg
+        ({"func_attributes": {"text": "string"}}, (1,), {}, {"text": "Foo"}),
+        # all args passed as keywords
+        (
+            {"func_attributes": {"number": "num"}},
+            (),
+            {"num": 1, "string": "bar"},
+            {"number": "1"},
+        ),
+        # all args passed as positional
+        ({"func_attributes": {"number": "num"}}, (1, "bar"), {}, {"number": "1"}),
+        # multiple func attributes
+        (
+            {"func_attributes": {"number": "num", "text": "string"}},
+            (1,),
+            {},
+            {"number": "1", "text": "Foo"},
+        ),
+    ],
+)
+def test_instrument_decorator_with_function_attributes(
+    func_attributes, func_args, func_kwargs, expected_attributes
+):
+    @instrument(**func_attributes)
+    def assert_function_kwarg_attributes(num, string="Foo"):
+        current_span = trace.get_current_span()
+        assert current_span.attributes == expected_attributes
+        return num, string
 
-    assert_function_kwarg_attributes(num=1)
-
-
-def test_instrument_decorator_with_function_arg_attributes():
-    @tracing.instrument(arg_attributes={"number": 0})
-    def assert_function_arg_attributes(num):
-        current_span = tracing.trace.get_current_span()
-        assert current_span.attributes == {"number": str(num)}
-
-    assert_function_arg_attributes(1)
+    assert_function_kwarg_attributes(*func_args, **func_kwargs)
 
 
 @pytest.mark.parametrize(
-    "instrument_params,expect_ok",
+    "func_kwargs,expect_ok",
     [
-        ({"kwarg_attributes": {"number": "foo"}}, False),
-        ({"arg_attributes": {"number": 1}}, False),
-        ({"arg_attributes": {"number": 0}}, True),
+        ({}, False),
+        ({"foo": 1}, False),
+        ({"bar": 1}, True),
     ],
 )
-def test_instrument_decorator_with_invalid_function_attributes(
-    instrument_params, expect_ok
-):
-    @tracing.instrument(**instrument_params)
-    def decorated_function(num):
-        current_span = tracing.trace.get_current_span()
-        assert current_span.attributes == {"number": str(num)}
+def test_instrument_decorator_with_unnamed_kwargs(func_kwargs, expect_ok):
+    @instrument(func_attributes={"foo": "bar"})
+    def decorated_function(**kwargs):
+        current_span = trace.get_current_span()
+        assert current_span.attributes == {"foo": str(kwargs["bar"])}
 
     if expect_ok:
-        decorated_function(1)
+        decorated_function(**func_kwargs)
     else:
-        with pytest.raises(AssertionError, match="not found in function signature"):
-            decorated_function(1)
+        with pytest.raises(AttributeError, match="not found in function signature"):
+            decorated_function(**func_kwargs)
