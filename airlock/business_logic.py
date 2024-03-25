@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import secrets
 import shutil
@@ -87,6 +89,27 @@ class AuditEvent:
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
     created_at: datetime | None = field(default=None, compare=False)
+
+    @classmethod
+    def from_request(
+        cls,
+        request: ReleaseRequest,
+        type: AuditEventType,  # noqa: A002
+        user: User,
+        path: UrlPath | None = None,
+        **kwargs,
+    ):
+        event = cls(
+            type=type,
+            user=user.username,
+            workspace=request.workspace,
+            request=request.id,
+            extra=kwargs,
+        )
+        if path:
+            event.path = str(path)
+
+        return event
 
 
 class AirlockContainer(Protocol):
@@ -712,11 +735,10 @@ class BusinessLogicLayer:
 
         # validate first
         self.check_status(release_request, to_status, user)
-        audit = AuditEvent(
+        audit = AuditEvent.from_request(
+            release_request,
             type=self.STATUS_AUDIT_EVENT[to_status],
-            user=user.username,
-            workspace=release_request.workspace,
-            request=release_request.id,
+            user=user,
         )
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
@@ -746,16 +768,13 @@ class BusinessLogicLayer:
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 
-        audit = AuditEvent(
+        audit = AuditEvent.from_request(
+            request=release_request,
             type=AuditEventType.REQUEST_FILE_ADD,
-            user=user.username,
-            workspace=release_request.workspace,
-            request=release_request.id,
-            path=str(relpath),
-            extra={
-                "group": group_name,
-                "type": filetype.name,
-            },
+            user=user,
+            path=relpath,
+            group=group_name,
+            filetype=filetype.name,
         )
 
         filegroup_data = self._dal.add_file_to_request(
@@ -820,12 +839,11 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        audit = AuditEvent(
+        audit = AuditEvent.from_request(
+            request=release_request,
             type=AuditEventType.REQUEST_FILE_APPROVE,
-            user=user.username,
-            workspace=release_request.workspace,
-            request=release_request.id,
-            path=str(relpath),
+            user=user,
+            path=relpath,
         )
 
         bll._dal.approve_file(release_request.id, relpath, user.username, audit)
@@ -837,12 +855,11 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        audit = AuditEvent(
+        audit = AuditEvent.from_request(
+            request=release_request,
             type=AuditEventType.REQUEST_FILE_REJECT,
-            user=user.username,
-            workspace=release_request.workspace,
-            request=release_request.id,
-            path=str(relpath),
+            user=user,
+            path=relpath,
         )
 
         bll._dal.reject_file(release_request.id, relpath, user.username, audit)
@@ -873,26 +890,24 @@ class BusinessLogicLayer:
     def audit_request_file_access(
         self, request: ReleaseRequest, path: UrlPath, user: User
     ):
-        audit = AuditEvent(
-            type=AuditEventType.REQUEST_FILE_VIEW,
-            user=user.username,
-            workspace=request.workspace,
-            request=request.id,
-            path=str(path),
-            extra={"group": path.parts[0]},
+        audit = AuditEvent.from_request(
+            request,
+            AuditEventType.REQUEST_FILE_VIEW,
+            user=user,
+            path=path,
+            group=path.parts[0],
         )
         bll._dal.audit_event(audit)
 
     def audit_request_file_download(
         self, request: ReleaseRequest, path: UrlPath, user: User
     ):
-        audit = AuditEvent(
-            type=AuditEventType.REQUEST_FILE_DOWNLOAD,
-            user=user.username,
-            workspace=request.workspace,
-            request=request.id,
-            path=str(path),
-            extra={"group": path.parts[0]},
+        audit = AuditEvent.from_request(
+            request,
+            AuditEventType.REQUEST_FILE_DOWNLOAD,
+            user=user,
+            path=path,
+            group=path.parts[0],
         )
         bll._dal.audit_event(audit)
 

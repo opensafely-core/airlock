@@ -221,11 +221,10 @@ def test_provider_get_current_request_for_user(bll):
 
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log == [
-        AuditEvent(
+        AuditEvent.from_request(
+            release_request,
             AuditEventType.REQUEST_CREATE,
-            user=user.username,
-            workspace="workspace",
-            request=release_request.id,
+            user=user,
         )
     ]
 
@@ -375,16 +374,13 @@ def test_add_file_to_request_states(status, success, bll):
         assert release_request.abspath("default" / path).exists()
 
         audit_log = bll.get_audit_log(request=release_request.id)
-        assert audit_log[0] == AuditEvent(
-            type=AuditEventType.REQUEST_FILE_ADD,
-            user=author.username,
-            workspace="workspace",
-            request=release_request.id,
-            path=str(path),
-            extra={
-                "group": "default",
-                "type": "OUTPUT",
-            },
+        assert audit_log[0] == AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_FILE_ADD,
+            user=author,
+            path=path,
+            group="default",
+            filetype="OUTPUT",
         )
     else:
         with pytest.raises(bll.RequestPermissionDenied):
@@ -694,12 +690,11 @@ def test_approve_file(bll):
     assert type(current_reviews[0]) == FileReview
 
     audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0] == AuditEvent(
-        type=AuditEventType.REQUEST_FILE_APPROVE,
-        user=checker.username,
-        workspace="workspace",
-        request=release_request.id,
-        path=str(path),
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        user=checker,
+        path=path,
     )
 
 
@@ -724,12 +719,11 @@ def test_reject_file(bll):
     assert len(current_reviews) == 1
 
     audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0] == AuditEvent(
-        type=AuditEventType.REQUEST_FILE_REJECT,
-        user=checker.username,
-        workspace="workspace",
-        request=release_request.id,
-        path=str(path),
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_REJECT,
+        user=checker,
+        path=path,
     )
 
 
