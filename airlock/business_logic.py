@@ -85,6 +85,8 @@ class AuditEvent:
     request: str | None = None
     path: str | None = None
     extra: dict[str, str] = field(default_factory=dict)
+    # this is used when querying the db for audit log times
+    created_at: datetime | None = field(default=None, compare=False)
 
 
 class AirlockContainer(Protocol):

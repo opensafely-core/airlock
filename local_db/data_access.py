@@ -264,6 +264,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request=audit.request,
                 path=audit.path,
                 extra=audit.extra,
+                created_at=audit.created_at,
             )
             for audit in qs
         ]
