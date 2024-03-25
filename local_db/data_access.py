@@ -3,6 +3,7 @@ from pathlib import Path
 from django.db import transaction
 
 from airlock.business_logic import (
+    AuditEvent,
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     FileReviewStatus,
@@ -11,6 +12,7 @@ from airlock.business_logic import (
     UrlPath,
 )
 from local_db.models import (
+    AuditLog,
     FileGroupMetadata,
     FileReview,
     RequestFileMetadata,
@@ -188,3 +190,50 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             review.status = FileReviewStatus.REJECTED
             review.save()
+
+    def _create_audit_log(self, audit: AuditEvent):
+        event = AuditLog.objects.create(
+            type=audit.type,
+            user=audit.user,
+            workspace=audit.workspace,
+            request=audit.request,
+            path=audit.path,
+            extra=audit.extra,
+        )
+        return event
+
+    def audit_event(self, audit: AuditEvent):
+        with transaction.atomic():
+            self._create_audit_log(audit)
+
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
+        qs = AuditLog.objects.all().order_by("-created_at")
+
+        # TODO: we probably will need pagination?
+
+        if user:
+            qs = qs.filter(user=user)
+
+        if workspace:
+            qs = qs.filter(workspace=workspace)
+        elif request:
+            qs = qs.filter(request=request)
+
+        # Note: we ignore the type here as we haven't figured out how to make
+        # EnumField type-correct yet
+        return [
+            AuditEvent(
+                type=audit.type,  # type: ignore
+                user=audit.user,
+                workspace=audit.workspace,
+                request=audit.request,
+                path=audit.path,
+                extra=audit.extra,
+            )
+            for audit in qs
+        ]

@@ -8,7 +8,12 @@ from django.utils import timezone
 # it's not really worth it
 from ulid import ulid  # type: ignore
 
-from airlock.business_logic import FileReviewStatus, RequestFileType, RequestStatus
+from airlock.business_logic import (
+    AuditEventType,
+    FileReviewStatus,
+    RequestFileType,
+    RequestStatus,
+)
 
 
 def local_request_id():
@@ -120,3 +125,22 @@ class FileReview(models.Model):
 
     class Meta:
         unique_together = ("file", "reviewer")
+
+
+class AuditLog(models.Model):
+    type = EnumField(enum=AuditEventType)
+    user = models.TextField()
+    workspace = models.TextField(null=True)
+    request = models.TextField(null=True)
+    path = models.TextField(null=True)
+    extra = models.JSONField(default=dict)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["workspace"]),
+            models.Index(fields=["request"]),
+        ]
+
+    # TODO: pretend to be append-only by overriding save() and delete()?

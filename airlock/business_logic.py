@@ -54,6 +54,39 @@ class FileReviewStatus(Enum):
     REJECTED = "REJECTED"
 
 
+class AuditEventType(Enum):
+    """Audit log events."""
+
+    # file access
+    WORKSPACE_FILE_VIEW = "WORKSPACE_FILE_VIEW"
+    REQUEST_FILE_VIEW = "REQUEST_FILE_VIEW"
+    REQUEST_FILE_DOWNLOAD = "REQUEST_FILE_DOWNLOAD"
+
+    # request status
+    REQUEST_CREATE = "REQUEST_CREATE"
+    REQUEST_SUBMIT = "REQUEST_SUBMIT"
+    REQUEST_WITHDRAW = "REQUEST_WITHDRAW"
+    REQUEST_APPROVE = "REQUEST_APPROVE"
+    REQUEST_REJECT = "REQUEST_REJECT"
+    REQUEST_RELEASE = "REQUEST_RELEASE"
+
+    # request file status
+    REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
+    REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
+    REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
+    REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+
+
+@dataclass
+class AuditEvent:
+    type: AuditEventType
+    user: str
+    workspace: str | None = None
+    request: str | None = None
+    path: str | None = None
+    extra: dict[str, str] = field(default_factory=dict)
+
+
 class AirlockContainer(Protocol):
     """Structural typing class for a instance of a Workspace or ReleaseRequest
 
@@ -397,6 +430,17 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+        raise NotImplementedError()
+
+    def audit_event(self, audit: AuditEvent):
+        raise NotImplementedError()
+
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
         raise NotImplementedError()
 
 
