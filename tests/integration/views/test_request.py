@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 import requests
 
-from airlock.business_logic import RequestFileType, RequestStatus
+from airlock.business_logic import AuditEventType, RequestFileType, RequestStatus, bll
 from tests import factories
 from tests.conftest import get_trace
 
@@ -175,6 +175,13 @@ def test_request_contents_file(airlock_client):
     response = airlock_client.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
+    audit_log = bll.get_audit_log(
+        user=airlock_client.user.username,
+        request=release_request.id,
+    )
+    assert audit_log[0].type == AuditEventType.REQUEST_FILE_VIEW
+    assert audit_log[0].path == "default/file.txt"
+    assert audit_log[0].extra["group"] == "default"
 
 
 def test_request_contents_dir(airlock_client):
@@ -210,6 +217,14 @@ def test_request_download_file(airlock_client):
     assert response.status_code == 200
     assert response.as_attachment
     assert list(response.streaming_content) == [b"test"]
+
+    audit_log = bll.get_audit_log(
+        user=airlock_client.user.username,
+        request=release_request.id,
+    )
+    assert audit_log[0].type == AuditEventType.REQUEST_FILE_DOWNLOAD
+    assert audit_log[0].path == "default/file.txt"
+    assert audit_log[0].extra["group"] == "default"
 
 
 @pytest.mark.parametrize(
@@ -285,6 +300,12 @@ def test_request_download_file_permissions(
         assert response.status_code == 200
         assert response.as_attachment
         assert list(response.streaming_content) == [b"test"]
+
+        audit_log = bll.get_audit_log(
+            user=airlock_client.user.username,
+            request=release_request.id,
+        )
+        assert audit_log[0].type == AuditEventType.REQUEST_FILE_DOWNLOAD
     else:
         assert response.status_code == 403
 

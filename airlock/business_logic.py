@@ -774,6 +774,55 @@ class BusinessLogicLayer:
 
         bll._dal.reject_file(release_request.id, relpath, user.username)
 
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
+        return bll._dal.get_audit_log(
+            user=user,
+            workspace=workspace,
+            request=request,
+        )
+
+    def audit_workspace_file_access(
+        self, workspace: Workspace, path: UrlPath, user: User
+    ):
+        audit = AuditEvent(
+            type=AuditEventType.WORKSPACE_FILE_VIEW,
+            user=user.username,
+            workspace=workspace.name,
+            path=str(path),
+        )
+        bll._dal.audit_event(audit)
+
+    def audit_request_file_access(
+        self, request: ReleaseRequest, path: UrlPath, user: User
+    ):
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_FILE_VIEW,
+            user=user.username,
+            workspace=request.workspace,
+            request=request.id,
+            path=str(path),
+            extra={"group": path.parts[0]},
+        )
+        bll._dal.audit_event(audit)
+
+    def audit_request_file_download(
+        self, request: ReleaseRequest, path: UrlPath, user: User
+    ):
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_FILE_DOWNLOAD,
+            user=user.username,
+            workspace=request.workspace,
+            request=request.id,
+            path=str(path),
+            extra={"group": path.parts[0]},
+        )
+        bll._dal.audit_event(audit)
+
 
 def _get_configured_bll():
     DataAccessLayer = import_string(settings.AIRLOCK_DATA_ACCESS_LAYER)

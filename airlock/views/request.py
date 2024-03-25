@@ -10,7 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock.business_logic import RequestStatus, bll
+from airlock.business_logic import RequestStatus, UrlPath, bll
 from airlock.file_browser_api import get_request_tree
 from services.tracing import instrument
 
@@ -119,8 +119,10 @@ def request_contents(request, request_id: str, path: str):
         ):
             raise PermissionDenied()
 
+        bll.audit_request_file_download(release_request, UrlPath(path), request.user)
         return download_file(abspath, filename=path)
 
+    bll.audit_request_file_access(release_request, UrlPath(path), request.user)
     return serve_file(request, abspath, release_request.get_request_file(path))
 
 

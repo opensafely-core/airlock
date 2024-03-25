@@ -112,6 +112,8 @@ def workspace_contents(request, workspace_name: str, path: str):
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
+    bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)
+
     return serve_file(request, abspath)
 
 
