@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
@@ -10,6 +11,7 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
+    DataAccessLayerProtocol,
     FileReview,
     FileReviewStatus,
     RequestFileType,
@@ -755,3 +757,32 @@ def test_approve_then_reject_file(bll):
     assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
+
+
+# add DAL method names to this if they do not require auditing
+DAL_AUDIT_EXCLUDED = {
+    "get_release_request",
+    "get_active_requests_for_workspace_by_user",
+    "get_audit_log",
+    "get_outstanding_requests_for_review",
+    "get_requests_authored_by_user",
+}
+
+
+def test_dal_methods_have_audit_event_parameter():
+    """Ensure all our DAL methods take an AuditEvent parameter by default."""
+
+    dal_functions = {
+        name: func
+        for name, func in inspect.getmembers(
+            DataAccessLayerProtocol, predicate=inspect.isfunction
+        )
+        if not name.startswith("__") and name not in DAL_AUDIT_EXCLUDED
+    }
+
+    for name, func in dal_functions.items():
+        signature = inspect.signature(func)
+        arg_annotations = set(p.annotation for p in signature.parameters.values())
+        assert (
+            "AuditEvent" in arg_annotations
+        ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
