@@ -27,6 +27,16 @@ def dev_users(tmp_path, settings):
                         "workspaces": {},
                     },
                 },
+                "output_checker_1": {
+                    "token": "output_checker_1",
+                    "details": {
+                        "username": "output_checker_1",
+                        "fullname": "Output Checker 1",
+                        "output_checker": True,
+                        "staff": True,
+                        "workspaces": {},
+                    },
+                },
                 "researcher": {
                     "token": "researcher",
                     "details": {
@@ -105,6 +115,12 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     - Approve output file
     - Download output file
     - View supporting file
+    - Reject output file
+    - Approve output file
+    - Logout
+
+    3) Log in as second output checker
+    - Approve output file
     - Release files
     - View requests list again and confirm released request is not shown
     """
@@ -323,6 +339,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
     )
 
+    # File is not yet approved, so the release button is disabled
+    release_button = page.locator("#release-files-button")
+    expect(release_button).to_be_disabled()
+
     # Reject the file
     expect(page.locator("#file-reject-button")).not_to_have_attribute("disabled", "")
     find_and_click(page.locator("#file-reject-button"))
@@ -332,6 +352,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("#file-approve-button")).not_to_have_attribute("disabled", "")
     find_and_click(page.locator("#file-approve-button"))
     expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
+
+    # File is only approved once, so the release files button is still disabled
+    expect(release_button).to_be_disabled()
 
     # Download the file
     with page.expect_download() as download_info:
@@ -350,12 +373,22 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
     expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
 
+    # Logout and log in as second output-checker to do second approval and
+    # release
+    find_and_click(page.get_by_test_id("nav-logout"))
+    login_as(live_server, page, "output_checker_1")
+    # Approve the file
+    page.goto(live_server.url + release_request.get_url("my-new-group/subdir/file.txt"))
+    find_and_click(page.locator("#file-approve-button"))
+    # Now the file has 2 approvals, the release files button is enabled
+    expect(release_button).to_be_enabled()
+
     # Mock the responses from job-server
     release_request = bll.get_release_request(request_id, admin_user)
     release_files_stubber(release_request)
 
     # Release the files
-    find_and_click(page.locator("#release-files-button"))
+    find_and_click(release_button)
     expect(page.locator("body")).to_contain_text(
         "Files have been released to jobs.opensafely.org"
     )
