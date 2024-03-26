@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from airlock.business_logic import RequestFileType, Workspace, bll
+from airlock.business_logic import AuditEvent, RequestFileType, Workspace, bll
 from airlock.users import User
 
 
@@ -91,3 +91,23 @@ def refresh_release_request(release_request, user=None):
     if user is None:  # pragma: nocover
         user = create_user("author", workspaces=[release_request.workspace])
     return bll.get_release_request(release_request.id, user)
+
+
+def create_audit_event(
+    type_,
+    user="user",
+    workspace="workspace",
+    request="request",
+    path="foo/bar",
+    extra={"foo": "bar"},
+):
+    event = AuditEvent(
+        type=type_,
+        user=user,
+        workspace=workspace,
+        request=request,
+        path=path,
+        extra=extra,
+    )
+    bll._dal.audit_event(event)
+    return event

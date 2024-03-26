@@ -36,8 +36,6 @@ concurrency = ["greenlet", "thread"]
 plugins = ["django_coverage_plugin"]
 omit = [
   "*/assets/*",
-  # remove this when we have a UI to view audit logs
-  "airlock/management/commands/audit.py",
 ]
 
 

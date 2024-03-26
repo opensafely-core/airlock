@@ -1,10 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from airlock.business_logic import AuditEventType, bll
-
-
-WIDTH = max(len(k.name) for k in AuditEventType)
+from airlock.business_logic import bll
 
 
 class Command(BaseCommand):
@@ -30,13 +27,4 @@ class Command(BaseCommand):
         )
 
         for log in audit_log:
-            if log.created_at:
-                ts = log.created_at.isoformat()[:-13]  # seconds precision
-            else:
-                ts = "TIME UNKNOWN"
-            msg = f"{ts}: {log.type.name:<{WIDTH}} user={log.user} workspace={log.workspace} request={log.request}"
-
-            if log.path:
-                msg += f" path={log.path}"
-
-            self.stdout.write(msg + "\n")
+            self.stdout.write(str(log) + "\n")

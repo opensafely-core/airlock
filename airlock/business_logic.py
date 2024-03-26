@@ -90,6 +90,8 @@ class AuditEvent:
     # this is used when querying the db for audit log times
     created_at: datetime | None = field(default=None, compare=False)
 
+    WIDTH = max(len(k.name) for k in AuditEventType)
+
     @classmethod
     def from_request(
         cls,
@@ -110,6 +112,25 @@ class AuditEvent:
             event.path = str(path)
 
         return event
+
+    def __str__(self):
+        if self.created_at:
+            ts = self.created_at.isoformat()[:-13]  # seconds precision
+        else:
+            ts = "TIME UNKNOWN"
+        msg = [
+            f"{ts}: {self.type.name:<{self.WIDTH}} user={self.user} workspace={self.workspace}"
+        ]
+
+        if self.request:
+            msg.append(f"request={self.request}")
+        if self.path:
+            msg.append(f"path={self.path}")
+
+        for k, v in self.extra.items():
+            msg.append(f"{k}={v}")
+
+        return " ".join(msg)
 
 
 class AirlockContainer(Protocol):
