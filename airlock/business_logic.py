@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import secrets
 import shutil
@@ -9,6 +11,7 @@ from typing import TYPE_CHECKING, Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
@@ -52,6 +55,80 @@ class RequestFileType(Enum):
 class FileReviewStatus(Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class AuditEventType(Enum):
+    """Audit log events."""
+
+    # file access
+    WORKSPACE_FILE_VIEW = "WORKSPACE_FILE_VIEW"
+    REQUEST_FILE_VIEW = "REQUEST_FILE_VIEW"
+    REQUEST_FILE_DOWNLOAD = "REQUEST_FILE_DOWNLOAD"
+
+    # request status
+    REQUEST_CREATE = "REQUEST_CREATE"
+    REQUEST_SUBMIT = "REQUEST_SUBMIT"
+    REQUEST_WITHDRAW = "REQUEST_WITHDRAW"
+    REQUEST_APPROVE = "REQUEST_APPROVE"
+    REQUEST_REJECT = "REQUEST_REJECT"
+    REQUEST_RELEASE = "REQUEST_RELEASE"
+
+    # request file status
+    REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
+    REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
+    REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
+    REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+
+
+@dataclass
+class AuditEvent:
+    type: AuditEventType
+    user: str
+    workspace: str | None = None
+    request: str | None = None
+    path: UrlPath | None = None
+    extra: dict[str, str] = field(default_factory=dict)
+    # this is used when querying the db for audit log times
+    created_at: datetime = field(default_factory=timezone.now, compare=False)
+
+    WIDTH = max(len(k.name) for k in AuditEventType)
+
+    @classmethod
+    def from_request(
+        cls,
+        request: ReleaseRequest,
+        type: AuditEventType,  # noqa: A002
+        user: User,
+        path: UrlPath | None = None,
+        **kwargs,
+    ):
+        event = cls(
+            type=type,
+            user=user.username,
+            workspace=request.workspace,
+            request=request.id,
+            extra=kwargs,
+        )
+        if path:
+            event.path = path
+
+        return event
+
+    def __str__(self):
+        ts = self.created_at.isoformat()[:-13]  # seconds precision
+        msg = [
+            f"{ts}: {self.type.name:<{self.WIDTH}} user={self.user} workspace={self.workspace}"
+        ]
+
+        if self.request:
+            msg.append(f"request={self.request}")
+        if self.path:
+            msg.append(f"path={self.path}")
+
+        for k, v in self.extra.items():
+            msg.append(f"{k}={v}")
+
+        return " ".join(msg)
 
 
 class AirlockContainer(Protocol):
@@ -368,7 +445,14 @@ class DataAccessLayerProtocol(Protocol):
     def get_release_request(self, request_id: str):
         raise NotImplementedError()
 
-    def create_release_request(self, **kwargs):
+    def create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus,
+        audit: AuditEvent,
+        id: str | None = None,  # noqa: A002
+    ):
         raise NotImplementedError()
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
@@ -380,7 +464,7 @@ class DataAccessLayerProtocol(Protocol):
     def get_outstanding_requests_for_review(self):
         raise NotImplementedError()
 
-    def set_status(self, request_id: str, status: RequestStatus):
+    def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -390,13 +474,29 @@ class DataAccessLayerProtocol(Protocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        audit: AuditEvent,
     ):
         raise NotImplementedError()
 
-    def approve_file(self, request_id: str, relpath: UrlPath, username: str):
+    def approve_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         raise NotImplementedError()
 
-    def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+    def reject_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
+    def audit_event(self, audit: AuditEvent):
+        raise NotImplementedError()
+
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
         raise NotImplementedError()
 
 
@@ -461,15 +561,34 @@ class BusinessLogicLayer:
 
         return workspaces
 
-    def _create_release_request(self, **kwargs):
+    def _create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus = RequestStatus.PENDING,
+        id: str | None = None,  # noqa: A002
+    ) -> ReleaseRequest:
         """Factory function to create a release_request.
 
-        The kwargs should match the public ReleaseRequest fields.
-
-        Is private because it is mean to only be used by our test factories to
-        set up state - it is not part of the public API.
+        Is private because it is mean also used directly by our test factories
+        to set up state - it is not part of the public API.
         """
-        return ReleaseRequest.from_dict(self._dal.create_release_request(**kwargs))
+        # id is used to set specific ids in tests. We should probbably not allow this.
+        audit = AuditEvent(
+            type=self.STATUS_AUDIT_EVENT[status],
+            user=author,
+            workspace=workspace,
+            # DAL will set request id once its created
+        )
+        return ReleaseRequest.from_dict(
+            self._dal.create_release_request(
+                workspace=workspace,
+                author=author,
+                status=status,
+                audit=audit,
+                id=id,
+            )
+        )
 
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
@@ -520,11 +639,7 @@ class BusinessLogicLayer:
         if workspace_name not in user.workspaces:
             raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
 
-        new_request = self._dal.create_release_request(
-            workspace=workspace_name,
-            author=user.username,
-        )
-        return ReleaseRequest.from_dict(new_request)
+        return self._create_release_request(workspace_name, user.username)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
@@ -565,6 +680,15 @@ class BusinessLogicLayer:
         RequestStatus.REJECTED: [
             RequestStatus.APPROVED,  # allow mind changed
         ],
+    }
+
+    STATUS_AUDIT_EVENT = {
+        RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
+        RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
+        RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
+        RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
+        RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
+        RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
     }
 
     def check_status(
@@ -630,7 +754,12 @@ class BusinessLogicLayer:
 
         # validate first
         self.check_status(release_request, to_status, user)
-        self._dal.set_status(release_request.id, to_status)
+        audit = AuditEvent.from_request(
+            release_request,
+            type=self.STATUS_AUDIT_EVENT[to_status],
+            user=user,
+        )
+        self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
 
     def add_file_to_request(
@@ -658,12 +787,22 @@ class BusinessLogicLayer:
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_ADD,
+            user=user,
+            path=relpath,
+            group=group_name,
+            filetype=filetype.name,
+        )
+
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
             filetype=filetype,
+            audit=audit,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
@@ -719,7 +858,14 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.approve_file(release_request.id, relpath, user.username)
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_APPROVE,
+            user=user,
+            path=relpath,
+        )
+
+        bll._dal.approve_file(release_request.id, relpath, user.username, audit)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -728,7 +874,61 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
-        bll._dal.reject_file(release_request.id, relpath, user.username)
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_REJECT,
+            user=user,
+            path=relpath,
+        )
+
+        bll._dal.reject_file(release_request.id, relpath, user.username, audit)
+
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
+        return bll._dal.get_audit_log(
+            user=user,
+            workspace=workspace,
+            request=request,
+        )
+
+    def audit_workspace_file_access(
+        self, workspace: Workspace, path: UrlPath, user: User
+    ):
+        audit = AuditEvent(
+            type=AuditEventType.WORKSPACE_FILE_VIEW,
+            user=user.username,
+            workspace=workspace.name,
+            path=path,
+        )
+        bll._dal.audit_event(audit)
+
+    def audit_request_file_access(
+        self, request: ReleaseRequest, path: UrlPath, user: User
+    ):
+        audit = AuditEvent.from_request(
+            request,
+            AuditEventType.REQUEST_FILE_VIEW,
+            user=user,
+            path=path,
+            group=path.parts[0],
+        )
+        bll._dal.audit_event(audit)
+
+    def audit_request_file_download(
+        self, request: ReleaseRequest, path: UrlPath, user: User
+    ):
+        audit = AuditEvent.from_request(
+            request,
+            AuditEventType.REQUEST_FILE_DOWNLOAD,
+            user=user,
+            path=path,
+            group=path.parts[0],
+        )
+        bll._dal.audit_event(audit)
 
 
 def _get_configured_bll():

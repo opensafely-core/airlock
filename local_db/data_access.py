@@ -3,6 +3,7 @@ from pathlib import Path
 from django.db import transaction
 
 from airlock.business_logic import (
+    AuditEvent,
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     FileReviewStatus,
@@ -11,6 +12,7 @@ from airlock.business_logic import (
     UrlPath,
 )
 from local_db.models import (
+    AuditLog,
     FileGroupMetadata,
     FileReview,
     RequestFileMetadata,
@@ -34,8 +36,26 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             filegroups=self._get_filegroups(metadata),
         )
 
-    def create_release_request(self, **kwargs):
-        metadata = RequestMetadata.objects.create(**kwargs)
+    def create_release_request(
+        self,
+        workspace: str,
+        author: str,
+        status: RequestStatus,
+        audit: AuditEvent,
+        id: str | None = None,  # noqa: A002
+    ):
+        # Note: id is created automatically, but can be set manually if needed
+        with transaction.atomic():
+            metadata = RequestMetadata.objects.create(
+                workspace=workspace,
+                author=author,
+                status=status,
+                id=id,  # noqa: A002
+            )
+            # ensure correct id
+            audit.request = metadata.id
+            self._create_audit_log(audit)
+
         return self._request(metadata)
 
     def _find_metadata(self, request_id: str):
@@ -116,12 +136,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
-    def set_status(self, request_id: str, status: RequestStatus):
+    def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         with transaction.atomic():
             # persist state change
             metadata = self._find_metadata(request_id)
             metadata.status = status
             metadata.save()
+            self._create_audit_log(audit)
 
     def add_file_to_request(
         self,
@@ -130,6 +151,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        audit: AuditEvent,
     ):
         with transaction.atomic():
             # Get/create the FileGroupMetadata if it doesn't already exist
@@ -159,11 +181,15 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 
+            self._create_audit_log(audit)
+
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
 
-    def approve_file(self, request_id: str, relpath: UrlPath, username: str):
+    def approve_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
             # is part of the request before calling this method
@@ -177,7 +203,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review.status = FileReviewStatus.APPROVED
             review.save()
 
-    def reject_file(self, request_id: str, relpath: UrlPath, username: str):
+            self._create_audit_log(audit)
+
+    def reject_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 filegroup__request_id=request_id, relpath=relpath
@@ -188,3 +218,54 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             review.status = FileReviewStatus.REJECTED
             review.save()
+
+            self._create_audit_log(audit)
+
+    def _create_audit_log(self, audit: AuditEvent) -> AuditLog:
+        event = AuditLog.objects.create(
+            type=audit.type,
+            user=audit.user,
+            workspace=audit.workspace,
+            request=audit.request,
+            path=str(audit.path) if audit.path else None,
+            extra=audit.extra,
+            created_at=audit.created_at,
+        )
+        return event
+
+    def audit_event(self, audit: AuditEvent):
+        with transaction.atomic():
+            self._create_audit_log(audit)
+
+    def get_audit_log(
+        self,
+        user: str | None = None,
+        workspace: str | None = None,
+        request: str | None = None,
+    ) -> list[AuditEvent]:
+        qs = AuditLog.objects.all().order_by("-created_at")
+
+        # TODO: we probably will need pagination?
+
+        if user:
+            qs = qs.filter(user=user)
+
+        if workspace:
+            qs = qs.filter(workspace=workspace)
+        elif request:
+            qs = qs.filter(request=request)
+
+        # Note: we ignore the type here as we haven't figured out how to make
+        # EnumField type-correct yet
+        return [
+            AuditEvent(
+                type=audit.type,  # type: ignore
+                user=audit.user,
+                workspace=audit.workspace,
+                request=audit.request,
+                path=UrlPath(audit.path) if audit.path else None,
+                extra=audit.extra,
+                created_at=audit.created_at,
+            )
+            for audit in qs
+        ]

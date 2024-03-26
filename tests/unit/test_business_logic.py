@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
@@ -7,7 +8,10 @@ from django.conf import settings
 
 import old_api
 from airlock.business_logic import (
+    AuditEvent,
+    AuditEventType,
     BusinessLogicLayer,
+    DataAccessLayerProtocol,
     FileReview,
     FileReviewStatus,
     RequestFileType,
@@ -217,6 +221,15 @@ def test_provider_get_current_request_for_user(bll):
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log == [
+        AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_CREATE,
+            user=user,
+        )
+    ]
+
     # reach around an simulate 2 active requests for same user
     bll._create_release_request(author=user.username, workspace="workspace")
 
@@ -264,6 +277,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
 def test_set_status(current, future, valid_author, valid_checker, bll):
     author = factories.create_user("author", ["workspace"], False)
     checker = factories.create_user("checker", [], True)
+    audit_type = bll.STATUS_AUDIT_EVENT[future]
     release_request1 = factories.create_release_request(
         "workspace", user=author, status=current
     )
@@ -274,6 +288,11 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     if valid_author:
         bll.set_status(release_request1, future, user=author)
         assert release_request1.status == future
+        audit_log = bll.get_audit_log(request=release_request1.id)
+        assert audit_log[0].type == audit_type
+        assert audit_log[0].user == author.username
+        assert audit_log[0].request == release_request1.id
+        assert audit_log[0].workspace == "workspace"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request1, future, user=author)
@@ -281,6 +300,12 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     if valid_checker:
         bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
+
+        audit_log = bll.get_audit_log(request=release_request2.id)
+        assert audit_log[0].type == audit_type
+        assert audit_log[0].user == checker.username
+        assert audit_log[0].request == release_request2.id
+        assert audit_log[0].workspace == "workspace"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request2, future, user=checker)
@@ -349,6 +374,16 @@ def test_add_file_to_request_states(status, success, bll):
     if success:
         bll.add_file_to_request(release_request, path, author)
         assert release_request.abspath("default" / path).exists()
+
+        audit_log = bll.get_audit_log(request=release_request.id)
+        assert audit_log[0] == AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_FILE_ADD,
+            user=author,
+            path=path,
+            group="default",
+            filetype="OUTPUT",
+        )
     else:
         with pytest.raises(bll.RequestPermissionDenied):
             bll.add_file_to_request(release_request, path, author)
@@ -420,15 +455,6 @@ def test_request_all_files_set(bll):
     assert len(filegroup.files) == 2
     assert len(filegroup.output_files) == 1
     assert len(filegroup.supporting_files) == 1
-
-
-def test_request_release_invalid_state():
-    factories.create_workspace("workspace")
-    with pytest.raises(AttributeError):
-        factories.create_release_request(
-            "workspace",
-            status="unknown",
-        )
 
 
 def test_request_release_get_request_file(bll):
@@ -665,6 +691,14 @@ def test_approve_file(bll):
     assert current_reviews[0].status == FileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        user=checker,
+        path=path,
+    )
+
 
 def test_reject_file(bll):
     release_request, path, author = setup_empty_release_request()
@@ -685,6 +719,14 @@ def test_reject_file(bll):
     assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_REJECT,
+        user=checker,
+        path=path,
+    )
 
 
 def test_approve_then_reject_file(bll):
@@ -715,3 +757,32 @@ def test_approve_then_reject_file(bll):
     assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
+
+
+# add DAL method names to this if they do not require auditing
+DAL_AUDIT_EXCLUDED = {
+    "get_release_request",
+    "get_active_requests_for_workspace_by_user",
+    "get_audit_log",
+    "get_outstanding_requests_for_review",
+    "get_requests_authored_by_user",
+}
+
+
+def test_dal_methods_have_audit_event_parameter():
+    """Ensure all our DAL methods take an AuditEvent parameter by default."""
+
+    dal_functions = {
+        name: func
+        for name, func in inspect.getmembers(
+            DataAccessLayerProtocol, predicate=inspect.isfunction
+        )
+        if not name.startswith("__") and name not in DAL_AUDIT_EXCLUDED
+    }
+
+    for name, func in dal_functions.items():
+        signature = inspect.signature(func)
+        arg_annotations = set(p.annotation for p in signature.parameters.values())
+        assert (
+            "AuditEvent" in arg_annotations
+        ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"

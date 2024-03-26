@@ -34,7 +34,9 @@ branch = true
 # Required to get full coverage when using Playwright
 concurrency = ["greenlet", "thread"]
 plugins = ["django_coverage_plugin"]
-omit = ["*/assets/*"]
+omit = [
+  "*/assets/*",
+]
 
 
 [tool.coverage.report]

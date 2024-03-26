@@ -2,7 +2,7 @@ import pytest
 from django.contrib import messages
 from django.shortcuts import reverse
 
-from airlock.business_logic import RequestFileType, UrlPath
+from airlock.business_logic import AuditEventType, RequestFileType, UrlPath, bll
 from tests import factories
 from tests.conftest import get_trace
 
@@ -219,6 +219,12 @@ def test_workspace_contents_file(airlock_client):
     response = airlock_client.get("/workspaces/content/workspace/file.txt")
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
+    audit = bll.get_audit_log(
+        user=airlock_client.user.username,
+        workspace="workspace",
+    )
+    assert audit[0].type == AuditEventType.WORKSPACE_FILE_VIEW
+    assert audit[0].path == UrlPath("file.txt")
 
 
 def test_workspace_contents_dir(airlock_client):
