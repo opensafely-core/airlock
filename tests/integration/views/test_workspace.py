@@ -224,7 +224,7 @@ def test_workspace_contents_file(airlock_client):
         workspace="workspace",
     )
     assert audit[0].type == AuditEventType.WORKSPACE_FILE_VIEW
-    assert audit[0].path == "file.txt"
+    assert audit[0].path == UrlPath("file.txt")
 
 
 def test_workspace_contents_dir(airlock_client):

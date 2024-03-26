@@ -227,7 +227,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             user=audit.user,
             workspace=audit.workspace,
             request=audit.request,
-            path=audit.path,
+            path=str(audit.path) if audit.path else None,
             extra=audit.extra,
             created_at=audit.created_at,
         )
@@ -263,7 +263,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 user=audit.user,
                 workspace=audit.workspace,
                 request=audit.request,
-                path=audit.path,
+                path=UrlPath(audit.path) if audit.path else None,
                 extra=audit.extra,
                 created_at=audit.created_at,
             )

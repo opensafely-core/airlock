@@ -3,7 +3,13 @@ from io import BytesIO
 import pytest
 import requests
 
-from airlock.business_logic import AuditEventType, RequestFileType, RequestStatus, bll
+from airlock.business_logic import (
+    AuditEventType,
+    RequestFileType,
+    RequestStatus,
+    UrlPath,
+    bll,
+)
 from tests import factories
 from tests.conftest import get_trace
 
@@ -180,7 +186,7 @@ def test_request_contents_file(airlock_client):
         request=release_request.id,
     )
     assert audit_log[0].type == AuditEventType.REQUEST_FILE_VIEW
-    assert audit_log[0].path == "default/file.txt"
+    assert audit_log[0].path == UrlPath("default/file.txt")
     assert audit_log[0].extra["group"] == "default"
 
 
@@ -223,7 +229,7 @@ def test_request_download_file(airlock_client):
         request=release_request.id,
     )
     assert audit_log[0].type == AuditEventType.REQUEST_FILE_DOWNLOAD
-    assert audit_log[0].path == "default/file.txt"
+    assert audit_log[0].path == UrlPath("default/file.txt")
     assert audit_log[0].extra["group"] == "default"
 
 

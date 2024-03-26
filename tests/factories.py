@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from airlock.business_logic import AuditEvent, RequestFileType, Workspace, bll
+from airlock.business_logic import AuditEvent, RequestFileType, UrlPath, Workspace, bll
 from airlock.users import User
 
 
@@ -98,7 +98,7 @@ def create_audit_event(
     user="user",
     workspace="workspace",
     request="request",
-    path="foo/bar",
+    path=UrlPath("foo/bar"),
     extra={"foo": "bar"},
 ):
     event = AuditEvent(
@@ -106,7 +106,7 @@ def create_audit_event(
         user=user,
         workspace=workspace,
         request=request,
-        path=path,
+        path=UrlPath(path) if path else None,
         extra=extra,
     )
     bll._dal.audit_event(event)

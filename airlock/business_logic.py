@@ -86,7 +86,7 @@ class AuditEvent:
     user: str
     workspace: str | None = None
     request: str | None = None
-    path: str | None = None
+    path: UrlPath | None = None
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
     created_at: datetime = field(default_factory=timezone.now, compare=False)
@@ -110,7 +110,7 @@ class AuditEvent:
             extra=kwargs,
         )
         if path:
-            event.path = str(path)
+            event.path = path
 
         return event
 
@@ -902,7 +902,7 @@ class BusinessLogicLayer:
             type=AuditEventType.WORKSPACE_FILE_VIEW,
             user=user.username,
             workspace=workspace.name,
-            path=str(path),
+            path=path,
         )
         bll._dal.audit_event(audit)
 
