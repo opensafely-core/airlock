@@ -89,7 +89,7 @@ def mock_old_api(monkeypatch):
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
 
 
-def test_provider_request_release_files_not_approved():
+def test_provider_request_release_files_request_not_approved():
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -115,7 +115,9 @@ def test_provider_request_release_files(mock_old_api):
         status=RequestStatus.SUBMITTED,
     )
     relpath = Path("test/file.txt")
-    factories.write_request_file(release_request, "group", relpath, "test")
+    factories.write_request_file(
+        release_request, "group", relpath, "test", approved=True
+    )
     # Add a supporting file, which should NOT be released
     supporting_relpath = Path("test/supporting_file.txt")
     factories.write_request_file(
@@ -309,6 +311,26 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request2, future, user=checker)
+
+
+@pytest.mark.parametrize("files_approved", (True, False))
+def test_set_status_approved(files_approved, bll):
+    author = factories.create_user("author", ["workspace"], False)
+    checker = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=RequestStatus.SUBMITTED
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=files_approved
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    if files_approved:
+        bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
+        assert release_request.status == RequestStatus.APPROVED
+    else:
+        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+            bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
 
 
 def test_set_status_cannot_action_own_request(bll):

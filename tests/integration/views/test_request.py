@@ -419,8 +419,12 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
-    factories.write_request_file(release_request, "group", "test/file2.txt", "test2")
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file2.txt", "test2", approved=True
+    )
 
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post("/requests/release/request_id")
@@ -438,7 +442,9 @@ def test_requests_release_workspace_403(airlock_client):
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=True
+    )
     response = airlock_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
@@ -451,7 +457,9 @@ def test_requests_release_author_403(airlock_client):
         user=airlock_client.user,
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "group", "test/file1.txt", "test1")
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=True
+    )
     response = airlock_client.post("/requests/release/request_id")
     assert response.status_code == 403
 
@@ -463,7 +471,9 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "group", "test/file.txt", "test")
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", "test", approved=True
+    )
 
     response = requests.Response()
     response.status_code = 403
@@ -498,7 +508,9 @@ def test_requests_release_jobserver_403_with_debug(
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "default", "test/file.txt", "test")
+    factories.write_request_file(
+        release_request, "default", "test/file.txt", "test", approved=True
+    )
 
     response = requests.Response()
     response.status_code = 403
@@ -516,6 +528,20 @@ def test_requests_release_jobserver_403_with_debug(
     assert contains_iframe == should_contain_iframe
 
 
+def test_requests_release_unapproved_files_403(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=False
+    )
+    response = airlock_client.post("/requests/release/request_id")
+    assert response.status_code == 403
+
+
 def test_requests_release_files_404(airlock_client, release_files_stubber):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
@@ -523,7 +549,9 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    factories.write_request_file(release_request, "group", "test/file.txt", "test")
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", "test", approved=True
+    )
 
     # test 404 results in 500
     response = requests.Response()
@@ -586,7 +614,11 @@ def test_request_view_tracing_with_request_attribute(
         "test-workspace", id="request-id", user=author, status=status
     )
     factories.write_request_file(
-        release_request, "default", "file.txt", contents="test"
+        release_request,
+        "default",
+        "file.txt",
+        contents="test",
+        approved="/requests/release/" in urlpath,
     )
     if stub:
         release_files_stubber(release_request)
