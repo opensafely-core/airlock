@@ -59,4 +59,4 @@ def logout(request):
     session data and redirect to the home page.
     """
     request.session.flush()
-    return redirect(reverse("home"))
+    return redirect(reverse("login"))

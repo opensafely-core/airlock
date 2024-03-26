@@ -10,9 +10,11 @@ from tests.conftest import get_trace
 pytestmark = pytest.mark.django_db
 
 
-def test_index(client):
-    response = client.get("/")
-    assert "Hello World" in response.rendered_content
+def test_home_redirects(airlock_client):
+    airlock_client.login()
+    response = airlock_client.get("/")
+    assert response.status_code == 302
+    assert response.headers["location"] == "/workspaces/"
 
 
 def test_workspace_view(airlock_client):

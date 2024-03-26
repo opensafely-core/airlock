@@ -97,5 +97,5 @@ def test_logout(client):
     session.save()
 
     response = client.get("/logout/")
-    assert response.url == "/"
+    assert response.url == "/login/"
     assert "user" not in client.session

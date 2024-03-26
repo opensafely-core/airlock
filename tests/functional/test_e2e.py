@@ -60,7 +60,7 @@ def login_as(live_server, page, username):
     page.locator("#id_token").fill(username)
     find_and_click(page.locator("button[type=submit]"))
 
-    expect(page).to_have_url(live_server.url + "/")
+    expect(page).to_have_url(live_server.url + "/workspaces/")
     expect(page.locator("body")).to_contain_text(f"Logged in as: {username}")
 
 
