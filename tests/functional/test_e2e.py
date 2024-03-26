@@ -4,11 +4,12 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from airlock.business_logic import RequestStatus, bll
+from airlock.business_logic import RequestStatus, UrlPath, bll
 from tests import factories
 
 
 admin_user = factories.create_user("admin", output_checker=True)
+admin_user1 = factories.create_user("admin1", output_checker=True)
 
 
 @pytest.fixture
@@ -102,6 +103,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     - Click and view submitted request
     - View output file
     - Download output file
+    - Approve output file twice (to be replaced by UI button clicks when available)
     - Release files
     - View requests list again and confirm released request is not shown
     """
@@ -312,12 +314,28 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     download = download_info.value
     assert download.suggested_filename == "file.txt"
 
+    # File is not yet approved, so the release button is disabled
+    release_button = page.locator("#release-files-button")
+    expect(release_button).to_be_disabled()
+
+    # TODO: Add file approval (by 2 output checkers) once the UI is available
+    # For now, make the file approved so that we can release it
+    release_request = bll.get_release_request(request_id=request_id, user=admin_user)
+    factories.bll.approve_file(
+        release_request, UrlPath("subdir/file.txt"), user=admin_user
+    )
+    factories.bll.approve_file(
+        release_request, UrlPath("subdir/file.txt"), user=admin_user1
+    )
+    page.reload()
+    expect(release_button).to_be_enabled()
+
     # Mock the responses from job-server
     release_request = bll.get_release_request(request_id, admin_user)
     release_files_stubber(release_request)
 
     # Release the files
-    find_and_click(page.locator("#release-files-button"))
+    find_and_click(release_button)
     expect(page.locator("body")).to_contain_text(
         "Files have been released to jobs.opensafely.org"
     )
