@@ -25,5 +25,5 @@ def test_login(requests_post, settings, page, live_server):
         json={"user": "test_user", "token": "foo bar baz"},
     )
 
-    expect(page).to_have_url(live_server.url + "/")
+    expect(page).to_have_url(live_server.url + "/workspaces/")
     expect(page.locator("body")).to_contain_text("Logged in as: test_user")

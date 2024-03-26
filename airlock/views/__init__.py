@@ -1,5 +1,4 @@
 from .auth import login, logout
-from .index import index
 from .request import (
     request_contents,
     request_index,

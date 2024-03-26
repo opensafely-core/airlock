@@ -17,13 +17,14 @@ Including another URLconf
 
 from django.conf import settings
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 import airlock.views
 import assets.views
 
 
 urlpatterns = [
-    path("", airlock.views.index, name="home"),
+    path("", RedirectView.as_view(pattern_name="workspace_index"), name="home"),
     path("login/", airlock.views.login, name="login"),
     path("logout/", airlock.views.logout, name="logout"),
     path("ui-components/", assets.views.components),
