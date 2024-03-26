@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
@@ -88,7 +89,7 @@ class AuditEvent:
     path: str | None = None
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
-    created_at: datetime | None = field(default=None, compare=False)
+    created_at: datetime = field(default_factory=timezone.now, compare=False)
 
     WIDTH = max(len(k.name) for k in AuditEventType)
 
@@ -114,10 +115,7 @@ class AuditEvent:
         return event
 
     def __str__(self):
-        if self.created_at:
-            ts = self.created_at.isoformat()[:-13]  # seconds precision
-        else:
-            ts = "TIME UNKNOWN"
+        ts = self.created_at.isoformat()[:-13]  # seconds precision
         msg = [
             f"{ts}: {self.type.name:<{self.WIDTH}} user={self.user} workspace={self.workspace}"
         ]

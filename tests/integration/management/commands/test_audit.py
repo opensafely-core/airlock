@@ -21,15 +21,8 @@ def audit_output(kwargs):
     return out.getvalue().strip()
 
 
-def strip_timestamp(s):
-    _, _, rest = s.partition(": ")
-    return rest
-
-
 @pytest.mark.parametrize("kwargs,expected_audits", TEST_PARAMETERS)
 def test_audit_command(test_audits, kwargs, expected_audits):
-    output_lines = [strip_timestamp(line) for line in audit_output(kwargs).split("\n")]
+    output_lines = audit_output(kwargs).split("\n")
 
-    assert output_lines == [
-        strip_timestamp(str(test_audits[audit])) for audit in expected_audits
-    ]
+    assert output_lines == [str(test_audits[audit]) for audit in expected_audits]
