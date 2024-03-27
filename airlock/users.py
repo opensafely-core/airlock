@@ -1,4 +1,5 @@
 import dataclasses
+import time
 
 
 @dataclasses.dataclass(frozen=True)
@@ -12,6 +13,7 @@ class User:
     username: str
     workspaces: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
+    last_refresh: float = dataclasses.field(default_factory=time.time)
 
     def __post_init__(self):
         assert isinstance(self.workspaces, dict)
@@ -23,13 +25,15 @@ class User:
             return
         workspaces = user.get("workspaces", dict())
         output_checker = user.get("output_checker", False)
-        return cls(user["username"], workspaces, output_checker)
+        last_refresh = user.get("last_refresh", time.time())
+        return cls(user["username"], workspaces, output_checker, last_refresh)
 
     def to_dict(self):
         return {
             "username": self.username,
             "workspaces": self.workspaces,
             "output_checker": self.output_checker,
+            "last_refresh": self.last_refresh,
         }
 
     def has_permission(self, workspace_name):

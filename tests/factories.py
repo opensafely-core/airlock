@@ -1,10 +1,14 @@
+import time
+
 from django.conf import settings
 
 from airlock.business_logic import AuditEvent, RequestFileType, UrlPath, Workspace, bll
 from airlock.users import User
 
 
-def create_user(username="testuser", workspaces=None, output_checker=False):
+def create_user(
+    username="testuser", workspaces=None, output_checker=False, last_refresh=None
+):
     """Factory to create a user.
 
     For ease of use, workspaces can either be a list of workspaces, which is
@@ -18,7 +22,10 @@ def create_user(username="testuser", workspaces=None, output_checker=False):
         workspaces_dict = {
             workspace: {"project": "project"} for workspace in workspaces
         }
-    return User(username, workspaces_dict, output_checker)
+
+    if last_refresh is None:
+        last_refresh = time.time()
+    return User(username, workspaces_dict, output_checker, last_refresh)
 
 
 def ensure_workspace(workspace_or_name):
