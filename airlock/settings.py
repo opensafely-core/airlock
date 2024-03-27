@@ -225,6 +225,11 @@ STATICFILES_DIRS = [
 # Changing from the default allows us to share localhost port in developement
 SESSION_COOKIE_NAME = "airlock-sessionid"
 
+# login is painful, so reduce the frequency that users need to do it after inactivity.
+SESSION_COOKIE_AGE = 8 * 7 * 24 * 60 * 60  # 8 weeks
+# time before we refresh users authorisation
+AIRLOCK_AUTHZ_TIMEOUT = 15 * 60  # 15 minutes
+
 # Enable frames
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
@@ -270,8 +275,6 @@ else:  # pragma: no cover
 
 AIRLOCK_DATA_ACCESS_LAYER = "local_db.data_access.LocalDBDataAccessLayer"
 
-
-AIRLOCK_AUTHZ_TIMEOUT = 30 * 60  # 30 minutes
 
 # BACKEND is global env var on backends
 BACKEND = os.environ.get("BACKEND", "test")
