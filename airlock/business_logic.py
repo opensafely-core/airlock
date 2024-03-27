@@ -50,6 +50,7 @@ class RequestStatus(Enum):
 class RequestFileType(Enum):
     OUTPUT = "output"
     SUPPORTING = "supporting"
+    WITHDRAWN = "withdrawn"
 
 
 class FileReviewStatus(Enum):
@@ -469,11 +470,27 @@ class DataAccessLayerProtocol(Protocol):
 
     def add_file_to_request(
         self,
-        request_id,
+        request_id: str,
         relpath: UrlPath,
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
+    def delete_file_from_request(
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
+    def withdraw_file_from_request(
+        self,
+        request_id: str,
+        relpath: UrlPath,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -762,6 +779,20 @@ class BusinessLogicLayer:
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
 
+    def _validate_editable(self, release_request, user):
+        if user.username != release_request.author:
+            raise self.RequestPermissionDenied(
+                f"only author {release_request.author} can modify the files in this request"
+            )
+
+        if release_request.status not in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+        ]:
+            raise self.RequestPermissionDenied(
+                f"cannot modify files in request that is in state {release_request.status.name}"
+            )
+
     def add_file_to_request(
         self,
         release_request: ReleaseRequest,
@@ -770,18 +801,7 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
-        if user.username != release_request.author:
-            raise self.RequestPermissionDenied(
-                f"only author {release_request.author} can add files to this request"
-            )
-
-        if release_request.status not in [
-            RequestStatus.PENDING,
-            RequestStatus.SUBMITTED,
-        ]:
-            raise self.RequestPermissionDenied(
-                f"cannot add file to request in state {release_request.status.name}"
-            )
+        self._validate_editable(release_request, user)
 
         workspace = self.get_workspace(release_request.workspace, user)
         src = workspace.abspath(relpath)
@@ -804,6 +824,43 @@ class BusinessLogicLayer:
             filetype=filetype,
             audit=audit,
         )
+        release_request.set_filegroups_from_dict(filegroup_data)
+        return release_request
+
+    def withdraw_file_from_request(
+        self,
+        release_request: ReleaseRequest,
+        group_path: UrlPath,
+        user: User,
+    ):
+        self._validate_editable(release_request, user)
+        relpath = UrlPath(*group_path.parts[1:])
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_WITHDRAW,
+            user=user,
+            path=relpath,
+            group=group_path.parts[0],
+        )
+
+        if release_request.status == RequestStatus.PENDING:
+            # the user has not yet submitted the request, so just remove the file
+            filegroup_data = self._dal.delete_file_from_request(
+                request_id=release_request.id,
+                relpath=relpath,
+                audit=audit,
+            )
+        elif release_request.status == RequestStatus.SUBMITTED:
+            # the request has been submitted, set the file type to WITHDRAWN
+            filegroup_data = self._dal.withdraw_file_from_request(
+                request_id=release_request.id,
+                relpath=relpath,
+                audit=audit,
+            )
+        else:
+            assert False, f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
+
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
