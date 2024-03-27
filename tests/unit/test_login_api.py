@@ -25,12 +25,12 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
         )
     )
 
-    assert login_api.get_user_data("test_user", "foo bar baz") == {
-        "output_checker": True,
-        "workspaces": {
-            "test1": {"project": "project1"},
-        },
+    dev_data = login_api.get_user_data("test_user", "foo bar baz")
+    assert dev_data["output_checker"] is True
+    assert dev_data["workspaces"] == {
+        "test1": {"project": "project1"},
     }
+    assert "last_refresh" in dev_data
 
 
 def test_get_user_data_with_dev_users_invalid(settings, tmp_path):
