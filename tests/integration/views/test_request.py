@@ -112,6 +112,58 @@ def test_request_view_with_authored_request_file(airlock_client):
     assert "Withdraw this file" in response.rendered_content
 
 
+def test_request_view_with_submitted_file(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/file.txt", follow=True
+    )
+    assert "Remove this file" not in response.rendered_content
+    assert "Approve File" in response.rendered_content
+    assert "Reject File" in response.rendered_content
+    assert '    id="file-approve-button" type="submit"' in response.rendered_content
+    assert '    id="file-reject-button" type="submit"' in response.rendered_content
+
+
+def test_request_view_with_submitted_file_approved(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    airlock_client.post(f"/requests/approve/{release_request.id}/group/file.txt")
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/file.txt", follow=True
+    )
+    assert "Approve File" in response.rendered_content
+    assert "Reject File" in response.rendered_content
+    assert (
+        '    disabled id="file-approve-button" type="submit"'
+        in response.rendered_content
+    )
+    assert '    id="file-reject-button" type="submit"' in response.rendered_content
+
+
+def test_request_view_with_submitted_file_rejected(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    airlock_client.post(f"/requests/reject/{release_request.id}/group/file.txt")
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/file.txt", follow=True
+    )
+    assert "Approve File" in response.rendered_content
+    assert "Reject File" in response.rendered_content
+
+
 def test_request_view_with_404(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")

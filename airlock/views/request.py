@@ -10,7 +10,13 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock.business_logic import RequestStatus, UrlPath, bll
+from airlock.business_logic import (
+    FileReviewStatus,
+    RequestFileType,
+    RequestStatus,
+    UrlPath,
+    bll,
+)
 from airlock.file_browser_api import get_request_tree
 from services.tracing import instrument
 
@@ -86,6 +92,38 @@ def request_view(request, request_id: str, path: str = ""):
         kwargs={"request_id": request_id},
     )
 
+    if (
+        is_directory_url
+        or release_request.request_filetype(path) == RequestFileType.SUPPORTING
+    ):
+        file_approve_url = None
+        file_reject_url = None
+    else:
+        # get_path_item_from_tree_or_404() guarantees this file exists
+        group, request_file = release_request.get_request_group_and_file(path)
+
+        file_approve_url = reverse(
+            "file_approve",
+            kwargs={"request_id": request_id, "path": path},
+        )
+        file_reject_url = reverse(
+            "file_reject",
+            kwargs={"request_id": request_id, "path": path},
+        )
+
+        existing_reviews = [
+            r
+            for r in release_request.filegroups[group]
+            .files[request_file.relpath]
+            .reviews
+            if r.reviewer == request.user.username
+        ]
+        if existing_reviews != []:
+            if existing_reviews[0].status == FileReviewStatus.APPROVED:
+                file_approve_url = None
+            else:
+                file_reject_url = None
+
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
@@ -96,6 +134,8 @@ def request_view(request, request_id: str, path: str = ""):
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
+        "file_approve_url": file_approve_url,
+        "file_reject_url": file_reject_url,
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
