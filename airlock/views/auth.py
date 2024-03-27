@@ -24,9 +24,6 @@ def login(request):
         user_data = get_user_data_or_set_form_errors(token_login_form)
         # If `user_data` is None then the form object will have the relevant errors
         if user_data is not None:
-            # TODO: the current code expects an `id` field but the API doesn't return
-            # one; we should work out what we're doing here
-            user_data["id"] = user_data["username"]
             request.session["user"] = user_data
             return redirect(next_url)
 

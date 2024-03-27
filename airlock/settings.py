@@ -270,6 +270,9 @@ else:  # pragma: no cover
 
 AIRLOCK_DATA_ACCESS_LAYER = "local_db.data_access.LocalDBDataAccessLayer"
 
+
+AIRLOCK_AUTHZ_TIMEOUT = 30 * 60  # 30 minutes
+
 # BACKEND is global env var on backends
 BACKEND = os.environ.get("BACKEND", "test")
 

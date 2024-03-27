@@ -1,8 +1,12 @@
+import time
 from urllib.parse import urlencode
 
+import requests
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from airlock import login_api
 from airlock.users import User
 
 
@@ -13,7 +17,21 @@ class UserMiddleware:
 
     def __call__(self, request):
         """Add the session user to the request"""
-        request.user = User.from_session(request.session)
+        user = User.from_session(request.session)
+
+        if user:
+            time_since_authz = time.time() - user.last_refresh
+            if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
+                try:
+                    details = login_api.get_user_authz(user.username)
+                except requests.HTTPError:
+                    # TODO: log this, but we should have telemetry for the requests call anyway
+                    pass
+                else:
+                    request.session["user"] = details
+                    user = User.from_session(request.session)
+
+        request.user = user
         response = self.get_response(request)
         return response
 
