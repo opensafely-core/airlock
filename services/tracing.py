@@ -85,6 +85,8 @@ def instrument(
       name. Sets the span attribute k to the str representation of
       the function argument v (can be either positional or keyword argument).
       v must be either a string, or an object that can be passed to str().
+      If the decorated function is a class method, the parameter will also be
+      looked up on the class instance.
     existing_tracer: pass an optional existing tracer to use. Defaults to
       a tracer named with the value of the environment variable
       `OTEL_SERVICE_NAME` if available, or the name of the module containing
@@ -116,13 +118,18 @@ def instrument(
                     # 2) the bound args retrieved from the function signature; this will find any
                     # explicity passed values when the function was called.
                     # 3) the parameter default value, if there is one
-                    # 4) Finally, raises an exception if we can't find a value for the expected parameter
+                    # 4) the attribute on the class instance, if there is one
+                    # 5) Finally, raises an exception if we can't find a value for the expected parameter
                     if parameter_name in kwargs:
                         func_arg = kwargs[parameter_name]
                     elif parameter_name in bound_args:
                         func_arg = bound_args[parameter_name]
                     elif parameter_name in default_params:
                         func_arg = default_params[parameter_name]
+                    elif "self" in bound_args and hasattr(
+                        bound_args["self"], parameter_name
+                    ):
+                        func_arg = getattr(bound_args["self"], parameter_name)
                     else:
                         raise AttributeError(
                             f"Expected argument {parameter_name} not found in function signature"
