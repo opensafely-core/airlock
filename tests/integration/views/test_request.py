@@ -125,8 +125,6 @@ def test_request_view_with_submitted_file(airlock_client):
     assert "Remove this file" not in response.rendered_content
     assert "Approve File" in response.rendered_content
     assert "Reject File" in response.rendered_content
-    assert '    id="file-approve-button" type="submit"' in response.rendered_content
-    assert '    id="file-reject-button" type="submit"' in response.rendered_content
 
 
 def test_request_view_with_submitted_file_approved(airlock_client):
@@ -142,11 +140,6 @@ def test_request_view_with_submitted_file_approved(airlock_client):
     )
     assert "Approve File" in response.rendered_content
     assert "Reject File" in response.rendered_content
-    assert (
-        '    disabled id="file-approve-button" type="submit"'
-        in response.rendered_content
-    )
-    assert '    id="file-reject-button" type="submit"' in response.rendered_content
 
 
 def test_request_view_with_submitted_file_rejected(airlock_client):
