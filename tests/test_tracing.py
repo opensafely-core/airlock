@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 
 import opentelemetry.exporter.otlp.proto.http.trace_exporter
 import pytest
@@ -145,3 +146,24 @@ def test_instrument_decorator_with_unnamed_kwargs(func_kwargs, expect_ok):
     else:
         with pytest.raises(AttributeError, match="not found in function signature"):
             decorated_function(**func_kwargs)
+
+
+@pytest.mark.parametrize(
+    "instance_kwargs,function_arg,expected",
+    [
+        ({}, 1, {"foo": "1", "foo1": "default"}),
+        ({"baz": "test"}, "string", {"foo": "string", "foo1": "test"}),
+    ],
+)
+def test_instrument_decorator_on_class_method(instance_kwargs, function_arg, expected):
+    @dataclass
+    class Decorated:
+        baz: str = "default"
+
+        @instrument(func_attributes={"foo": "bar", "foo1": "baz"})
+        def decorated_method(self, bar):
+            current_span = trace.get_current_span()
+            assert current_span.attributes == expected
+
+    instance = Decorated(**instance_kwargs)
+    instance.decorated_method(function_arg)
