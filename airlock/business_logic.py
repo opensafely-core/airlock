@@ -364,7 +364,7 @@ class ReleaseRequest:
 
         return url
 
-    def get_request_file(self, relpath: UrlPath | str):
+    def get_request_group_and_file(self, relpath: UrlPath | str):
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
         file_relpath = UrlPath(*relpath.parts[1:])
@@ -375,6 +375,10 @@ class ReleaseRequest:
         if not (request_file := filegroup.files.get(file_relpath)):
             raise BusinessLogicLayer.FileNotFound(relpath)
 
+        return group, request_file
+
+    def get_request_file(self, relpath: UrlPath | str):
+        _, request_file = self.get_request_group_and_file(relpath)
         return request_file
 
     def abspath(self, relpath):

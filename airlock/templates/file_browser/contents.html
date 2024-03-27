@@ -57,6 +57,24 @@
             {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
           </form>
         {% elif is_output_checker %}
+          {% if file_approve_url %}
+            <form action="{{ file_approve_url }}" method="POST">
+              {% csrf_token %}
+              {% #button type="submit" variant="success" id="file-approve-button" %}Approve File{% /button %}
+            </form>
+          {% else %}
+            {% csrf_token %}
+            {% #button type="submit" variant="success" disabled=True id="file-approve-button" %}Approve File{% /button %}
+          {% endif %}
+          {% if file_reject_url %}
+            <form action="{{ file_reject_url }}" method="POST">
+              {% csrf_token %}
+              {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+            </form>
+          {% else %}
+            {% csrf_token %}
+            {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+          {% endif %}
           {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
