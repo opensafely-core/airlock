@@ -127,6 +127,27 @@ def test_request_view_with_submitted_file(airlock_client):
     assert "Reject File" in response.rendered_content
 
 
+def test_request_view_with_submitted_supporting_file(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(
+        release_request,
+        "group",
+        "supporting_file.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/supporting_file.txt", follow=True
+    )
+    assert "Remove this file" not in response.rendered_content
+    # these buttons currently exist but are both disabled
+    assert "Approve File" in response.rendered_content
+    assert "Reject File" in response.rendered_content
+
+
 def test_request_view_with_submitted_file_approved(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
