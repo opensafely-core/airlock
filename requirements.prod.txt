@@ -112,6 +112,10 @@ deprecated==1.2.14 \
     # via
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-http
+distro==1.9.0 \
+    --hash=sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed \
+    --hash=sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2
+    # via ruyaml
 django==5.0.3 \
     --hash=sha256:5c7d748ad113a81b2d44750ccc41edc14e933f56581683db548c9257e078cc83 \
     --hash=sha256:5fb37580dcf4a262f9258c1f4373819aacca906431f505e4688e37f3a99195df
@@ -149,6 +153,9 @@ importlib-metadata==6.11.0 \
     --hash=sha256:1231cf92d825c9e03cfc4da076a16de6422c863558229ea0b22b675657463443 \
     --hash=sha256:f0afba6205ad8f8947c7d338b5342d5db2afbfd82f9cbef7879a9539cc12eb9b
     # via opentelemetry-api
+opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.03.19.153938.zip \
+    --hash=sha256:f1fb0829c832f4c52a495d7fe167e0656c2a77fde4e58426268c60754a5f6e89
+    # via -r requirements.prod.in
 opentelemetry-api==1.23.0 \
     --hash=sha256:14a766548c8dd2eb4dfc349739eb4c3893712a0daa996e5dbf945f9da665da9d \
     --hash=sha256:cc03ea4025353048aadb9c64919099663664672ea1c6be6ddd8fee8e4cd5e774
@@ -226,10 +233,10 @@ opentelemetry-util-http==0.44b0 \
     #   opentelemetry-instrumentation-django
     #   opentelemetry-instrumentation-requests
     #   opentelemetry-instrumentation-wsgi
-    # via gunicorn
 packaging==24.0 \
     --hash=sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5 \
     --hash=sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9
+    # via gunicorn
 protobuf==4.25.3 \
     --hash=sha256:19b270aeaa0099f16d3ca02628546b8baefe2955bbe23224aaf856134eccf1e4 \
     --hash=sha256:209ba4cc916bab46f64e56b85b090607a676f66b473e6b762e6f1d9d591eb2e8 \
@@ -282,7 +289,9 @@ pydantic==1.10.14 \
     --hash=sha256:e897c9f35281f7889873a3e6d6b69aa1447ceb024e8495a5f0d02ecd17742a7f \
     --hash=sha256:f9f674b5c3bebc2eba401de64f29948ae1e646ba2735f884d1594c5f675d6f2a \
     --hash=sha256:fa7790e94c60f809c95602a26d906eba01a0abee9cc24150e4ce2189352deb1b
-    # via -r requirements.prod.in
+    # via
+    #   -r requirements.prod.in
+    #   opensafely-pipeline
 pyyaml==6.0.1 \
     --hash=sha256:04ac92ad1925b2cff1db0cfebffb6ffc43457495c9b3c39d3fcae417d7125dc5 \
     --hash=sha256:062582fca9fabdd2c8b54a3ef1c978d786e0f6b3a1510e0ac93ef59e0ddae2bc \
@@ -342,6 +351,10 @@ requests==2.31.0 \
     # via
     #   -r requirements.prod.in
     #   opentelemetry-exporter-otlp-proto-http
+ruyaml==0.91.0 \
+    --hash=sha256:50e0ee3389c77ad340e209472e0effd41ae0275246df00cdad0a067532171755 \
+    --hash=sha256:6ce9de9f4d082d696d3bde264664d1bcdca8f5a9dff9d1a1f1a127969ab871ab
+    # via opensafely-pipeline
 slippers==0.6.2 \
     --hash=sha256:4cb555b8822ba0d404e5405723f5d723994022c29046008ee917081031bc0cf1 \
     --hash=sha256:739e05f85354becbf0a65daab831eea62557d89e7512042209ab629af4378bca
@@ -456,4 +469,6 @@ zipp==3.18.1 \
 setuptools==69.2.0 \
     --hash=sha256:0ff4183f8f42cd8fa3acea16c45205521a4ef28f73c6391d8a25e92893134f2e \
     --hash=sha256:c21c49fb1042386df081cb5d86759792ab89efca84cf114889191cd09aacc80c
-    # via opentelemetry-instrumentation
+    # via
+    #   opentelemetry-instrumentation
+    #   ruyaml
