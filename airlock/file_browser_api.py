@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from pipeline.constants import LEVEL4_FILE_TYPES
+
 from airlock.business_logic import ROOT_PATH, AirlockContainer, RequestFileType, UrlPath
 from services.tracing import instrument
 
@@ -221,7 +223,15 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
 
     else:
         # listing all files in one go is much faster than walking the tree
-        pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+        # Note we limit the files to valid LEVEL4_FILE_TYPES here, so as to
+        # reduce some unnecessary iteration in get_path_tree. However, get_path_tree
+        # ALSO needs to check each file-type node it finds as it builds the tree for
+        # each path in the pathlist
+        pathlist = [
+            p.relative_to(root)
+            for p in root.glob("**/*")
+            if p.is_dir() or p.suffix in LEVEL4_FILE_TYPES
+        ]
 
     root_node = PathItem(
         container=workspace,
@@ -377,7 +387,8 @@ def get_path_tree(
             else:
                 node.type = PathType.FILE
 
-            tree.append(node)
+            if node.type == PathType.DIR or node.relpath.suffix in LEVEL4_FILE_TYPES:
+                tree.append(node)
 
         # sort directories first then files
         tree.sort(key=children_sort_key)

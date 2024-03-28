@@ -21,6 +21,9 @@ def workspace():
     factories.write_workspace_file(w, "some_dir/file_a.txt", "file_a")
     factories.write_workspace_file(w, "some_dir/file_b.txt", "file_b")
     factories.write_workspace_file(w, "some_dir/file_c.txt", "file_c")
+    # A file with an extension that is not allowed on L4 should not
+    # appear in any workspace tree
+    factories.write_workspace_file(w, "some_dir/file_a.foo", "bad file")
     return w
 
 
