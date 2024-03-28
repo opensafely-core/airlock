@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import requests
@@ -29,7 +30,21 @@ def get_user_data_prod(user: str, token: str):
     if response.status_code == requests.codes.forbidden:
         raise LoginError("Invalid user or token")
     response.raise_for_status()
-    return response.json()
+    details = response.json()
+    details["last_refresh"] = time.time()
+    return details
+
+
+def get_user_authz(username):
+    response = session.post(
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",
+        headers={"Authorization": settings.AIRLOCK_API_TOKEN},
+        json={"user": username},
+    )
+    response.raise_for_status()
+    details = response.json()
+    details["last_refresh"] = time.time()
+    return details
 
 
 def get_user_data_dev(dev_users_file: Path, user: str, token: str):
@@ -43,4 +58,7 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
     if user not in dev_users or dev_users[user]["token"] != token:
         raise LoginError("Invalid user or token")
     else:
-        return dev_users[user]["details"]
+        details = dev_users[user]["details"]
+        # ensure that we never try refresh this user with job-server
+        details["last_refresh"] = time.time() + (365 * 24 * 60 * 60)
+        return details
