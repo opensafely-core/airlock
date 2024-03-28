@@ -116,6 +116,8 @@ def request_view(request, request_id: str, path: str = ""):
                 file_approve_url = None
             elif existing_review.status == FileReviewStatus.REJECTED:
                 file_reject_url = None
+            else:
+                assert False, "Invalid FileReviewStatus value"
 
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
