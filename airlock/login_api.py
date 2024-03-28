@@ -59,5 +59,6 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
         raise LoginError("Invalid user or token")
     else:
         details = dev_users[user]["details"]
+        # ensure that we never try refresh this user with job-server
         details["last_refresh"] = time.time() + (365 * 24 * 60 * 60)
         return details
