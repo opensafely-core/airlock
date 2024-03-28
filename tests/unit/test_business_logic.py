@@ -925,6 +925,47 @@ def test_approve_then_reject_file(bll):
     assert len(current_reviews) == 1
 
 
+def test_get_file_review_for_reviewer(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+    checker2 = factories.create_user("checker2", [], True)
+
+    bll.add_file_to_request(release_request, path, author, "default")
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+    fullpath = "default" / path
+    assert release_request.get_file_review_for_reviewer(fullpath, "checker") is None
+
+    bll.approve_file(release_request, path, checker)
+    bll.reject_file(release_request, path, checker2)
+    release_request = factories.refresh_release_request(release_request, author)
+
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker").status
+        is FileReviewStatus.APPROVED
+    )
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker2").status
+        is FileReviewStatus.REJECTED
+    )
+
+    bll.reject_file(release_request, path, checker)
+    bll.approve_file(release_request, path, checker2)
+    release_request = factories.refresh_release_request(release_request, author)
+
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker").status
+        is FileReviewStatus.REJECTED
+    )
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker2").status
+        is FileReviewStatus.APPROVED
+    )
+
+
 # add DAL method names to this if they do not require auditing
 DAL_AUDIT_EXCLUDED = {
     "get_release_request",

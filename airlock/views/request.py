@@ -99,9 +99,6 @@ def request_view(request, request_id: str, path: str = ""):
         file_approve_url = None
         file_reject_url = None
     else:
-        # get_path_item_from_tree_or_404() guarantees this file exists
-        group, request_file = release_request.get_request_group_and_file(path)
-
         file_approve_url = reverse(
             "file_approve",
             kwargs={"request_id": request_id, "path": path},
@@ -111,17 +108,13 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "path": path},
         )
 
-        existing_reviews = [
-            r
-            for r in release_request.filegroups[group]
-            .files[request_file.relpath]
-            .reviews
-            if r.reviewer == request.user.username
-        ]
-        if existing_reviews != []:
-            if existing_reviews[0].status == FileReviewStatus.APPROVED:
+        existing_review = release_request.get_file_review_for_reviewer(
+            path, request.user.username
+        )
+        if existing_review:
+            if existing_review.status == FileReviewStatus.APPROVED:
                 file_approve_url = None
-            else:
+            elif existing_review.status == FileReviewStatus.REJECTED:
                 file_reject_url = None
 
     context = {
