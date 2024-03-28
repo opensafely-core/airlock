@@ -348,6 +348,21 @@ def test_add_file_to_request_not_author(bll):
         bll.add_file_to_request(release_request, path, other)
 
 
+def test_add_file_to_request_invalid_file_type(bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    path = Path("path/file.foo")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.add_file_to_request(release_request, path, author)
+
+
 @pytest.mark.parametrize(
     "status,success",
     [

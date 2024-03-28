@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
+from pipeline.constants import LEVEL4_FILE_TYPES
 
 import old_api
 from airlock.renderers import get_renderer
@@ -785,6 +786,12 @@ class BusinessLogicLayer:
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         self._validate_editable(release_request, user)
+
+        relpath = UrlPath(relpath)
+        if relpath.suffix not in LEVEL4_FILE_TYPES:
+            raise self.RequestPermissionDenied(
+                f"Cannot add file of type {relpath.suffix} to request"
+            )
 
         workspace = self.get_workspace(release_request.workspace, user)
         src = workspace.abspath(relpath)
