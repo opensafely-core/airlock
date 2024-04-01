@@ -156,6 +156,26 @@ def request_reject(request, request_id):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
+def request_withdraw(request, request_id):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    grouppath = UrlPath(request.POST["path"])
+
+    try:
+        release_request.get_request_file(grouppath)
+    except bll.FileNotFound:
+        raise Http404()
+
+    try:
+        bll.withdraw_file_from_request(release_request, grouppath, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.error(request, f"The file {grouppath} has been withdrawn from the request")
+    return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
 def request_release_files(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 
