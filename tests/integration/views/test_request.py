@@ -431,6 +431,7 @@ def test_request_withdraw_file_pending(airlock_client):
         data={"path": "group/path/test.txt"},
     )
     assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url("group")
 
     persisted_request = factories.bll.get_release_request(release_request.id, author)
 

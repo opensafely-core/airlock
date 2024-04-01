@@ -176,8 +176,17 @@ def request_withdraw(request, request_id):
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
+    try:
+        release_request.get_request_file(grouppath)
+    except bll.FileNotFound:
+        # its been removed - redirect to group that contained
+        redirect_url = release_request.get_url(grouppath.parts[0])
+    else:
+        # its been set to withdrawn - redirect to it directly
+        redirect_url = release_request.get_url(grouppath)
+
     messages.error(request, f"The file {grouppath} has been withdrawn from the request")
-    return redirect(release_request.get_url(grouppath))
+    return redirect(redirect_url)
 
 
 @instrument(func_attributes={"release_request": "request_id"})

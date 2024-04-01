@@ -60,7 +60,7 @@
               <form action="{{ withdraw_file_url }}" method="POST">
                 {% csrf_token %}
                 <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-                {% #button type="submit" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
+                {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
               </form>
             {% endif %}
           {% elif is_output_checker %}
