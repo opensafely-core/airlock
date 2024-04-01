@@ -26,6 +26,11 @@
       font-style: italic;
     }
 
+    .tree li:has(>a.withdrawn) {
+      font-style: italic;
+      text-decoration: line-through;
+    }
+
     .tree summary:has(>a.selected), .tree li:has(>a.selected) {
       background-color: lightblue;
     }

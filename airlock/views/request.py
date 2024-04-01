@@ -81,6 +81,11 @@ def request_view(request, request_id: str, path: str = ""):
         "request_release_files",
         kwargs={"request_id": request_id},
     )
+    withdraw_file_url = reverse(
+        "request_withdraw",
+        kwargs={"request_id": request_id},
+    )
+
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
@@ -94,6 +99,7 @@ def request_view(request, request_id: str, path: str = ""):
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
+        "withdraw_file_url": withdraw_file_url,
     }
 
     return TemplateResponse(request, template, context)
@@ -171,7 +177,7 @@ def request_withdraw(request, request_id):
         raise PermissionDenied(str(exc))
 
     messages.error(request, f"The file {grouppath} has been withdrawn from the request")
-    return redirect(release_request.get_url())
+    return redirect(release_request.get_url(grouppath))
 
 
 @instrument(func_attributes={"release_request": "request_id"})

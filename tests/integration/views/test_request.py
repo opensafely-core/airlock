@@ -108,7 +108,7 @@ def test_request_view_with_authored_request_file(airlock_client):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Remove this file" in response.rendered_content
+    assert "Withdraw this file" in response.rendered_content
 
 
 def test_request_view_with_404(airlock_client):
@@ -455,8 +455,12 @@ def test_request_withdraw_file_submitted(airlock_client):
     response = airlock_client.post(
         f"/requests/withdraw/{release_request.id}",
         data={"path": "group/path/test.txt"},
+        follow=True,
     )
-    assert response.status_code == 302
+    # ensure template is rendered to force template coverage
+    response.render()
+    assert response.status_code == 200
+    assert "This file has been withdrawn" in response.rendered_content
 
     persisted_request = factories.bll.get_release_request(release_request.id, author)
     request_file = persisted_request.get_request_file("group/path/test.txt")

@@ -20,11 +20,8 @@
     {% /card %}
 
   {% else %}
-    {% fragment as add_button %}
+    {% fragment as buttons %}
       <div class="flex items-center gap-2">
-        {% if path_item.supporting_file %}
-          {% #description_item title="Supporting file" %}This is a supporting file and will not be releaed.{% /description_item%}
-        {% endif %}
         {% if context == "workspace" %}
           {% if form %}
             {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
@@ -51,20 +48,31 @@
               Add File to Request
             {% /button %}
           {% endif %}
-        {% elif is_author %}
-          <form action="" method="POST">
-            {% csrf_token %}
-            {% #button type="submit" tooltip="Remove this file from this request" variant="warning" %}Remove File from Request{% /button %}
-          </form>
-        {% elif is_output_checker %}
-          {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
+        {% else %}{# request #}
+          {% if path_item.is_supporting  %}
+            {% #description_item title="Supporting file" %}This is a supporting file and will not be releaed.{% /description_item%}
+          {% elif path_item.is_withdrawn %}
+            {% #description_item title="Withdrawn file" %}This file has been withdrawn and will not be released.{% /description_item%}
+          {% endif %}
+
+          {% if is_author %}
+            {% if path_item.is_output %}
+              <form action="{{ withdraw_file_url }}" method="POST">
+                {% csrf_token %}
+                <input type=hidden name="path" value="{{ path_item.relpath }}"/>
+                {% #button type="submit" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
+              </form>
+            {% endif %}
+          {% elif is_output_checker %}
+            {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
+          {% endif %}
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
       </div>
 
     {% endfragment %}
 
-    {% #card title=path_item.name container=True custom_button=add_button %}
+    {% #card title=path_item.name container=True custom_button=buttons %}
       <div class="content">
         <iframe src="{{ path_item.contents_url }}"
                 title="{{ path_item.relpath }}"

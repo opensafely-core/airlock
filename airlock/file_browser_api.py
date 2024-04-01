@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from airlock.business_logic import ROOT_PATH, AirlockContainer, UrlPath
+from airlock.business_logic import ROOT_PATH, AirlockContainer, RequestFileType, UrlPath
 from services.tracing import instrument
 
 
@@ -46,8 +46,7 @@ class PathItem:
     # should this node be expanded in the tree?
     expanded: bool = False
 
-    # Is this a supporting file?
-    supporting_file: bool = False
+    request_filetype: RequestFileType = RequestFileType.OUTPUT
 
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
@@ -127,6 +126,19 @@ class PathItem:
         crumbs.reverse()
         return crumbs
 
+    def is_output(self):
+        return self.container.request_filetype(self.relpath) == RequestFileType.OUTPUT
+
+    def is_supporting(self):
+        return (
+            self.container.request_filetype(self.relpath) == RequestFileType.SUPPORTING
+        )
+
+    def is_withdrawn(self):
+        return (
+            self.container.request_filetype(self.relpath) == RequestFileType.WITHDRAWN
+        )
+
     def html_classes(self):
         """Semantic html classes for this PathItem.
 
@@ -136,14 +148,14 @@ class PathItem:
         """
         classes = [self.type.value.lower()] if self.type else []
 
+        if self.request_filetype:
+            classes.append(self.request_filetype.value.lower())
+
         if self.type == PathType.FILE:
             classes.append(self.file_type())
 
         if self.selected:
             classes.append("selected")
-
-        if self.supporting_file:
-            classes.append("supporting")
 
         return " ".join(classes)
 
@@ -280,8 +292,7 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=(
-                f"{name} ({len(group.output_files)} output file{_pluralise(group.output_files)}, "
-                f"{len(group.supporting_files)} supporting file{_pluralise(group.supporting_files)})"
+                f"{name} ({len(group.output_files)} requested files{_pluralise(group.output_files)}"
             ),
             selected=selected,
             expanded=selected or expanded,
@@ -355,7 +366,7 @@ def get_path_tree(
                 relpath=path,
                 parent=parent,
                 selected=selected,
-                supporting_file=container.is_supporting_file(path),
+                request_filetype=container.request_filetype(path),
             )
 
             # If it has decendants, it is a directory. However, an empty
