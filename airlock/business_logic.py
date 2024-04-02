@@ -14,11 +14,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
-from pipeline.constants import LEVEL4_FILE_TYPES
 
 import old_api
 from airlock.renderers import get_renderer
 from airlock.users import User
+from airlock.utils import is_valid_file_type
 
 
 # We use PurePosixPath as a convenient URL path representation. In theory we could use
@@ -787,7 +787,7 @@ class BusinessLogicLayer:
         request.
         """
         for relpath, _ in file_paths:
-            if not is_valid_file_type(relpath):
+            if not is_valid_file_type(Path(relpath)):
                 raise self.RequestPermissionDenied(
                     f"Invalid file type ({relpath}) found in request"
                 )
@@ -803,7 +803,7 @@ class BusinessLogicLayer:
         self._validate_editable(release_request, user)
 
         relpath = UrlPath(relpath)
-        if not is_valid_file_type(relpath):
+        if not is_valid_file_type(Path(relpath)):
             raise self.RequestPermissionDenied(
                 f"Cannot add file of type {relpath.suffix} to request"
             )
@@ -993,10 +993,6 @@ class BusinessLogicLayer:
             group=path.parts[0],
         )
         bll._dal.audit_event(audit)
-
-
-def is_valid_file_type(path: UrlPath):
-    return path.suffix in LEVEL4_FILE_TYPES
 
 
 def _get_configured_bll():

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
 from airlock.business_logic import (
     ROOT_PATH,
     AirlockContainer,
     RequestFileType,
     UrlPath,
-    is_valid_file_type,
 )
+from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
 
@@ -127,6 +128,9 @@ class PathItem:
             self.container.request_filetype(self.relpath) == RequestFileType.WITHDRAWN
         )
 
+    def is_valid(self):
+        return is_valid_file_type(Path(self.relpath))
+
     def html_classes(self):
         """Semantic html classes for this PathItem.
 
@@ -141,6 +145,8 @@ class PathItem:
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
+            if not self.is_valid():
+                classes.append("invalid")
 
         if self.selected:
             classes.append("selected")
@@ -227,15 +233,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
 
     else:
         # listing all files in one go is much faster than walking the tree
-        # Note we limit the files to valid LEVEL4_FILE_TYPES here, so as to
-        # reduce some unnecessary iteration in get_path_tree. However, get_path_tree
-        # ALSO needs to check each file-type node it finds as it builds the tree for
-        # each path in the pathlist
-        pathlist = [
-            p.relative_to(root)
-            for p in root.glob("**/*")
-            if p.is_dir() or is_valid_file_type(p)
-        ]
+        pathlist = [p.relative_to(root) for p in root.glob("**/*")]
 
     root_node = PathItem(
         container=workspace,
@@ -391,8 +389,7 @@ def get_path_tree(
             else:
                 node.type = PathType.FILE
 
-            if node.type == PathType.DIR or is_valid_file_type(node.relpath):
-                tree.append(node)
+            tree.append(node)
 
         # sort directories first then files
         tree.sort(key=children_sort_key)

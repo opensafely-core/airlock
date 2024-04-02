@@ -117,7 +117,7 @@ def test_provider_request_release_files_invalid_file_type():
     # mock the LEVEL4_FILE_TYPES so that we can add this invalid file to the
     # request
     relpath = Path("test/file.foo")
-    with patch("airlock.business_logic.LEVEL4_FILE_TYPES", [".foo"]):
+    with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
         factories.write_request_file(release_request, "group", relpath, "test")
 
     factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
