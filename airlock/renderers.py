@@ -11,6 +11,8 @@ from django.http import FileResponse, HttpResponseBase
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
 
+from airlock.utils import is_valid_file_type
+
 
 @dataclass
 class RendererTemplate:
@@ -94,6 +96,16 @@ class TextRenderer(Renderer):
         }
 
 
+class InvalidFileRenderer(Renderer):
+    template = RendererTemplate.from_name("file_browser/text.html")
+
+    def context(self):
+        return {
+            "text": f"{self.abspath.name} is not a valid file type and cannot be displayed.",
+            "class": "",
+        }
+
+
 FILE_RENDERERS = {
     ".csv": CSVRenderer,
     ".log": TextRenderer,
@@ -109,12 +121,17 @@ def get_renderer(abspath, request_file=None):
         suffix = request_file.relpath.suffix
         filename = request_file.relpath.name
         file_cache_id = request_file.file_id
+        is_valid = is_valid_file_type(request_file.relpath)
     else:
         suffix = abspath.suffix
         filename = abspath.name
         file_cache_id = filesystem_key(stat)
+        is_valid = is_valid_file_type(abspath)
 
-    renderer_class = FILE_RENDERERS.get(suffix, Renderer)
+    if is_valid:
+        renderer_class = FILE_RENDERERS.get(suffix, Renderer)
+    else:
+        renderer_class = InvalidFileRenderer
 
     return renderer_class(
         abspath=abspath,
