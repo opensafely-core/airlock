@@ -146,7 +146,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def add_file_to_request(
         self,
-        request_id,
+        request_id: str,
         relpath: UrlPath,
         file_id: str,
         group_name: str,
@@ -180,6 +180,60 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     "{filetype} file has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
+
+            self._create_audit_log(audit)
+
+        # Return updated FileGroups data
+        metadata = self._find_metadata(request_id)
+        return self._get_filegroups(metadata)
+
+    def delete_file_from_request(
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            # defense in depth
+            request = self._find_metadata(request_id)
+            assert request.status == RequestStatus.PENDING
+
+            try:
+                request_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=request_id,
+                    relpath=relpath,
+                )
+            except RequestFileMetadata.DoesNotExist:
+                raise BusinessLogicLayer.FileNotFound(relpath)
+
+            request_file.delete()
+            self._create_audit_log(audit)
+
+        # Return updated FileGroups data
+        metadata = self._find_metadata(request_id)
+        return self._get_filegroups(metadata)
+
+    def withdraw_file_from_request(
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            # defense in depth, we can only withdraw from active submitted requests
+            request = self._find_metadata(request_id)
+            assert request.status == RequestStatus.SUBMITTED
+
+            try:
+                request_file = RequestFileMetadata.objects.get(
+                    filegroup__request_id=request_id,
+                    relpath=relpath,
+                )
+            except RequestFileMetadata.DoesNotExist:
+                raise BusinessLogicLayer.FileNotFound(relpath)
+
+            request_file.filetype = RequestFileType.WITHDRAWN
+            request_file.save()
 
             self._create_audit_log(audit)
 

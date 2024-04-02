@@ -108,7 +108,7 @@ def test_request_view_with_authored_request_file(airlock_client):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Remove this file" in response.rendered_content
+    assert "Withdraw this file" in response.rendered_content
 
 
 def test_request_view_with_404(airlock_client):
@@ -410,6 +410,105 @@ def test_request_reject_not_output_checker(airlock_client):
         release_request.id, airlock_client.user
     )
     assert persisted_request.status == RequestStatus.SUBMITTED
+
+
+def test_request_withdraw_file_pending(airlock_client):
+    author = factories.create_user("author", ["test1"], False)
+    airlock_client.login_with_user(author)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=RequestStatus.PENDING,
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+    release_request = factories.refresh_release_request(release_request)
+
+    # ensure it does exist
+    release_request.get_request_file("group/path/test.txt")
+
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}",
+        data={"path": "group/path/test.txt"},
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url("group")
+
+    persisted_request = factories.bll.get_release_request(release_request.id, author)
+
+    with pytest.raises(factories.bll.FileNotFound):
+        persisted_request.get_request_file("group/path/test.txt")
+
+
+def test_request_withdraw_file_submitted(airlock_client):
+    author = factories.create_user("author", ["test1"], False)
+    airlock_client.login_with_user(author)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+    release_request = factories.refresh_release_request(release_request)
+
+    # ensure it does exist
+    release_request.get_request_file("group/path/test.txt")
+
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}",
+        data={"path": "group/path/test.txt"},
+        follow=True,
+    )
+    # ensure template is rendered to force template coverage
+    response.render()
+    assert response.status_code == 200
+    assert "This file has been withdrawn" in response.rendered_content
+
+    persisted_request = factories.bll.get_release_request(release_request.id, author)
+    request_file = persisted_request.get_request_file("group/path/test.txt")
+    assert request_file.filetype == RequestFileType.WITHDRAWN
+
+
+def test_request_withdraw_file_bad_file(airlock_client):
+    author = factories.create_user("author", ["test1"], False)
+    airlock_client.login_with_user(author)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+    )
+
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}",
+        data={"path": "group/bad/path.txt"},
+    )
+    assert response.status_code == 404
+
+
+def test_request_withdraw_file_not_author(airlock_client):
+    author = factories.create_user("author", ["test1"], False)
+    other = factories.create_user("other", ["test1"], False)
+    release_request = factories.create_release_request(
+        "test1",
+        user=author,
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+
+    airlock_client.login_with_user(other)
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}",
+        data={"path": "group/path/test.txt"},
+    )
+    assert response.status_code == 403
+
+
+def test_request_withdraw_file_bad_request(airlock_client):
+    author = factories.create_user("author", ["test1"], False)
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        "/requests/withdraw/bad_id",
+        data={"path": "group/path/test.txt"},
+    )
+    assert response.status_code == 404
 
 
 def test_request_release_files_success(airlock_client, release_files_stubber):

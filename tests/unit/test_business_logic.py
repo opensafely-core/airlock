@@ -40,10 +40,10 @@ def test_workspace_container():
     )
 
 
-def test_workspace_is_supporting_file(bll):
+def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
-    assert not workspace.is_supporting_file("foo/bar.txt")
+    assert workspace.request_filetype("foo/bar.txt") is None
 
 
 def test_request_container():
@@ -430,6 +430,132 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
 
 
+def test_withdraw_file_from_request_pending(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        status=RequestStatus.PENDING,
+    )
+    path1 = Path("path/file1.txt")
+    path2 = Path("path/file2.txt")
+    factories.write_request_file(
+        release_request, "group", path1, contents="1", user=author
+    )
+    factories.write_request_file(
+        release_request, "group", path2, contents="2", user=author
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.filegroups["group"].files.keys() == {path1, path2}
+
+    bll.withdraw_file_from_request(release_request, "group" / path1, user=author)
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_WITHDRAW,
+        user=author,
+        path=path1,
+        group="group",
+    )
+
+    assert release_request.filegroups["group"].files.keys() == {path2}
+
+    bll.withdraw_file_from_request(release_request, "group" / path2, user=author)
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_WITHDRAW,
+        user=author,
+        path=path2,
+        group="group",
+    )
+
+    assert release_request.filegroups["group"].files.keys() == set()
+
+
+def test_withdraw_file_from_request_submitted(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        status=RequestStatus.SUBMITTED,
+    )
+    path1 = Path("path/file1.txt")
+    factories.write_request_file(release_request, "group", path1, user=author)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert [f.filetype for f in release_request.filegroups["group"].files.values()] == [
+        RequestFileType.OUTPUT,
+    ]
+
+    bll.withdraw_file_from_request(release_request, "group" / path1, user=author)
+
+    assert [f.filetype for f in release_request.filegroups["group"].files.values()] == [
+        RequestFileType.WITHDRAWN,
+    ]
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_WITHDRAW,
+        user=author,
+        path=path1,
+        group="group",
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        RequestStatus.APPROVED,
+        RequestStatus.REJECTED,
+        RequestStatus.WITHDRAWN,
+        RequestStatus.RELEASED,
+    ],
+)
+def test_withdraw_file_from_request_not_editable_state(bll, state):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        status=state,
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.withdraw_file_from_request(
+            release_request, UrlPath("group/foo.txt"), author
+        )
+
+
+@pytest.mark.parametrize("state", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+def test_withdraw_file_from_request_bad_file(bll, state):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_release_request(
+        "workspace", status=state, user=author
+    )
+
+    with pytest.raises(bll.FileNotFound):
+        bll.withdraw_file_from_request(
+            release_request, UrlPath("bad/path"), user=author
+        )
+
+
+@pytest.mark.parametrize("state", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+def test_withdraw_file_from_request_not_author(bll, state):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_release_request(
+        "workspace", status=state, user=author
+    )
+
+    other = factories.create_user(username="other", workspaces=["workspace"])
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.withdraw_file_from_request(release_request, UrlPath("bad/path"), user=other)
+
+
 def test_request_all_files_set(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path = Path("path/file.txt")
@@ -489,7 +615,7 @@ def test_request_release_abspath(bll):
     assert release_request.abspath("default" / supporting_path).exists()
 
 
-def test_request_release_is_supporting_file(bll):
+def test_request_release_request_filetype(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
@@ -498,8 +624,11 @@ def test_request_release_is_supporting_file(bll):
         release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
     )
 
-    assert not release_request.is_supporting_file("default" / path)
-    assert release_request.is_supporting_file("default" / supporting_path)
+    assert release_request.request_filetype("default" / path) == RequestFileType.OUTPUT
+    assert (
+        release_request.request_filetype("default" / supporting_path)
+        == RequestFileType.SUPPORTING
+    )
 
 
 def setup_empty_release_request():
@@ -766,6 +895,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_audit_log",
     "get_outstanding_requests_for_review",
     "get_requests_authored_by_user",
+    "delete_file_from_request",
 }
 
 

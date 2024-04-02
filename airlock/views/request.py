@@ -81,6 +81,11 @@ def request_view(request, request_id: str, path: str = ""):
         "request_release_files",
         kwargs={"request_id": request_id},
     )
+    withdraw_file_url = reverse(
+        "request_withdraw",
+        kwargs={"request_id": request_id},
+    )
+
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
@@ -94,6 +99,7 @@ def request_view(request, request_id: str, path: str = ""):
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
+        "withdraw_file_url": withdraw_file_url,
     }
 
     return TemplateResponse(request, template, context)
@@ -152,6 +158,35 @@ def request_reject(request, request_id):
 
     messages.error(request, "Request has been rejected")
     return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_withdraw(request, request_id):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    grouppath = UrlPath(request.POST["path"])
+
+    try:
+        release_request.get_request_file(grouppath)
+    except bll.FileNotFound:
+        raise Http404()
+
+    try:
+        bll.withdraw_file_from_request(release_request, grouppath, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    try:
+        release_request.get_request_file(grouppath)
+    except bll.FileNotFound:
+        # its been removed - redirect to group that contained
+        redirect_url = release_request.get_url(grouppath.parts[0])
+    else:
+        # its been set to withdrawn - redirect to it directly
+        redirect_url = release_request.get_url(grouppath)
+
+    messages.error(request, f"The file {grouppath} has been withdrawn from the request")
+    return redirect(redirect_url)
 
 
 @instrument(func_attributes={"release_request": "request_id"})

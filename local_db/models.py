@@ -116,7 +116,7 @@ class FileReview(models.Model):
     """An output checker's review of a file"""
 
     file = models.ForeignKey(
-        RequestFileMetadata, related_name="reviews", on_delete=models.CASCADE
+        RequestFileMetadata, related_name="reviews", on_delete=models.RESTRICT
     )
     reviewer = models.TextField()
     status = EnumField(default=FileReviewStatus.REJECTED, enum=FileReviewStatus)

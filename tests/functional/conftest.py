@@ -53,6 +53,7 @@ def login_as_user(live_server, context, user_dict):
             }
         ]
     )
+    return user
 
 
 @pytest.fixture
