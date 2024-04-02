@@ -73,8 +73,10 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     file_in_request = (
         current_request and path_item.relpath in current_request.all_files_set()
     )
-    if request.user.can_create_request(workspace_name) and (
-        current_request is None or not file_in_request
+    if (
+        path_item.is_valid()
+        and request.user.can_create_request(workspace_name)
+        and (current_request is None or not file_in_request)
     ):
         form = AddFileForm(release_request=current_request)
 

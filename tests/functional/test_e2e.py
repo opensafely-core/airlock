@@ -131,6 +131,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
     assert page.get_by_role("link", name="file.txt").all() == []
+    assert page.get_by_role("link", name="file.foo").all() == []
 
     # Click on the subdir and then the file link to view in the workspace
     # There will be more than one link to the folder/file in the page,
@@ -138,10 +139,16 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Click on the first link we find
     find_and_click(page.get_by_role("link", name="subdir").first)
 
-    # After clicking on the subdir, the file with an invalid extension is
-    # still not there
-    assert page.get_by_role("link", name="file.foo").all() == []
-    # But we can get and click on the valid file
+    # Get and click on the invalid file
+    find_and_click(page.get_by_role("link", name="file.foo").first)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", workspace.get_contents_url("subdir/file.foo")
+    )
+    # The add file button is disabled for an invalid file
+    add_file_button = page.locator("#add-file-modal-button-disabled")
+    expect(add_file_button).to_be_disabled()
+
+    # Get and click on the valid file
     find_and_click(page.get_by_role("link", name="file.txt").first)
     expect(page.locator("iframe")).to_have_attribute(
         "src", workspace.get_contents_url("subdir/file.txt")
