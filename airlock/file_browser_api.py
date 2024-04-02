@@ -56,9 +56,6 @@ class PathItem:
         # ensure is UrlPath
         self.relpath = UrlPath(self.relpath)
 
-    def _absolute_path(self):
-        return self.container.abspath(self.relpath)
-
     def is_directory(self):
         """Does this contain other things?"""
         return self.type != PathType.FILE
@@ -92,21 +89,6 @@ class PathItem:
             return []
         else:
             return self.parent.children
-
-    def contents(self):
-        if self.type == PathType.FILE:
-            abspath = self._absolute_path()
-
-            # backstop against an empty directory with a suffix being
-            # missclassified as a file when building the tree. See build_path_tree.
-            if abspath.is_file():
-                return abspath.read_text()
-
-            return f"{self.relpath} is not a file"
-
-        raise Exception(
-            f"contents() called on {self.relpath}, which is of type {self.type}"
-        )
 
     def suffix(self):
         return self.relpath.suffix

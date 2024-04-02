@@ -139,14 +139,6 @@ class AirlockContainer(Protocol):
     contained within this instance.
     """
 
-    # The currently selected path in this container.  Used to calculate how
-    # a particular path relates to it, i.e. if path *is* the currently selected
-    # path, or is one of its parents.
-    selected_path: UrlPath = ROOT_PATH
-
-    def root(self) -> Path:
-        """Absolute concrete Path to root dir for files in this container."""
-
     def get_id(self) -> str:
         """Get the human name for this container."""
 
@@ -161,9 +153,6 @@ class AirlockContainer(Protocol):
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         """What kind of file is this, e.g. output, supporting, etc."""
 
-    def abspath(self, path: UrlPath) -> Path:
-        """Get the absolute path of the container object with path"""
-
 
 @dataclass(order=True)
 class Workspace:
@@ -175,9 +164,6 @@ class Workspace:
 
     name: str
     metadata: dict[str, str] = field(default_factory=dict)
-
-    # can be set to mark the currently selected path in this workspace
-    selected_path: UrlPath = ROOT_PATH
 
     def __post_init__(self):
         if not self.root().exists():
@@ -314,9 +300,6 @@ class ReleaseRequest:
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
-
-    # can be set to mark the currently selected path in this release request
-    selected_path: UrlPath = ROOT_PATH
 
     @classmethod
     def from_dict(cls, attrs) -> Self:

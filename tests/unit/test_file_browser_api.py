@@ -376,37 +376,6 @@ def test_request_tree_siblings(release_request):
     }
 
 
-def test_workspace_tree_contents(workspace):
-    (workspace.root() / "dir.ext").mkdir()
-    tree = get_workspace_tree(workspace)
-
-    with pytest.raises(Exception):
-        tree.contents()
-
-    with pytest.raises(Exception):
-        tree.get_path("some_dir").contents()
-
-    tree.get_path("dir.ext").contents() == "dir.ext is not a file"
-
-    assert tree.get_path("some_dir/file_a.txt").contents() == "file_a"
-
-
-@pytest.mark.django_db
-def test_request_tree_contents(release_request):
-    tree = get_request_tree(release_request)
-
-    with pytest.raises(Exception):
-        tree.contents()
-
-    with pytest.raises(Exception):
-        tree.get_path("group1").contents()
-
-    with pytest.raises(Exception):
-        tree.get_path("group1/some_dir").contents()
-
-    assert tree.get_path("group1/some_dir/file_a.txt").contents() == "file_a"
-
-
 def test_filter_files():
     selected = UrlPath("foo/bar")
     files = [
