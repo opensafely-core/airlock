@@ -111,6 +111,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         workspace, "subdir/file.txt", "I am the file content"
     )
     factories.write_workspace_file(
+        workspace, "subdir/file.foo", "I am an invalid file type"
+    )
+    factories.write_workspace_file(
         workspace,
         "subdir/supporting.txt",
         "I am the supporting file content",
@@ -134,8 +137,12 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # one in the explorer, and one in the main folder view
     # Click on the first link we find
     find_and_click(page.get_by_role("link", name="subdir").first)
-    find_and_click(page.get_by_role("link", name="file.txt").first)
 
+    # After clicking on the subdir, the file with an invalid extension is
+    # still not there
+    assert page.get_by_role("link", name="file.foo").all() == []
+    # But we can get and click on the valid file
+    find_and_click(page.get_by_role("link", name="file.txt").first)
     expect(page.locator("iframe")).to_have_attribute(
         "src", workspace.get_contents_url("subdir/file.txt")
     )
