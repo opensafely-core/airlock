@@ -2,8 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
-from airlock.business_logic import ROOT_PATH, AirlockContainer, RequestFileType, UrlPath
+from airlock.business_logic import (
+    ROOT_PATH,
+    AirlockContainer,
+    RequestFileType,
+    UrlPath,
+)
+from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
 
@@ -121,6 +128,9 @@ class PathItem:
             self.container.request_filetype(self.relpath) == RequestFileType.WITHDRAWN
         )
 
+    def is_valid(self):
+        return is_valid_file_type(Path(self.relpath))
+
     def html_classes(self):
         """Semantic html classes for this PathItem.
 
@@ -135,6 +145,8 @@ class PathItem:
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
+            if not self.is_valid():
+                classes.append("invalid")
 
         if self.selected:
             classes.append("selected")

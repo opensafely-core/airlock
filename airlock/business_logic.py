@@ -18,6 +18,7 @@ from django.utils.module_loading import import_string
 import old_api
 from airlock.renderers import get_renderer
 from airlock.users import User
+from airlock.utils import is_valid_file_type
 
 
 # We use PurePosixPath as a convenient URL path representation. In theory we could use
@@ -776,6 +777,21 @@ class BusinessLogicLayer:
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
 
+    def validate_file_types(self, file_paths):
+        """
+        Validate file types before releasing.
+
+        This is a final safety check before files are released. It
+        should never be hit in production, as file types are checked
+        before display in the workspace view and on adding to a
+        request.
+        """
+        for relpath, _ in file_paths:
+            if not is_valid_file_type(Path(relpath)):
+                raise self.RequestPermissionDenied(
+                    f"Invalid file type ({relpath}) found in request"
+                )
+
     def add_file_to_request(
         self,
         release_request: ReleaseRequest,
@@ -785,6 +801,12 @@ class BusinessLogicLayer:
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ):
         self._validate_editable(release_request, user)
+
+        relpath = UrlPath(relpath)
+        if not is_valid_file_type(Path(relpath)):
+            raise self.RequestPermissionDenied(
+                f"Cannot add file of type {relpath.suffix} to request"
+            )
 
         workspace = self.get_workspace(release_request.workspace, user)
         src = workspace.abspath(relpath)
@@ -858,6 +880,8 @@ class BusinessLogicLayer:
         self.check_status(request, RequestStatus.RELEASED, user)
 
         file_paths = request.get_output_file_paths()
+        self.validate_file_types(file_paths)
+
         filelist = old_api.create_filelist(file_paths)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username

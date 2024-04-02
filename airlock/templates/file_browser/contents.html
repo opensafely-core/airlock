@@ -43,6 +43,10 @@
             {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
               Add File to Request
             {% /button %}
+          {% elif not path_item.is_valid %}
+            {% #button type="button" disabled=True tooltip="This file type cannot be added to a request" id="add-file-modal-button-disabled" %}
+              Add File to Request
+            {% /button %}
           {% else %}
             {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
               Add File to Request

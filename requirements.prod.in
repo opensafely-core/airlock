@@ -5,6 +5,7 @@ django-extensions
 django-htmx
 whitenoise
 gunicorn
+opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.03.19.153938.zip
 requests
 pydantic<2.0
 ulid

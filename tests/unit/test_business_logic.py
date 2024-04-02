@@ -1,7 +1,7 @@
 import inspect
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.conf import settings
@@ -101,6 +101,28 @@ def test_provider_request_release_files_not_approved():
 
     bll = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(bll.InvalidStateTransition):
+        bll.release_files(release_request, checker)
+
+
+def test_provider_request_release_files_invalid_file_type():
+    author = factories.create_user("author", ["workspace"])
+    checker = factories.create_user("checker", [], output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+        id="request_id",
+        status=RequestStatus.SUBMITTED,
+    )
+
+    # mock the LEVEL4_FILE_TYPES so that we can add this invalid file to the
+    # request
+    relpath = Path("test/file.foo")
+    with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
+        factories.write_request_file(release_request, "group", relpath, "test")
+
+    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
+    bll = BusinessLogicLayer(data_access_layer=None)
+    with pytest.raises(bll.RequestPermissionDenied):
         bll.release_files(release_request, checker)
 
 
@@ -346,6 +368,21 @@ def test_add_file_to_request_not_author(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.add_file_to_request(release_request, path, other)
+
+
+def test_add_file_to_request_invalid_file_type(bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    path = Path("path/file.foo")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.add_file_to_request(release_request, path, author)
 
 
 @pytest.mark.parametrize(

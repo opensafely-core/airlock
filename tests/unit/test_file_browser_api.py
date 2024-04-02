@@ -21,6 +21,10 @@ def workspace():
     factories.write_workspace_file(w, "some_dir/file_a.txt", "file_a")
     factories.write_workspace_file(w, "some_dir/file_b.txt", "file_b")
     factories.write_workspace_file(w, "some_dir/file_c.txt", "file_c")
+    # A file with an extension that is not allowed on L4 still
+    # appears in the workspace tree
+    factories.write_workspace_file(w, "some_dir/file_a.foo", "bad file")
+    factories.write_workspace_file(w, "some_dir/.file.txt", "bad file")
     return w
 
 
@@ -44,6 +48,8 @@ def test_get_workspace_tree_general(workspace):
         workspace*
           empty_dir
           some_dir*
+            .file.txt
+            file_a.foo
             file_a.txt**
             file_b.txt
             file_c.txt
@@ -62,6 +68,12 @@ def test_get_workspace_tree_general(workspace):
 
     # selected
     assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
+
+    # valid
+    assert tree.get_path("some_dir/file_a.txt").is_valid()
+    assert tree.get_path("some_dir/file_b.txt").is_valid()
+    assert not tree.get_path("some_dir/file_a.foo").is_valid()
+    assert not tree.get_path("some_dir/.file.txt").is_valid()
 
     # errors
     with pytest.raises(tree.PathNotFound):
@@ -356,6 +368,8 @@ def test_workspace_tree_siblings(workspace):
         "some_dir",
     }
     assert {s.name() for s in tree.get_path("some_dir/file_a.txt").siblings()} == {
+        ".file.txt",
+        "file_a.foo",
         "file_a.txt",
         "file_b.txt",
         "file_c.txt",

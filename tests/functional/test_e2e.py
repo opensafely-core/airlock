@@ -111,6 +111,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         workspace, "subdir/file.txt", "I am the file content"
     )
     factories.write_workspace_file(
+        workspace, "subdir/file.foo", "I am an invalid file type"
+    )
+    factories.write_workspace_file(
         workspace,
         "subdir/supporting.txt",
         "I am the supporting file content",
@@ -128,14 +131,25 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
     assert page.get_by_role("link", name="file.txt").all() == []
+    assert page.get_by_role("link", name="file.foo").all() == []
 
     # Click on the subdir and then the file link to view in the workspace
     # There will be more than one link to the folder/file in the page,
     # one in the explorer, and one in the main folder view
     # Click on the first link we find
     find_and_click(page.get_by_role("link", name="subdir").first)
-    find_and_click(page.get_by_role("link", name="file.txt").first)
 
+    # Get and click on the invalid file
+    find_and_click(page.get_by_role("link", name="file.foo").first)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", workspace.get_contents_url("subdir/file.foo")
+    )
+    # The add file button is disabled for an invalid file
+    add_file_button = page.locator("#add-file-modal-button-disabled")
+    expect(add_file_button).to_be_disabled()
+
+    # Get and click on the valid file
+    find_and_click(page.get_by_role("link", name="file.txt").first)
     expect(page.locator("iframe")).to_have_attribute(
         "src", workspace.get_contents_url("subdir/file.txt")
     )
