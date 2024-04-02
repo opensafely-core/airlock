@@ -787,7 +787,7 @@ class BusinessLogicLayer:
         request.
         """
         for relpath, _ in file_paths:
-            if relpath.suffix not in LEVEL4_FILE_TYPES:
+            if not is_valid_file_type(relpath):
                 raise self.RequestPermissionDenied(
                     f"Invalid file type ({relpath}) found in request"
                 )
@@ -803,7 +803,7 @@ class BusinessLogicLayer:
         self._validate_editable(release_request, user)
 
         relpath = UrlPath(relpath)
-        if relpath.suffix not in LEVEL4_FILE_TYPES:
+        if not is_valid_file_type(relpath):
             raise self.RequestPermissionDenied(
                 f"Cannot add file of type {relpath.suffix} to request"
             )
@@ -993,6 +993,10 @@ class BusinessLogicLayer:
             group=path.parts[0],
         )
         bll._dal.audit_event(audit)
+
+
+def is_valid_file_type(path: UrlPath):
+    return path.suffix in LEVEL4_FILE_TYPES
 
 
 def _get_configured_bll():

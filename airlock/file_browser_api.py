@@ -3,9 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from pipeline.constants import LEVEL4_FILE_TYPES
-
-from airlock.business_logic import ROOT_PATH, AirlockContainer, RequestFileType, UrlPath
+from airlock.business_logic import (
+    ROOT_PATH,
+    AirlockContainer,
+    RequestFileType,
+    UrlPath,
+    is_valid_file_type,
+)
 from services.tracing import instrument
 
 
@@ -230,7 +234,7 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
         pathlist = [
             p.relative_to(root)
             for p in root.glob("**/*")
-            if p.is_dir() or p.suffix in LEVEL4_FILE_TYPES
+            if p.is_dir() or is_valid_file_type(p)
         ]
 
     root_node = PathItem(
@@ -387,7 +391,7 @@ def get_path_tree(
             else:
                 node.type = PathType.FILE
 
-            if node.type == PathType.DIR or node.relpath.suffix in LEVEL4_FILE_TYPES:
+            if node.type == PathType.DIR or is_valid_file_type(node.relpath):
                 tree.append(node)
 
         # sort directories first then files
