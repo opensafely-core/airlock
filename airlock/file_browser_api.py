@@ -88,6 +88,14 @@ class PathItem:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(self.relpath, download=download)
 
+    def iframe_sandbox(self):
+        # we allow csv files to use scripts, as we render those ourselves
+        if self.relpath.suffix == ".csv":
+            return "allow-scripts"
+
+        # disable everything by default
+        return ""
+
     def download_url(self):
         return self.contents_url(download=True)
 

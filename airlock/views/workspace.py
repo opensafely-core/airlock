@@ -5,6 +5,7 @@ from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
@@ -102,6 +103,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})
+@xframe_options_sameorigin
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
