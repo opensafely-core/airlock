@@ -101,7 +101,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     - View requests list
     - Click and view submitted request
     - View output file
+    - Reject output file
+    - Approve output file
     - Download output file
+    - View supporting file
     - Release files
     - View requests list again and confirm released request is not shown
     """
@@ -320,11 +323,32 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
     )
 
+    # Reject the file
+    expect(page.locator("#file-reject-button")).not_to_have_attribute("disabled", "")
+    find_and_click(page.locator("#file-reject-button"))
+    expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
+
+    # Change our minds & approve the file
+    expect(page.locator("#file-approve-button")).not_to_have_attribute("disabled", "")
+    find_and_click(page.locator("#file-approve-button"))
+    expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
+
     # Download the file
     with page.expect_download() as download_info:
         find_and_click(page.locator("#download-button"))
     download = download_info.value
     assert download.suggested_filename == "file.txt"
+
+    # Look at a supporting file & verify it can't be approved
+    supporting_file_link = page.get_by_role("link", name="supporting.txt").locator(
+        ".file:scope"
+    )
+    find_and_click(supporting_file_link)
+    expect(page.locator("iframe")).to_have_attribute(
+        "src", release_request.get_contents_url("my-new-group/subdir/supporting.txt")
+    )
+    expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
+    expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
 
     # Mock the responses from job-server
     release_request = bll.get_release_request(request_id, admin_user)

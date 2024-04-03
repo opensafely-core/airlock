@@ -386,6 +386,16 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         }
 
+    def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
+        return next(
+            (
+                r
+                for r in self.get_request_file(urlpath).reviews
+                if r.reviewer == reviewer
+            ),
+            None,
+        )
+
     def request_filetype(self, urlpath: UrlPath):
         try:
             return self.get_request_file(urlpath).filetype
