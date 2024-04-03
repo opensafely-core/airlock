@@ -65,6 +65,10 @@ class AuditEventType(Enum):
     REQUEST_REJECT = "REQUEST_REJECT"
     REQUEST_RELEASE = "REQUEST_RELEASE"
 
+    # request edits
+    REQUEST_EDIT = "REQUEST_EDIT"
+    REQUEST_COMMENT = "REQUEST_COMMENT"
+
     # request file status
     REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
@@ -281,6 +285,10 @@ class FileGroup:
 
     name: str
     files: dict[UrlPath, RequestFile]
+    context: str = ""
+    controls: str = ""
+    updated_at: datetime = field(default_factory=timezone.now)
+    comments: list[Comment] = field(default_factory=list)
 
     @property
     def output_files(self):
@@ -295,12 +303,26 @@ class FileGroup:
     @classmethod
     def from_dict(cls, attrs) -> Self:
         return cls(
-            **{k: v for k, v in attrs.items() if k != "files"},
+            **{k: v for k, v in attrs.items() if k not in ["files", "comments"]},
             files={
                 UrlPath(value["relpath"]): RequestFile.from_dict(value)
                 for value in attrs.get("files", ())
             },
+            comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
+
+
+@dataclass(frozen=True)
+class Comment:
+    """A user comment on a group"""
+
+    comment: str
+    author: str
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, attrs):
+        return Comment(**attrs)
 
 
 @dataclass
@@ -544,6 +566,26 @@ class DataAccessLayerProtocol(Protocol):
         workspace: str | None = None,
         request: str | None = None,
     ) -> list[AuditEvent]:
+        raise NotImplementedError()
+
+    def group_edit(
+        self,
+        request_id: str,
+        group: str,
+        context: str,
+        controls: str,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
+    def group_comment(
+        self,
+        request_id: str,
+        group: str,
+        comment: str,
+        username: str,
+        audit: AuditEvent,
+    ):
         raise NotImplementedError()
 
 
@@ -1018,6 +1060,45 @@ class BusinessLogicLayer:
         )
 
         bll._dal.reject_file(release_request.id, relpath, user.username, audit)
+
+    def group_edit(
+        self,
+        release_request: ReleaseRequest,
+        group: str,
+        context: str,
+        controls: str,
+        user: User,
+    ):
+        if release_request.author != user.username:
+            raise self.RequestPermissionDenied(
+                "Only request author can edit the request"
+            )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_EDIT,
+            user=user,
+            group=group,
+        )
+
+        bll._dal.group_edit(release_request.id, group, context, controls, audit)
+
+    def group_comment(
+        self, release_request: ReleaseRequest, group: str, comment: str, user: User
+    ):
+        if not user.output_checker and release_request.workspace not in user.workspaces:
+            raise self.RequestPermissionDenied(
+                f"User {user.username} does not have permission to comment"
+            )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_COMMENT,
+            user=user,
+            group=group,
+        )
+
+        bll._dal.group_comment(release_request.id, group, comment, user.username, audit)
 
     def get_audit_log(
         self,

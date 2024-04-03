@@ -97,9 +97,23 @@ class FileGroupMetadata(models.Model):
         RequestMetadata, related_name="filegroups", on_delete=models.CASCADE
     )
     name = models.TextField(default="default")
+    context = models.TextField(default="")
+    controls = models.TextField(default="")
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("request", "name")
+
+
+class FileGroupComment(models.Model):
+    filegroup = models.ForeignKey(
+        FileGroupMetadata, related_name="comments", on_delete=models.CASCADE
+    )
+
+    comment = models.TextField()
+    author = models.TextField()  # just username, as we have no User model
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 class RequestFileMetadata(models.Model):

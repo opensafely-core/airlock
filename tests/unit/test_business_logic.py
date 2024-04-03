@@ -1079,3 +1079,104 @@ def test_dal_methods_have_audit_event_parameter():
         assert (
             "AuditEvent" in arg_annotations
         ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
+
+
+def test_group_edit_author(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.filegroups["group"].context == ""
+    assert release_request.filegroups["group"].controls == ""
+
+    bll.group_edit(release_request, "group", "foo", "bar", author)
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.filegroups["group"].context == "foo"
+    assert release_request.filegroups["group"].controls == "bar"
+
+
+def test_group_edit_not_author(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.group_edit(release_request, "group", "foo", "bar", other)
+
+
+def test_group_edit_bad_group(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+
+    with pytest.raises(bll.FileNotFound):
+        bll.group_edit(release_request, "notexist", "foo", "bar", author)
+
+
+def test_group_comment_success(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.filegroups["group"].comments == []
+
+    bll.group_comment(release_request, "group", "question?", other)
+    bll.group_comment(release_request, "group", "answer!", author)
+
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.filegroups["group"].comments[0].comment == "question?"
+    assert release_request.filegroups["group"].comments[0].author == "other"
+    assert release_request.filegroups["group"].comments[1].comment == "answer!"
+    assert release_request.filegroups["group"].comments[1].author == "author"
+
+
+def test_group_comment_permissions(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    collaborator = factories.create_user("collaboratorr", ["workspace"], False)
+    other = factories.create_user("other", ["other"], False)
+    checker = factories.create_user("checker", ["other"], True)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    assert len(release_request.filegroups["group"].comments) == 0
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.group_comment(release_request, "group", "question?", other)
+
+    bll.group_comment(release_request, "group", "collaborator", collaborator)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert len(release_request.filegroups["group"].comments) == 1
+
+    bll.group_comment(release_request, "group", "checker", checker)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert len(release_request.filegroups["group"].comments) == 2
