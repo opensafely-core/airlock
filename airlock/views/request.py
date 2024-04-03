@@ -6,6 +6,7 @@ from django.http import Http404
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
@@ -106,6 +107,7 @@ def request_view(request, request_id: str, path: str = ""):
 
 
 @instrument(func_attributes={"release_request": "request_id"})
+@xframe_options_sameorigin
 @require_http_methods(["GET"])
 def request_contents(request, request_id: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)

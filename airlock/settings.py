@@ -227,11 +227,9 @@ SESSION_COOKIE_NAME = "airlock-sessionid"
 
 # login is painful, so reduce the frequency that users need to do it after inactivity.
 SESSION_COOKIE_AGE = 8 * 7 * 24 * 60 * 60  # 8 weeks
+
 # time before we refresh users authorisation
 AIRLOCK_AUTHZ_TIMEOUT = 15 * 60  # 15 minutes
-
-# Enable frames
-X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Serve files from static dirs directly. This removes the need to run collectstatic
 # https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_USE_FINDERS
