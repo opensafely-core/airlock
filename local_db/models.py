@@ -73,8 +73,9 @@ class EnumField(BaseTextField):
         name, path, args, kwargs = super().deconstruct()
         # Only include kwarg if it's not the default
         if self.enum != RequestStatus:
-            kwargs['enum'] = self.enum
+            kwargs["enum"] = self.enum
         return name, path, args, kwargs
+
 
 class RequestMetadata(models.Model):
     """A request for a set of files to be reviewed and potentially released."""
@@ -104,6 +105,11 @@ class FileGroupMetadata(models.Model):
 class RequestFileMetadata(models.Model):
     """Represents attributes of a single file in a request"""
 
+    request = models.ForeignKey(
+        RequestMetadata,
+        related_name="request_files",
+        on_delete=models.CASCADE,
+    )
     relpath = models.TextField()
     filegroup = models.ForeignKey(
         FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
@@ -114,7 +120,7 @@ class RequestFileMetadata(models.Model):
     filetype = EnumField(default=RequestFileType.OUTPUT, enum=RequestFileType)
 
     class Meta:
-        unique_together = ("relpath", "filegroup")
+        unique_together = ("relpath", "request")
 
 
 class FileReview(models.Model):
