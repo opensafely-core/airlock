@@ -1,3 +1,4 @@
+{% load django_vite %}
 <style>
   .datatable thead {
     position: sticky;
@@ -6,18 +7,28 @@
     background-color: rgba(248,250,252);
   }
 
-  .datatable tbody tr:nth-child(even) {
-    background-color: rgba(248,250,252);
-  }
 </style>
 
 <div id="csvtable">
   <p class="spinner">Loading table data...</p>
-  <table class="datatable" style="display: none">
+  <table class="datatable" style="display: none" id="customTable">
     <thead>
       <tr>
         {% for header in headers %}
-          <th>{{ header }}</th>
+          <th>{{ header }}
+            <span class="ml-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h4 w-4 datatable-icon--no-sort" role="presentation">
+                <path fill-rule="evenodd" d="M2.24 6.8a.75.75 0 001.06-.04l1.95-2.1v8.59a.75.75 0 001.5 0V4.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0L2.2 5.74a.75.75 0 00.04 1.06zm8 6.4a.75.75 0 00-.04 1.06l3.25 3.5a.75.75 0 001.1 0l3.25-3.5a.75.75 0 10-1.1-1.02l-1.95 2.1V6.75a.75.75 0 00-1.5 0v8.59l-1.95-2.1a.75.75 0 00-1.06-.04z" clip-rule="evenodd" />
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h4 w-4 datatable-icon--ascending" role="presentation">
+                <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h4 w-4 datatable-icon--descending" role="presentation">
+                <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clip-rule="evenodd" />
+              </svg>
+            </span>
+
+          </th>
         {% endfor %}
       </tr>
     </thead>
@@ -31,8 +42,49 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <nav class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3" aria-label="Pagination">
+    <div class="hidden sm:block">
+      <p class="text-sm text-gray-700">
+        Page
+        <strong data-table-pagination="page-number">#</strong>
+        of
+        <strong data-table-pagination="total-pages">#</strong>
+      </p>
+    </div>
+    <div class="flex flex-1 justify-between gap-4 sm:justify-end">
+      <button
+        data-table-pagination="previous-page"
+        class="
+               px-4 py-2 text-sm font-medium
+               inline-flex items-center justify-center border rounded-md shadow-sm transition-buttons duration-200
+               border border-slate-400/75 text-slate-700 !shadow-none
+               hover:bg-slate-200
+               focus:bg-slate-200 focus:ring-slate-500 focus:ring-offset-white
+               hover:shadow-lg
+               focus:outline-none focus:ring-2 focus:ring-offset-2"
+      >
+        Previous
+      </button>
+      <button
+        data-table-pagination="next-page"
+        class="
+               px-4 py-2 text-sm font-medium
+               inline-flex items-center justify-center border rounded-md shadow-sm transition-buttons duration-200
+               border border-slate-400/75 text-slate-700 !shadow-none
+               hover:bg-slate-200
+               focus:bg-slate-200 focus:ring-slate-500 focus:ring-offset-white
+               hover:shadow-lg
+               focus:outline-none focus:ring-2 focus:ring-offset-2"
+      >
+        Next
+      </button>
+    </div>
+  </nav>
 </div>
 
+{% vite_asset "assets/src/scripts/base.js" %}
+{% vite_asset "assets/src/scripts/components.js" %}
 <script type="text/javascript">
   document.querySelector("#csvtable p.spinner").style.display = "none";
   document.querySelector("#csvtable table.datatable").style.display = "table";
