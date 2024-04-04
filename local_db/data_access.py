@@ -162,7 +162,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             # A file (including supporting files) may only be on a request once.
             try:
                 existing_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=request_id, relpath=relpath
+                    request_id=request_id, relpath=relpath
                 )
                 # We should never be able to attempt to add a file to a request
                 # with a different filetype
@@ -170,6 +170,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
                 RequestFileMetadata.objects.create(
+                    request_id=request_id,
                     relpath=str(relpath),
                     file_id=file_id,
                     filegroup=filegroupmetadata,
@@ -200,7 +201,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             try:
                 request_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=request_id,
+                    request_id=request_id,
                     relpath=relpath,
                 )
             except RequestFileMetadata.DoesNotExist:
@@ -226,7 +227,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             try:
                 request_file = RequestFileMetadata.objects.get(
-                    filegroup__request_id=request_id,
+                    request_id=request_id,
                     relpath=relpath,
                 )
             except RequestFileMetadata.DoesNotExist:
@@ -248,7 +249,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             # nb. the business logic layer approve_file() should confirm that this path
             # is part of the request before calling this method
             request_file = RequestFileMetadata.objects.get(
-                filegroup__request_id=request_id, relpath=relpath
+                request_id=request_id, relpath=relpath
             )
 
             review, _ = FileReview.objects.get_or_create(
@@ -264,7 +265,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
-                filegroup__request_id=request_id, relpath=relpath
+                request_id=request_id, relpath=relpath
             )
 
             review, _ = FileReview.objects.get_or_create(
