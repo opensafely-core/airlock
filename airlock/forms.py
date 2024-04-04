@@ -44,3 +44,12 @@ class AddFileForm(forms.Form):
             )
         else:
             return new_filegroup
+
+
+class GroupEditForm(forms.Form):
+    context = forms.CharField(required=False)
+    controls = forms.CharField(required=False)
+
+
+class GroupCommentForm(forms.Form):
+    comment = forms.CharField()

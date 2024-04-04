@@ -19,6 +19,7 @@ from airlock.business_logic import (
 )
 from airlock.file_browser_api import get_request_tree
 from airlock.types import UrlPath
+from airlock.forms import GroupCommentForm, GroupEditForm
 from services.tracing import instrument
 
 from .helpers import (
@@ -332,3 +333,63 @@ def request_release_files(request, request_id):
 
     messages.success(request, "Files have been released to jobs.opensafely.org")
     return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_edit(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    form = GroupEditForm(request.POST)
+    form.is_valid()  # force validation - the form cannot fail to validate
+
+    try:
+        bll.group_edit(
+            release_request,
+            group=group,
+            context=form.cleaned_data["context"],
+            controls=form.cleaned_data["controls"],
+            user=request.user,
+        )
+    except bll.RequestPermissionDenied as exc:  # pragma: nocover
+        # currently, we can't hit this because of get_release_request_or_raise above.
+        # However, that may change, so handle it anyway.
+        raise PermissionDenied(str(exc))
+    except bll.FileNotFound:
+        messages.error(request, f"Invalid group: {group}")
+    else:
+        messages.success(request, f"Updated group {group}")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_comment(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    form = GroupCommentForm(request.POST)
+
+    if form.is_valid():
+        try:
+            bll.group_comment(
+                release_request,
+                group=group,
+                comment=form.cleaned_data["comment"],
+                user=request.user,
+            )
+        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        except bll.FileNotFound:
+            messages.error(request, f"Invalid group: {group}")
+        else:
+            messages.success(request, "Comment added")
+
+    else:
+        for field, error_list in form.errors.items():
+            for error in error_list:
+                messages.error(request, f"{field}: {error}")
+
+    return redirect(release_request.get_url(group))
