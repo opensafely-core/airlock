@@ -1,6 +1,6 @@
 from django import forms
 
-from airlock.business_logic import RequestFileType
+from airlock.business_logic import FileGroup, RequestFileType
 
 
 class TokenLoginForm(forms.Form):
@@ -49,6 +49,14 @@ class AddFileForm(forms.Form):
 class GroupEditForm(forms.Form):
     context = forms.CharField(required=False)
     controls = forms.CharField(required=False)
+
+    @classmethod
+    def from_filegroup(cls, filegroup: FileGroup, *args, **kwargs):
+        data = {
+            "context": filegroup.context,
+            "controls": filegroup.controls,
+        }
+        return cls(data, *args, **kwargs)
 
 
 class GroupCommentForm(forms.Form):

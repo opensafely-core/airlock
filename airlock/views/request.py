@@ -12,6 +12,7 @@ from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
 from airlock.business_logic import (
+    ROOT_PATH,
     FileReviewStatus,
     RequestFileType,
     RequestStatus,
@@ -53,10 +54,12 @@ def request_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
+@require_http_methods(["GET"])
 @instrument(func_attributes={"release_request": "request_id"})
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
+    relpath = UrlPath(path)
     template = "file_browser/index.html"
     selected_only = False
 
@@ -64,10 +67,10 @@ def request_view(request, request_id: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_request_tree(release_request, path, selected_only)
-    path_item = get_path_item_from_tree_or_404(tree, path)
+    tree = get_request_tree(release_request, relpath, selected_only)
+    path_item = get_path_item_from_tree_or_404(tree, relpath)
 
-    is_directory_url = path.endswith("/") or path == ""
+    is_directory_url = path.endswith("/") or relpath == ROOT_PATH
 
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
@@ -83,6 +86,29 @@ def request_view(request, request_id: str, path: str = ""):
         file_withdraw_url = reverse(
             "file_withdraw",
             kwargs={"request_id": request_id, "path": path},
+        )
+
+    group_edit_form = None
+    group_edit_url = None
+    comments = []
+    group_comment_form = None
+    group_comment_url = None
+
+    # if we are vieing a group page, load the specific group data and forms
+    if len(relpath.parts) == 1:
+        group = relpath.parts[0]
+        filegroup = release_request.filegroups[group]
+        group_edit_form = GroupEditForm.from_filegroup(filegroup)
+        group_edit_url = reverse(
+            "group_edit",
+            kwargs={"request_id": request_id, "group": group},
+        )
+
+        comments = filegroup.comments
+        group_comment_form = GroupCommentForm()
+        group_comment_url = reverse(
+            "group_comment",
+            kwargs={"request_id": request_id, "group": group},
         )
 
     request_submit_url = reverse(
@@ -146,6 +172,11 @@ def request_view(request, request_id: str, path: str = ""):
         "request_reject_url": request_reject_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
+        "group_edit_form": group_edit_form,
+        "group_edit_url": group_edit_url,
+        "group_comment_form": group_comment_form,
+        "group_comments": comments,
+        "group_comment_url": group_comment_url,
     }
 
     return TemplateResponse(request, template, context)
