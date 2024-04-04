@@ -61,7 +61,6 @@ class EnumField(BaseTextField):
     def from_db_value(self, value, expression, connection):
         if value is None:  # pragma: no cover
             return value
-
         return self.enum[value]
 
     def get_prep_value(self, value):
@@ -70,6 +69,12 @@ class EnumField(BaseTextField):
         except Exception as exc:
             raise exc.__class__(f"value should be instance of {self.enum}") from exc
 
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Only include kwarg if it's not the default
+        if self.enum != RequestStatus:
+            kwargs['enum'] = self.enum
+        return name, path, args, kwargs
 
 class RequestMetadata(models.Model):
     """A request for a set of files to be reviewed and potentially released."""
