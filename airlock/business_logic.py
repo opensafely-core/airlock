@@ -254,6 +254,21 @@ class RequestFile:
             reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
         )
 
+    def approved_for_release(self):
+        """
+        A file is approved for release if it has been approved by two reviewers
+        """
+        return (
+            len(
+                [
+                    review
+                    for review in self.reviews
+                    if review.status == FileReviewStatus.APPROVED
+                ]
+            )
+            >= 2
+        )
+
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -386,6 +401,16 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         }
 
+    def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
+        return next(
+            (
+                r
+                for r in self.get_request_file(urlpath).reviews
+                if r.reviewer == reviewer
+            ),
+            None,
+        )
+
     def request_filetype(self, urlpath: UrlPath):
         try:
             return self.get_request_file(urlpath).filetype
@@ -403,6 +428,13 @@ class ReleaseRequest:
                 abspath = self.abspath(file_group.name / relpath)
                 paths.append((relpath, abspath))
         return paths
+
+    def all_files_approved(self):
+        return all(
+            request_file.approved_for_release()
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.output_files
+        )
 
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
@@ -734,6 +766,14 @@ class BusinessLogicLayer:
             if user.username == release_request.author:
                 raise self.RequestPermissionDenied(
                     f"Can not set your own request to {to_status.name}"
+                )
+
+            if (
+                to_status == RequestStatus.APPROVED
+                and not release_request.all_files_approved()
+            ):
+                raise self.RequestPermissionDenied(
+                    f"Cannot set status to {to_status.name}; request has unapproved files."
                 )
 
     def set_status(

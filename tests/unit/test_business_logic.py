@@ -89,7 +89,7 @@ def mock_old_api(monkeypatch):
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
 
 
-def test_provider_request_release_files_not_approved():
+def test_provider_request_release_files_request_not_approved():
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -118,8 +118,11 @@ def test_provider_request_release_files_invalid_file_type():
     # request
     relpath = Path("test/file.foo")
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
-        factories.write_request_file(release_request, "group", relpath, "test")
+        factories.write_request_file(
+            release_request, "group", relpath, "test", approved=True
+        )
 
+    release_request = factories.refresh_release_request(release_request)
     factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
     bll = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(bll.RequestPermissionDenied):
@@ -137,7 +140,9 @@ def test_provider_request_release_files(mock_old_api):
         status=RequestStatus.SUBMITTED,
     )
     relpath = Path("test/file.txt")
-    factories.write_request_file(release_request, "group", relpath, "test")
+    factories.write_request_file(
+        release_request, "group", relpath, "test", approved=True
+    )
     # Add a supporting file, which should NOT be released
     supporting_relpath = Path("test/supporting_file.txt")
     factories.write_request_file(
@@ -331,6 +336,26 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request2, future, user=checker)
+
+
+@pytest.mark.parametrize("files_approved", (True, False))
+def test_set_status_approved(files_approved, bll):
+    author = factories.create_user("author", ["workspace"], False)
+    checker = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=RequestStatus.SUBMITTED
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=files_approved
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    if files_approved:
+        bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
+        assert release_request.status == RequestStatus.APPROVED
+    else:
+        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+            bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
 
 
 def test_set_status_cannot_action_own_request(bll):
@@ -923,6 +948,47 @@ def test_approve_then_reject_file(bll):
     assert current_reviews[0].status == FileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
+
+
+def test_get_file_review_for_reviewer(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+    checker2 = factories.create_user("checker2", [], True)
+
+    bll.add_file_to_request(release_request, path, author, "default")
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
+    fullpath = "default" / path
+    assert release_request.get_file_review_for_reviewer(fullpath, "checker") is None
+
+    bll.approve_file(release_request, path, checker)
+    bll.reject_file(release_request, path, checker2)
+    release_request = factories.refresh_release_request(release_request, author)
+
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker").status
+        is FileReviewStatus.APPROVED
+    )
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker2").status
+        is FileReviewStatus.REJECTED
+    )
+
+    bll.reject_file(release_request, path, checker)
+    bll.approve_file(release_request, path, checker2)
+    release_request = factories.refresh_release_request(release_request, author)
+
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker").status
+        is FileReviewStatus.REJECTED
+    )
+    assert (
+        release_request.get_file_review_for_reviewer(fullpath, "checker2").status
+        is FileReviewStatus.APPROVED
+    )
 
 
 # add DAL method names to this if they do not require auditing

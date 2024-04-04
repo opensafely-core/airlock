@@ -78,6 +78,16 @@ urlpatterns = [
         name="request_contents",
     ),
     path(
+        "requests/approve/<str:request_id>/<path:path>",
+        airlock.views.file_approve,
+        name="file_approve",
+    ),
+    path(
+        "requests/reject/<str:request_id>/<path:path>",
+        airlock.views.file_reject,
+        name="file_reject",
+    ),
+    path(
         "requests/release/<str:request_id>",
         airlock.views.request_release_files,
         name="request_release_files",

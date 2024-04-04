@@ -2,7 +2,14 @@ import time
 
 from django.conf import settings
 
-from airlock.business_logic import AuditEvent, RequestFileType, UrlPath, Workspace, bll
+from airlock.business_logic import (
+    AuditEvent,
+    AuditEventType,
+    RequestFileType,
+    UrlPath,
+    Workspace,
+    bll,
+)
 from airlock.users import User
 
 
@@ -69,7 +76,13 @@ def create_release_request(workspace, user=None, **kwargs):
 
 
 def write_request_file(
-    request, group, path, contents="", user=None, filetype=RequestFileType.OUTPUT
+    request,
+    group,
+    path,
+    contents="",
+    user=None,
+    filetype=RequestFileType.OUTPUT,
+    approved=False,
 ):
     workspace = ensure_workspace(request.workspace)
     try:
@@ -84,6 +97,14 @@ def write_request_file(
     bll.add_file_to_request(
         request, relpath=path, user=user, group_name=group, filetype=filetype
     )
+    if approved:
+        for i in range(2):
+            bll._dal.approve_file(
+                request,
+                relpath=UrlPath(path),
+                username=f"output-checker-{i}",
+                audit=create_audit_event(AuditEventType.REQUEST_FILE_APPROVE),
+            )
 
 
 def create_filegroup(release_request, group_name, filepaths=None):

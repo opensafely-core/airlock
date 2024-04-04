@@ -94,10 +94,14 @@
               {% csrf_token %}
               {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button" id="reject-request-button" %}Reject Request{% /button %}
             </form>
-            <form action="{{ release_files_url }}" method="POST">
-              {% csrf_token %}
-              {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
-            </form>
+            {% if release_request.all_files_approved %}
+              <form action="{{ release_files_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
+              </form>
+            {% else %}
+              {% #button disabled=True tooltip="Releasing to jobs.opensafely.org is disabled until all files have been approved by two reviewers" variant="warning" id="release-files-button" %}Release Files{% /button %}
+            {% endif %}
           {% endif %}
         {% endif %}
         {% #button type="link" href=workspace.get_url variant="success" id="workspace-home-button" %}Workspace Home{% /button %}
