@@ -54,7 +54,7 @@
           {% endif %}
         {% else %}{# request #}
           {% if path_item.is_supporting  %}
-            {% #description_item title="Supporting file" %}This is a supporting file and will not be releaed.{% /description_item%}
+            {% #description_item title="Supporting file" %}This is a supporting file and will not be released.{% /description_item%}
           {% elif path_item.is_withdrawn %}
             {% #description_item title="Withdrawn file" %}This file has been withdrawn and will not be released.{% /description_item%}
           {% endif %}
@@ -68,6 +68,24 @@
               </form>
             {% endif %}
           {% elif is_output_checker %}
+            {% if file_approve_url %}
+              <form action="{{ file_approve_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" variant="success" id="file-approve-button" %}Approve File{% /button %}
+              </form>
+            {% else %}
+              {% csrf_token %}
+              {% #button type="submit" variant="success" disabled=True id="file-approve-button" %}Approve File{% /button %}
+            {% endif %}
+            {% if file_reject_url %}
+              <form action="{{ file_reject_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+              </form>
+            {% else %}
+              {% csrf_token %}
+              {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+            {% endif %}
             {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
           {% endif %}
         {% endif %}
@@ -83,7 +101,8 @@
                 frameborder=0
                 height=1000
                 style="width: 100%;"
-        />
+                sandbox="{{ path_item.iframe_sandbox }}"
+        ></iframe>
       </div>
     {% /card %}
 
