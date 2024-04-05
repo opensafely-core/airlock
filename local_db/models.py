@@ -61,7 +61,6 @@ class EnumField(BaseTextField):
     def from_db_value(self, value, expression, connection):
         if value is None:  # pragma: no cover
             return value
-
         return self.enum[value]
 
     def get_prep_value(self, value):
@@ -69,6 +68,13 @@ class EnumField(BaseTextField):
             return value.name
         except Exception as exc:
             raise exc.__class__(f"value should be instance of {self.enum}") from exc
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Only include kwarg if it's not the default
+        if self.enum != RequestStatus:
+            kwargs["enum"] = self.enum
+        return name, path, args, kwargs
 
 
 class RequestMetadata(models.Model):
@@ -99,6 +105,11 @@ class FileGroupMetadata(models.Model):
 class RequestFileMetadata(models.Model):
     """Represents attributes of a single file in a request"""
 
+    request = models.ForeignKey(
+        RequestMetadata,
+        related_name="request_files",
+        on_delete=models.CASCADE,
+    )
     relpath = models.TextField()
     filegroup = models.ForeignKey(
         FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
@@ -109,7 +120,7 @@ class RequestFileMetadata(models.Model):
     filetype = EnumField(default=RequestFileType.OUTPUT, enum=RequestFileType)
 
     class Meta:
-        unique_together = ("relpath", "filegroup")
+        unique_together = ("relpath", "request")
 
 
 class FileReview(models.Model):
