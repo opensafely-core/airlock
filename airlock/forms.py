@@ -13,7 +13,11 @@ class AddFileForm(forms.Form):
     new_filegroup = forms.CharField(required=False)
     filetype = forms.ChoiceField(
         required=True,
-        choices=[(i.name, i.name.title()) for i in RequestFileType],
+        choices=[
+            (i.name, i.name.title())
+            for i in RequestFileType
+            if i != RequestFileType.WITHDRAWN
+        ],
         initial=RequestFileType.OUTPUT.name,
     )
 
