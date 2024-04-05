@@ -55,8 +55,8 @@
         </tbody>
       </table>
 
-      <nav class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3" aria-label="Pagination">
-        <div class="hidden sm:block">
+      <nav id="pagination-nav" class="hidden flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3" aria-label="Pagination">
+        <div class="sm:block">
           <p class="text-sm text-gray-700">
             Page
             <strong data-table-pagination="page-number">#</strong>
@@ -96,8 +96,25 @@
     </div>
 
     <script type="text/javascript">
-      document.querySelector("#csvtable p.spinner").style.display = "none";
-      document.querySelector("#csvtable table.datatable").style.display = "table";
+
+      const observer = new MutationObserver((mutations, obs) => {
+
+        const pageNumberEl = document.querySelector(
+          `[data-table-pagination="page-number"]`,
+        );
+        if (pageNumberEl.innerText !== "#") {
+          document.querySelector("#csvtable p.spinner").style.display = "none";
+          document.querySelector("#csvtable table.datatable").style.display = "table";
+          document.querySelector("#pagination-nav").classList.remove("hidden")
+          obs.disconnect();
+          return;
+        }
+      });
+      observer.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
     </script>
 
   </body>
