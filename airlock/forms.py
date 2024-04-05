@@ -14,7 +14,9 @@ class AddFileForm(forms.Form):
     filetype = forms.ChoiceField(
         required=True,
         choices=[
-            (i.name, i.name.title()) for i in RequestFileType if i.name != "WITHDRAWN"
+            (i.name, i.name.title())
+            for i in RequestFileType
+            if i != RequestFileType.WITHDRAWN
         ],
         initial=RequestFileType.OUTPUT.name,
     )
