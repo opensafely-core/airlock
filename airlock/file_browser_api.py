@@ -294,7 +294,7 @@ def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=Fal
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=(
-                f"{name} ({len(group.output_files)} requested files{_pluralise(group.output_files)}"
+                f"{name} ({len(group.output_files)} requested file{_pluralise(group.output_files)})"
             ),
             selected=selected,
             expanded=selected or expanded,
