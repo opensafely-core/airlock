@@ -60,8 +60,8 @@
           {% endif %}
 
           {% if is_author %}
-            {% if path_item.is_output %}
-              <form action="{{ withdraw_file_url }}" method="POST">
+            {% if path_item.is_output and file_withdraw_url %}
+              <form action="{{ file_withdraw_url }}" method="POST">
                 {% csrf_token %}
                 <input type=hidden name="path" value="{{ path_item.relpath }}"/>
                 {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}

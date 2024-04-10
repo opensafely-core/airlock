@@ -589,7 +589,7 @@ def test_request_reject_not_output_checker(airlock_client):
     assert persisted_request.status == RequestStatus.SUBMITTED
 
 
-def test_request_withdraw_file_pending(airlock_client):
+def test_file_withdraw_file_pending(airlock_client):
     author = factories.create_user("author", ["test1"], False)
     airlock_client.login_with_user(author)
     release_request = factories.create_release_request(
@@ -604,8 +604,7 @@ def test_request_withdraw_file_pending(airlock_client):
     release_request.get_request_file("group/path/test.txt")
 
     response = airlock_client.post(
-        f"/requests/withdraw/{release_request.id}",
-        data={"path": "group/path/test.txt"},
+        f"/requests/withdraw/{release_request.id}/group/path/test.txt",
     )
     assert response.status_code == 302
     assert response.headers["location"] == release_request.get_url("group")
@@ -616,7 +615,7 @@ def test_request_withdraw_file_pending(airlock_client):
         persisted_request.get_request_file("group/path/test.txt")
 
 
-def test_request_withdraw_file_submitted(airlock_client):
+def test_file_withdraw_file_submitted(airlock_client):
     author = factories.create_user("author", ["test1"], False)
     airlock_client.login_with_user(author)
     release_request = factories.create_release_request(
@@ -631,8 +630,7 @@ def test_request_withdraw_file_submitted(airlock_client):
     release_request.get_request_file("group/path/test.txt")
 
     response = airlock_client.post(
-        f"/requests/withdraw/{release_request.id}",
-        data={"path": "group/path/test.txt"},
+        f"/requests/withdraw/{release_request.id}/group/path/test.txt",
         follow=True,
     )
     # ensure template is rendered to force template coverage
@@ -645,7 +643,7 @@ def test_request_withdraw_file_submitted(airlock_client):
     assert request_file.filetype == RequestFileType.WITHDRAWN
 
 
-def test_request_withdraw_file_bad_file(airlock_client):
+def test_file_withdraw_file_bad_file(airlock_client):
     author = factories.create_user("author", ["test1"], False)
     airlock_client.login_with_user(author)
     release_request = factories.create_release_request(
@@ -654,13 +652,12 @@ def test_request_withdraw_file_bad_file(airlock_client):
     )
 
     response = airlock_client.post(
-        f"/requests/withdraw/{release_request.id}",
-        data={"path": "group/bad/path.txt"},
+        f"/requests/withdraw/{release_request.id}/group/bad/path.txt",
     )
     assert response.status_code == 404
 
 
-def test_request_withdraw_file_not_author(airlock_client):
+def test_file_withdraw_file_not_author(airlock_client):
     author = factories.create_user("author", ["test1"], False)
     other = factories.create_user("other", ["test1"], False)
     release_request = factories.create_release_request(
@@ -671,19 +668,17 @@ def test_request_withdraw_file_not_author(airlock_client):
 
     airlock_client.login_with_user(other)
     response = airlock_client.post(
-        f"/requests/withdraw/{release_request.id}",
-        data={"path": "group/path/test.txt"},
+        f"/requests/withdraw/{release_request.id}/group/path/test.txt",
     )
     assert response.status_code == 403
 
 
-def test_request_withdraw_file_bad_request(airlock_client):
+def test_file_withdraw_file_bad_request(airlock_client):
     author = factories.create_user("author", ["test1"], False)
     airlock_client.login_with_user(author)
 
     response = airlock_client.post(
-        "/requests/withdraw/bad_id",
-        data={"path": "group/path/test.txt"},
+        "/requests/withdraw/bad_id/group/path/test.txt",
     )
     assert response.status_code == 404
 

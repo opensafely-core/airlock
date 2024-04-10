@@ -76,6 +76,14 @@ def request_view(request, request_id: str, path: str = ""):
     if "is_author" in request.GET:  # pragma: nocover
         is_author = request.GET["is_author"].lower() == "true"
 
+    if is_directory_url:
+        file_withdraw_url = None
+    else:
+        file_withdraw_url = reverse(
+            "file_withdraw",
+            kwargs={"request_id": request_id, "path": path},
+        )
+
     request_submit_url = reverse(
         "request_submit",
         kwargs={"request_id": request_id},
@@ -86,10 +94,6 @@ def request_view(request, request_id: str, path: str = ""):
     )
     release_files_url = reverse(
         "request_release_files",
-        kwargs={"request_id": request_id},
-    )
-    withdraw_file_url = reverse(
-        "request_withdraw",
         kwargs={"request_id": request_id},
     )
 
@@ -132,10 +136,10 @@ def request_view(request, request_id: str, path: str = ""):
         "is_output_checker": request.user.output_checker,
         "file_approve_url": file_approve_url,
         "file_reject_url": file_reject_url,
+        "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
         "release_files_url": release_files_url,
-        "withdraw_file_url": withdraw_file_url,
     }
 
     return TemplateResponse(request, template, context)
@@ -199,9 +203,9 @@ def request_reject(request, request_id):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def request_withdraw(request, request_id):
+def file_withdraw(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
-    grouppath = UrlPath(request.POST["path"])
+    grouppath = UrlPath(path)
 
     try:
         release_request.get_request_file(grouppath)
