@@ -87,6 +87,23 @@
               {% csrf_token %}
               {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button" id="submit-for-review-button" %}Submit For Review{% /button %}
             </form>
+          {% elif release_request.status.name == "SUBMITTED" %}
+            {% #modal id="withdrawRequest" button_text="Withdraw this request" variant="warning" %}
+              {% #card container=True title="Withdraw this request" %}
+                <form action="{{ request_withdraw_url }}" method="POST">
+                  {% csrf_token %}
+
+                  <div class="pb-8">
+                    This will withdraw the entire request.
+                    Once a request is withdrawn, it cannot be resubmitted and must be
+                    recreated from scratch.
+                    Please confirm you wish to withdraw this request.
+                  </div>
+                  {% #button type="submit" variant="danger" class="action-button" id="withdraw-request-confirm" %}Withdraw{% /button %}
+                  {% #button variant="primary" type="cancel" %}Cancel{% /button %}
+                </form>
+              {% /card %}
+            {% /modal %}
           {% endif %}
         {% elif is_output_checker %}
           {% if release_request.status.name == "SUBMITTED" %}
