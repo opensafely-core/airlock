@@ -428,3 +428,32 @@ def test_e2e_reject_request(page, live_server, dev_users):
     # Requests view does not show rejected request
     find_and_click(page.get_by_test_id("nav-requests"))
     expect(page.locator("body")).not_to_contain_text("test-workspace by author")
+
+
+def test_e2e_withdraw_request(page, live_server, dev_users):
+    """
+    Request author withdraws their request
+    """
+    # set up a submitted request
+    factories.write_workspace_file("test-workspace", "file.txt")
+    user = factories.create_user("researcher", ["test-workspace"], False)
+    release_request = factories.create_release_request(
+        "test-workspace",
+        user,
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.create_filegroup(
+        release_request, group_name="default", filepaths=["file.txt"]
+    )
+
+    # Log in as a researcher
+    login_as(live_server, page, user.username)
+
+    # View requests
+    find_and_click(page.get_by_test_id("nav-requests"))
+
+    page.get_by_role("link", name="test-workspace: SUBMITTED").click()
+    find_and_click(page.locator("[data-modal=withdrawRequest]"))
+    find_and_click(page.locator("#withdraw-request-confirm"))
+
+    expect(page.locator("body")).to_contain_text("Request has been withdrawn")
