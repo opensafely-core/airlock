@@ -107,6 +107,11 @@ urlpatterns = [
         airlock.views.request_reject,
         name="request_reject",
     ),
+    path(
+        "requests/withdraw/<str:request_id>",
+        airlock.views.request_withdraw,
+        name="request_withdraw",
+    ),
 ]
 
 if settings.DJANGO_DEBUG_TOOLBAR:  # pragma: nocover

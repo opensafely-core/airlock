@@ -76,7 +76,7 @@ def request_view(request, request_id: str, path: str = ""):
     if "is_author" in request.GET:  # pragma: nocover
         is_author = request.GET["is_author"].lower() == "true"
 
-    if is_directory_url:
+    if is_directory_url or release_request.status == RequestStatus.WITHDRAWN:
         file_withdraw_url = None
     else:
         file_withdraw_url = reverse(
@@ -86,6 +86,10 @@ def request_view(request, request_id: str, path: str = ""):
 
     request_submit_url = reverse(
         "request_submit",
+        kwargs={"request_id": request_id},
+    )
+    request_withdraw_url = reverse(
+        "request_withdraw",
         kwargs={"request_id": request_id},
     )
     request_reject_url = reverse(
@@ -139,6 +143,7 @@ def request_view(request, request_id: str, path: str = ""):
         "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
+        "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
     }
 
@@ -198,6 +203,20 @@ def request_reject(request, request_id):
         raise PermissionDenied(str(exc))
 
     messages.error(request, "Request has been rejected")
+    return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_withdraw(request, request_id):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    try:
+        bll.set_status(release_request, RequestStatus.WITHDRAWN, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.error(request, "Request has been withdrawn")
     return redirect(release_request.get_url())
 
 

@@ -443,6 +443,39 @@ def test_request_submit_not_author(airlock_client):
     assert persisted_request.status == RequestStatus.PENDING
 
 
+def test_request_withdraw_author(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    release_request = factories.create_release_request(
+        "test1", user=airlock_client.user
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+
+    response = airlock_client.post(f"/requests/withdraw/{release_request.id}")
+
+    assert response.status_code == 302
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
+    assert persisted_request.status == RequestStatus.WITHDRAWN
+
+
+def test_request_withdraw_not_author(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    other_user = factories.create_user("other", [], False)
+    release_request = factories.create_release_request(
+        "test1", user=other_user, status=RequestStatus.PENDING
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+
+    response = airlock_client.post(f"/requests/withdraw/{release_request.id}")
+
+    assert response.status_code == 403
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
+    assert persisted_request.status == RequestStatus.PENDING
+
+
 @pytest.mark.parametrize("review", [("approve"), ("reject")])
 def test_file_review_bad_user(airlock_client, review):
     workspace = "test1"
