@@ -188,6 +188,12 @@ class Workspace:
             kwargs={"workspace_name": self.name, "path": relpath},
         )
 
+    def get_requests_url(self):
+        return reverse(
+            "request_workspace",
+            kwargs={"workspace_name": self.name},
+        )
+
     def get_contents_url(self, relpath, download=False):
         url = reverse(
             "workspace_contents",
