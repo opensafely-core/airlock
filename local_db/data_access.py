@@ -128,6 +128,14 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
+    def get_requests_for_workspace(self, workspace: str):
+        return [
+            self._request(request)
+            for request in RequestMetadata.objects.filter(workspace=workspace).order_by(
+                "status"
+            )
+        ]
+
     def get_outstanding_requests_for_review(self):
         return [
             self._request(metadata)

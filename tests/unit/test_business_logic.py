@@ -183,6 +183,38 @@ def test_provider_request_release_files(mock_old_api):
     )
 
 
+def test_provider_get_requests_for_workspace(bll):
+    user = factories.create_user("test", ["workspace"])
+    other_user = factories.create_user("other", ["workspace"])
+    factories.create_release_request("workspace", user, id="r1")
+    factories.create_release_request("workspace", other_user, id="r2")
+
+    assert [r.id for r in bll.get_requests_for_workspace("workspace", user)] == [
+        "r1",
+        "r2",
+    ]
+
+
+def test_provider_get_requests_for_workspace_bad_user(bll):
+    user = factories.create_user("test", ["workspace"])
+    other_user = factories.create_user("other", ["workspace_2"])
+    factories.create_release_request("workspace", user, id="r1")
+    factories.create_release_request("workspace_2", other_user, id="r2")
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.get_requests_for_workspace("workspace", other_user)
+
+
+def test_provider_get_requests_for_workspace_output_checker(bll):
+    user = factories.create_user("test", ["workspace"])
+    other_user = factories.create_user("other", [], True)
+    factories.create_release_request("workspace", user, id="r1")
+
+    assert [r.id for r in bll.get_requests_for_workspace("workspace", other_user)] == [
+        "r1",
+    ]
+
+
 def test_provider_get_requests_authored_by_user(bll):
     user = factories.create_user("test", ["workspace"])
     other_user = factories.create_user("other", ["workspace"])
@@ -994,6 +1026,7 @@ def test_get_file_review_for_reviewer(bll):
 # add DAL method names to this if they do not require auditing
 DAL_AUDIT_EXCLUDED = {
     "get_release_request",
+    "get_requests_for_workspace",
     "get_active_requests_for_workspace_by_user",
     "get_audit_log",
     "get_outstanding_requests_for_review",

@@ -475,6 +475,9 @@ class DataAccessLayerProtocol(Protocol):
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
         raise NotImplementedError()
 
+    def get_requests_for_workspace(self, workspace: str):
+        raise NotImplementedError()
+
     def get_requests_authored_by_user(self, username: str):
         raise NotImplementedError()
 
@@ -673,6 +676,19 @@ class BusinessLogicLayer:
             raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
 
         return self._create_release_request(workspace_name, user.username)
+
+    def get_requests_for_workspace(
+        self, workspace_name: str, user: User
+    ) -> list[ReleaseRequest]:
+        """Get all release requests in workspaces a user has access to."""
+
+        if not user.output_checker and workspace_name not in user.workspaces:
+            raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_requests_for_workspace(workspace=workspace_name)
+        ]
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
