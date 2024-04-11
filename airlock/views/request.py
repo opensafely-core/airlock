@@ -249,6 +249,20 @@ def file_withdraw(request, request_id, path: str):
     return redirect(redirect_url)
 
 
+@instrument
+def request_workspace(request, workspace_name: str):
+    requests_workspace = bll.get_requests_for_workspace(workspace_name, request.user)
+
+    return TemplateResponse(
+        request,
+        "requests_workspace.html",
+        {
+            "workspace": workspace_name,
+            "requests_workspace": requests_workspace,
+        },
+    )
+
+
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_approve(request, request_id, path: str):

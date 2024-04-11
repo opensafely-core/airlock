@@ -112,6 +112,11 @@ urlpatterns = [
         airlock.views.request_withdraw,
         name="request_withdraw",
     ),
+    path(
+        "requests/workspace/<str:workspace_name>",
+        airlock.views.request_workspace,
+        name="request_workspace",
+    ),
 ]
 
 if settings.DJANGO_DEBUG_TOOLBAR:  # pragma: nocover
