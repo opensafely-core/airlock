@@ -88,6 +88,11 @@ urlpatterns = [
         name="file_reject",
     ),
     path(
+        "requests/withdraw/<str:request_id>/<path:path>",
+        airlock.views.file_withdraw,
+        name="file_withdraw",
+    ),
+    path(
         "requests/release/<str:request_id>",
         airlock.views.request_release_files,
         name="request_release_files",

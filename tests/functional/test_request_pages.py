@@ -7,7 +7,7 @@ from tests import factories
 from tests.functional.conftest import login_as_user
 
 
-def test_request_withdraw_file(live_server, context, page, bll):
+def test_request_file_withdraw(live_server, context, page, bll):
     author = login_as_user(
         live_server,
         context,
