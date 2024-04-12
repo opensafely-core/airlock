@@ -132,7 +132,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return [
             self._request(request)
             for request in RequestMetadata.objects.filter(workspace=workspace).order_by(
-                "status"
+                "created_at"
             )
         ]
 
