@@ -689,7 +689,9 @@ class BusinessLogicLayer:
         """Get all release requests in workspaces a user has access to."""
 
         if not user.output_checker and workspace_name not in user.workspaces:
-            raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+            raise self.RequestPermissionDenied(
+                f"you do not have permission to view requests for {workspace_name}"
+            )
 
         return [
             ReleaseRequest.from_dict(attrs)
