@@ -853,6 +853,14 @@ class BusinessLogicLayer:
                     f"Cannot set status to {to_status.name}; request has unapproved files."
                 )
 
+            if (
+                to_status == RequestStatus.APPROVED
+                and not len(release_request.all_files_set()) > 0
+            ):
+                raise self.RequestPermissionDenied(
+                    f"Cannot set status to {to_status.name}; request contains no files."
+                )
+
     def set_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
