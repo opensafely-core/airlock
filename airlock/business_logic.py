@@ -612,10 +612,10 @@ class BusinessLogicLayer:
     ) -> ReleaseRequest:
         """Factory function to create a release_request.
 
-        Is private because it is mean also used directly by our test factories
+        Is private because it is meant to be used directly by our test factories
         to set up state - it is not part of the public API.
         """
-        # id is used to set specific ids in tests. We should probbably not allow this.
+        # id is used to set specific ids in tests. We should probably not allow this.
         audit = AuditEvent(
             type=self.STATUS_AUDIT_EVENT[status],
             user=author.username,
