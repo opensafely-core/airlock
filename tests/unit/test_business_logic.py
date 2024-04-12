@@ -184,14 +184,15 @@ def test_provider_request_release_files(mock_old_api):
 
 
 def test_provider_get_requests_for_workspace(bll):
-    user = factories.create_user("test", ["workspace"])
+    user = factories.create_user("test", ["workspace", "workspace2"])
     other_user = factories.create_user("other", ["workspace"])
     factories.create_release_request("workspace", user, id="r1")
-    factories.create_release_request("workspace", other_user, id="r2")
+    factories.create_release_request("workspace2", user, id="r2")
+    factories.create_release_request("workspace", other_user, id="r3")
 
     assert [r.id for r in bll.get_requests_for_workspace("workspace", user)] == [
         "r1",
-        "r2",
+        "r3",
     ]
 
 
