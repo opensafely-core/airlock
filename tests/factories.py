@@ -61,6 +61,7 @@ def write_workspace_file(workspace, path, contents=""):
     path.write_text(contents)
 
 
+# TODO rename to get_or_create_release_request
 def create_release_request(workspace, user=None, **kwargs):
     workspace = ensure_workspace(workspace)
 
@@ -68,7 +69,7 @@ def create_release_request(workspace, user=None, **kwargs):
     if user is None:
         user = create_user("author", workspaces=[workspace.name])
 
-    release_request = bll._create_release_request(
+    release_request = bll._get_or_create_release_request(
         workspace=workspace.name, author=user, **kwargs
     )
     release_request.root().mkdir(parents=True, exist_ok=True)

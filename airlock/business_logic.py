@@ -682,6 +682,19 @@ class BusinessLogicLayer:
             )
         )
 
+    def _get_or_create_release_request(
+        self,
+        workspace: str,
+        author: User,
+        status: RequestStatus = RequestStatus.PENDING,
+        id: str | None = None,  # noqa: A002
+    ) -> ReleaseRequest:
+        request = self.get_current_request(workspace, author)
+        if request is not None:
+            return request
+
+        return self._create_release_request(workspace, author, status, id)
+
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
 

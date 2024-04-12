@@ -417,7 +417,7 @@ def test_set_status_approved(files_approved, bll):
             bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
 
 
-def test_set_status_cannot_action_own_request(bll):
+def test_set_status_cannot_approve_or_reject_own_request(bll):
     user = factories.create_user("checker", [], True)
     release_request1 = factories.create_release_request(
         "workspace", user=user, status=RequestStatus.SUBMITTED
@@ -428,6 +428,9 @@ def test_set_status_cannot_action_own_request(bll):
     with pytest.raises(bll.RequestPermissionDenied):
         bll.set_status(release_request1, RequestStatus.REJECTED, user=user)
 
+
+def test_set_status_cannot_release_own_request(bll):
+    user = factories.create_user("checker", [], True)
     release_request2 = factories.create_release_request(
         "workspace",
         user=user,
