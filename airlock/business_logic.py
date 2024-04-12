@@ -606,7 +606,7 @@ class BusinessLogicLayer:
     def _create_release_request(
         self,
         workspace: str,
-        author: str,
+        author: User,
         status: RequestStatus = RequestStatus.PENDING,
         id: str | None = None,  # noqa: A002
     ) -> ReleaseRequest:
@@ -618,14 +618,14 @@ class BusinessLogicLayer:
         # id is used to set specific ids in tests. We should probbably not allow this.
         audit = AuditEvent(
             type=self.STATUS_AUDIT_EVENT[status],
-            user=author,
+            user=author.username,
             workspace=workspace,
             # DAL will set request id once its created
         )
         return ReleaseRequest.from_dict(
             self._dal.create_release_request(
                 workspace=workspace,
-                author=author,
+                author=author.username,
                 status=status,
                 audit=audit,
                 id=id,
@@ -682,7 +682,7 @@ class BusinessLogicLayer:
         if not user.can_create_request(workspace):
             raise BusinessLogicLayer.RequestPermissionDenied(workspace)
 
-        return self._create_release_request(workspace, user.username)
+        return self._create_release_request(workspace, user)
 
     def get_requests_for_workspace(
         self, workspace: str, user: User

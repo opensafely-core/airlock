@@ -69,7 +69,7 @@ def create_release_request(workspace, user=None, **kwargs):
         user = create_user("author", workspaces=[workspace.name])
 
     release_request = bll._create_release_request(
-        workspace=workspace.name, author=user.username, **kwargs
+        workspace=workspace.name, author=user, **kwargs
     )
     release_request.root().mkdir(parents=True, exist_ok=True)
     return release_request

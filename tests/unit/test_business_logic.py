@@ -291,7 +291,7 @@ def test_provider_get_current_request_for_user(bll):
     ]
 
     # reach around an simulate 2 active requests for same user
-    bll._create_release_request(author=user.username, workspace="workspace")
+    bll._create_release_request(author=user, workspace="workspace")
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", user)
