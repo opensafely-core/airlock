@@ -114,8 +114,8 @@ urlpatterns = [
     ),
     path(
         "requests/workspace/<str:workspace_name>",
-        airlock.views.request_workspace,
-        name="request_workspace",
+        airlock.views.requests_for_workspace,
+        name="requests_for_workspace",
     ),
 ]
 

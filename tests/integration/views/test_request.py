@@ -476,7 +476,7 @@ def test_request_withdraw_not_author(airlock_client):
     assert persisted_request.status == RequestStatus.PENDING
 
 
-def test_request_workspace(airlock_client):
+def test_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
     other_user = factories.create_user("other", ["test1"], False)
 

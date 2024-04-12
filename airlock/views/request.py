@@ -250,15 +250,17 @@ def file_withdraw(request, request_id, path: str):
 
 
 @instrument
-def request_workspace(request, workspace_name: str):
-    requests_workspace = bll.get_requests_for_workspace(workspace_name, request.user)
+def requests_for_workspace(request, workspace_name: str):
+    requests_for_workspace = bll.get_requests_for_workspace(
+        workspace_name, request.user
+    )
 
     return TemplateResponse(
         request,
-        "requests_workspace.html",
+        "requests_for_workspace.html",
         {
             "workspace": workspace_name,
-            "requests_workspace": requests_workspace,
+            "requests_for_workspace": requests_for_workspace,
         },
     )
 

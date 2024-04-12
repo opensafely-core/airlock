@@ -10,7 +10,7 @@ from .request import (
     request_submit,
     request_view,
     request_withdraw,
-    request_workspace,
+    requests_for_workspace,
 )
 from .workspace import (
     workspace_add_file_to_request,
@@ -34,7 +34,7 @@ __all__ = [
     "request_submit",
     "request_view",
     "request_withdraw",
-    "request_workspace",
+    "requests_for_workspace",
     "workspace_add_file_to_request",
     "workspace_contents",
     "workspace_index",

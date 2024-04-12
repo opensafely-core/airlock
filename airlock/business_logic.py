@@ -190,7 +190,7 @@ class Workspace:
 
     def get_requests_url(self):
         return reverse(
-            "request_workspace",
+            "requests_for_workspace",
             kwargs={"workspace_name": self.name},
         )
 
