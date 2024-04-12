@@ -646,6 +646,12 @@ class BusinessLogicLayer:
 
     def get_current_request(self, workspace: str, user: User) -> ReleaseRequest | None:
         """Get the current request for a workspace/user."""
+
+        if not user.has_permission(workspace):
+            raise self.RequestPermissionDenied(
+                f"you do not have permission to view requests for {workspace}"
+            )
+
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace,
             username=user.username,
