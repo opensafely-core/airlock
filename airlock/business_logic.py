@@ -680,7 +680,9 @@ class BusinessLogicLayer:
             return request
 
         if not user.can_create_request(workspace):
-            raise BusinessLogicLayer.RequestPermissionDenied(workspace)
+            raise self.RequestPermissionDenied(
+                f"you do not have permission to create a request for {workspace}"
+            )
 
         return self._create_release_request(workspace, user)
 
