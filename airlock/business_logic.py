@@ -673,10 +673,7 @@ class BusinessLogicLayer:
         if request is not None:
             return request
 
-        # To create a request, you must have explicit workspace permissions.  Output
-        # checkers can view all workspaces, but are not allowed to create requests for
-        # all workspaces.
-        if workspace not in user.workspaces:
+        if not user.can_create_request(workspace):
             raise BusinessLogicLayer.RequestPermissionDenied(workspace)
 
         return self._create_release_request(workspace, user.username)
@@ -686,7 +683,7 @@ class BusinessLogicLayer:
     ) -> list[ReleaseRequest]:
         """Get all release requests in workspaces a user has access to."""
 
-        if not user.output_checker and workspace not in user.workspaces:
+        if not user.has_permission(workspace):
             raise self.RequestPermissionDenied(
                 f"you do not have permission to view requests for {workspace}"
             )
