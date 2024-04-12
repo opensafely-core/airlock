@@ -478,15 +478,16 @@ def test_request_withdraw_not_author(airlock_client):
 
 def test_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    author = factories.create_user("other", ["test1"], False)
+    author1 = factories.create_user("author1", ["test1"], False)
+    author2 = factories.create_user("author2", ["test1"], False)
 
     release_request1 = factories.create_release_request(
-        "test1", user=author, status=RequestStatus.PENDING
+        "test1", user=author1, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request1, "group", "path/test.txt")
 
     release_request2 = factories.create_release_request(
-        "test1", user=author, status=RequestStatus.PENDING
+        "test1", user=author2, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request2, "group", "path/test2.txt")
 
@@ -496,6 +497,8 @@ def test_requests_for_workspace(airlock_client):
     assert response.status_code == 200
     assert "All requests in workspace test1" in response.rendered_content
     assert "PENDING" in response.rendered_content
+    assert author1.username in response.rendered_content
+    assert author2.username in response.rendered_content
 
 
 @pytest.mark.parametrize("review", [("approve"), ("reject")])
