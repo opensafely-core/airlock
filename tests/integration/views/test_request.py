@@ -478,15 +478,15 @@ def test_request_withdraw_not_author(airlock_client):
 
 def test_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_user = factories.create_user("other", ["test1"], False)
+    author = factories.create_user("other", ["test1"], False)
 
     release_request1 = factories.create_release_request(
-        "test1", user=other_user, status=RequestStatus.PENDING
+        "test1", user=author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request1, "group", "path/test.txt")
 
     release_request2 = factories.create_release_request(
-        "test1", user=other_user, status=RequestStatus.PENDING
+        "test1", user=author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request2, "group", "path/test2.txt")
 
