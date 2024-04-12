@@ -125,6 +125,7 @@
       {% elif current_request %}
         {% #button variant="success" type="link" href=current_request.get_url id="current-request-button" %}Current release request{% /button %}
       {% endif %}
+      {% #button type="link" href=workspace.get_requests_url variant="success" id="requests-workspace-button" %}All release requests for workspace{% /button %}
     </div>
   {% endfragment %}
 
