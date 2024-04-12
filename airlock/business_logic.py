@@ -644,12 +644,10 @@ class BusinessLogicLayer:
 
         return release_request
 
-    def get_current_request(
-        self, workspace_name: str, user: User
-    ) -> ReleaseRequest | None:
+    def get_current_request(self, workspace: str, user: User) -> ReleaseRequest | None:
         """Get the current request for a workspace/user."""
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
-            workspace=workspace_name,
+            workspace=workspace,
             username=user.username,
         )
 
@@ -661,41 +659,41 @@ class BusinessLogicLayer:
         else:
             raise Exception(
                 f"Multiple active release requests for user {user.username} in "
-                f"workspace {workspace_name}"
+                f"workspace {workspace}"
             )
 
     def get_or_create_current_request(
-        self, workspace_name: str, user: User
+        self, workspace: str, user: User
     ) -> ReleaseRequest:
         """
         Get the current request for a workspace/user, or create a new one if there is
         none.
         """
-        request = self.get_current_request(workspace_name, user)
+        request = self.get_current_request(workspace, user)
         if request is not None:
             return request
 
         # To create a request, you must have explicit workspace permissions.  Output
         # checkers can view all workspaces, but are not allowed to create requests for
         # all workspaces.
-        if workspace_name not in user.workspaces:
-            raise BusinessLogicLayer.RequestPermissionDenied(workspace_name)
+        if workspace not in user.workspaces:
+            raise BusinessLogicLayer.RequestPermissionDenied(workspace)
 
-        return self._create_release_request(workspace_name, user.username)
+        return self._create_release_request(workspace, user.username)
 
     def get_requests_for_workspace(
-        self, workspace_name: str, user: User
+        self, workspace: str, user: User
     ) -> list[ReleaseRequest]:
         """Get all release requests in workspaces a user has access to."""
 
-        if not user.output_checker and workspace_name not in user.workspaces:
+        if not user.output_checker and workspace not in user.workspaces:
             raise self.RequestPermissionDenied(
-                f"you do not have permission to view requests for {workspace_name}"
+                f"you do not have permission to view requests for {workspace}"
             )
 
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_for_workspace(workspace=workspace_name)
+            for attrs in self._dal.get_requests_for_workspace(workspace=workspace)
         ]
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
