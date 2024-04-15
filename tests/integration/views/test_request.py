@@ -269,13 +269,23 @@ def test_request_contents_dir(airlock_client):
     assert response.status_code == 404
 
 
-def test_request_contents_not_exists(airlock_client):
+def test_request_contents_file_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
     factories.write_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = airlock_client.get("/requests/content/id/default/notexists.txt")
+    assert response.status_code == 404
+
+
+def test_request_contents_group_not_exists(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "foo/file.txt", contents="test"
+    )
+    response = airlock_client.get("/requests/content/id/notexist/")
     assert response.status_code == 404
 
 
@@ -978,6 +988,34 @@ def test_group_edit_success(airlock_client):
     assert response.status_code == 200
     messages = list(response.context.get("messages", []))
     assert messages[0].message == "Updated group group"
+
+    release_request = bll.get_release_request(release_request.id, author)
+
+    assert release_request.filegroups["group"].context == "foo"
+    assert release_request.filegroups["group"].controls == "bar"
+
+
+def test_group_edit_no_change(airlock_client, bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+    bll.group_edit(release_request, "group", context="foo", controls="bar", user=author)
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/edit/{release_request.id}/group",
+        data={
+            "context": "foo",
+            "controls": "bar",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "No changes made to group group"
 
     release_request = bll.get_release_request(release_request.id, author)
 

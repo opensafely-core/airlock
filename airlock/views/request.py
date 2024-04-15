@@ -94,10 +94,16 @@ def request_view(request, request_id: str, path: str = ""):
     group_comment_form = None
     group_comment_url = None
 
-    # if we are vieing a group page, load the specific group data and forms
+    # if we are viewing a group page, load the specific group data and forms
     if len(relpath.parts) == 1:
         group = relpath.parts[0]
-        filegroup = release_request.filegroups[group]
+        filegroup = release_request.filegroups.get(group)
+
+        # defense in depth: get_request_tree should prevent this branch, but
+        # just in case it changes.
+        if filegroup is None:  # pragma: no cover
+            raise Http404()
+
         group_edit_form = GroupEditForm.from_filegroup(filegroup)
         group_edit_url = reverse(
             "group_edit",
@@ -371,25 +377,38 @@ def request_release_files(request, request_id):
 def group_edit(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    form = GroupEditForm(request.POST)
-    form.is_valid()  # force validation - the form cannot fail to validate
+    filegroup = release_request.filegroups.get(group)
 
-    try:
-        bll.group_edit(
-            release_request,
-            group=group,
-            context=form.cleaned_data["context"],
-            controls=form.cleaned_data["controls"],
-            user=request.user,
-        )
-    except bll.RequestPermissionDenied as exc:  # pragma: nocover
-        # currently, we can't hit this because of get_release_request_or_raise above.
-        # However, that may change, so handle it anyway.
-        raise PermissionDenied(str(exc))
-    except bll.FileNotFound:
-        messages.error(request, f"Invalid group: {group}")
+    if filegroup is None:
+        raise Http404(f"bad group {group}")
+
+    form = GroupEditForm(
+        request.POST,
+        initial={
+            "context": filegroup.context,
+            "controls": filegroup.controls,
+        },
+    )
+
+    if form.has_changed():
+        form.is_valid()  # force validation - the form currently cannot fail to validate
+
+        try:
+            bll.group_edit(
+                release_request,
+                group=group,
+                context=form.cleaned_data["context"],
+                controls=form.cleaned_data["controls"],
+                user=request.user,
+            )
+        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        else:
+            messages.success(request, f"Updated group {group}")
     else:
-        messages.success(request, f"Updated group {group}")
+        messages.success(request, f"No changes made to group {group}")
 
     return redirect(release_request.get_url(group))
 
