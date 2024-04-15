@@ -1,4 +1,5 @@
 from .auth import login, logout
+from .docs import serve_docs
 from .request import (
     file_approve,
     file_reject,
@@ -43,4 +44,5 @@ __all__ = [
     "workspace_contents",
     "workspace_index",
     "workspace_view",
+    "serve_docs",
 ]

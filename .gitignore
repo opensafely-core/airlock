@@ -15,4 +15,4 @@ __pycache__/
 /job-server/.env.jobserver
 
 # docs
-/docs_build/
+/mkdocs_build/

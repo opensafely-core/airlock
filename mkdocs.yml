@@ -9,7 +9,7 @@
 site_name: OpenSAFELY Airlock documentation
 repo_url: https://github.com/opensafely-core/airlock
 docs_dir: docs
-site_dir: docs_build
+site_dir: mkdocs_build
 
 nav:
   - Introduction: index.md

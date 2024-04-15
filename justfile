@@ -127,7 +127,7 @@ fix: devenv
     $BIN/djhtml --tabwidth 2 airlock/
 
 # run airlock with django dev server
-run *ARGS: devenv
+run *ARGS: devenv docs-build
     $BIN/python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
@@ -145,7 +145,7 @@ test *ARGS: devenv
 
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: devenv
+@test-all: devenv docs-build
     #!/usr/bin/env bash
     set -euo pipefail
 
