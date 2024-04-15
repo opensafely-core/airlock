@@ -8,8 +8,10 @@ from pathlib import Path
 from airlock.business_logic import (
     ROOT_PATH,
     AirlockContainer,
+    ReleaseRequest,
     RequestFileType,
     UrlPath,
+    Workspace,
 )
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
@@ -54,15 +56,11 @@ class PathItem:
     # should this node be expanded in the tree?
     expanded: bool = False
 
-    request_filetype: RequestFileType = RequestFileType.OUTPUT
+    request_filetype: RequestFileType | None = RequestFileType.OUTPUT
 
     # what to display for this node when rendering the tree. Defaults to name,
     # but this allow it to be overridden.
     display_text: str | None = None
-
-    def __post_init__(self):
-        # ensure is UrlPath
-        self.relpath = UrlPath(self.relpath)
 
     def is_directory(self):
         """Does this contain other things?"""
@@ -84,7 +82,7 @@ class PathItem:
         suffix = "/" if self.is_directory() else ""
         return self.container.get_url(self.relpath) + suffix
 
-    def contents_url(self, download=False):
+    def contents_url(self, download: bool = False):
         if self.type != PathType.FILE:
             raise Exception(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(self.relpath, download=download)
@@ -162,7 +160,7 @@ class PathItem:
 
         return " ".join(classes)
 
-    def get_path(self, relpath):
+    def get_path(self, relpath: UrlPath | str):
         """Walk the tree and return the PathItem for relpath.
 
         Will raise PathNotFound if the path is not found.
@@ -206,7 +204,7 @@ class PathItem:
 
         return walk_selected(self)
 
-    def __str__(self, render_selected=False):
+    def __str__(self):
         """Debugging utility to inspect tree."""
 
         def build_string(node, indent):
@@ -256,7 +254,11 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
 
 
 @instrument(func_attributes={"workspace": "workspace"})
-def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
+def get_workspace_tree(
+    workspace: Workspace,
+    selected_path: UrlPath | str = ROOT_PATH,
+    selected_only: bool = False,
+) -> PathItem:
     """Recursively build workspace tree from the root dir.
 
     If selected_only==True, we do not build entire tree, as that can be
@@ -308,7 +310,11 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
 
 
 @instrument(func_attributes={"release_request": "release_request"})
-def get_request_tree(release_request, selected_path=ROOT_PATH, selected_only=False):
+def get_request_tree(
+    release_request: ReleaseRequest,
+    selected_path: UrlPath | str = ROOT_PATH,
+    selected_only: bool = False,
+):
     """Build a tree recursively for a ReleaseRequest
 
     For each group, we create a node for that group, and then build a sub-tree
@@ -440,11 +446,11 @@ def get_path_tree(
         tree.sort(key=children_sort_key)
         return tree
 
-    path_parts = [p.parts for p in pathlist]
+    path_parts = [list(p.parts) for p in pathlist]
     return build_path_tree(path_parts, parent)
 
 
-def children_sort_key(node):
+def children_sort_key(node: PathItem):
     """Sort children first by directory, then files."""
     # this works because True == 1 and False == 0
     return (node.type == PathType.FILE, node.name())
