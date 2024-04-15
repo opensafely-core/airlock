@@ -14,3 +14,6 @@ opentelemetry-instrumentation-django
 opentelemetry-instrumentation-requests
 opentelemetry-instrumentation-sqlite3
 opentelemetry-sdk
+# docs
+mkdocs
+mkdocs-material

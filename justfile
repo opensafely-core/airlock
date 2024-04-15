@@ -203,3 +203,12 @@ load-example-data: devenv
 
     # Configure user details for local login
     cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
+
+
+# Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
+docs-serve *ARGS: devenv
+    "$BIN"/mkdocs serve --clean {{ ARGS }}
+
+# Build the documentation
+docs-build *ARGS: devenv
+    "$BIN"/mkdocs build --clean {{ ARGS }}

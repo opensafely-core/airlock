@@ -1,0 +1,63 @@
+# NOTE: This mkdocs.yml contains the minimum config required to run
+# Airlock's docs locally and to access them within Airlock itself.
+#
+# In production, the airlock docs are also pulled into and built with
+# the main docs at https://github.com/opensafely/documentation
+#
+# The contents of this mkdocs.yml are ignored in the production build.
+#
+site_name: OpenSAFELY Airlock documentation
+repo_url: https://github.com/opensafely-core/airlock
+docs_dir: docs
+site_dir: docs_build
+
+nav:
+  - Introduction: index.md
+
+watch:
+  - docs
+
+# WARNING!
+# The rest of this config is duplicated from the mkdocs.yml in the parent repo
+# (https://github.com/opensafely/documentation) in order to build in-airlock docs with
+# similar styling. If any changes/additions are needed, ensure they are
+# made in the parent repo also.
+
+copyright: © University of Oxford for the Bennett Institute for Applied Data Science. This work may be copied freely for non-commercial research and study. If you wish to do any of the other acts restricted by the copyright you should apply in writing to bennett@phc.ox.ac.uk.
+
+theme:
+  name: material
+  font: false
+  logo: img/icon.svg
+  favicon: img/favicon.svg
+  palette:
+    scheme: opensafely
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.footer
+    - navigation.indexes
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: "🔗"
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.keys
+  - admonition
+  - footnotes
+  - abbr
+  - md_in_html
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
