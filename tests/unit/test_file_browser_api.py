@@ -122,8 +122,7 @@ def test_get_request_tree_general(release_request):
     render_to_string("file_browser/tree.html", {"path": tree})
 
 
-def test_get_workspace_tree_selected_only(workspace):
-    """Tests an entire tree for the basics."""
+def test_get_workspace_tree_selected_only_file(workspace):
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path, selected_only=True)
 
@@ -133,6 +132,29 @@ def test_get_workspace_tree_selected_only(workspace):
         workspace*
           some_dir*
             file_a.txt**
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
+def test_get_workspace_tree_selected_only_dir(workspace):
+    selected_path = UrlPath("some_dir")
+    # needed for coverage of is_file() branch
+    (workspace.root() / "some_dir/subdir").mkdir()
+    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace*
+          some_dir***
+            subdir
+            .file.txt
+            file_a.foo
+            file_a.txt
+            file_b.txt
+            file_c.txt
         """
     )
 
@@ -168,7 +190,7 @@ def test_get_request_tree_selected_only_group(release_request):
         f"""
         {release_request.id}*
           group1***
-            some_dir*
+            some_dir
           group2
         """
     )

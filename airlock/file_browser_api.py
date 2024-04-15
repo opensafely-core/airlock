@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -216,6 +217,44 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
+def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
+    """Use os.scandir to quickly walk a file tree.
+
+    Basically, its faster because it effectively just opens every directory,
+    not every file. And its in C code.  But that gives us whether the entry is
+    a file or a directory, which is all we need.
+
+    We are only really interested in file paths - those include any parent
+    directories we need for the tree for free.  However, we do need to manually
+    track empty directories, or else they will be excluded.
+    """
+
+    paths = []
+    directories = set()
+
+    def scan(current: str) -> int:
+        children = 0
+
+        for entry in os.scandir(current):
+            children += 1
+            path = UrlPath(entry.path).relative_to(root)
+
+            if entry.is_dir():
+                dir_children = scan(entry.path)
+                if dir_children == 0:
+                    # add empty dir to pathlist, or else it will not be shown
+                    paths.append(path)
+                    directories.add(path)
+            else:
+                paths.append(path)
+
+        return children
+
+    scan(str(root))
+
+    return paths, directories
+
+
 @instrument(func_attributes={"workspace": "workspace"})
 def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
     """Recursively build workspace tree from the root dir.
@@ -233,15 +272,21 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
 
     if selected_only:
         pathlist = [selected_path]
+        directories = set()
 
-        # if directory, we also need to also load children to display in the content area
+        # if directory, we also need to also load our children to display in
+        # the content area. We don't mind using stat() on the children here, as
+        # we are only loading a single directory, not an entire tree
         abspath = workspace.abspath(selected_path)
         if abspath.is_dir():
-            pathlist.extend(child.relative_to(root) for child in abspath.iterdir())
+            for child in abspath.iterdir():
+                path = child.relative_to(root)
+                pathlist.append(path)
+                if child.is_dir():
+                    directories.add(path)
 
     else:
-        # listing all files in one go is much faster than walking the tree
-        pathlist = [p.relative_to(root) for p in root.glob("**/*")]
+        pathlist, directories = scantree(root)
 
     root_node = PathItem(
         container=workspace,
@@ -253,7 +298,11 @@ def get_workspace_tree(workspace, selected_path=ROOT_PATH, selected_only=False):
     )
 
     root_node.children = get_path_tree(
-        workspace, pathlist, parent=root_node, selected_path=selected_path
+        workspace,
+        pathlist,
+        parent=root_node,
+        selected_path=selected_path,
+        directories=directories,
     )
     return root_node
 
@@ -337,11 +386,12 @@ def filter_files(selected, files):
 
 
 def get_path_tree(
-    container,
-    pathlist,
-    parent,
-    selected_path=ROOT_PATH,
-    expanded=False,
+    container: AirlockContainer,
+    pathlist: list[UrlPath],
+    parent: PathItem,
+    selected_path: UrlPath = ROOT_PATH,
+    expanded: bool = False,
+    directories: set[UrlPath] | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
@@ -371,21 +421,9 @@ def get_path_tree(
                 request_filetype=container.request_filetype(path),
             )
 
-            # If it has decendants, it is a directory. However, an empty
-            # directory in workspace still needs to be classed as a PathType.DIR.
-            # So we infer if it is by checking for lack of suffix. All output files
-            # *must* have a suffix, so this is a reasonable check.
-            #
-            # However, in theory, there could be an empty directory with
-            # a suffix in its name, so this will treat these as a file rather
-            # than a directory.  If this is a problem, we could instead call
-            # is_dir(), but we are trying to avoid hitting the filesystem in
-            # the tree recursion for speed.
-            #
-            # We have a backstop check to not blow up in this case
-            # PathItem.contents()
-            if descendants or path.suffix == "":
+            if descendants or (directories and path in directories):
                 node.type = PathType.DIR
+
                 # recurse down the tree
                 node.children = build_path_tree(descendants, parent=node)
 
@@ -399,7 +437,6 @@ def get_path_tree(
 
             tree.append(node)
 
-        # sort directories first then files
         tree.sort(key=children_sort_key)
         return tree
 
