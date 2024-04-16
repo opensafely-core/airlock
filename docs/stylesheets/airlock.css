@@ -1,0 +1,14 @@
+.header-home {
+    padding: 0 0.2rem;
+}
+
+.header-home > .md-icon {
+    display: inline-block;
+}
+
+.header-home > a {
+    text-decoration: none;
+    font-size: 0.9rem;
+    vertical-align: top;
+    color: var(--md-primary-bg-color);
+}

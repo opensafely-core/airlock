@@ -6,7 +6,7 @@
 #
 # The contents of this mkdocs.yml are ignored in the production build.
 #
-site_name: OpenSAFELY Airlock documentation
+site_name: Airlock Documentation
 repo_url: https://github.com/opensafely-core/airlock
 docs_dir: docs
 site_dir: mkdocs_build
@@ -18,8 +18,8 @@ watch:
   - docs
 
 # WARNING!
-# The rest of this config is duplicated from the mkdocs.yml in the parent repo
-# (https://github.com/opensafely/documentation) in order to build in-airlock docs with
+# Most of the rest of this config (see comments for exceptions) is duplicated from the mkdocs.yml
+# in the parent repo (https://github.com/opensafely/documentation) in order to build in-airlock docs with
 # similar styling. If any changes/additions are needed, ensure they are
 # made in the parent repo also.
 
@@ -37,9 +37,13 @@ theme:
     - content.code.copy
     - navigation.footer
     - navigation.indexes
+  # Note: specific to in-airlock docs (main docs have different template overrides);
+  # adds the link back to airlock
+  custom_dir: docs/overrides
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/airlock.css  # Note: extra styling specific to in-airlock docs
 
 markdown_extensions:
   - pymdownx.details
