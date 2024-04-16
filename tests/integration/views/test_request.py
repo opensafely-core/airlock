@@ -428,9 +428,9 @@ def test_request_submit_author(airlock_client):
 
 def test_request_submit_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_user = factories.create_user("other", [], False)
+    other_author = factories.create_user("other", [], False)
     release_request = factories.create_release_request(
-        "test1", user=other_user, status=RequestStatus.PENDING
+        "test1", user=other_author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
 
@@ -461,9 +461,9 @@ def test_request_withdraw_author(airlock_client):
 
 def test_request_withdraw_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_user = factories.create_user("other", [], False)
+    other_author = factories.create_user("other", [], False)
     release_request = factories.create_release_request(
-        "test1", user=other_user, status=RequestStatus.PENDING
+        "test1", user=other_author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
 
@@ -702,11 +702,10 @@ def test_file_withdraw_file_submitted(airlock_client):
 
 
 def test_file_withdraw_file_bad_file(airlock_client):
-    author = factories.create_user("author", ["test1"], False)
-    airlock_client.login_with_user(author)
+    airlock_client.login(workspaces=["test1"])
     release_request = factories.create_release_request(
         "test1",
-        user=author,
+        user=airlock_client.user,
     )
 
     response = airlock_client.post(
@@ -716,15 +715,12 @@ def test_file_withdraw_file_bad_file(airlock_client):
 
 
 def test_file_withdraw_file_not_author(airlock_client):
-    author = factories.create_user("author", ["test1"], False)
-    other = factories.create_user("other", ["test1"], False)
     release_request = factories.create_release_request(
         "test1",
-        user=author,
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
 
-    airlock_client.login_with_user(other)
+    airlock_client.login(workspaces=["test1"])
     response = airlock_client.post(
         f"/requests/withdraw/{release_request.id}/group/path/test.txt",
     )
@@ -732,8 +728,7 @@ def test_file_withdraw_file_not_author(airlock_client):
 
 
 def test_file_withdraw_file_bad_request(airlock_client):
-    author = factories.create_user("author", ["test1"], False)
-    airlock_client.login_with_user(author)
+    airlock_client.login(workspaces=["test1"])
 
     response = airlock_client.post(
         "/requests/withdraw/bad_id/group/path/test.txt",
