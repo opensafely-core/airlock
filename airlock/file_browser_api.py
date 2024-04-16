@@ -355,28 +355,18 @@ def get_request_tree(
             expanded=selected or expanded,
         )
 
-        if selected_only:
-            if expanded:
-                if group_path == selected_path:
-                    # we just need the group's immediate child paths
-                    pathlist = [UrlPath(p.parts[0]) for p in group.files]
-                else:
-                    # filter for just the selected path and any immediate children
-                    selected_subpath = selected_path.relative_to(group_path)
-                    pathlist = list(filter_files(selected_subpath, group.files))
-            else:
-                # we don't want any children for unselected groups
-                pathlist = []
-        else:
+        if expanded or not selected_only:
+            # we want to list the children of this group,
             pathlist = list(group.files)
 
-        group_node.children = get_path_tree(
-            release_request,
-            pathlist=pathlist,
-            parent=group_node,
-            selected_path=selected_path,
-            expanded=expanded,
-        )
+            group_node.children = get_path_tree(
+                release_request,
+                pathlist=pathlist,
+                parent=group_node,
+                selected_path=selected_path,
+                expanded=expanded,
+            )
+
         root_node.children.append(group_node)
 
     return root_node
