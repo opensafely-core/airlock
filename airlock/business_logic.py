@@ -143,12 +143,10 @@ class AirlockContainer(Protocol):
     def get_id(self) -> str:
         """Get the human name for this container."""
 
-    def get_url(self, path: UrlPath = ROOT_PATH) -> str:
+    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
-    def get_contents_url(
-        self, path: UrlPath = ROOT_PATH, download: bool = False
-    ) -> str:
+    def get_contents_url(self, relpath: UrlPath, download: bool = False) -> str:
         """Get the url for the contents of the container object with path"""
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
@@ -179,10 +177,10 @@ class Workspace:
     def root(self):
         return settings.WORKSPACE_DIR / self.name
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.name
 
-    def get_url(self, relpath=ROOT_PATH):
+    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         return reverse(
             "workspace_view",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -194,7 +192,7 @@ class Workspace:
             kwargs={"workspace_name": self.name},
         )
 
-    def get_contents_url(self, relpath, download=False):
+    def get_contents_url(self, relpath: UrlPath, download: bool = False) -> str:
         url = reverse(
             "workspace_contents",
             kwargs={"workspace_name": self.name, "path": relpath},
@@ -222,7 +220,7 @@ class Workspace:
 
         return path
 
-    def request_filetype(self, relpath):
+    def request_filetype(self, relpath: UrlPath) -> None:
         return None
 
 
