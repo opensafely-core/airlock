@@ -114,30 +114,23 @@ FILE_RENDERERS = {
 }
 
 
-def get_renderer(abspath, request_file=None):
+def get_renderer(abspath, relpath=None, cache_id=None):
     stat = abspath.stat()
+    path = relpath or abspath
 
-    if request_file:
-        suffix = request_file.relpath.suffix
-        filename = request_file.relpath.name
-        file_cache_id = request_file.file_id
-        is_valid = is_valid_file_type(request_file.relpath)
-    else:
-        suffix = abspath.suffix
-        filename = abspath.name
-        file_cache_id = filesystem_key(stat)
-        is_valid = is_valid_file_type(abspath)
+    if not cache_id:
+        cache_id = filesystem_key(stat)
 
-    if is_valid:
-        renderer_class = FILE_RENDERERS.get(suffix, Renderer)
+    if is_valid_file_type(path):
+        renderer_class = FILE_RENDERERS.get(path.suffix, Renderer)
     else:
         renderer_class = InvalidFileRenderer
 
     return renderer_class(
         abspath=abspath,
-        file_cache_id=file_cache_id,
+        file_cache_id=cache_id,
         last_modified=formatdate(stat.st_mtime, usegmt=True),
-        filename=filename,
+        filename=path.name,
     )
 
 

@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
+from airlock import renderers
 from airlock.business_logic import (
     FileReviewStatus,
     RequestFileType,
@@ -175,7 +176,11 @@ def request_contents(request, request_id: str, path: str):
         return download_file(abspath, filename=path)
 
     bll.audit_request_file_access(release_request, UrlPath(path), request.user)
-    return serve_file(request, abspath, release_request.get_request_file(path))
+    request_file = release_request.get_request_file(path)
+    renderer = renderers.get_renderer(
+        abspath, relpath=request_file.relpath, cache_id=request_file.file_id
+    )
+    return serve_file(request, renderer)
 
 
 @instrument(func_attributes={"release_request": "request_id"})

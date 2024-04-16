@@ -5,7 +5,6 @@ from django.http import FileResponse, Http404, HttpResponseNotModified
 
 from airlock.business_logic import UrlPath, bll
 from airlock.file_browser_api import PathItem
-from airlock.renderers import get_renderer
 
 
 class ServeFileException(Exception):
@@ -46,15 +45,11 @@ def download_file(abspath, filename=None):
     return FileResponse(abspath.open("rb"), as_attachment=True, filename=filename)
 
 
-def serve_file(request, abspath, request_file=None):
-    """Serve file contents in a form the browser can render.
+def serve_file(request, renderer):
+    """Serve file contents using the renderer provided.
 
-    For html and images, just serve directly.
-
-    For csv and text, render that to html then serve.
+    Handles sending 304 Not Modified if possible.
     """
-
-    renderer = get_renderer(abspath, request_file)
 
     last_requested = request.headers.get("If-Modified-Since")
 

@@ -363,7 +363,9 @@ class ReleaseRequest:
         else:
             # what renderer would render this file?
             request_file = self.get_request_file(relpath)
-            renderer = get_renderer(self.abspath(relpath), request_file)
+            renderer = get_renderer(
+                self.abspath(relpath), request_file.relpath, request_file.file_id
+            )
             url += f"?cache_id={renderer.cache_id}"
 
         return url

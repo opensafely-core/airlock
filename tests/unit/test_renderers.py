@@ -62,7 +62,9 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     os.utime(abspath, (time, time))
     request_file = request.get_request_file(grouppath)
 
-    renderer = renderers.get_renderer(abspath, request_file)
+    renderer = renderers.get_renderer(
+        abspath, request_file.relpath, request_file.file_id
+    )
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
 
     if template_path:
