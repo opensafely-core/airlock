@@ -228,7 +228,7 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
     """
 
     paths = []
-    directories = set()
+    leaf_directories = set()
 
     def scan(current: str) -> int:
         children = 0
@@ -242,7 +242,7 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
                 if dir_children == 0:
                     # add empty dir to pathlist, or else it will not be shown
                     paths.append(path)
-                    directories.add(path)
+                    leaf_directories.add(path)
             else:
                 paths.append(path)
 
@@ -250,7 +250,7 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
 
     scan(str(root))
 
-    return paths, directories
+    return paths, leaf_directories
 
 
 @instrument(func_attributes={"workspace": "workspace"})
@@ -274,7 +274,7 @@ def get_workspace_tree(
 
     if selected_only:
         pathlist = [selected_path]
-        directories = set()
+        leaf_directories = set()
 
         # if directory, we also need to also load our children to display in
         # the content area. We don't mind using stat() on the children here, as
@@ -285,10 +285,10 @@ def get_workspace_tree(
                 path = child.relative_to(root)
                 pathlist.append(path)
                 if child.is_dir():
-                    directories.add(path)
+                    leaf_directories.add(path)
 
     else:
-        pathlist, directories = scantree(root)
+        pathlist, leaf_directories = scantree(root)
 
     root_node = PathItem(
         container=workspace,
@@ -304,7 +304,7 @@ def get_workspace_tree(
         pathlist,
         parent=root_node,
         selected_path=selected_path,
-        directories=directories,
+        leaf_directories=leaf_directories,
     )
     return root_node
 
@@ -387,7 +387,7 @@ def get_path_tree(
     parent: PathItem,
     selected_path: UrlPath = ROOT_PATH,
     expanded: bool = False,
-    directories: set[UrlPath] | None = None,
+    leaf_directories: set[UrlPath] | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
@@ -417,7 +417,7 @@ def get_path_tree(
                 request_filetype=container.request_filetype(path),
             )
 
-            if descendants or (directories and path in directories):
+            if descendants or (leaf_directories and path in leaf_directories):
                 node.type = PathType.DIR
 
                 # recurse down the tree
