@@ -12,7 +12,11 @@ docs_dir: docs
 site_dir: mkdocs_build
 
 nav:
-  - Introduction: index.md
+  - About Airlock: index.md
+  - Creating a release request: creating-a-release-request.md
+  - Requesting a review: requesting-a-review.md
+  - Reviewing the release request: reviewing.md
+  - Releasing files: releasing.md
 
 watch:
   - docs

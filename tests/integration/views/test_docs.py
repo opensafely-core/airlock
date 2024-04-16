@@ -9,6 +9,7 @@ pytestmark = pytest.mark.django_db
     [
         "/docs/",
         "/docs/index.html",
+        "/docs/creating-a-release-request/",
         "/docs/img/favicon.svg",
     ],
 )
