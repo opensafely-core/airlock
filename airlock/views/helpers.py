@@ -3,7 +3,8 @@ from email.utils import parsedate
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseNotModified
 
-from airlock.business_logic import bll
+from airlock.business_logic import UrlPath, bll
+from airlock.file_browser_api import PathItem
 from airlock.renderers import get_renderer
 
 
@@ -69,8 +70,8 @@ def serve_file(request, abspath, request_file=None):
     return response
 
 
-def get_path_item_from_tree_or_404(tree, path):
+def get_path_item_from_tree_or_404(tree: PathItem, path: UrlPath | str):
     try:
-        return tree.get_path(path)
+        return tree.get_path(UrlPath(path))
     except tree.PathNotFound:
         raise Http404()
