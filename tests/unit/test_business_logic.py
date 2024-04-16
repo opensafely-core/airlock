@@ -291,10 +291,36 @@ def test_provider_get_current_request_for_user(bll):
     ]
 
     # reach around an simulate 2 active requests for same user
-    bll._create_release_request(author=user.username, workspace="workspace")
+    bll._create_release_request(author=user, workspace="workspace")
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", user)
+
+
+def test_provider_get_current_request_for_former_user(bll):
+    factories.create_workspace("workspace")
+    user = factories.create_user("testuser", ["workspace"], False)
+
+    assert bll.get_current_request("workspace", user) is None
+
+    release_request = bll.get_or_create_current_request("workspace", user)
+    assert release_request.workspace == "workspace"
+    assert release_request.author == user.username
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log == [
+        AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_CREATE,
+            user=user,
+        )
+    ]
+
+    # let's pretend the user no longer has permission to access the workspace
+    former_user = factories.create_user("testuser", [], False)
+
+    with pytest.raises(Exception):
+        bll.get_current_request("workspace", former_user)
 
 
 def test_provider_get_current_request_for_user_output_checker(bll):
