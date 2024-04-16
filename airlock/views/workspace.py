@@ -11,9 +11,10 @@ from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
 from airlock import renderers
-from airlock.business_logic import RequestFileType, UrlPath, bll
+from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
+from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file

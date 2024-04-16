@@ -3,8 +3,9 @@ from email.utils import parsedate
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseNotModified
 
-from airlock.business_logic import UrlPath, bll
+from airlock.business_logic import bll
 from airlock.file_browser_api import PathItem
+from airlock.types import UrlPath
 
 
 class ServeFileException(Exception):

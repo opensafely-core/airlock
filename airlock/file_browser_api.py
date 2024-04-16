@@ -10,9 +10,9 @@ from airlock.business_logic import (
     AirlockContainer,
     ReleaseRequest,
     RequestFileType,
-    UrlPath,
     Workspace,
 )
+from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 

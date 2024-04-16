@@ -9,8 +9,8 @@ from airlock.business_logic import (
     FileReviewStatus,
     RequestFileType,
     RequestStatus,
-    UrlPath,
 )
+from airlock.types import UrlPath
 from local_db.models import (
     AuditLog,
     FileGroupMetadata,

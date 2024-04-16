@@ -3,7 +3,7 @@ import os
 import pytest
 
 from airlock import renderers
-from airlock.business_logic import UrlPath
+from airlock.types import UrlPath
 from tests import factories
 
 

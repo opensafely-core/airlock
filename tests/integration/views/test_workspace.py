@@ -2,7 +2,8 @@ import pytest
 from django.contrib import messages
 from django.shortcuts import reverse
 
-from airlock.business_logic import AuditEventType, RequestFileType, UrlPath, bll
+from airlock.business_logic import AuditEventType, RequestFileType, bll
+from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
 

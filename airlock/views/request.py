@@ -16,9 +16,9 @@ from airlock.business_logic import (
     FileReviewStatus,
     RequestFileType,
     RequestStatus,
-    UrlPath,
     bll,
 )
+from airlock.types import UrlPath
 from airlock.file_browser_api import get_request_tree
 from services.tracing import instrument
 

@@ -6,8 +6,8 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Protocol, Self, cast
+from pathlib import Path
+from typing import Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -17,20 +17,10 @@ from django.utils.module_loading import import_string
 
 import old_api
 from airlock.renderers import get_renderer
+from airlock.types import UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
-
-# We use PurePosixPath as a convenient URL path representation. In theory we could use
-# `NewType` here to indicate that we want this to be treated as a distinct type without
-# actually creating one. But doing so results in a number of spurious type errors for
-# reasons I don't fully understand (possibly because PurePosixPath isn't itself type
-# annotated?).
-if TYPE_CHECKING:  # pragma: no cover
-
-    class UrlPath(PurePosixPath): ...
-else:
-    UrlPath = PurePosixPath
 
 ROOT_PATH = UrlPath()  # empty path
 
