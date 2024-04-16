@@ -27,7 +27,9 @@ def test_renderers_get_renderer_workspace(
     time = 1709652904  # date this test was written
     os.utime(path, (time, time))
 
-    renderer = renderers.get_renderer(path)
+    renderer_class = renderers.get_renderer(path)
+    renderer = renderer_class.from_file(path)
+
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
 
     if template_path:
@@ -62,7 +64,8 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     os.utime(abspath, (time, time))
     request_file = request.get_request_file(grouppath)
 
-    renderer = renderers.get_renderer(
+    renderer_class = renderers.get_renderer(request_file.relpath)
+    renderer = renderer_class.from_file(
         abspath, request_file.relpath, request_file.file_id
     )
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
@@ -81,5 +84,19 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     assert response.status_code == 200
     assert response.headers["Content-Type"].split(";")[0] == mimetype
     assert response.headers["Last-Modified"] == renderer.last_modified
+    assert response.headers["ETag"] == renderer.etag
+    assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
+
+
+@pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
+def test_text_renderer_from_string(suffix, mimetype, template_path):
+    path = UrlPath("test." + suffix)
+
+    renderer_class = renderers.get_renderer(path)
+    renderer = renderer_class.from_string("test", path, "cache_id")
+    response = renderer.get_response()
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].split(";")[0] == mimetype
     assert response.headers["ETag"] == renderer.etag
     assert response.headers["Cache-Control"] == "max-age=31536000, immutable"

@@ -6,12 +6,8 @@ def test_serve_file(tmp_path, rf):
     test_file = tmp_path / "test.foo"
     test_file.write_text("foo")
 
-    renderer = renderers.Renderer(
-        test_file,
-        file_cache_id="cache_id",
-        filename=test_file.name,
-        last_modified="Tue, 05 Mar 2024 15:35:04 GMT",
-    )
+    renderer = renderers.Renderer.from_file(test_file)
+    renderer.last_modified = "Tue, 05 Mar 2024 15:35:04 GMT"
 
     request = rf.get("/")
     response = helpers.serve_file(request, renderer)

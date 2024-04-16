@@ -10,7 +10,6 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import renderers
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
@@ -120,7 +119,7 @@ def workspace_contents(request, workspace_name: str, path: str):
 
     bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)
 
-    renderer = renderers.get_renderer(abspath)
+    renderer = workspace.get_renderer(UrlPath(path))
     return serve_file(request, renderer)
 
 

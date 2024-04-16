@@ -16,7 +16,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock.renderers import get_renderer
+from airlock import renderers
 from airlock.types import UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
@@ -142,6 +142,9 @@ class AirlockContainer(Protocol):
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         """What kind of file is this, e.g. output, supporting, etc."""
 
+    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+        """Create and return the correct renderer for this path."""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -188,11 +191,17 @@ class Workspace:
             kwargs={"workspace_name": self.name, "path": relpath},
         )
 
-        # what renderer would render this file?
-        renderer = get_renderer(self.abspath(relpath))
+        renderer = self.get_renderer(relpath)
         url += f"?cache_id={renderer.cache_id}"
 
         return url
+
+    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+        renderer_class = renderers.get_renderer(relpath)
+        return renderer_class.from_file(
+            self.abspath(relpath),
+            relpath=relpath,
+        )
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -343,7 +352,7 @@ class ReleaseRequest:
             },
         )
 
-    def get_contents_url(self, relpath, download=False):
+    def get_contents_url(self, relpath: UrlPath, download: bool = False):
         url = reverse(
             "request_contents",
             kwargs={"request_id": self.id, "path": relpath},
@@ -352,13 +361,19 @@ class ReleaseRequest:
             url += "?download"
         else:
             # what renderer would render this file?
-            request_file = self.get_request_file(relpath)
-            renderer = get_renderer(
-                self.abspath(relpath), request_file.relpath, request_file.file_id
-            )
+            renderer = self.get_renderer(relpath)
             url += f"?cache_id={renderer.cache_id}"
 
         return url
+
+    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+        request_file = self.get_request_file(relpath)
+        renderer_class = renderers.get_renderer(relpath)
+        return renderer_class.from_file(
+            self.abspath(relpath),
+            relpath=request_file.relpath,
+            cache_id=request_file.file_id,
+        )
 
     def get_request_file(self, relpath: UrlPath | str):
         relpath = UrlPath(relpath)

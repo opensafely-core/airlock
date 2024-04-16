@@ -59,7 +59,7 @@ def test_workspace_view_with_file(airlock_client):
     factories.write_workspace_file(workspace, "file.txt", "foobar")
     response = airlock_client.get("/workspaces/view/workspace/file.txt")
     assert response.status_code == 200
-    assert workspace.get_contents_url("file.txt") in response.rendered_content
+    assert workspace.get_contents_url(UrlPath("file.txt")) in response.rendered_content
     assert response.template_name == "file_browser/index.html"
     assert "HX-Request" in response.headers["Vary"]
 
@@ -72,7 +72,7 @@ def test_workspace_view_with_file_htmx(airlock_client):
         "/workspaces/view/workspace/file.txt", headers={"HX-Request": "true"}
     )
     assert response.status_code == 200
-    assert workspace.get_contents_url("file.txt") in response.rendered_content
+    assert workspace.get_contents_url(UrlPath("file.txt")) in response.rendered_content
     assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
     assert "HX-Request" in response.headers["Vary"]
@@ -136,7 +136,7 @@ def test_workspace_view_with_csv_file(airlock_client):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.csv", "header1,header2\nFoo,Bar")
     response = airlock_client.get("/workspaces/view/workspace/file.csv")
-    assert workspace.get_contents_url("file.csv") in response.rendered_content
+    assert workspace.get_contents_url(UrlPath("file.csv")) in response.rendered_content
 
 
 def test_workspace_view_with_404(airlock_client):
