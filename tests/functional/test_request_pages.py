@@ -56,3 +56,50 @@ def test_request_file_withdraw(live_server, context, page, bll):
     page.locator("#withdraw-file-button").click()
 
     expect(file2_locator).to_have_class(re.compile("withdrawn"))
+
+
+def test_request_group_edit_comment(live_server, context, page, bll):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": ["workspace"],
+            "output_checker": False,
+        },
+    )
+
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    factories.write_request_file(
+        release_request,
+        "group",
+        "file1.txt",
+        "file 1 content",
+    )
+
+    page.goto(live_server.url + release_request.get_url("group"))
+    contents = page.locator("#selected-contents")
+
+    group_edit_locator = contents.get_by_role("form", name="group-edit-form")
+    context_locator = group_edit_locator.get_by_role("textbox", name="context")
+    controls_locator = group_edit_locator.get_by_role("textbox", name="controls")
+
+    context_locator.fill("test context")
+    controls_locator.fill("test controls")
+
+    group_edit_locator.get_by_role("button", name="Save").click()
+
+    expect(context_locator).to_have_value("test context")
+    expect(controls_locator).to_have_value("test controls")
+
+    group_comment_locator = contents.get_by_role("form", name="group-comment-form")
+    comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
+
+    comment_locator.fill("test comment")
+    group_comment_locator.get_by_role("button", name="Comment").click()
+
+    comments_locator = contents.locator(".comments")
+    expect(comments_locator).to_contain_text("test comment")

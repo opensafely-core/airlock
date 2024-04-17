@@ -269,13 +269,23 @@ def test_request_contents_dir(airlock_client):
     assert response.status_code == 404
 
 
-def test_request_contents_not_exists(airlock_client):
+def test_request_contents_file_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
     factories.write_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = airlock_client.get("/requests/content/id/default/notexists.txt")
+    assert response.status_code == 404
+
+
+def test_request_contents_group_not_exists(airlock_client):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request("workspace", id="id")
+    factories.write_request_file(
+        release_request, "default", "foo/file.txt", contents="test"
+    )
+    response = airlock_client.get("/requests/content/id/notexist/")
     assert response.status_code == 404
 
 
@@ -956,3 +966,177 @@ def test_request_view_tracing_with_request_attribute(
     traces = get_trace()
     last_trace = traces[-1]
     assert last_trace.attributes == {"release_request": "request-id"}
+
+
+def test_group_edit_success(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/edit/{release_request.id}/group",
+        data={
+            "context": "foo",
+            "controls": "bar",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "Updated group group"
+
+    release_request = bll.get_release_request(release_request.id, author)
+
+    assert release_request.filegroups["group"].context == "foo"
+    assert release_request.filegroups["group"].controls == "bar"
+
+
+def test_group_edit_no_change(airlock_client, bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+    bll.group_edit(release_request, "group", context="foo", controls="bar", user=author)
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/edit/{release_request.id}/group",
+        data={
+            "context": "foo",
+            "controls": "bar",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "No changes made to group group"
+
+    release_request = bll.get_release_request(release_request.id, author)
+
+    assert release_request.filegroups["group"].context == "foo"
+    assert release_request.filegroups["group"].controls == "bar"
+
+
+def test_group_edit_bad_user(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(other)
+
+    response = airlock_client.post(
+        f"/requests/edit/{release_request.id}/group",
+        data={
+            "context": "foo",
+            "controls": "bar",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 403
+
+
+def test_group_edit_bad_group(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/edit/{release_request.id}/badgroup",
+        data={
+            "context": "foo",
+            "controls": "bar",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 404
+
+
+def test_group_comment_success(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/comment/{release_request.id}/group",
+        data={"comment": "opinion"},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "Comment added"
+
+    release_request = bll.get_release_request(release_request.id, author)
+
+    assert release_request.filegroups["group"].comments[0].comment == "opinion"
+    assert release_request.filegroups["group"].comments[0].author == "author"
+
+
+def test_group_comment_bad_user(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["other"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(other)
+
+    response = airlock_client.post(
+        f"/requests/comment/{release_request.id}/group",
+        data={"comment": "comment"},
+        follow=True,
+    )
+
+    assert response.status_code == 403
+
+
+def test_group_comment_bad_form(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/comment/{release_request.id}/group",
+        data={},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "comment: This field is required."
+
+
+def test_group_comment_bad_group(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/comment/{release_request.id}/badgroup",
+        data={"comment": "comment"},
+        follow=True,
+    )
+
+    assert response.status_code == 404

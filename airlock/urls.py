@@ -117,6 +117,16 @@ urlpatterns = [
         airlock.views.requests_for_workspace,
         name="requests_for_workspace",
     ),
+    path(
+        "requests/edit/<str:request_id>/<str:group>",
+        airlock.views.group_edit,
+        name="group_edit",
+    ),
+    path(
+        "requests/comment/<str:request_id>/<str:group>",
+        airlock.views.group_comment,
+        name="group_comment",
+    ),
 ]
 
 if settings.DJANGO_DEBUG_TOOLBAR:  # pragma: nocover

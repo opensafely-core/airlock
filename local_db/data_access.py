@@ -13,6 +13,7 @@ from airlock.business_logic import (
 from airlock.types import UrlPath
 from local_db.models import (
     AuditLog,
+    FileGroupComment,
     FileGroupMetadata,
     FileReview,
     RequestFileMetadata,
@@ -79,11 +80,25 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         """Unpack file group db data into FileGroup and RequestFile objects."""
         return dict(
             name=filegroup_metadata.name,
+            context=filegroup_metadata.context,
+            controls=filegroup_metadata.controls,
+            updated_at=filegroup_metadata.updated_at,
+            comments=[
+                self._comment(comment)
+                for comment in filegroup_metadata.comments.all().order_by("created_at")
+            ],
             files=[
                 self._request_file(file_metadata)
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
+
+    def _comment(self, comment: FileGroupComment):
+        return {
+            "comment": comment.comment,
+            "author": comment.author,
+            "created_at": comment.created_at,
+        }
 
     def _get_filegroups(self, metadata: RequestMetadata):
         return {
@@ -332,3 +347,43 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             for audit in qs
         ]
+
+    def _get_filegroup(self, request_id: str, group: str):
+        try:
+            return FileGroupMetadata.objects.get(request_id=request_id, name=group)
+        except FileGroupMetadata.DoesNotExist:
+            raise BusinessLogicLayer.FileNotFound(group)
+
+    def group_edit(
+        self,
+        request_id: str,
+        group: str,
+        context: str,
+        controls: str,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            filegroup = self._get_filegroup(request_id, group)
+            filegroup.context = context
+            filegroup.controls = controls
+            filegroup.save()
+            self._create_audit_log(audit)
+
+    def group_comment(
+        self,
+        request_id: str,
+        group: str,
+        comment: str,
+        username: str,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            filegroup = self._get_filegroup(request_id, group)
+
+            FileGroupComment.objects.create(
+                filegroup=filegroup,
+                comment=comment,
+                author=username,
+            )
+
+            self._create_audit_log(audit)

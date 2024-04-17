@@ -12,12 +12,14 @@ from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
 from airlock.business_logic import (
+    ROOT_PATH,
     FileReviewStatus,
     RequestFileType,
     RequestStatus,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
+from airlock.forms import GroupCommentForm, GroupEditForm
 from airlock.types import UrlPath
 from services.tracing import instrument
 
@@ -52,10 +54,12 @@ def request_index(request):
 
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
+@require_http_methods(["GET"])
 @instrument(func_attributes={"release_request": "request_id"})
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
+    relpath = UrlPath(path)
     template = "file_browser/index.html"
     selected_only = False
 
@@ -63,10 +67,10 @@ def request_view(request, request_id: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_request_tree(release_request, path, selected_only)
-    path_item = get_path_item_from_tree_or_404(tree, path)
+    tree = get_request_tree(release_request, relpath, selected_only)
+    path_item = get_path_item_from_tree_or_404(tree, relpath)
 
-    is_directory_url = path.endswith("/") or path == ""
+    is_directory_url = path.endswith("/") or relpath == ROOT_PATH
 
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
@@ -82,6 +86,35 @@ def request_view(request, request_id: str, path: str = ""):
         file_withdraw_url = reverse(
             "file_withdraw",
             kwargs={"request_id": request_id, "path": path},
+        )
+
+    group_edit_form = None
+    group_edit_url = None
+    comments = []
+    group_comment_form = None
+    group_comment_url = None
+
+    # if we are viewing a group page, load the specific group data and forms
+    if len(relpath.parts) == 1:
+        group = relpath.parts[0]
+        filegroup = release_request.filegroups.get(group)
+
+        # defense in depth: get_request_tree should prevent this branch, but
+        # just in case it changes.
+        if filegroup is None:  # pragma: no cover
+            raise Http404()
+
+        group_edit_form = GroupEditForm.from_filegroup(filegroup)
+        group_edit_url = reverse(
+            "group_edit",
+            kwargs={"request_id": request_id, "group": group},
+        )
+
+        comments = filegroup.comments
+        group_comment_form = GroupCommentForm()
+        group_comment_url = reverse(
+            "group_comment",
+            kwargs={"request_id": request_id, "group": group},
         )
 
     request_submit_url = reverse(
@@ -145,6 +178,11 @@ def request_view(request, request_id: str, path: str = ""):
         "request_reject_url": request_reject_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
+        "group_edit_form": group_edit_form,
+        "group_edit_url": group_edit_url,
+        "group_comment_form": group_comment_form,
+        "group_comments": comments,
+        "group_comment_url": group_comment_url,
     }
 
     return TemplateResponse(request, template, context)
@@ -332,3 +370,76 @@ def request_release_files(request, request_id):
 
     messages.success(request, "Files have been released to jobs.opensafely.org")
     return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_edit(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    filegroup = release_request.filegroups.get(group)
+
+    if filegroup is None:
+        raise Http404(f"bad group {group}")
+
+    form = GroupEditForm(
+        request.POST,
+        initial={
+            "context": filegroup.context,
+            "controls": filegroup.controls,
+        },
+    )
+
+    if form.has_changed():
+        form.is_valid()  # force validation - the form currently cannot fail to validate
+
+        try:
+            bll.group_edit(
+                release_request,
+                group=group,
+                context=form.cleaned_data["context"],
+                controls=form.cleaned_data["controls"],
+                user=request.user,
+            )
+        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        else:
+            messages.success(request, f"Updated group {group}")
+    else:
+        messages.success(request, f"No changes made to group {group}")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_comment(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    form = GroupCommentForm(request.POST)
+
+    if form.is_valid():
+        try:
+            bll.group_comment(
+                release_request,
+                group=group,
+                comment=form.cleaned_data["comment"],
+                user=request.user,
+            )
+        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        except bll.FileNotFound:
+            messages.error(request, f"Invalid group: {group}")
+        else:
+            messages.success(request, "Comment added")
+
+    else:
+        for field, error_list in form.errors.items():
+            for error in error_list:
+                messages.error(request, f"{field}: {error}")
+
+    return redirect(release_request.get_url(group))
