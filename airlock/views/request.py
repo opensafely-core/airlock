@@ -19,8 +19,8 @@ from airlock.business_logic import (
     bll,
 )
 from airlock.file_browser_api import get_request_tree
-from airlock.types import UrlPath
 from airlock.forms import GroupCommentForm, GroupEditForm
+from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import (
