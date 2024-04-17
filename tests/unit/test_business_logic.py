@@ -36,7 +36,7 @@ def test_workspace_container():
     )
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id="
-        in workspace.get_contents_url("foo/bar.html")
+        in workspace.get_contents_url(UrlPath("foo/bar.html"))
     )
 
 
@@ -57,7 +57,7 @@ def test_request_container():
     )
     assert (
         "/requests/content/id/group/bar.html?cache_id="
-        in release_request.get_contents_url("group/bar.html")
+        in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
 
 

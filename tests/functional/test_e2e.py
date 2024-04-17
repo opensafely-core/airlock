@@ -5,6 +5,7 @@ import pytest
 from playwright.sync_api import expect
 
 from airlock.business_logic import RequestStatus, bll
+from airlock.types import UrlPath
 from tests import factories
 
 
@@ -161,7 +162,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Get and click on the invalid file
     find_and_click(page.get_by_role("link", name="file.foo").first)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url("subdir/file.foo")
+        "src", workspace.get_contents_url(UrlPath("subdir/file.foo"))
     )
     # The add file button is disabled for an invalid file
     add_file_button = page.locator("#add-file-modal-button-disabled")
@@ -170,7 +171,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Get and click on the valid file
     find_and_click(page.get_by_role("link", name="file.txt").first)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url("subdir/file.txt")
+        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
     )
 
     # Add file to request, with custom named group
@@ -190,7 +191,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
     expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url("subdir/file.txt")
+        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
     )
 
     # The "Add file to request" button is disabled
@@ -231,7 +232,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Go back to the Workspace view so we can add a supporting file
@@ -276,7 +277,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert tree_element_is_selected(page, file_link)
     assert not tree_element_is_selected(page, subdir_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Click on the supporting file link.
@@ -286,7 +287,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert not tree_element_is_selected(page, file_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src",
-        release_request.get_contents_url("my-new-group/subdir/supporting.txt"),
+        release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
     )
 
     # Click back to the output file link and ensure the selected classes are correctly applied
@@ -294,7 +295,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     assert tree_element_is_selected(page, file_link)
     assert not tree_element_is_selected(page, supporting_file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Submit request
@@ -336,7 +337,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     find_and_click(filegroup_link)
     find_and_click(file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/file.txt")
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # File is not yet approved, so the release button is disabled
@@ -368,7 +369,8 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     )
     find_and_click(supporting_file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url("my-new-group/subdir/supporting.txt")
+        "src",
+        release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
     )
     expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
     expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")

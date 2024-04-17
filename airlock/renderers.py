@@ -4,13 +4,15 @@ import csv
 from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
+from io import StringIO
 from pathlib import Path
-from typing import ClassVar, Self, cast
+from typing import IO, Any, ClassVar, Self, cast
 
 from django.http import FileResponse, HttpResponseBase
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
 
+from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 
 
@@ -33,11 +35,37 @@ class RendererTemplate:
 class Renderer:
     MAX_AGE = 365 * 24 * 60 * 60  # 1 year
     template: ClassVar[RendererTemplate | None] = None
+    open_mode: ClassVar[str] = "rb"
 
-    abspath: Path
+    stream: IO[Any]
     file_cache_id: str
     filename: str
-    last_modified: str
+    last_modified: str | None = None
+
+    @classmethod
+    def from_file(
+        cls, abspath: Path, relpath: UrlPath | None = None, cache_id: str | None = None
+    ) -> Renderer:
+        stat = abspath.stat()
+        path = relpath or abspath
+
+        if cache_id is None:
+            cache_id = filesystem_key(stat)
+
+        return cls(
+            stream=abspath.open(cls.open_mode),
+            file_cache_id=cache_id,
+            last_modified=formatdate(stat.st_mtime, usegmt=True),
+            filename=path.name,
+        )
+
+    @classmethod
+    def from_string(cls, contents: str, relpath: UrlPath, cache_id: str) -> Renderer:
+        return cls(
+            stream=StringIO(contents),
+            file_cache_id=cache_id,
+            filename=relpath.name,
+        )
 
     def get_response(self):
         if self.template:
@@ -46,7 +74,7 @@ class Renderer:
                 self.template.template, context
             )
         else:
-            response = FileResponse(self.abspath.open("rb"), filename=self.filename)
+            response = FileResponse(self.stream, filename=self.filename)
 
         for k, v in self.headers().items():
             response.headers[k] = v
@@ -79,19 +107,21 @@ class Renderer:
 
 class CSVRenderer(Renderer):
     template = RendererTemplate.from_name("file_browser/csv.html")
+    open_mode: ClassVar[str] = "r"
 
     def context(self):
-        reader = csv.reader(self.abspath.open())
+        reader = csv.reader(self.stream)
         headers = next(reader)
         return {"headers": headers, "rows": reader}
 
 
 class TextRenderer(Renderer):
     template = RendererTemplate.from_name("file_browser/text.html")
+    open_mode: ClassVar[str] = "r"
 
     def context(self):
         return {
-            "text": self.abspath.read_text(),
+            "text": self.stream.read(),
             "class": Path(self.filename).suffix.lstrip("."),
         }
 
@@ -101,7 +131,7 @@ class InvalidFileRenderer(Renderer):
 
     def context(self):
         return {
-            "text": f"{self.abspath.name} is not a valid file type and cannot be displayed.",
+            "text": f"{self.filename} is not a valid file type and cannot be displayed.",
             "class": "",
         }
 
@@ -114,33 +144,14 @@ FILE_RENDERERS = {
 }
 
 
-def get_renderer(abspath, request_file=None):
-    stat = abspath.stat()
-
-    if request_file:
-        suffix = request_file.relpath.suffix
-        filename = request_file.relpath.name
-        file_cache_id = request_file.file_id
-        is_valid = is_valid_file_type(request_file.relpath)
-    else:
-        suffix = abspath.suffix
-        filename = abspath.name
-        file_cache_id = filesystem_key(stat)
-        is_valid = is_valid_file_type(abspath)
-
-    if is_valid:
-        renderer_class = FILE_RENDERERS.get(suffix, Renderer)
+def get_renderer(relpath: UrlPath) -> type[Renderer]:
+    if is_valid_file_type(UrlPath(relpath)):
+        renderer_class = FILE_RENDERERS.get(relpath.suffix, Renderer)
     else:
         renderer_class = InvalidFileRenderer
-
-    return renderer_class(
-        abspath=abspath,
-        file_cache_id=file_cache_id,
-        last_modified=formatdate(stat.st_mtime, usegmt=True),
-        filename=filename,
-    )
+    return renderer_class
 
 
-def filesystem_key(stat):
+def filesystem_key(stat) -> str:
     # Like whitenoise, use filesystem metadata rather than hash as it's faster
     return f"{int(stat.st_mtime):x}-{stat.st_size:x}"

@@ -15,10 +15,10 @@ from airlock.business_logic import (
     FileReviewStatus,
     RequestFileType,
     RequestStatus,
-    UrlPath,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
+from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import (
@@ -175,7 +175,8 @@ def request_contents(request, request_id: str, path: str):
         return download_file(abspath, filename=path)
 
     bll.audit_request_file_access(release_request, UrlPath(path), request.user)
-    return serve_file(request, abspath, release_request.get_request_file(path))
+    renderer = release_request.get_renderer(UrlPath(path))
+    return serve_file(request, renderer)
 
 
 @instrument(func_attributes={"release_request": "request_id"})
