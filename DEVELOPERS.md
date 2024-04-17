@@ -245,3 +245,65 @@ New versions should be deployed automatically on merge to `main` after a
 short delay. Github Actions should build a new Docker image, and then
 the backends poll regularly for updated images. See:
 https://github.com/opensafely-core/backend-server/tree/main/services/airlock
+
+
+## Documentation
+
+The documentation in this repository forms part of the main [OpenSAFELY documentation](https://github.com/opensafely/documentation). It is also available within Airlock itself in order to be
+accessible from within the OpenSAFELY backends.
+
+To build the docs as a standalone documentation site with MkDocs to preview content changes, run:
+
+    just docs-serve
+
+
+:warning: In order to maintain a similar look to the main OpenSAFELY documentation, we duplicate the
+custom css from the main documentation repo (`docs/stylesheets/extra.css`).
+
+When the main OpenSAFELY documentation is built, it imports the airlock `docs/` directory
+and builds it within the main documentation site.
+
+### Documentation redirects
+
+These are handled in the main [OpenSAFELY documentation repository](https://github.com/opensafely/documentation).
+If you need to redirect URLs —
+and this should be fairly infrequent —
+make any changes to the `_redirects` file in the main documentation repository,
+and test them in a preview there.
+
+### Structure
+
+Airlock documentation is located in the [docs](docs/) directory. Local configuration is
+specified in the `mkdocs.yml` located at the repo root.
+
+Note that most of the config in the `mkdocs.yml` is specific to the within-airlock docs and
+will be ignored when the docs are imported into the main OpenSAFELY documentation.
+
+In order to serve the docs within Airlock, the directory built by mkdocs (with 
+`just docs-build`) is specified as a static files directory in the `STATICFILES_DIRS`
+setting. A simple view makes them available within Airlock, using the `django.static.serve`
+view (see `airlock/views/docs.py`)
+
+#### Process for updating Airlock documentation
+
+1. Developer makes changes to documentation files
+1. PR opened; CI builds a cloudflare pages preview
+1. PR merged; CI triggers a deploy of the main OpenSAFELY documentation site
+
+To check how local changes appear within the main OpenSAFELY docs, first push a
+branch with your Airlock changes. Then, in a local checkout of the documentation repo:
+
+- In `mkdocs.yml`, update the import line in the `nav` section with your branch:
+  ```
+  - Releasing with Airlock: '!import https://github.com/opensafely-core/airlock?branch=<YOUR BRANCH>'
+  ```
+- Run the main docs with:
+  ```
+  MKDOCS_MULTIREPO_CLEANUP=true just run
+  ```
+  (`MKDOCS_MULTIREPO_CLEANUP=true` ensures that the external repos are re-fetched)
+
+
+### Updating the main OpenSAFELY documentation repository
+
+Merges to the main branch in this repo trigger a [deployment of the main OpenSAFELY documentation via a Github Action](https://github.com/opensafely-core/airlock/actions/workflows/deploy-documentation.yml).
