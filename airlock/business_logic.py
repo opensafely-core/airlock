@@ -469,6 +469,9 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         )
 
+    def is_final(self):
+        return self.status not in [RequestStatus.PENDING, RequestStatus.SUBMITTED]
+
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     # Make a "staging" copy of the file under a temporary name so we know it can't be
@@ -1073,6 +1076,9 @@ class BusinessLogicLayer:
             raise self.RequestPermissionDenied(
                 "Only request author can edit the request"
             )
+
+        if release_request.is_final():
+            raise self.RequestPermissionDenied("This request is no longer editable")
 
         audit = AuditEvent.from_request(
             request=release_request,

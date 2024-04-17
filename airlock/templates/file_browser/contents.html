@@ -7,14 +7,14 @@
         {% csrf_token %}
         <div style="display: flex; flex-direction: row; width: 100%; flex-wrap: wrap; gap: 1rem;">
           <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1;">
-            {% form_textarea field=group_edit_form.context show_placeholder=True resize=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 %}
+            {% form_textarea field=group_edit_form.context show_placeholder=True resize=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 disabled=release_request.is_final readonly=release_request.is_final %}
           </div>
           <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1; gap: 1rem;">
             {% form_textarea field=group_edit_form.controls resize=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full max-w-lg mx-auto" rows=6 %}
           </div>
         </div>
         <div class="mt-2">
-          {% #button type="submit" variant="success" id="edit-group-button" %}Save{% /button %}
+          {% #button type="submit" variant="success" id="edit-group-button" disabled=release_request.is_final %}Save{% /button %}
         </div>
       </form>
 
@@ -28,7 +28,7 @@
           {% #list_group_item %}
             <form action="{{ group_comment_url }}" method="POST" aria-label="group-comment-form">
               {% csrf_token %}
-              {% form_textarea field=group_comment_form.comment label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=True %}
+              {% form_textarea field=group_comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=True %}
               <div class="mt-2">
                 {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
               </div>

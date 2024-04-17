@@ -1115,6 +1115,19 @@ def test_group_edit_not_author(bll):
         bll.group_edit(release_request, "group", "foo", "bar", other)
 
 
+@pytest.mark.parametrize(
+    "state", [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.WITHDRAWN]
+)
+def test_group_edit_not_editable(bll, state):
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=state
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.group_edit(release_request, "group", "foo", "bar", author)
+
+
 def test_group_edit_bad_group(bll):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
