@@ -1,5 +1,6 @@
 import pytest
-from django.db import ConnectionHandler
+from django.db import ConnectionHandler, connection, transaction
+from django.test.utils import CaptureQueriesContext
 
 
 @pytest.mark.django_db
@@ -17,3 +18,11 @@ def test_database_init_command(settings, tmp_path):
     )
     results = connections["default"].cursor().execute("PRAGMA journal_mode")
     assert results.fetchone()[0] == "wal"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_transaction_mode_immediate():
+    with CaptureQueriesContext(connection) as ctx:
+        with transaction.atomic():
+            pass
+    assert ctx.captured_queries[0]["sql"] == "BEGIN IMMEDIATE"

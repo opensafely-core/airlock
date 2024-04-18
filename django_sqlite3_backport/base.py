@@ -3,6 +3,7 @@ This file contains portions of code backported from the upcoming Django 5.1 rele
 Specifically from these PRs:
 
  * https://github.com/django/django/pull/14824
+ * https://github.com/django/django/pull/17760
 
 Copied code is subject to the following license:
 
@@ -38,14 +39,36 @@ Copied code is subject to the following license:
 import warnings
 
 import django
+from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.sqlite3.base import DatabaseWrapper as DjangoDatabaseWrapper
 
 
 class ExtendedDatabaseWrapper(DjangoDatabaseWrapper):
+    transaction_modes = frozenset(["DEFERRED", "EXCLUSIVE", "IMMEDIATE"])
+
     def get_connection_params(self):
         kwargs = super().get_connection_params()
+
+        # Handle `init_command`
         init_command = kwargs.pop("init_command", "")
         self.init_commands = init_command.split(";")
+
+        # Handle `transaction_mode`
+        transaction_mode = kwargs.pop("transaction_mode", None)
+        if (
+            transaction_mode is not None
+            and transaction_mode.upper() not in self.transaction_modes
+        ):  # pragma: no cover
+            allowed_transaction_modes = ", ".join(
+                [f"{mode!r}" for mode in sorted(self.transaction_modes)]
+            )
+            raise ImproperlyConfigured(
+                f"settings.DATABASES[{self.alias!r}]['OPTIONS']['transaction_mode'] "
+                f"is improperly configured to '{transaction_mode}'. Use one of "
+                f"{allowed_transaction_modes}, or None."
+            )
+        self.transaction_mode = transaction_mode.upper() if transaction_mode else None
+
         return kwargs
 
     def get_new_connection(self, conn_params):
@@ -54,6 +77,12 @@ class ExtendedDatabaseWrapper(DjangoDatabaseWrapper):
             if init_command := init_command.strip():
                 conn.execute(init_command)
         return conn
+
+    def _start_transaction_under_autocommit(self):
+        if self.transaction_mode is None:  # pragma: no cover
+            self.cursor().execute("BEGIN")
+        else:
+            self.cursor().execute(f"BEGIN {self.transaction_mode}")
 
 
 if django.VERSION[:2] < (5, 1):

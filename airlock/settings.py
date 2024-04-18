@@ -184,6 +184,12 @@ DATABASES = {
                    database pages */
                 PRAGMA cache_size = -256000;
             """,
+            # Switch from SQLite's default DEFERRED transaction mode to IMMEDIATE. This
+            # has the effect that write transactions will respect the busy timeout,
+            # rather than failing immediately with "Database locked" if another write
+            # transaction is in progress.
+            # https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
+            "transaction_mode": "IMMEDIATE",
         },
     }
 }
