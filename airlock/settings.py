@@ -165,7 +165,25 @@ DATABASES = {
         "ENGINE": "django_sqlite3_backport",
         "NAME": WORK_DIR / "db.sqlite3",
         "OPTIONS": {
-            "init_command": "PRAGMA journal_mode=wal;",
+            # For details on these pragmas see: https://www.sqlite.org/pragma.html
+            "init_command": """
+                /* These settings give much better write performance than the default
+                   without sacrificing consistency guarantees */
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+
+                /* Enforce foreign keys which SQLite doesn't do by default only for
+                   backwards compatibility reasons */
+                PRAGMA foreign_keys = ON;
+
+                /* How long (in ms) to let one write transaction wait for another */
+                PRAGMA busy_timeout = 5000;
+
+                /* The default cache size is 2MB but we can afford more! Note negative
+                   values set cache size in KB, positive numbers set it by number of
+                   database pages */
+                PRAGMA cache_size = -256000;
+            """,
         },
     }
 }
