@@ -384,6 +384,23 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             bll.set_status(release_request1, future, user=author)
 
     if valid_checker:
+        if current == RequestStatus.SUBMITTED:
+            factories.write_request_file(
+                release_request2, "group", "test/file.txt", approved=True
+            )
+            release_request2 = factories.refresh_release_request(release_request2)
+
+        if current == RequestStatus.REJECTED:
+            # We cannot add files to a rejected request, so re-create the request
+            release_request2 = factories.create_release_request(
+                "workspace", user=author, status=RequestStatus.SUBMITTED
+            )
+            factories.write_request_file(
+                release_request2, "group", "test/file.txt", approved=True
+            )
+            bll.set_status(release_request2, current, user=checker)
+            release_request2 = factories.refresh_release_request(release_request2)
+
         bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
 
@@ -436,6 +453,30 @@ def test_set_status_cannot_action_own_request(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.set_status(release_request2, RequestStatus.RELEASED, user=user)
+
+
+def test_set_status_approved_no_files_denied(bll):
+    user = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
+
+
+def test_set_status_approved_only_supporting_file_denied(bll):
+    user = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", filetype=RequestFileType.SUPPORTING
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
 
 
 def test_add_file_to_request_not_author(bll):
