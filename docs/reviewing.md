@@ -13,12 +13,17 @@ Whilst viewing a file in an Airlock release request, they have the option of:
 1. Output checkers navigate to the Requests list to view all open requests
     awaiting review. Note that if an output checker is the author of a request, they
     will not see it in the outstanding requests list. 
-1. Output checkers identify the request by workspace name and requester username.
-1. The files included in the request can be viewed in the file
+1. Output checkers identify the request by workspace name and requester username. A user
+   can have at most one active request per workspace. 
+1. Output checkers can view the files included in the request via the file
     browser within Airlock. If required (e.g. in order to perform calculations
-    in a spreadsheet), files can also be downloaded from Airlock. Please note
-    that request authors are not permitted to download files from their own requests, even if they
-    are also output checkers.
+    in a spreadsheet), output checkers can also downloaded files from Airlock.
+
+!!! warning "Downloading restrictions" 
+    Please note that only request files (not workspace files) can be downloaded.
+    Downloading is permitted **only** for the purposes of output checking.
+    Request authors are not permitted to download files from their own requests,
+    even if they are also output checkers.
 
 ## Dealing with discrepancies and rejected files
 
