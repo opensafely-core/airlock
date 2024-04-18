@@ -127,6 +127,8 @@ urlpatterns = [
         airlock.views.group_comment,
         name="group_comment",
     ),
+    path(r"docs/", airlock.views.serve_docs, name="docs_home"),
+    path(r"docs/<path:path>", airlock.views.serve_docs),
 ]
 
 if settings.DJANGO_DEBUG_TOOLBAR:  # pragma: nocover

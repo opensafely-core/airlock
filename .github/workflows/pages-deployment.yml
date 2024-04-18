@@ -1,0 +1,39 @@
+on: [push]
+
+jobs:
+  deploy:
+
+    permissions:
+      contents: read
+      deployments: write
+
+    runs-on: ubuntu-latest
+
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Python and just
+        uses: opensafely-core/setup-action@v1
+        with:
+          install-just: true
+          python-version: "3.11"
+
+      - name: Build site
+        run: just docs-build
+
+      - name: Add a version file
+        run: echo ${{ github.sha }} > mkdocs_build/version.html
+
+      - name: Publish
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca  # v1.5.0
+        with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_DIRECT_UPLOAD_API_TOKEN }}
+          directory: "mkdocs_build"
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          projectName: "airlock-docs"

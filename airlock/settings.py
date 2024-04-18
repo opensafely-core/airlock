@@ -209,6 +209,11 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Location of the built docs
+# The built docs dir is added to STATICFILE_DIRS so that we
+# can serve it within airlock
+DOCS_DIR = BASE_DIR / "mkdocs_build"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
@@ -216,9 +221,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 ASSETS_DIST = BASE_DIR / "assets/dist"
-STATICFILES_DIRS = [
-    ASSETS_DIST,
-]
+
+STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR]
 
 # Sessions
 

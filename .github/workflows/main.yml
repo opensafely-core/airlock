@@ -46,7 +46,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: "opensafely-core/setup-action@v1"
         with:
+          python-version: "3.11"
           install-just: true
+
+      - name: Build docs
+        run: |
+          just docs-build
 
       - name: Build docker image for both prod and dev
         run: |
@@ -65,7 +70,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: "opensafely-core/setup-action@v1"
         with:
+          python-version: "3.11"
           install-just: true
+
+      - name: Build docs
+        run: |
+            just docs-build
 
       - name: Build docker image for both prod and dev
         run: |

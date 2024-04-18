@@ -127,7 +127,7 @@ fix: devenv
     $BIN/djhtml --tabwidth 2 airlock/
 
 # run airlock with django dev server
-run *ARGS: devenv
+run *ARGS: devenv docs-build
     $BIN/python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
@@ -145,7 +145,7 @@ test *ARGS: devenv
 
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: devenv
+@test-all: devenv docs-build
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -203,3 +203,12 @@ load-example-data: devenv
 
     # Configure user details for local login
     cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
+
+
+# Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
+docs-serve *ARGS: devenv
+    "$BIN"/mkdocs serve --clean {{ ARGS }}
+
+# Build the documentation
+docs-build *ARGS: devenv
+    "$BIN"/mkdocs build --clean {{ ARGS }}
