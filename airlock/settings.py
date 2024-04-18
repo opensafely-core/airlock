@@ -16,7 +16,6 @@ import warnings
 from pathlib import Path
 
 import django.dispatch
-import yaml
 from django.contrib import messages
 from django.db.backends.signals import connection_created
 
@@ -210,12 +209,10 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Get the location of the built docs from the mkdocs config
-# The build docs dir is added to STATICFILE_DIRS so that we
+# Location of the built docs
+# The built docs dir is added to STATICFILE_DIRS so that we
 # can serve it within airlock
-with (BASE_DIR / "mkdocs.yml").open() as mkdocs_config:
-    DOCS_SITE_DIR = yaml.load(mkdocs_config, Loader=yaml.Loader)["site_dir"]
-DOCS_DIR = BASE_DIR / DOCS_SITE_DIR
+DOCS_DIR = BASE_DIR / "mkdocs_build"
 
 
 # Static files (CSS, JavaScript, Images)
