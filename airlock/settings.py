@@ -15,9 +15,7 @@ import os
 import warnings
 from pathlib import Path
 
-import django.dispatch
 from django.contrib import messages
-from django.db.backends.signals import connection_created
 
 
 _missing_env_var_hint = """\
@@ -162,21 +160,15 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
+        # Backports features from the upcoming Django 5.1 release. When we upgrade to
+        # Django 5.1 this can be replaced with the usual `django.db.backends.sqlite3`
+        "ENGINE": "django_sqlite3_backport",
         "NAME": WORK_DIR / "db.sqlite3",
-        "CONNECTION_INIT_QUERIES": [
-            "PRAGMA journal_mode=wal",
-        ],
+        "OPTIONS": {
+            "init_command": "PRAGMA journal_mode=wal;",
+        },
     }
 }
-
-
-@django.dispatch.receiver(connection_created)
-def run_connection_init_queries(*, connection, **kwargs):
-    queries = connection.settings_dict.get("CONNECTION_INIT_QUERIES", ())
-    with connection.cursor() as cursor:
-        for query in queries:
-            cursor.execute(query)
 
 
 # Password validation
