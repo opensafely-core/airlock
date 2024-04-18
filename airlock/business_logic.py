@@ -855,7 +855,7 @@ class BusinessLogicLayer:
 
             if (
                 to_status == RequestStatus.APPROVED
-                and not len(release_request.all_files_set()) > 0
+                and not release_request.output_files_set()
             ):
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no files."

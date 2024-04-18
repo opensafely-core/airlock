@@ -457,12 +457,26 @@ def test_set_status_cannot_action_own_request(bll):
 
 def test_set_status_approved_no_files_denied(bll):
     user = factories.create_user("checker", [], True)
-    release_request1 = factories.create_release_request(
+    release_request = factories.create_release_request(
         "workspace", status=RequestStatus.SUBMITTED
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request1, RequestStatus.APPROVED, user=user)
+        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
+
+
+def test_set_status_approved_only_supporting_file_denied(bll):
+    user = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", filetype=RequestFileType.SUPPORTING
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
 
 
 def test_add_file_to_request_not_author(bll):
