@@ -195,6 +195,17 @@ DATABASES = {
 }
 
 
+# ATOMIC_REQUESTS are disabled by default but we explicitly disable them here so we can
+# note that they will interact very badly with the "IMMEDIATE" transaction mode we
+# configure above. Immediate mode allows overlapping write transactions to queue up,
+# rather than failing, but at the cost of treating *all* transactions as write
+# transactions. In practice this works fine for us as we only use explicit transactions
+# for write operations, but we must be careful not to enable implicit transactions as
+# that would create on a "one user at a time, please" policy on the site, which is not
+# what we want.
+ATOMIC_REQUESTS = False
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
