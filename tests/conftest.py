@@ -40,8 +40,10 @@ def temp_storage(settings, tmp_path):
     settings.WORK_DIR = tmp_path
     settings.WORKSPACE_DIR = tmp_path / "workspaces"
     settings.REQUEST_DIR = tmp_path / "requests"
+    settings.GIT_REPO_DIR = tmp_path / "repos"
     settings.WORKSPACE_DIR.mkdir(parents=True)
     settings.REQUEST_DIR.mkdir(parents=True)
+    settings.GIT_REPO_DIR.mkdir(parents=True)
 
 
 @pytest.fixture
