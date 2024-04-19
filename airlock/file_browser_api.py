@@ -8,6 +8,7 @@ from pathlib import Path
 from airlock.business_logic import (
     ROOT_PATH,
     AirlockContainer,
+    CodeRepo,
     ReleaseRequest,
     RequestFileType,
     Workspace,
@@ -25,6 +26,7 @@ class PathType(Enum):
     WORKSPACE = "workspace"
     REQUEST = "request"
     FILEGROUP = "filegroup"
+    REPO = "repo"
 
 
 @dataclass
@@ -376,13 +378,41 @@ def get_request_tree(
     return root_node
 
 
-def filter_files(selected, files):
-    """Filter the list of file paths for the selected file and any immediate children."""
-    n = len(selected.parts)
-    for f in files:
-        head, tail = f.parts[:n], f.parts[n:]
-        if head == selected.parts and len(tail) <= 1:
-            yield f
+def get_code_tree(
+    repo: CodeRepo, selected_path: UrlPath = ROOT_PATH, selected_only: bool = False
+) -> PathItem:
+    root_node = PathItem(
+        container=repo,
+        relpath=ROOT_PATH,
+        type=PathType.REPO,
+        parent=None,
+        selected=(selected_path == ROOT_PATH),
+        expanded=True,
+    )
+
+    leaf_directories = set()
+
+    if selected_only:
+        pathlist = [selected_path]
+        len_selected = len(selected_path.parts)
+
+        for path in repo.pathlist:
+            if path.parts[:len_selected] == selected_path.parts:
+                child_path = UrlPath(*path.parts[: len_selected + 1])
+                if len(path.parts) > len_selected + 1:
+                    leaf_directories.add(child_path)
+                pathlist.append(child_path)
+    else:
+        pathlist = repo.pathlist
+
+    root_node.children = get_path_tree(
+        repo,
+        pathlist,
+        parent=root_node,
+        selected_path=selected_path,
+        leaf_directories=leaf_directories,
+    )
+    return root_node
 
 
 def get_path_tree(
