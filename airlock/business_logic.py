@@ -826,7 +826,7 @@ class BusinessLogicLayer:
         ]:
             if user.username != release_request.author:
                 raise self.RequestPermissionDenied(
-                    f"only {user.username} can set status to {to_status.name}"
+                    f"only {release_request.author} can set status to {to_status.name}"
                 )
 
         # output checker transitions
