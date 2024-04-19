@@ -15,9 +15,7 @@ import os
 import warnings
 from pathlib import Path
 
-import django.dispatch
 from django.contrib import messages
-from django.db.backends.signals import connection_created
 
 
 _missing_env_var_hint = """\
@@ -162,21 +160,50 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
+        # Backports features from the upcoming Django 5.1 release. When we upgrade to
+        # Django 5.1 this can be replaced with the usual `django.db.backends.sqlite3`
+        "ENGINE": "django_sqlite3_backport",
         "NAME": WORK_DIR / "db.sqlite3",
-        "CONNECTION_INIT_QUERIES": [
-            "PRAGMA journal_mode=wal",
-        ],
+        "OPTIONS": {
+            # For details on these pragmas see: https://www.sqlite.org/pragma.html
+            "init_command": """
+                /* These settings give much better write performance than the default
+                   without sacrificing consistency guarantees */
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+
+                /* Enforce foreign keys which SQLite doesn't do by default only for
+                   backwards compatibility reasons */
+                PRAGMA foreign_keys = ON;
+
+                /* How long (in ms) to let one write transaction wait for another */
+                PRAGMA busy_timeout = 5000;
+
+                /* The default cache size is 2MB but we can afford more! Note negative
+                   values set cache size in KB, positive numbers set it by number of
+                   database pages */
+                PRAGMA cache_size = -256000;
+            """,
+            # Switch from SQLite's default DEFERRED transaction mode to IMMEDIATE. This
+            # has the effect that write transactions will respect the busy timeout,
+            # rather than failing immediately with "Database locked" if another write
+            # transaction is in progress.
+            # https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
+            "transaction_mode": "IMMEDIATE",
+        },
     }
 }
 
 
-@django.dispatch.receiver(connection_created)
-def run_connection_init_queries(*, connection, **kwargs):
-    queries = connection.settings_dict.get("CONNECTION_INIT_QUERIES", ())
-    with connection.cursor() as cursor:
-        for query in queries:
-            cursor.execute(query)
+# ATOMIC_REQUESTS are disabled by default but we explicitly disable them here so we can
+# note that they will interact very badly with the "IMMEDIATE" transaction mode we
+# configure above. Immediate mode allows overlapping write transactions to queue up,
+# rather than failing, but at the cost of treating *all* transactions as write
+# transactions. In practice this works fine for us as we only use explicit transactions
+# for write operations, but we must be careful not to enable implicit transactions as
+# that would create on a "one user at a time, please" policy on the site, which is not
+# what we want.
+ATOMIC_REQUESTS = False
 
 
 # Password validation

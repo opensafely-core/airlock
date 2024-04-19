@@ -156,6 +156,7 @@ test *ARGS: devenv
       --cov=tests \
       --cov=old_api \
       --cov=services \
+      --cov=django_sqlite3_backport \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
 
