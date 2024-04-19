@@ -89,11 +89,11 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
 
 
 @pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
-def test_text_renderer_from_string(suffix, mimetype, template_path):
+def test_code_renderer_from_contents(suffix, mimetype, template_path):
     path = UrlPath("test." + suffix)
 
-    renderer_class = renderers.get_renderer(path)
-    renderer = renderer_class.from_string("test", path, "cache_id")
+    renderer_class = renderers.get_code_renderer(path)
+    renderer = renderer_class.from_contents(b"test", path, "cache_id")
     response = renderer.get_response()
 
     assert response.status_code == 200
