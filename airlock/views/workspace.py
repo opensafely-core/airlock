@@ -11,7 +11,10 @@ from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
 from airlock.business_logic import RequestFileType, bll
-from airlock.file_browser_api import get_workspace_tree
+from airlock.file_browser_api import (
+    add_workspace_pathitem_filesizes,
+    get_workspace_tree,
+)
 from airlock.forms import AddFileForm
 from airlock.types import UrlPath
 from services.tracing import instrument
@@ -81,6 +84,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         and (current_request is None or not file_in_request)
     ):
         form = AddFileForm(release_request=current_request)
+
+    add_workspace_pathitem_filesizes(workspace, path_item)
 
     return TemplateResponse(
         request,

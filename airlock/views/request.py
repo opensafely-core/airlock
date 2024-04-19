@@ -18,7 +18,7 @@ from airlock.business_logic import (
     RequestStatus,
     bll,
 )
-from airlock.file_browser_api import get_request_tree
+from airlock.file_browser_api import add_request_pathitem_filesizes, get_request_tree
 from airlock.forms import GroupCommentForm, GroupEditForm
 from airlock.types import UrlPath
 from services.tracing import instrument
@@ -133,6 +133,11 @@ def request_view(request, request_id: str, path: str = ""):
         "request_release_files",
         kwargs={"request_id": request_id},
     )
+
+    # we don't need to add file sizes when viewing the list of groups
+    if len(relpath.parts) > 1:
+        if is_directory_url:
+            add_request_pathitem_filesizes(release_request, path_item)
 
     if (
         is_directory_url

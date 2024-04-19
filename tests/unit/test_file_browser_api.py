@@ -6,6 +6,8 @@ from django.template.loader import render_to_string
 from airlock.file_browser_api import (
     PathType,
     UrlPath,
+    add_request_pathitem_filesizes,
+    add_workspace_pathitem_filesizes,
     filter_files,
     get_request_tree,
     get_workspace_tree,
@@ -242,6 +244,15 @@ def test_request_tree_get_path(release_request, path, exists):
             tree.get_path(path)
 
 
+@pytest.mark.django_db
+def test_request_tree_get_path_filesize(release_request):
+    tree = get_request_tree(release_request)
+
+    mypath = tree.get_path("group1/some_dir")
+    add_request_pathitem_filesizes(release_request, mypath)
+    assert tree.get_path("group1/some_dir/file_a.txt").size == 6
+
+
 @pytest.mark.parametrize(
     "path,url",
     [
@@ -252,6 +263,13 @@ def test_request_tree_get_path(release_request, path, exists):
 def test_workspace_tree_urls(workspace, path, url):
     tree = get_workspace_tree(workspace)
     assert tree.get_path(path).url().endswith(url)
+
+
+def test_workspace_tree_get_path_filesize(workspace):
+    tree = get_workspace_tree(workspace)
+    path = tree.get_path("some_dir")
+    add_workspace_pathitem_filesizes(workspace, path)
+    assert tree.get_path("some_dir/file_a.txt").size == 6
 
 
 def test_workspace_tree_content_urls(workspace):

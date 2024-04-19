@@ -62,6 +62,8 @@ class PathItem:
     # but this allow it to be overridden.
     display_text: str | None = None
 
+    size: int | None = None
+
     def is_directory(self):
         """Does this contain other things?"""
         return self.type != PathType.FILE
@@ -444,3 +446,15 @@ def children_sort_key(node: PathItem):
     """Sort children first by directory, then files."""
     # this works because True == 1 and False == 0
     return (node.type == PathType.FILE, node.name())
+
+
+def add_workspace_pathitem_filesizes(workspace: Workspace, path_item: PathItem):
+    for entry in path_item.children:
+        entry.size = os.stat(workspace.abspath(entry.relpath)).st_size
+
+
+def add_request_pathitem_filesizes(
+    release_request: ReleaseRequest, path_item: PathItem
+):
+    for entry in path_item.children:
+        entry.size = os.stat(release_request.abspath(entry.relpath)).st_size

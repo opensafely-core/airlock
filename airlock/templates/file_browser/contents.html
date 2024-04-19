@@ -51,6 +51,9 @@
               {% if entry.is_directory %}
                 {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
               {% endif %}
+              {% if not entry.is_directory and entry.size %}
+                <div style="float: right;">{{ entry.size }} bytes</div>
+              {% endif %}
             {% /list_group_item %}
           {% endfor %}
         {% endif %}
