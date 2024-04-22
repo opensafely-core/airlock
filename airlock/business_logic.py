@@ -1007,7 +1007,7 @@ class BusinessLogicLayer:
         file_paths = request.get_output_file_paths()
         self.validate_file_types(file_paths)
 
-        filelist = old_api.create_filelist(file_paths)
+        filelist = old_api.create_filelist(file_paths, request)
         jobserver_release_id = old_api.create_release(
             request.workspace, filelist.json(), user.username
         )

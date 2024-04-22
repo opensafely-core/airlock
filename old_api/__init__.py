@@ -11,7 +11,7 @@ from old_api.schema import FileList, FileMetadata, UrlFileName
 session = requests.Session()
 
 
-def create_filelist(paths):
+def create_filelist(paths, release_request):
     files = []
 
     for relpath, abspath in paths:
@@ -26,11 +26,13 @@ def create_filelist(paths):
                 # that make changes which risk changing the output format.
                 date=modified_time(abspath),  # type: ignore[arg-type]
                 url=UrlFileName(relpath),  # not needed, but has to be set
-                metadata={"tool": "airlock"},
+                metadata={"tool": "airlock", "airlock_id": release_request.id},
             )
         )
 
-    return FileList(files=files, metadata={"tool": "airlock"})
+    return FileList(
+        files=files, metadata={"tool": "airlock", "airlock_id": release_request.id}
+    )
 
 
 def create_release(workspace_name, release_json, username):
