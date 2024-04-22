@@ -167,11 +167,11 @@ def test_provider_request_release_files(mock_old_api):
                 "size": 4,
                 "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 "date": old_api.modified_time(abspath),
-                "metadata": {"tool": "airlock"},
+                "metadata": {"tool": "airlock", "airlock_id": release_request.id},
                 "review": None,
             }
         ],
-        "metadata": {"tool": "airlock"},
+        "metadata": {"tool": "airlock", "airlock_id": release_request.id},
         "review": None,
     }
 
