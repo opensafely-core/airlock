@@ -138,7 +138,7 @@ def test_get_workspace_tree_selected_only_file(workspace):
     assert str(tree).strip() == expected.strip()
 
 
-def test_get_workspace_tree_selected_only_dir(workspace):
+def test_get_workspace_tree_selected_has_empty_dir(workspace):
     selected_path = UrlPath("some_dir")
     # needed for coverage of is_file() branch
     (workspace.root() / "some_dir/subdir").mkdir()
@@ -159,6 +159,24 @@ def test_get_workspace_tree_selected_only_dir(workspace):
     )
 
     assert str(tree).strip() == expected.strip()
+
+
+def test_get_workspace_tree_selected_is_empty_dir(workspace):
+    selected_path = UrlPath("some_dir/subdir")
+    (workspace.root() / selected_path).mkdir()
+    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace*
+          some_dir*
+            subdir***
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+    assert tree.get_path(selected_path).type == PathType.DIR
 
 
 @pytest.mark.django_db

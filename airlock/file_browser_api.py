@@ -281,11 +281,15 @@ def get_workspace_tree(
         # we are only loading a single directory, not an entire tree
         abspath = workspace.abspath(selected_path)
         if abspath.is_dir():
-            for child in abspath.iterdir():
-                path = child.relative_to(root)
-                pathlist.append(path)
-                if child.is_dir():
-                    leaf_directories.add(path)
+            children = list(abspath.iterdir())
+            if children:
+                for child in children:
+                    path = child.relative_to(root)
+                    pathlist.append(path)
+                    if child.is_dir():
+                        leaf_directories.add(path)
+            else:
+                leaf_directories.add(selected_path)
 
     else:
         pathlist, leaf_directories = scantree(root)
