@@ -93,6 +93,7 @@ def request_view(request, request_id: str, path: str = ""):
     comments = []
     group_comment_form = None
     group_comment_url = None
+    group_readonly = release_request.is_final() or not is_author
 
     # if we are viewing a group page, load the specific group data and forms
     if len(relpath.parts) == 1:
@@ -181,6 +182,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_edit_form": group_edit_form,
         "group_edit_url": group_edit_url,
         "group_comment_form": group_comment_form,
+        "group_readonly": group_readonly,
         "group_comments": comments,
         "group_comment_url": group_comment_url,
     }
