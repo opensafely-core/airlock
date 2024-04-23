@@ -1,0 +1,16 @@
+{% #card title=path_item.name container=True %}
+  {% #list_group %}
+    {% if not path_item.children %}
+      {% list_group_empty icon=True title="Empty Directory" %}
+    {% else %}
+      {% for entry in path_item.children %}
+        {% #list_group_item href=entry.url %}
+          {{ entry.name}}
+          {% if entry.is_directory %}
+            {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
+          {% endif %}
+        {% /list_group_item %}
+      {% endfor %}
+    {% endif %}
+  {% /list_group %}
+{% /card %}
