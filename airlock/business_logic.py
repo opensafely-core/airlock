@@ -292,7 +292,6 @@ class CodeRepo:
     def get_contents_url(
         self, relpath: UrlPath = ROOT_PATH, download: bool = False
     ) -> str:
-        # TODO
         url = reverse(
             "code_contents",
             kwargs={

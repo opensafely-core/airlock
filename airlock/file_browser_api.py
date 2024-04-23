@@ -394,15 +394,25 @@ def get_code_tree(
     leaf_directories = set()
 
     if selected_only:
+        # we only want the selected path, and its immediate children if it has any
         pathlist = [selected_path]
-        len_selected = len(selected_path.parts)
 
+        # we only have paths, so we find any child paths of the selected_path
+        len_selected = len(selected_path.parts)
         for path in repo.pathlist:
+            if path == selected_path:
+                continue
             if path.parts[:len_selected] == selected_path.parts:
+                # same prefix, so is a child
                 child_path = UrlPath(*path.parts[: len_selected + 1])
+                pathlist.append(child_path)
+
+                # if this child has >1 additional path segment, it is
+                # a directory.  So, mark it as a leaf directory from this
+                # limited tree view, so it is correctly classified by
+                # get_path_tree as a directory.
                 if len(path.parts) > len_selected + 1:
                     leaf_directories.add(child_path)
-                pathlist.append(child_path)
     else:
         pathlist = repo.pathlist
 
