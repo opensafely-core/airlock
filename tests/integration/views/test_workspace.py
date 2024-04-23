@@ -47,10 +47,22 @@ def test_workspace_does_not_exist(airlock_client):
 
 def test_workspace_view_with_directory(airlock_client):
     airlock_client.login(output_checker=True)
-    factories.write_workspace_file("workspace", "some_dir/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    (workspace.root() / "some_dir/subdir").mkdir()  # adds coverage of dir rendering
     response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 200
     assert "file.txt" in response.rendered_content
+    assert "subdir" in response.rendered_content
+
+
+def test_workspace_view_with_empty_directory(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    (workspace.root() / "some_dir").mkdir()
+    response = airlock_client.get("/workspaces/view/workspace/some_dir/")
+    assert response.status_code == 200
+    assert "Empty Directory" in response.rendered_content
 
 
 def test_workspace_view_with_file(airlock_client):
