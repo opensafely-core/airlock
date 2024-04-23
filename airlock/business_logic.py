@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import secrets
 import shutil
 from dataclasses import dataclass, field
@@ -17,6 +18,12 @@ from django.utils.module_loading import import_string
 
 import old_api
 from airlock import renderers
+from airlock.lib.git import (
+    GitError,
+    list_files_from_repo,
+    project_name_from_url,
+    read_file_from_repo,
+)
 from airlock.types import UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
@@ -42,6 +49,7 @@ class RequestFileType(Enum):
     OUTPUT = "output"
     SUPPORTING = "supporting"
     WITHDRAWN = "withdrawn"
+    CODE = "code"
 
 
 class FileReviewStatus(Enum):
@@ -225,6 +233,99 @@ class Workspace:
 
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
+
+
+@dataclass(frozen=True)
+class CodeRepo:
+    workspace: str
+    repo: str
+    name: str
+    commit: str
+    directory: Path
+    pathlist: list[UrlPath]
+
+    class RepoNotFound(Exception):
+        pass
+
+    class CommitNotFound(Exception):
+        pass
+
+    @classmethod
+    def from_workspace(cls, workspace: Workspace, commit: str):
+        manifest_path = workspace.abspath("metadata/manifest.json")
+
+        try:
+            manifest = json.loads(manifest_path.read_text())
+            repo = manifest["repo"]
+        except (json.JSONDecodeError, KeyError):
+            raise cls.RepoNotFound(
+                "Could not parse manifest.json file: {manifest_path}:\n{exc}"
+            )
+
+        try:
+            pathlist = list_files_from_repo(repo, commit)
+        except GitError as exc:
+            raise CodeRepo.CommitNotFound(str(exc))
+
+        return cls(
+            workspace=workspace.name,
+            repo=repo,
+            name=project_name_from_url(repo),
+            commit=commit,
+            directory=settings.GIT_REPO_DIR / workspace.name,
+            pathlist=pathlist,
+        )
+
+    def get_id(self) -> str:
+        return f"{self.name}@{self.commit[:7]}"
+
+    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+        return reverse(
+            "code_view",
+            kwargs={
+                "workspace_name": self.workspace,
+                "commit": self.commit,
+                "path": relpath,
+            },
+        )
+
+    def get_contents_url(
+        self, relpath: UrlPath = ROOT_PATH, download: bool = False
+    ) -> str:
+        url = reverse(
+            "code_contents",
+            kwargs={
+                "workspace_name": self.workspace,
+                "commit": self.commit,
+                "path": relpath,
+            },
+        )
+
+        renderer = self.get_renderer(relpath)
+        url += f"?cache_id={renderer.cache_id}"
+
+        return url
+
+    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+        # we do not care about valid file types here, so we just get the base renderers
+
+        try:
+            contents = read_file_from_repo(self.repo, self.commit, relpath)
+        except GitError as exc:
+            raise BusinessLogicLayer.FileNotFound(str(exc))
+
+        renderer_class = renderers.get_code_renderer(relpath)
+        # note: we don't actually need an explicit cache_id here, as the commit is
+        # already in the url. But we want to add the template version to the
+        # cache id, so pass an empty string.
+        return renderer_class.from_contents(
+            contents=contents,
+            relpath=relpath,
+            cache_id="",
+        )
+
+    def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
+        return RequestFileType.CODE
 
 
 @dataclass(frozen=True)

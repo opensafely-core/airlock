@@ -8,6 +8,7 @@ from pathlib import Path
 from airlock.business_logic import (
     ROOT_PATH,
     AirlockContainer,
+    CodeRepo,
     ReleaseRequest,
     RequestFileType,
     Workspace,
@@ -25,6 +26,7 @@ class PathType(Enum):
     WORKSPACE = "workspace"
     REQUEST = "request"
     FILEGROUP = "filegroup"
+    REPO = "repo"
 
 
 @dataclass
@@ -152,8 +154,9 @@ class PathItem:
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
-            if not self.is_valid():
-                classes.append("invalid")
+            if self.request_filetype != RequestFileType.CODE:
+                if not self.is_valid():
+                    classes.append("invalid")
 
         if self.selected:
             classes.append("selected")
@@ -376,13 +379,51 @@ def get_request_tree(
     return root_node
 
 
-def filter_files(selected, files):
-    """Filter the list of file paths for the selected file and any immediate children."""
-    n = len(selected.parts)
-    for f in files:
-        head, tail = f.parts[:n], f.parts[n:]
-        if head == selected.parts and len(tail) <= 1:
-            yield f
+def get_code_tree(
+    repo: CodeRepo, selected_path: UrlPath = ROOT_PATH, selected_only: bool = False
+) -> PathItem:
+    root_node = PathItem(
+        container=repo,
+        relpath=ROOT_PATH,
+        type=PathType.REPO,
+        parent=None,
+        selected=(selected_path == ROOT_PATH),
+        expanded=True,
+    )
+
+    leaf_directories = set()
+
+    if selected_only:
+        # we only want the selected path, and its immediate children if it has any
+        pathlist = [selected_path]
+
+        # we only have paths, so we find any child paths of the selected_path
+        len_selected = len(selected_path.parts)
+        for path in repo.pathlist:
+            if path == selected_path:
+                continue
+            if path.parts[:len_selected] == selected_path.parts:
+                # same prefix, so is a child
+                child_path = UrlPath(*path.parts[: len_selected + 1])
+                pathlist.append(child_path)
+
+                # if this child has >1 additional path segment, it is
+                # a directory.  So, mark it as a leaf directory from this
+                # limited tree view, so it is correctly classified by
+                # get_path_tree as a directory.
+                if len(path.parts) > len_selected + 1:
+                    leaf_directories.add(child_path)
+    else:
+        pathlist = repo.pathlist
+
+    root_node.children = get_path_tree(
+        repo,
+        pathlist,
+        parent=root_node,
+        selected_path=selected_path,
+        leaf_directories=leaf_directories,
+    )
+    return root_node
 
 
 def get_path_tree(

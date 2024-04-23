@@ -285,6 +285,12 @@ WORKSPACE_DIR = WORK_DIR / get_env_var("AIRLOCK_WORKSPACE_DIR")
 
 REQUEST_DIR = WORK_DIR / get_env_var("AIRLOCK_REQUEST_DIR")
 
+# This is a cache, so we default to a workdir subdirectory
+GIT_REPO_DIR = WORK_DIR / os.environ.get("AIRLOCK_REPO_DIR", "repos")
+GIT_PROXY_DOMAIN = "github-proxy.opensafely.org"
+PRIVATE_REPO_ACCESS_TOKEN = os.environ.get("PRIVATE_REPO_ACCESS_TOKEN", "")
+
+
 AIRLOCK_API_ENDPOINT = os.environ.get(
     "AIRLOCK_API_ENDPOINT", "https://jobs.opensafely.org/api/v2"
 )
