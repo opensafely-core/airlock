@@ -886,7 +886,7 @@ def test_requests_release_jobserver_403_with_debug(
     # test 403 is handled
     response = airlock_client.post("/requests/release/request_id")
     # DEBUG is on, so we return the job-server error
-    assert response.status_code == 502
+    assert response.status_code == 403
     assert "An error from job-server" in response.rendered_content
     contains_iframe = "<iframe" in response.rendered_content
     assert contains_iframe == should_contain_iframe

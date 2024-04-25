@@ -365,7 +365,7 @@ def request_release_files(request, request_id):
                     "response": err.response,
                     "type": err.response.headers["Content-Type"],
                 },
-                status=502,
+                status=err.response.status_code,
             )
 
         if err.response.status_code == 403:
