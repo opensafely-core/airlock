@@ -116,9 +116,10 @@
               {% #button type="submit" tooltip="Reject this request" variant="danger" class="action-button" id="reject-request-button" %}Reject Request{% /button %}
             </form>
             {% if release_request.all_files_approved %}
-              <form action="{{ release_files_url }}" method="POST">
+              <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% /button %}
+                {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2 htmx-indicator" %}
+                {% /button %}
               </form>
             {% else %}
               {% #button disabled=True tooltip="Releasing to jobs.opensafely.org is disabled until all files have been approved by two reviewers" variant="warning" id="release-files-button" %}Release Files{% /button %}
