@@ -10,9 +10,9 @@ Whilst viewing a file in an Airlock release request, they have the option of:
 
 ## Viewing release requests on Airlock
 
-1. Output checkers navigate to the Requests list to view all open requests
-    awaiting review. Note that if an output checker is the author of a request, they
-    will not see it in the outstanding requests list. 
+1. After logging into Airlock, output checkers navigate to the Requests list to
+   view all open requests awaiting review. Note that if an output checker is the
+   author of a request, they will not see it in the outstanding requests list. 
 1. Output checkers identify the request by workspace name and requester username. A user
    can have at most one active request per workspace. 
 1. Output checkers can view the files included in the request via the file
