@@ -691,6 +691,7 @@ class DataAccessLayerProtocol(Protocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        size: int | None = None,
     ) -> list[AuditEvent]:
         raise NotImplementedError()
 
@@ -1288,11 +1289,13 @@ class BusinessLogicLayer:
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        size: int | None = None,
     ) -> list[AuditEvent]:
         return self._dal.get_audit_log(
             user=user,
             workspace=workspace,
             request=request,
+            size=size,
         )
 
     def audit_workspace_file_access(

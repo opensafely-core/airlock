@@ -321,6 +321,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        size: int | None = None,
     ) -> list[AuditEvent]:
         qs = AuditLog.objects.all().order_by("-created_at")
 
@@ -333,6 +334,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             qs = qs.filter(workspace=workspace)
         elif request:
             qs = qs.filter(request=request)
+
+        if size is not None:
+            qs = qs[:size]
 
         # Note: we ignore the type here as we haven't figured out how to make
         # EnumField type-correct yet

@@ -68,6 +68,8 @@ TEST_PARAMETERS = [
 @pytest.mark.parametrize("kwargs,expected_audits", TEST_PARAMETERS)
 def test_get_audit_log(test_audits, kwargs, expected_audits):
     assert dal.get_audit_log(**kwargs) == [test_audits[e] for e in expected_audits]
+    kwargs["size"] = 1
+    assert dal.get_audit_log(**kwargs) == [test_audits[expected_audits[0]]]
 
 
 def test_delete_file_from_request_bad_state():
