@@ -1,15 +1,21 @@
+import json
+import subprocess
+import tempfile
 import time
+from pathlib import Path
 
 from django.conf import settings
 
 from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
+    CodeRepo,
     RequestFileType,
     UrlPath,
     Workspace,
     bll,
 )
+from airlock.lib.git import ensure_git_init
 from airlock.users import User
 
 
@@ -59,6 +65,52 @@ def write_workspace_file(workspace, path, contents=""):
     path = workspace.root() / path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(contents)
+
+
+def create_repo(workspace, files=None):
+    workspace = ensure_workspace(workspace)
+    repo_dir = settings.GIT_REPO_DIR / workspace.name
+
+    if files is None:
+        files = [
+            ("project.yaml", "yaml: true"),
+        ]
+
+    env = {"GIT_DIR": str(repo_dir)}
+    ensure_git_init(repo_dir)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], env=env)
+    subprocess.run(["git", "config", "user.name", "Test"], check=True, env=env)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        for name, content in files:
+            p = tmpdir / name
+            p.parent.mkdir(exist_ok=True, parents=True)
+            if isinstance(content, bytes):  # pragma: nocover
+                p.write_bytes(content)
+            else:
+                p.write_text(content)
+
+        env["GIT_WORK_TREE"] = tmpdir
+        subprocess.run(["git", "add", "."], check=True, env=env)
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "initial"], check=True, env=env
+        )
+
+    response = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    commit = response.stdout.strip()
+
+    manifest = {"repo": str(repo_dir)}
+    write_workspace_file(workspace, "metadata/manifest.json", json.dumps(manifest))
+
+    return CodeRepo.from_workspace(workspace, commit)
 
 
 def create_release_request(workspace, user=None, **kwargs):

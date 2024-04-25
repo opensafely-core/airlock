@@ -20,6 +20,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 import airlock.views
+import airlock.views.code
 import assets.views
 
 
@@ -126,6 +127,21 @@ urlpatterns = [
         "requests/comment/<str:request_id>/<str:group>",
         airlock.views.group_comment,
         name="group_comment",
+    ),
+    path(
+        "code/view/<str:workspace_name>/<str:commit>/",
+        airlock.views.code.view,
+        name="code_view",
+    ),
+    path(
+        "code/view/<str:workspace_name>/<str:commit>/<path:path>",
+        airlock.views.code.view,
+        name="code_view",
+    ),
+    path(
+        "code/contents/<str:workspace_name>/<str:commit>/<path:path>",
+        airlock.views.code.contents,
+        name="code_contents",
     ),
     path(r"docs/", airlock.views.serve_docs, name="docs_home"),
     path(r"docs/<path:path>", airlock.views.serve_docs),

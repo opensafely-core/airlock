@@ -11,6 +11,7 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
+    CodeRepo,
     DataAccessLayerProtocol,
     FileReview,
     FileReviewStatus,
@@ -39,6 +40,8 @@ def test_workspace_container():
         in workspace.get_contents_url(UrlPath("foo/bar.html"))
     )
 
+    assert workspace.request_filetype("path") is None
+
 
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
@@ -59,6 +62,22 @@ def test_request_container():
         "/requests/content/id/group/bar.html?cache_id="
         in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
+
+
+def test_code_repo_container():
+    repo = factories.create_repo("workspace")
+
+    assert repo.get_id() == f"workspace@{repo.commit[:7]}"
+    assert (
+        repo.get_url(UrlPath("project.yaml"))
+        == f"/code/view/workspace/{repo.commit}/project.yaml"
+    )
+    assert (
+        f"/code/contents/workspace/{repo.commit}/project.yaml?cache_id="
+        in repo.get_contents_url(UrlPath("project.yaml"))
+    )
+
+    assert repo.request_filetype("path") == RequestFileType.CODE
 
 
 @pytest.mark.parametrize("output_checker", [False, True])
@@ -167,11 +186,11 @@ def test_provider_request_release_files(mock_old_api):
                 "size": 4,
                 "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 "date": old_api.modified_time(abspath),
-                "metadata": {"tool": "airlock"},
+                "metadata": {"tool": "airlock", "airlock_id": release_request.id},
                 "review": None,
             }
         ],
-        "metadata": {"tool": "airlock"},
+        "metadata": {"tool": "airlock", "airlock_id": release_request.id},
         "review": None,
     }
 
@@ -1234,3 +1253,11 @@ def test_group_comment_permissions(bll):
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 2
+
+
+def test_coderepo_from_workspace_bad_json():
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file("workspace", "metadata/manifest.json", "")
+
+    with pytest.raises(CodeRepo.RepoNotFound):
+        CodeRepo.from_workspace(workspace, "commit")

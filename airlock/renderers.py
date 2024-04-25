@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import csv
+import mimetypes
 from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from typing import IO, Any, ClassVar, Self, cast
 
@@ -60,9 +61,18 @@ class Renderer:
         )
 
     @classmethod
-    def from_string(cls, contents: str, relpath: UrlPath, cache_id: str) -> Renderer:
+    def from_contents(
+        cls, contents: bytes, relpath: UrlPath, cache_id: str
+    ) -> Renderer:
+        if cls.open_mode == "rb":
+            return cls(
+                BytesIO(contents),
+                file_cache_id=cache_id,
+                filename=relpath.name,
+            )
+
         return cls(
-            stream=StringIO(contents),
+            StringIO(contents.decode("utf8")),
             file_cache_id=cache_id,
             filename=relpath.name,
         )
@@ -141,6 +151,7 @@ FILE_RENDERERS = {
     ".log": TextRenderer,
     ".txt": TextRenderer,
     ".json": TextRenderer,
+    ".md": TextRenderer,
 }
 
 
@@ -150,6 +161,23 @@ def get_renderer(relpath: UrlPath) -> type[Renderer]:
     else:
         renderer_class = InvalidFileRenderer
     return renderer_class
+
+
+def get_code_renderer(relpath: UrlPath) -> type[Renderer]:
+    """Guess correct renderer for code file."""
+
+    if relpath.suffix in FILE_RENDERERS:
+        return FILE_RENDERERS[relpath.suffix]
+
+    mtype, _ = mimetypes.guess_type(str(relpath), strict=False)
+
+    if mtype is None:
+        return TextRenderer
+
+    if not mtype.startswith("text/"):
+        return Renderer
+
+    return TextRenderer
 
 
 def filesystem_key(stat) -> str:

@@ -1,6 +1,32 @@
-on: [push]
+---
+name: Docs
+
+on:
+  push:
+    branches-ignore:
+      - main
 
 jobs:
+  check_for_docs_changes:
+    permissions:
+      contents: read
+    
+    runs-on: ubuntu-latest
+    
+    outputs:
+      changed: ${{ steps.git_diff_docs.outputs.changed }}
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Required to get main branch for comparison
+          fetch-depth: 0
+    
+      - name: Check if docs have changed
+        id: git_diff_docs
+        run: echo "changed=`git diff origin/main -s --exit-code mkdocs.yml docs || echo 1`" >> "$GITHUB_OUTPUT"
+
   deploy:
 
     permissions:
@@ -8,14 +34,16 @@ jobs:
       deployments: write
 
     runs-on: ubuntu-latest
-
+    
+    needs: check_for_docs_changes
+    
+    if: ${{ needs.check_for_docs_changes.outputs.changed }}
+    
     name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          submodules: true
-
+      
       - name: Install Python and just
         uses: opensafely-core/setup-action@v1
         with:

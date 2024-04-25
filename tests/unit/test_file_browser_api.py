@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from airlock.file_browser_api import (
     PathType,
     UrlPath,
-    filter_files,
+    get_code_tree,
     get_request_tree,
     get_workspace_tree,
 )
@@ -138,7 +138,7 @@ def test_get_workspace_tree_selected_only_file(workspace):
     assert str(tree).strip() == expected.strip()
 
 
-def test_get_workspace_tree_selected_only_dir(workspace):
+def test_get_workspace_tree_selected_has_empty_dir(workspace):
     selected_path = UrlPath("some_dir")
     # needed for coverage of is_file() branch
     (workspace.root() / "some_dir/subdir").mkdir()
@@ -159,6 +159,24 @@ def test_get_workspace_tree_selected_only_dir(workspace):
     )
 
     assert str(tree).strip() == expected.strip()
+
+
+def test_get_workspace_tree_selected_is_empty_dir(workspace):
+    selected_path = UrlPath("some_dir/subdir")
+    (workspace.root() / selected_path).mkdir()
+    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace*
+          some_dir*
+            subdir***
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+    assert tree.get_path(selected_path).type == PathType.DIR
 
 
 @pytest.mark.django_db
@@ -415,23 +433,6 @@ def test_request_tree_siblings(release_request):
     }
 
 
-def test_filter_files():
-    selected = UrlPath("foo/bar")
-    files = [
-        UrlPath("foo/bar"),
-        UrlPath("foo/bar/child1"),
-        UrlPath("foo/bar/child2"),
-        UrlPath("foo/bar/child1/grandchild"),
-        UrlPath("foo/other"),
-    ]
-
-    assert list(filter_files(selected, files)) == [
-        UrlPath("foo/bar"),
-        UrlPath("foo/bar/child1"),
-        UrlPath("foo/bar/child2"),
-    ]
-
-
 def test_get_workspace_tree_tracing(workspace):
     selected_path = UrlPath("some_dir/file_a.txt")
     get_workspace_tree(workspace, selected_path)
@@ -448,3 +449,46 @@ def test_get_request_tree_tracing(release_request):
     assert len(traces) == 1
     trace = traces[0]
     assert trace.attributes == {"release_request": release_request.id}
+
+
+def test_get_code_tree(workspace):
+    repo = factories.create_repo(
+        workspace,
+        [
+            ("bar/1.txt", ""),
+            ("foo/1.txt", ""),
+            ("foo/2.txt", ""),
+            ("foo/baz/3.txt", ""),
+        ],
+    )
+
+    tree = get_code_tree(repo, UrlPath("foo"), selected_only=False)
+
+    expected = textwrap.dedent(
+        f"""
+        {repo.get_id()}*
+          bar
+            1.txt
+          foo***
+            baz
+              3.txt
+            1.txt
+            2.txt
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+    tree = get_code_tree(repo, UrlPath("foo"), selected_only=True)
+
+    expected = textwrap.dedent(
+        f"""
+        {repo.get_id()}*
+          foo***
+            baz
+            1.txt
+            2.txt
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
