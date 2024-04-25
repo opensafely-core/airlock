@@ -313,7 +313,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     request_link = page.locator("#authored-requests").get_by_role("link")
     expect(request_link).to_contain_text("SUBMITTED")
     # The literal request URL in the html includes the root path (".")
-    expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/.")
+    expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/")
 
     # Log out
     find_and_click(page.get_by_test_id("nav-logout"))

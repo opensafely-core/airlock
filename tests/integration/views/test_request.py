@@ -765,6 +765,7 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post("/requests/release/request_id")
 
+    assert response.url == "/requests/view/request_id/"
     assert response.status_code == 302
 
     assert api_responses.calls[1].request.body.read() == b"test1"
