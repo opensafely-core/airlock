@@ -885,8 +885,6 @@ class BusinessLogicLayer:
         ],
         RequestStatus.APPROVED: [
             RequestStatus.RELEASED,
-            RequestStatus.REJECTED,  # allow fixing mistake *before* release
-            RequestStatus.WITHDRAWN,  # allow user to withdraw before released
         ],
         RequestStatus.REJECTED: [
             RequestStatus.APPROVED,  # allow mind changed
