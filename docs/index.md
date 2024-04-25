@@ -13,7 +13,7 @@ release these requests.
 
 Researchers use the Airlock UI to view their workspace files, create a new release request, add their files to the release and submit them for review. Researchers can only have at most one open release request per workspace, but files can be organised by the researchers into logical groups when constructing the request.
 
-Output checkers are able to review submitted release requests, including viewing the files within the request, approving or rejecting these files. They can then be able to approve or reject the request as a whole, and finally release the files to the job-server.
+Output checkers are able to review submitted release requests, including viewing the files within the request, approving or rejecting these files. They can then approve or reject the request as a whole, and finally release the files to the job-server.
 
 Airlock allows us to enforce some safety controls and policies automatically. This includes things such as the number of required reviews, and ensuring that researchers who are also output checkers are not able to review their own requests.
 

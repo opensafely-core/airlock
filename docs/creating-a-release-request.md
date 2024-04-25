@@ -15,7 +15,7 @@ file and the file group that the file should be added to.
 When adding a file, researchers should choose one of these two options:
 
 - **Output** Files of this type contain the data the researcher wishes to be
-  released. These files will ultimately be released.
+  released. These files will ultimately be released if approved.
 - **Supporting** Files of this type contain supplementary data to support the
   review of "output" type files in the release request, e.g. the underlying data used to generate a figure. These files will ultimately not be released.
 
