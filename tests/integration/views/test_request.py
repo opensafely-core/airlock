@@ -772,6 +772,33 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     assert api_responses.calls[2].request.body.read() == b"test2"
 
 
+def test_request_release_files_success_htmx(airlock_client, release_files_stubber):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file2.txt", "test2", approved=True
+    )
+
+    api_responses = release_files_stubber(release_request)
+    response = airlock_client.post(
+        "/requests/release/request_id",
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.headers["HX-Redirect"] == "/requests/view/request_id/"
+    assert response.status_code == 200
+
+    assert api_responses.calls[1].request.body.read() == b"test1"
+    assert api_responses.calls[2].request.body.read() == b"test2"
+
+
 def test_requests_release_workspace_403(airlock_client):
     airlock_client.login(output_checker=False)
     release_request = factories.create_release_request(
