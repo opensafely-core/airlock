@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -344,6 +344,7 @@ def file_reject(request, request_id, path: str):
     return redirect(release_request.get_url(path))
 
 
+@vary_on_headers("HX-Request")
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_release_files(request, request_id):
@@ -364,6 +365,7 @@ def request_release_files(request, request_id):
                     "response": err.response,
                     "type": err.response.headers["Content-Type"],
                 },
+                status=err.response.status_code,
             )
 
         if err.response.status_code == 403:
@@ -371,7 +373,10 @@ def request_release_files(request, request_id):
         raise
 
     messages.success(request, "Files have been released to jobs.opensafely.org")
-    return redirect(release_request.get_url())
+    if request.htmx:
+        return HttpResponse(headers={"HX-Redirect": release_request.get_url()})
+    else:
+        return redirect(release_request.get_url())
 
 
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})

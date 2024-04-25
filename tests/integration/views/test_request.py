@@ -765,7 +765,35 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post("/requests/release/request_id")
 
+    assert response.url == "/requests/view/request_id/"
     assert response.status_code == 302
+
+    assert api_responses.calls[1].request.body.read() == b"test1"
+    assert api_responses.calls[2].request.body.read() == b"test2"
+
+
+def test_request_release_files_success_htmx(airlock_client, release_files_stubber):
+    airlock_client.login(output_checker=True)
+    release_request = factories.create_release_request(
+        "workspace",
+        id="request_id",
+        status=RequestStatus.SUBMITTED,
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", "test1", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file2.txt", "test2", approved=True
+    )
+
+    api_responses = release_files_stubber(release_request)
+    response = airlock_client.post(
+        "/requests/release/request_id",
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.headers["HX-Redirect"] == "/requests/view/request_id/"
+    assert response.status_code == 200
 
     assert api_responses.calls[1].request.body.read() == b"test1"
     assert api_responses.calls[2].request.body.read() == b"test2"
@@ -858,7 +886,7 @@ def test_requests_release_jobserver_403_with_debug(
     # test 403 is handled
     response = airlock_client.post("/requests/release/request_id")
     # DEBUG is on, so we return the job-server error
-    assert response.status_code == 200
+    assert response.status_code == 403
     assert "An error from job-server" in response.rendered_content
     contains_iframe = "<iframe" in response.rendered_content
     assert contains_iframe == should_contain_iframe
