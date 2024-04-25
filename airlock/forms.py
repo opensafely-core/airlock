@@ -16,7 +16,7 @@ class AddFileForm(forms.Form):
         choices=[
             (i.name, i.name.title())
             for i in RequestFileType
-            if i != RequestFileType.WITHDRAWN
+            if i in [RequestFileType.OUTPUT, RequestFileType.SUPPORTING]
         ],
         initial=RequestFileType.OUTPUT.name,
     )

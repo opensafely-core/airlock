@@ -12,6 +12,14 @@ def test_add_file_form_no_release_request():
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
+def test_add_file_form_file_type_choices():
+    form = AddFileForm(release_request=None)
+    assert form.fields["filetype"].choices == [
+        ("OUTPUT", "Output"),
+        ("SUPPORTING", "Supporting"),
+    ]
+
+
 def test_add_file_form_empty_release_request():
     release_request = factories.create_release_request("workspace")
     form = AddFileForm(release_request=release_request)
