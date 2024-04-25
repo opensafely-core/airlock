@@ -20,6 +20,11 @@ Airlock allows us to enforce some safety controls and policies automatically. Th
 
 ## Accessing Airlock
 
+
+!!!warning "Airlock is only supported in Chrome :fontawesome-brands-chrome:"
+    Please ensure you use Chrome when accessing Airlock. Features
+    may not work as expected in other browsers.
+
 To access the Airlock system:
 
 1. [Obtain a Single Use Token via the
