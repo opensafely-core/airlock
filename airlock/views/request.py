@@ -59,6 +59,16 @@ def request_index(request):
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
+    if path == "" and len(release_request.filegroups) == 1 and not request.htmx:
+        only_filegroup_url = reverse(
+            "request_view",
+            kwargs={
+                "request_id": request_id,
+                "path": next(iter(release_request.filegroups)),
+            },
+        )
+        return redirect(only_filegroup_url)
+
     relpath = UrlPath(path)
     template = "file_browser/index.html"
     selected_only = False
