@@ -290,8 +290,12 @@ def get_workspace_tree(
     root = workspace.root()
 
     if selected_only:
-        pathlist = [selected_path]
+        pathlist = []
         leaf_directories = set()
+
+        # root path is implicit
+        if selected_path != ROOT_PATH:
+            pathlist.append(selected_path)
 
         # if directory, we also need to also load our children to display in
         # the content area. We don't mind using stat() on the children here, as
