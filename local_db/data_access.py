@@ -7,6 +7,7 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     FileReviewStatus,
+    NotificationUpdateType,
     RequestFileType,
     RequestStatus,
 )
@@ -361,13 +362,19 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         context: str,
         controls: str,
         audit: AuditEvent,
-    ):
+    ) -> list[NotificationUpdateType]:
+        changed = []
         with transaction.atomic():
             filegroup = self._get_filegroup(request_id, group)
+            if filegroup.context != context:
+                changed.append(NotificationUpdateType.CONTEXT_EDITIED)
+            if filegroup.controls != controls:
+                changed.append(NotificationUpdateType.CONTROLS_EDITED)
             filegroup.context = context
             filegroup.controls = controls
             filegroup.save()
             self._create_audit_log(audit)
+        return changed
 
     def group_comment(
         self,

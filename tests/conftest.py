@@ -85,6 +85,7 @@ def release_files_stubber(responses):
 @pytest.fixture
 def notifications_stubber(responses, settings):
     settings.AIRLOCK_API_TOKEN = "token"
+    responses.assert_all_requests_are_fired = False
 
     def send_notification(json=None, exception=None):
         status_code = exception.response.status_code if exception else 201
@@ -98,3 +99,8 @@ def notifications_stubber(responses, settings):
         return responses
 
     return send_notification
+
+
+@pytest.fixture
+def mock_notifications(notifications_stubber):
+    return notifications_stubber()

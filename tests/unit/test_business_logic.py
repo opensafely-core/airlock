@@ -26,6 +26,27 @@ from tests import factories
 pytestmark = pytest.mark.django_db
 
 
+def parse_notification_responses(mock_notifications):
+    return {
+        "count": len(mock_notifications.calls),
+        "request_json": [
+            json.loads(call.request.body) for call in mock_notifications.calls
+        ],
+    }
+
+
+def assert_no_notifications(mock_notifications):
+    assert parse_notification_responses(mock_notifications)["count"] == 0
+
+
+def get_last_notification(mock_notifications):
+    return parse_notification_responses(mock_notifications)["request_json"][-1]
+
+
+def assert_last_notification(mock_notifications, event_type):
+    assert get_last_notification(mock_notifications)["event_type"] == event_type
+
+
 def test_workspace_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.html")
@@ -49,7 +70,7 @@ def test_workspace_request_filetype(bll):
     assert workspace.request_filetype("foo/bar.txt") is None
 
 
-def test_request_container():
+def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
     factories.write_request_file(release_request, "group", "bar.html")
 
@@ -62,6 +83,7 @@ def test_request_container():
         "/requests/content/id/group/bar.html?cache_id="
         in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
+    assert_no_notifications(mock_notifications)
 
 
 def test_code_repo_container():
@@ -108,7 +130,7 @@ def mock_old_api(monkeypatch):
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
 
 
-def test_provider_request_release_files_request_not_approved():
+def test_provider_request_release_files_request_not_approved(mock_notifications):
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -122,8 +144,13 @@ def test_provider_request_release_files_request_not_approved():
     with pytest.raises(bll.InvalidStateTransition):
         bll.release_files(release_request, checker)
 
+    # Note factories.create_release_request bypasses bll.set_status, so
+    # doesn't trigger notifications
+    # Failed release attempt does not notify
+    assert_no_notifications(mock_notifications)
 
-def test_provider_request_release_files_invalid_file_type():
+
+def test_provider_request_release_files_invalid_file_type(mock_notifications):
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -146,9 +173,10 @@ def test_provider_request_release_files_invalid_file_type():
     bll = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(bll.RequestPermissionDenied):
         bll.release_files(release_request, checker)
+    assert_last_notification(mock_notifications, "request_approved")
 
 
-def test_provider_request_release_files(mock_old_api):
+def test_provider_request_release_files(mock_old_api, mock_notifications):
     old_api.create_release.return_value = "jobserver_id"
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
@@ -200,6 +228,18 @@ def test_provider_request_release_files(mock_old_api):
     old_api.upload_file.assert_called_once_with(
         "jobserver_id", relpath, abspath, checker.username
     )
+
+    notification_responses = parse_notification_responses(mock_notifications)
+    # Notifications expected for:
+    # - write file x2
+    # - set status to test_set_status_approved
+    # - set status to released
+    assert notification_responses["count"] == 4
+    request_json = notification_responses["request_json"]
+    assert request_json[0]["event_type"] == "request_updated"
+    assert request_json[1]["event_type"] == "request_updated"
+    assert request_json[2]["event_type"] == "request_approved"
+    assert request_json[3]["event_type"] == "request_released"
 
 
 def test_provider_get_requests_for_workspace(bll):
@@ -433,8 +473,80 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             bll.set_status(release_request2, future, user=checker)
 
 
+@pytest.mark.parametrize(
+    "current,future,user,notification_event_type",
+    [
+        (RequestStatus.PENDING, RequestStatus.SUBMITTED, "author", "request_submitted"),
+        (
+            RequestStatus.SUBMITTED,
+            RequestStatus.APPROVED,
+            "checker",
+            "request_approved",
+        ),
+        (
+            RequestStatus.SUBMITTED,
+            RequestStatus.REJECTED,
+            "checker",
+            "request_rejected",
+        ),
+        (
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
+            "author",
+            "request_withdrawn",
+        ),
+        (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
+    ],
+)
+def test_set_status_notifications(
+    current, future, user, notification_event_type, bll, mock_notifications
+):
+    users = {
+        "author": factories.create_user("author", ["workspace"], False),
+        "checker": factories.create_user("checker", [], True),
+    }
+    release_request = factories.create_release_request(
+        "workspace", user=users["author"], status=RequestStatus.PENDING
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=True
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    if current == RequestStatus.SUBMITTED:
+        bll.set_status(release_request, RequestStatus.SUBMITTED, user=users["author"])
+    elif current == RequestStatus.APPROVED:
+        bll.set_status(release_request, RequestStatus.SUBMITTED, user=users["author"])
+        bll.set_status(release_request, RequestStatus.APPROVED, user=users["checker"])
+
+    bll.set_status(release_request, future, users[user])
+    assert_last_notification(mock_notifications, notification_event_type)
+
+
+def test_notification_error(bll, notifications_stubber, caplog):
+    mock_notifications = notifications_stubber(
+        json={"status": "error", "message": "something went wrong"}
+    )
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=True
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
+    notifications_responses = parse_notification_responses(mock_notifications)
+    assert (
+        notifications_responses["request_json"][-1]["event_type"] == "request_submitted"
+    )
+    # Nothing errors, but we log the notification error message
+    assert caplog.records[-1].levelname == "ERROR"
+    assert (
+        caplog.records[-1].message == "Error sending notification: something went wrong"
+    )
+
+
 @pytest.mark.parametrize("files_approved", (True, False))
-def test_set_status_approved(files_approved, bll):
+def test_set_status_approved(files_approved, bll, mock_notifications):
     author = factories.create_user("author", ["workspace"], False)
     checker = factories.create_user("checker", [], True)
     release_request = factories.create_release_request(
@@ -448,9 +560,11 @@ def test_set_status_approved(files_approved, bll):
     if files_approved:
         bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
         assert release_request.status == RequestStatus.APPROVED
+        assert_last_notification(mock_notifications, "request_approved")
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
+        assert_last_notification(mock_notifications, "request_updated")
 
 
 def test_set_status_cannot_action_own_request(bll):
@@ -530,17 +644,19 @@ def test_add_file_to_request_invalid_file_type(bll):
 
 
 @pytest.mark.parametrize(
-    "status,success",
+    "status,success,notification_sent",
     [
-        (RequestStatus.PENDING, True),
-        (RequestStatus.SUBMITTED, True),
-        (RequestStatus.APPROVED, False),
-        (RequestStatus.REJECTED, False),
-        (RequestStatus.RELEASED, False),
-        (RequestStatus.WITHDRAWN, False),
+        (RequestStatus.PENDING, True, False),
+        (RequestStatus.SUBMITTED, True, True),
+        (RequestStatus.APPROVED, False, False),
+        (RequestStatus.REJECTED, False, False),
+        (RequestStatus.RELEASED, False, False),
+        (RequestStatus.WITHDRAWN, False, False),
     ],
 )
-def test_add_file_to_request_states(status, success, bll):
+def test_add_file_to_request_states(
+    status, success, notification_sent, bll, mock_notifications
+):
     author = factories.create_user("author", ["workspace"], False)
 
     path = Path("path/file.txt")
@@ -565,6 +681,12 @@ def test_add_file_to_request_states(status, success, bll):
             group="default",
             filetype="OUTPUT",
         )
+
+        if notification_sent:
+            last_notification = get_last_notification(mock_notifications)
+            assert last_notification["updates"][0]["update_type"] == "file added"
+        else:
+            assert_no_notifications(mock_notifications)
     else:
         with pytest.raises(bll.RequestPermissionDenied):
             bll.add_file_to_request(release_request, path, author)
@@ -611,7 +733,7 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
 
 
-def test_withdraw_file_from_request_pending(bll):
+def test_withdraw_file_from_request_pending(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_release_request(
         "workspace",
@@ -655,9 +777,10 @@ def test_withdraw_file_from_request_pending(bll):
     )
 
     assert release_request.filegroups["group"].files.keys() == set()
+    assert_no_notifications(mock_notifications)
 
 
-def test_withdraw_file_from_request_submitted(bll):
+def test_withdraw_file_from_request_submitted(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_release_request(
         "workspace",
@@ -686,6 +809,8 @@ def test_withdraw_file_from_request_submitted(bll):
         path=path1,
         group="group",
     )
+    last_notification = get_last_notification(mock_notifications)
+    assert last_notification["updates"][0]["update_type"] == "file withdrawn"
 
 
 @pytest.mark.parametrize(
@@ -1141,7 +1266,7 @@ def test_dal_methods_have_audit_event_parameter():
         ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
 
 
-def test_group_edit_author(bll):
+def test_group_edit_author(bll, mock_notifications):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
     factories.write_request_file(
@@ -1168,6 +1293,75 @@ def test_group_edit_author(bll):
         group="group",
         extra={"context": "foo", "controls": "bar"},
     )
+    # Request is in PENDING, so no notifications sent
+    assert_no_notifications(mock_notifications)
+
+
+@pytest.mark.parametrize(
+    "new_context,new_controls,expected_updates",
+    [
+        (
+            "",
+            "bar",
+            [{"update_type": "controls edited", "group": "group", "user": "author"}],
+        ),
+        (
+            "foo",
+            "",
+            [{"update_type": "context edited", "group": "group", "user": "author"}],
+        ),
+        (
+            "foo",
+            "bar",
+            [
+                {"update_type": "context edited", "group": "group", "user": "author"},
+                {"update_type": "controls edited", "group": "group", "user": "author"},
+            ],
+        ),
+        (
+            "",
+            "",
+            [],
+        ),
+    ],
+)
+def test_group_edit_notifications(
+    bll, mock_notifications, new_context, new_controls, expected_updates
+):
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
+
+    # group is always created with no context/controls initially
+    assert release_request.filegroups["group"].context == ""
+    assert release_request.filegroups["group"].controls == ""
+
+    bll.group_edit(release_request, "group", new_context, new_controls, author)
+
+    # notifications endpoint called when request submitted, and again for group edit
+    notification_responses = parse_notification_responses(mock_notifications)
+    if expected_updates:
+        assert notification_responses["count"] == 2
+        submitted_notification, edit_notification = notification_responses[
+            "request_json"
+        ]
+        assert submitted_notification["event_type"] == "request_submitted"
+        assert edit_notification == {
+            "event_type": "request_updated",
+            "workspace": "workspace",
+            "request": release_request.id,
+            "request_author": "author",
+            "user": "author",
+            "updates": expected_updates,
+        }
+    else:
+        assert notification_responses["count"] == 1
 
 
 def test_group_edit_not_author(bll):
@@ -1210,10 +1404,20 @@ def test_group_edit_bad_group(bll):
         bll.group_edit(release_request, "notexist", "foo", "bar", author)
 
 
-def test_group_comment_success(bll):
+@pytest.mark.parametrize(
+    "status,notification_count",
+    [
+        # In pending, no notifications are sent
+        (RequestStatus.PENDING, 0),
+        (RequestStatus.SUBMITTED, 3),
+    ],
+)
+def test_group_comment_success(bll, mock_notifications, status, notification_count):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], False)
-    release_request = factories.create_release_request("workspace", user=author)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=status
+    )
     factories.write_request_file(
         release_request,
         "group",
@@ -1225,6 +1429,23 @@ def test_group_comment_success(bll):
 
     bll.group_comment(release_request, "group", "question?", other)
     bll.group_comment(release_request, "group", "answer!", author)
+
+    notification_responses = parse_notification_responses(mock_notifications)
+    assert notification_responses["count"] == notification_count
+    if notification_count > 0:
+        file_added, other_user_comment, author_comment = notification_responses[
+            "request_json"
+        ]
+        assert file_added["event_type"] == "request_updated"
+        assert file_added["updates"][0]["update_type"] == "file added"
+        assert other_user_comment["event_type"] == "request_updated"
+        assert other_user_comment["updates"] == [
+            {"update_type": "comment added", "group": "group", "user": "other"}
+        ]
+        assert author_comment["event_type"] == "request_updated"
+        assert author_comment["updates"] == [
+            {"update_type": "comment added", "group": "group", "user": "author"}
+        ]
 
     release_request = factories.refresh_release_request(release_request)
 
