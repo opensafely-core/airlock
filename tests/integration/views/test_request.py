@@ -47,7 +47,20 @@ def test_request_id_does_not_exist(airlock_client):
 def test_request_view_root_summary(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "group", "some_dir/file.txt")
+    factories.write_request_file(release_request, "group1", "some_dir/file1.txt")
+    factories.write_request_file(
+        release_request,
+        "group1",
+        "some_dir/file2.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
+    factories.write_request_file(release_request, "group2", "some_dir/file3.txt")
+    factories.write_request_file(
+        release_request,
+        "group2",
+        "some_dir/file4.txt",
+        filetype=RequestFileType.WITHDRAWN,
+    )
 
     bll.audit_request_file_access(
         request=release_request,
@@ -59,9 +72,9 @@ def test_request_view_root_summary(airlock_client):
     assert response.status_code == 200
     assert "PENDING" in response.rendered_content
     # output files
-    assert ">1<" in response.rendered_content
+    assert ">2<" in response.rendered_content
     # supporting files
-    assert ">0<" in response.rendered_content
+    assert ">1<" in response.rendered_content
     assert "Recent Activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "audit_file.txt" in response.rendered_content
