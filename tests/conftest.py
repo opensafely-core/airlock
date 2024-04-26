@@ -80,3 +80,21 @@ def release_files_stubber(responses):
         return responses
 
     return release_files
+
+
+@pytest.fixture
+def notifications_stubber(responses, settings):
+    settings.AIRLOCK_API_TOKEN = "token"
+
+    def send_notification(json=None, exception=None):
+        status_code = exception.response.status_code if exception else 201
+        json = json or {"status": "ok"}
+        responses.post(
+            f"{settings.AIRLOCK_API_ENDPOINT}/airlock/events/",
+            status=status_code,
+            json=json,
+        )
+
+        return responses
+
+    return send_notification

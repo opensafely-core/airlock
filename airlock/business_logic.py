@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import secrets
 import shutil
 from dataclasses import dataclass, field
@@ -24,12 +25,15 @@ from airlock.lib.git import (
     project_name_from_url,
     read_file_from_repo,
 )
+from airlock.notifications import send_notification_event
 from airlock.types import UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
 
 ROOT_PATH = UrlPath()  # empty path
+
+log = logging.getLogger(__name__)
 
 
 class RequestStatus(Enum):
@@ -82,6 +86,23 @@ class AuditEventType(Enum):
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+
+
+class NotificationEventType(Enum):
+    REQUEST_SUBMITTED = "request_submitted"
+    REQUEST_WITHDRAWN = "request_withdrawn"
+    REQUEST_APPROVED = "request_approved"
+    REQUEST_RELEASED = "request_released"
+    REQUEST_REJECTED = "request_rejected"
+    REQUEST_UPDATED = "request_updated"
+
+
+class NotificationUpdateType(Enum):
+    FILE_ADDED = "file added"
+    FILE_WITHDRAWN = "file withdrawn"
+    CONTEXT_EDITIED = "context edited"
+    CONTROLS_EDITED = "controls edited"
+    COMMENT_ADDED = "comment added"
 
 
 @dataclass
@@ -900,6 +921,14 @@ class BusinessLogicLayer:
         RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
     }
 
+    STATUS_EVENT_NOTIFICATION = {
+        RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
+        RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
+        RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
+        RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
+        RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
+    }
+
     def check_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
@@ -986,6 +1015,9 @@ class BusinessLogicLayer:
         )
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
+        notification_event = self.STATUS_EVENT_NOTIFICATION.get(to_status)
+        if notification_event:
+            self.send_notification(release_request, notification_event, user)
 
     def _validate_editable(self, release_request, user):
         if user.username != release_request.author:
