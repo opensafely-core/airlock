@@ -1160,6 +1160,15 @@ def test_group_edit_author(bll):
     assert release_request.filegroups["group"].context == "foo"
     assert release_request.filegroups["group"].controls == "bar"
 
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_EDIT,
+        user=author,
+        group="group",
+        extra={"context": "foo", "controls": "bar"},
+    )
+
 
 def test_group_edit_not_author(bll):
     author = factories.create_user("author", ["workspace"], False)
@@ -1223,6 +1232,22 @@ def test_group_comment_success(bll):
     assert release_request.filegroups["group"].comments[0].author == "other"
     assert release_request.filegroups["group"].comments[1].comment == "answer!"
     assert release_request.filegroups["group"].comments[1].author == "author"
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[1] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_COMMENT,
+        user=other,
+        group="group",
+        extra={"comment": "question?"},
+    )
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_COMMENT,
+        user=author,
+        group="group",
+        extra={"comment": "answer!"},
+    )
 
 
 def test_group_comment_permissions(bll):

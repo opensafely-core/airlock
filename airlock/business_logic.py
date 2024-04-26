@@ -1192,6 +1192,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_EDIT,
             user=user,
             group=group,
+            extra={"context": context, "controls": controls},
         )
 
         bll._dal.group_edit(release_request.id, group, context, controls, audit)
@@ -1209,6 +1210,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_COMMENT,
             user=user,
             group=group,
+            extra={"comment": comment},
         )
 
         bll._dal.group_comment(release_request.id, group, comment, user.username, audit)
