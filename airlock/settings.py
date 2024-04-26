@@ -369,14 +369,19 @@ class MissingVariableErrorFilter(logging.Filter):
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
+    "formatters": {
+        "default": {
+            "format": "[{asctime}] {levelname} {message}",
+            "datefmt": "%d/%b/%Y %H:%M:%S",
+            "style": "{",
         },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "default"},
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": os.environ.get("LOG_LEVEL", "WARNING"),
     },
     "filters": {
         "missing_variable_error": {
