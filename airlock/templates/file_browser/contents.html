@@ -7,5 +7,7 @@
     {% include "file_browser/file.html" %}
   {% elif path_item.type.name == "WORKSPACE" %}
     {% include "file_browser/workspace.html" %}
+  {% elif path_item.type.name == "REQUEST" %}
+    {% include "file_browser/request.html" %}
   {% endif %}
 </div>

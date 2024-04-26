@@ -579,6 +579,9 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         }
 
+    def supporting_files_count(self):
+        return len(self.all_files_set()) - len(self.output_files_set())
+
     def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
         return next(
             (
