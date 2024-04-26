@@ -139,12 +139,6 @@
   {% #card title=title custom_button=action_button %}
   {% /card %}
 
-  {% #breadcrumbs %}
-    {% for crumb in path_item.breadcrumbs %}
-      {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
-    {% endfor %}
-  {% /breadcrumbs %}
-
   <div class="flex flex-row">
 
     <div style="flex-basis: 25%">
