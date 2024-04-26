@@ -68,6 +68,20 @@ class PathItem:
         """Does this contain other things?"""
         return self.type != PathType.FILE
 
+    def fake_parent(self):
+        """Create a fake parent object to pass to the tree rendering.
+
+        This allows the tree rendering to recurse once per *directory*, rather
+        than once per *file*, which is a lot less expensive recursion.
+        """
+        return PathItem(
+            container=self.container,
+            relpath=self.relpath,
+            type=self.type,
+            children=[self],
+            expanded=True,
+        )
+
     def name(self):
         if self.relpath == ROOT_PATH:
             return self.container.get_id()

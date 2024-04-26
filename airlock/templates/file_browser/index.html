@@ -157,7 +157,7 @@
             hx-push-url="true"
             hx-on:htmx:after-request="setTreeSelection(this, event)"
         >
-          {% include "file_browser/tree.html" with path=root %}
+          {% include "file_browser/tree.html" with path=root.fake_parent %}
         </ul>
       {% /card %}
 
