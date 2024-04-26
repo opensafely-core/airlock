@@ -105,6 +105,25 @@ class NotificationUpdateType(Enum):
     COMMENT_ADDED = "comment added"
 
 
+AUDIT_MSG_FORMATS = {
+    AuditEventType.WORKSPACE_FILE_VIEW: "Viewed file",
+    AuditEventType.REQUEST_FILE_VIEW: "Viewed file",
+    AuditEventType.REQUEST_FILE_DOWNLOAD: "Downloaded file",
+    AuditEventType.REQUEST_CREATE: "Created request",
+    AuditEventType.REQUEST_SUBMIT: "Submitted request",
+    AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
+    AuditEventType.REQUEST_APPROVE: "Approved request",
+    AuditEventType.REQUEST_REJECT: "Rejected request",
+    AuditEventType.REQUEST_RELEASE: "Released request",
+    AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
+    AuditEventType.REQUEST_COMMENT: "Commented on group",
+    AuditEventType.REQUEST_FILE_ADD: "Added file to group",
+    AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
+    AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
+    AuditEventType.REQUEST_FILE_REJECT: "Rejected file",
+}
+
+
 @dataclass
 class AuditEvent:
     type: AuditEventType
@@ -155,6 +174,9 @@ class AuditEvent:
             msg.append(f"{k}={v}")
 
         return " ".join(msg)
+
+    def description(self):
+        return AUDIT_MSG_FORMATS[self.type]
 
 
 class AirlockContainer(Protocol):

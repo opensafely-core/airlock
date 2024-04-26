@@ -1,0 +1,25 @@
+{% #card title="Recent Activity" container=True %}
+  {% #table %}
+    {% #table_head class="bg-slate-200" %}
+      {% #table_row %}
+        {% #table_header %}Time{% /table_header %}
+        {% #table_header %}User{% /table_header %}
+        {% #table_header %}Action{% /table_header %}
+        {% #table_header %}Context{% /table_header %}
+      {% /table_row %}
+    {% /table_head %}
+    {% #table_body %}
+      {% for log in activity %}
+        {% #table_row %}
+          {% #table_cell %}{{ log.created_at|date:'Y-m-d H:i' }}{% /table_cell %}
+          {% #table_cell %}{{ log.user }}{% /table_cell %}
+          {% #table_cell %}{{ log.description }}{% /table_cell %}
+          {% #table_cell %}
+            {% if log.path %}{{ log.path }}{% endif %}
+            {% if 'group' in log.extra %}(group: {{ log.extra.group }}){% endif %}
+          {% /table_cell %}
+        {% /table_row %}
+      {% endfor %}
+    {% /table_body %}
+  {% /table %}
+{% /card %}
