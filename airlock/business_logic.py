@@ -1210,6 +1210,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_COMMENT,
             user=user,
             group=group,
+            extra={"comment": comment},
         )
 
         bll._dal.group_comment(release_request.id, group, comment, user.username, audit)
