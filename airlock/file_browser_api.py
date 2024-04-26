@@ -359,7 +359,7 @@ def get_request_tree(
                 f"{name} ({len(group.output_files)} requested file{_pluralise(group.output_files)})"
             ),
             selected=selected,
-            expanded=selected or expanded,
+            expanded=True,
         )
 
         if expanded or not selected_only:
@@ -371,7 +371,7 @@ def get_request_tree(
                 pathlist=pathlist,
                 parent=group_node,
                 selected_path=selected_path,
-                expanded=expanded,
+                expand_all=True,
             )
 
         root_node.children.append(group_node)
@@ -431,7 +431,7 @@ def get_path_tree(
     pathlist: list[UrlPath],
     parent: PathItem,
     selected_path: UrlPath = ROOT_PATH,
-    expanded: bool = False,
+    expand_all: bool = False,
     leaf_directories: set[UrlPath] | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
@@ -469,7 +469,7 @@ def get_path_tree(
                 node.children = build_path_tree(descendants, parent=node)
 
                 # expand all regardless of selected state, used for request filegroup trees
-                if expanded:
+                if expand_all:
                     node.expanded = True
                 else:
                     node.expanded = selected or (path in (selected_path.parents or []))
