@@ -98,8 +98,8 @@ def test_get_request_tree_general(release_request):
             some_dir*
               file_a.txt**
               file_c.txt
-          group2
-            some_dir
+          group2*
+            some_dir*
               file_b.txt
         """
     )
@@ -192,7 +192,7 @@ def test_get_request_tree_selected_only_file(release_request):
             some_dir*
               file_a.txt**
               file_c.txt
-          group2
+          group2*
         """
     )
 
@@ -212,7 +212,7 @@ def test_get_request_tree_selected_only_group(release_request):
             some_dir*
               file_a.txt
               file_c.txt
-          group2
+          group2*
         """
     )
 

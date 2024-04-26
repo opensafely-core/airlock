@@ -215,11 +215,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(filegroup_link).to_be_visible()
     expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
 
-    # In the initial request view, the tree is collapsed
     # Locate the link by its name, because later when we're looking at
     # the request, there will be 2 files that match .locator(".file:scope")
     file_link = page.get_by_role("link", name="file.txt").locator(".file:scope")
-    assert file_link.all() == []
 
     # Click to open the filegroup tree
     filegroup_link.click()
