@@ -125,8 +125,9 @@ class AuditEvent:
         type: AuditEventType,  # noqa: A002
         user: User,
         path: UrlPath | None = None,
-        **kwargs,
+        **kwargs: str,
     ):
+        # Note: kwargs go straight to extra
         event = cls(
             type=type,
             user=user.username,
@@ -1244,7 +1245,8 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_EDIT,
             user=user,
             group=group,
-            extra={"context": context, "controls": controls},
+            context=context,
+            controls=controls,
         )
 
         change_notifications = self._dal.group_edit(
@@ -1274,7 +1276,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_COMMENT,
             user=user,
             group=group,
-            extra={"comment": comment},
+            comment=comment,
         )
 
         self._dal.group_comment(
