@@ -89,7 +89,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     # we are viewing the root, so load workspace audit log
     if path == "":
-        activity = bll.get_audit_log(workspace=workspace.name, size=20)
+        activity = bll.get_audit_log(
+            workspace=workspace.name, exclude_readonly=True, size=20
+        )
 
     return TemplateResponse(
         request,

@@ -22,10 +22,9 @@ def test_workspace_view_summary(airlock_client):
     airlock_client.login(workspaces={"workspace": {"project": "TESTPROJECT"}})
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt")
-    bll.audit_workspace_file_access(
-        workspace=workspace,
-        path=UrlPath("audit_file.txt"),
-        user=factories.create_user("audit_user"),
+    # create audit event to appear on activity
+    factories.create_release_request(
+        workspace, user=factories.create_user("audit_user")
     )
 
     response = airlock_client.get("/workspaces/view/workspace/")
@@ -34,8 +33,7 @@ def test_workspace_view_summary(airlock_client):
     assert "TESTPROJECT" in response.rendered_content
     assert "Recent Activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
-    assert "audit_file.txt" in response.rendered_content
-    assert "Viewed file" in response.rendered_content
+    assert "Created request" in response.rendered_content
 
 
 def test_workspace_view_with_existing_request_for_user(airlock_client):

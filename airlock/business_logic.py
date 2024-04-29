@@ -105,6 +105,12 @@ class NotificationUpdateType(Enum):
     COMMENT_ADDED = "comment added"
 
 
+READONLY_EVENTS = {
+    AuditEventType.WORKSPACE_FILE_VIEW,
+    AuditEventType.REQUEST_FILE_VIEW,
+}
+
+
 AUDIT_MSG_FORMATS = {
     AuditEventType.WORKSPACE_FILE_VIEW: "Viewed file",
     AuditEventType.REQUEST_FILE_VIEW: "Viewed file",
@@ -722,6 +728,7 @@ class DataAccessLayerProtocol(Protocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        exclude: set[AuditEventType] | None = None,
         size: int | None = None,
     ) -> list[AuditEvent]:
         raise NotImplementedError()
@@ -1320,12 +1327,14 @@ class BusinessLogicLayer:
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        exclude_readonly: bool = False,
         size: int | None = None,
     ) -> list[AuditEvent]:
         return self._dal.get_audit_log(
             user=user,
             workspace=workspace,
             request=request,
+            exclude=READONLY_EVENTS if exclude_readonly else set(),
             size=size,
         )
 

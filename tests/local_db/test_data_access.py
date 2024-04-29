@@ -68,8 +68,16 @@ TEST_PARAMETERS = [
 @pytest.mark.parametrize("kwargs,expected_audits", TEST_PARAMETERS)
 def test_get_audit_log(test_audits, kwargs, expected_audits):
     assert dal.get_audit_log(**kwargs) == [test_audits[e] for e in expected_audits]
-    kwargs["size"] = 1
-    assert dal.get_audit_log(**kwargs) == [test_audits[expected_audits[0]]]
+
+    assert dal.get_audit_log(size=1, **kwargs) == [test_audits[expected_audits[0]]]
+
+    exclude = {AuditEventType.WORKSPACE_FILE_VIEW}
+    remaining_audits = [
+        e for e in expected_audits if test_audits[e].type not in exclude
+    ]
+    assert dal.get_audit_log(exclude=exclude, **kwargs) == [
+        test_audits[e] for e in remaining_audits
+    ]
 
 
 def test_delete_file_from_request_bad_state():

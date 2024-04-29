@@ -4,6 +4,7 @@ from django.db import transaction
 
 from airlock.business_logic import (
     AuditEvent,
+    AuditEventType,
     BusinessLogicLayer,
     DataAccessLayerProtocol,
     FileReviewStatus,
@@ -321,6 +322,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        exclude: set[AuditEventType] | None = None,
         size: int | None = None,
     ) -> list[AuditEvent]:
         qs = AuditLog.objects.all().order_by("-created_at")
@@ -334,6 +336,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             qs = qs.filter(workspace=workspace)
         elif request:
             qs = qs.filter(request=request)
+
+        if exclude:
+            qs = qs.exclude(type__in=exclude)
 
         if size is not None:
             qs = qs[:size]
