@@ -1,25 +1,45 @@
+{% load django_vite %}
+{% load airlock %}
+
+<style>
+  .datatable thead {
+    position: sticky;
+    top: 0;
+    text-align: left;
+    background-color: rgba(248,250,252);
+  }
+</style>
+
+
 {% #card title="Recent Activity" container=True %}
-  {% #table %}
-    {% #table_head class="bg-slate-200" %}
-      {% #table_row %}
-        {% #table_header %}Time{% /table_header %}
-        {% #table_header %}User{% /table_header %}
-        {% #table_header %}Action{% /table_header %}
-        {% #table_header %}Context{% /table_header %}
-      {% /table_row %}
-    {% /table_head %}
-    {% #table_body %}
+  <table class="datatable" id="customTable">
+    <thead>
+      <tr>
+        <th><div class="flex flex-row gap-2">Time{% datatable_sort_icon %}</div></th>
+        <th><div class="flex flex-row gap-2">User{% datatable_sort_icon %}</div></th>
+        <th><div class="flex flex-row gap-2">Action{% datatable_sort_icon %}</div></th>
+        <th><div class="flex flex-row gap-2">Context{% datatable_sort_icon %}</div></th>
+      </tr>
+    </thead>
+    <tbody>
       {% for log in activity %}
-        {% #table_row %}
-          {% #table_cell %}{{ log.created_at|date:'Y-m-d H:i' }}{% /table_cell %}
-          {% #table_cell %}{{ log.user }}{% /table_cell %}
-          {% #table_cell %}{{ log.description }}{% /table_cell %}
-          {% #table_cell %}
-            {% if log.path %}{{ log.path }}{% endif %}
-            {% if 'group' in log.extra %}(group: {{ log.extra.group }}){% endif %}
-          {% /table_cell %}
-        {% /table_row %}
+        <tr>
+          <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
+          <td>{{ log.user }}</td>
+          <td>{{ log.description }}</td>
+          <td>
+            <ul>
+              {% if log.path %}<li><b>path:</b> {{ log.path }}</li>{% endif %}
+              {% for k,v in log.extra.items %}
+                <li><b>{{ k }}:</b> {{ v }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
       {% endfor %}
-    {% /table_body %}
-  {% /table %}
+    </tbody>
+  </table>
+
 {% /card %}
+
+{% vite_asset "assets/src/scripts/components.js" %}
