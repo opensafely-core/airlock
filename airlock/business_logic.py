@@ -1205,7 +1205,7 @@ class BusinessLogicLayer:
             path=relpath,
         )
 
-        bll._dal.approve_file(release_request.id, relpath, user.username, audit)
+        self._dal.approve_file(release_request.id, relpath, user.username, audit)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -1221,7 +1221,7 @@ class BusinessLogicLayer:
             path=relpath,
         )
 
-        bll._dal.reject_file(release_request.id, relpath, user.username, audit)
+        self._dal.reject_file(release_request.id, relpath, user.username, audit)
 
     def group_edit(
         self,
@@ -1247,7 +1247,7 @@ class BusinessLogicLayer:
             extra={"context": context, "controls": controls},
         )
 
-        change_notifications = bll._dal.group_edit(
+        change_notifications = self._dal.group_edit(
             release_request.id, group, context, controls, audit
         )
 
@@ -1277,7 +1277,9 @@ class BusinessLogicLayer:
             extra={"comment": comment},
         )
 
-        bll._dal.group_comment(release_request.id, group, comment, user.username, audit)
+        self._dal.group_comment(
+            release_request.id, group, comment, user.username, audit
+        )
 
         if release_request.status != RequestStatus.PENDING:
             updates = [
@@ -1295,7 +1297,7 @@ class BusinessLogicLayer:
         workspace: str | None = None,
         request: str | None = None,
     ) -> list[AuditEvent]:
-        return bll._dal.get_audit_log(
+        return self._dal.get_audit_log(
             user=user,
             workspace=workspace,
             request=request,
@@ -1310,7 +1312,7 @@ class BusinessLogicLayer:
             workspace=workspace.name,
             path=path,
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
 
     def audit_request_file_access(
         self, request: ReleaseRequest, path: UrlPath, user: User
@@ -1322,7 +1324,7 @@ class BusinessLogicLayer:
             path=path,
             group=path.parts[0],
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
 
     def audit_request_file_download(
         self, request: ReleaseRequest, path: UrlPath, user: User
@@ -1334,7 +1336,7 @@ class BusinessLogicLayer:
             path=path,
             group=path.parts[0],
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
 
     def _get_notification_update_dict(
         self, update_type: NotificationUpdateType, group_name: str, user: User
