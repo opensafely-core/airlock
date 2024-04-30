@@ -1281,16 +1281,6 @@ class BusinessLogicLayer:
             release_request.id, group, comment, user.username, audit
         )
 
-        if release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.COMMENT_ADDED, group, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
-
     def get_audit_log(
         self,
         user: str | None = None,

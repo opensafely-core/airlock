@@ -1407,9 +1407,10 @@ def test_group_edit_bad_group(bll):
 @pytest.mark.parametrize(
     "status,notification_count",
     [
-        # In pending, no notifications are sent
         (RequestStatus.PENDING, 0),
-        (RequestStatus.SUBMITTED, 3),
+        # Currently no notifications are sent for comments. The only notification
+        # sent in this test is for adding a file to the submitted request
+        (RequestStatus.SUBMITTED, 1),
     ],
 )
 def test_group_comment_success(bll, mock_notifications, status, notification_count):
@@ -1433,19 +1434,9 @@ def test_group_comment_success(bll, mock_notifications, status, notification_cou
     notification_responses = parse_notification_responses(mock_notifications)
     assert notification_responses["count"] == notification_count
     if notification_count > 0:
-        file_added, other_user_comment, author_comment = notification_responses[
-            "request_json"
-        ]
+        file_added = notification_responses["request_json"][0]
         assert file_added["event_type"] == "request_updated"
         assert file_added["updates"][0]["update_type"] == "file added"
-        assert other_user_comment["event_type"] == "request_updated"
-        assert other_user_comment["updates"] == [
-            {"update_type": "comment added", "group": "group", "user": "other"}
-        ]
-        assert author_comment["event_type"] == "request_updated"
-        assert author_comment["updates"] == [
-            {"update_type": "comment added", "group": "group", "user": "author"}
-        ]
 
     release_request = factories.refresh_release_request(release_request)
 
