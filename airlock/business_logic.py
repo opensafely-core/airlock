@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import secrets
 import shutil
 from dataclasses import dataclass, field
@@ -24,12 +25,15 @@ from airlock.lib.git import (
     project_name_from_url,
     read_file_from_repo,
 )
+from airlock.notifications import send_notification_event
 from airlock.types import UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
 
 ROOT_PATH = UrlPath()  # empty path
+
+logger = logging.getLogger(__name__)
 
 
 class RequestStatus(Enum):
@@ -82,6 +86,23 @@ class AuditEventType(Enum):
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+
+
+class NotificationEventType(Enum):
+    REQUEST_SUBMITTED = "request_submitted"
+    REQUEST_WITHDRAWN = "request_withdrawn"
+    REQUEST_APPROVED = "request_approved"
+    REQUEST_RELEASED = "request_released"
+    REQUEST_REJECTED = "request_rejected"
+    REQUEST_UPDATED = "request_updated"
+
+
+class NotificationUpdateType(Enum):
+    FILE_ADDED = "file added"
+    FILE_WITHDRAWN = "file withdrawn"
+    CONTEXT_EDITIED = "context edited"
+    CONTROLS_EDITED = "controls edited"
+    COMMENT_ADDED = "comment added"
 
 
 @dataclass
@@ -679,7 +700,7 @@ class DataAccessLayerProtocol(Protocol):
         context: str,
         controls: str,
         audit: AuditEvent,
-    ):
+    ) -> list[NotificationUpdateType]:
         raise NotImplementedError()
 
     def group_comment(
@@ -900,6 +921,14 @@ class BusinessLogicLayer:
         RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
     }
 
+    STATUS_EVENT_NOTIFICATION = {
+        RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
+        RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
+        RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
+        RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
+        RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
+    }
+
     def check_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
@@ -986,6 +1015,9 @@ class BusinessLogicLayer:
         )
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
+        notification_event = self.STATUS_EVENT_NOTIFICATION.get(to_status)
+        if notification_event:
+            self.send_notification(release_request, notification_event, user)
 
     def _validate_editable(self, release_request, user):
         if user.username != release_request.author:
@@ -1054,6 +1086,17 @@ class BusinessLogicLayer:
             audit=audit,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
+
+        if release_request.status != RequestStatus.PENDING:
+            updates = [
+                self._get_notification_update_dict(
+                    NotificationUpdateType.FILE_ADDED, group_name, user
+                )
+            ]
+            self.send_notification(
+                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
+            )
+
         return release_request
 
     def withdraw_file_from_request(
@@ -1065,12 +1108,13 @@ class BusinessLogicLayer:
         self._validate_editable(release_request, user)
         relpath = UrlPath(*group_path.parts[1:])
 
+        group_name = group_path.parts[0]
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_WITHDRAW,
             user=user,
             path=relpath,
-            group=group_path.parts[0],
+            group=group_name,
         )
 
         if release_request.status == RequestStatus.PENDING:
@@ -1086,6 +1130,14 @@ class BusinessLogicLayer:
                 request_id=release_request.id,
                 relpath=relpath,
                 audit=audit,
+            )
+            updates = [
+                self._get_notification_update_dict(
+                    NotificationUpdateType.FILE_WITHDRAWN, group_name, user
+                )
+            ]
+            self.send_notification(
+                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
             )
         else:
             assert False, f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
@@ -1153,7 +1205,7 @@ class BusinessLogicLayer:
             path=relpath,
         )
 
-        bll._dal.approve_file(release_request.id, relpath, user.username, audit)
+        self._dal.approve_file(release_request.id, relpath, user.username, audit)
 
     def reject_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -1169,7 +1221,7 @@ class BusinessLogicLayer:
             path=relpath,
         )
 
-        bll._dal.reject_file(release_request.id, relpath, user.username, audit)
+        self._dal.reject_file(release_request.id, relpath, user.username, audit)
 
     def group_edit(
         self,
@@ -1195,7 +1247,19 @@ class BusinessLogicLayer:
             extra={"context": context, "controls": controls},
         )
 
-        bll._dal.group_edit(release_request.id, group, context, controls, audit)
+        change_notifications = self._dal.group_edit(
+            release_request.id, group, context, controls, audit
+        )
+
+        if change_notifications and release_request.status != RequestStatus.PENDING:
+            updates = [
+                self._get_notification_update_dict(change_notification, group, user)
+                for change_notification in change_notifications
+            ]
+
+            self.send_notification(
+                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
+            )
 
     def group_comment(
         self, release_request: ReleaseRequest, group: str, comment: str, user: User
@@ -1213,7 +1277,9 @@ class BusinessLogicLayer:
             extra={"comment": comment},
         )
 
-        bll._dal.group_comment(release_request.id, group, comment, user.username, audit)
+        self._dal.group_comment(
+            release_request.id, group, comment, user.username, audit
+        )
 
     def get_audit_log(
         self,
@@ -1221,7 +1287,7 @@ class BusinessLogicLayer:
         workspace: str | None = None,
         request: str | None = None,
     ) -> list[AuditEvent]:
-        return bll._dal.get_audit_log(
+        return self._dal.get_audit_log(
             user=user,
             workspace=workspace,
             request=request,
@@ -1236,7 +1302,7 @@ class BusinessLogicLayer:
             workspace=workspace.name,
             path=path,
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
 
     def audit_request_file_access(
         self, request: ReleaseRequest, path: UrlPath, user: User
@@ -1248,7 +1314,7 @@ class BusinessLogicLayer:
             path=path,
             group=path.parts[0],
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
 
     def audit_request_file_download(
         self, request: ReleaseRequest, path: UrlPath, user: User
@@ -1260,7 +1326,41 @@ class BusinessLogicLayer:
             path=path,
             group=path.parts[0],
         )
-        bll._dal.audit_event(audit)
+        self._dal.audit_event(audit)
+
+    def _get_notification_update_dict(
+        self, update_type: NotificationUpdateType, group_name: str, user: User
+    ):
+        return {
+            "update_type": update_type.value,
+            "group": group_name,
+            "user": user.username,
+        }
+
+    def send_notification(
+        self,
+        request: ReleaseRequest,
+        event_type: NotificationEventType,
+        user: User,
+        updates: list[dict[str, str]] | None = None,
+    ):
+        event_data = {
+            "event_type": event_type.value,
+            "workspace": request.workspace,
+            "request": request.id,
+            "request_author": request.author,
+            "user": user.username,
+            "updates": updates,
+        }
+        data = send_notification_event(json.dumps(event_data), user.username)
+        logger.info(
+            "Notification sent: %s %s - %s",
+            request.id,
+            event_type.value,
+            data["status"],
+        )
+        if data["status"] == "error":
+            logger.error("Error sending notification: %s", data["message"])
 
 
 def _get_configured_bll():
