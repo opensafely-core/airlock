@@ -1286,13 +1286,13 @@ def test_group_edit_author(bll, mock_notifications):
     assert release_request.filegroups["group"].controls == "bar"
 
     audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0] == AuditEvent.from_request(
-        release_request,
-        AuditEventType.REQUEST_EDIT,
-        user=author,
-        group="group",
-        extra={"context": "foo", "controls": "bar"},
-    )
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].type == AuditEventType.REQUEST_EDIT
+    assert audit_log[0].user == author.username
+    assert audit_log[0].extra["group"] == "group"
+    assert audit_log[0].extra["context"] == "foo"
+    assert audit_log[0].extra["controls"] == "bar"
+
     # Request is in PENDING, so no notifications sent
     assert_no_notifications(mock_notifications)
 
@@ -1446,20 +1446,17 @@ def test_group_comment_success(bll, mock_notifications, status, notification_cou
     assert release_request.filegroups["group"].comments[1].author == "author"
 
     audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[1] == AuditEvent.from_request(
-        release_request,
-        AuditEventType.REQUEST_COMMENT,
-        user=other,
-        group="group",
-        extra={"comment": "question?"},
-    )
-    assert audit_log[0] == AuditEvent.from_request(
-        release_request,
-        AuditEventType.REQUEST_COMMENT,
-        user=author,
-        group="group",
-        extra={"comment": "answer!"},
-    )
+    assert audit_log[1].request == release_request.id
+    assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[1].user == other.username
+    assert audit_log[1].extra["group"] == "group"
+    assert audit_log[1].extra["comment"] == "question?"
+
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[0].user == author.username
+    assert audit_log[0].extra["group"] == "group"
+    assert audit_log[0].extra["comment"] == "answer!"
 
 
 def test_group_comment_permissions(bll):
