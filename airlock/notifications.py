@@ -1,6 +1,10 @@
+import logging
+
 import requests
 from django.conf import settings
 
+
+logger = logging.getLogger(__name__)
 
 session = requests.Session()
 
@@ -10,6 +14,7 @@ def send_notification_event(event_json: str, username: str):
     if not settings.AIRLOCK_API_TOKEN:
         # Skip attempting to send notifications when we're running a
         # local dev server in isolation
+        logger.info("Would send notification: %s", event_json)
         return {"status": "ok"}
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/airlock/events/",
