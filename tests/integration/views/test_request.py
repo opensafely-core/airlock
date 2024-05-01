@@ -75,6 +75,25 @@ def test_request_view_root_summary(airlock_client):
     assert "Created request" in response.rendered_content
 
 
+def test_request_view_root_group(airlock_client):
+    airlock_client.login(output_checker=True)
+    audit_user = factories.create_user("audit_user")
+    release_request = factories.create_release_request("workspace", user=audit_user)
+    factories.write_request_file(release_request, "group1", "some_dir/file1.txt")
+    factories.write_request_file(
+        release_request,
+        "group1",
+        "some_dir/file2.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
+
+    response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
+    assert response.status_code == 200
+    assert "Recent Activity" in response.rendered_content
+    assert "audit_user" in response.rendered_content
+    assert "Added file" in response.rendered_content
+
+
 def test_request_view_with_directory(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")

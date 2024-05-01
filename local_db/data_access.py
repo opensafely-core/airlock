@@ -322,6 +322,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        group: str | None = None,
         exclude: set[AuditEventType] | None = None,
         size: int | None = None,
     ) -> list[AuditEvent]:
@@ -336,6 +337,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             qs = qs.filter(workspace=workspace)
         elif request:
             qs = qs.filter(request=request)
+
+        if group:
+            qs = qs.filter(extra__group=group)
 
         if exclude:
             qs = qs.exclude(type__in=exclude)

@@ -728,6 +728,7 @@ class DataAccessLayerProtocol(Protocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        group: str | None = None,
         exclude: set[AuditEventType] | None = None,
         size: int | None = None,
     ) -> list[AuditEvent]:
@@ -1327,6 +1328,7 @@ class BusinessLogicLayer:
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        group: str | None = None,
         exclude_readonly: bool = False,
         size: int | None = None,
     ) -> list[AuditEvent]:
@@ -1334,6 +1336,7 @@ class BusinessLogicLayer:
             user=user,
             workspace=workspace,
             request=request,
+            group=group,
             exclude=READONLY_EVENTS if exclude_readonly else set(),
             size=size,
         )

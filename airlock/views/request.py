@@ -96,6 +96,7 @@ def request_view(request, request_id: str, path: str = ""):
     group_readonly = release_request.is_final() or not is_author
 
     activity = []
+    group_activity = []
 
     if relpath == ROOT_PATH:
         # viewing the root
@@ -124,6 +125,10 @@ def request_view(request, request_id: str, path: str = ""):
         group_comment_url = reverse(
             "group_comment",
             kwargs={"request_id": request_id, "group": group},
+        )
+
+        group_activity = bll.get_audit_log(
+            request=release_request.id, group=group, exclude_readonly=True, size=20
         )
 
     request_submit_url = reverse(
@@ -194,6 +199,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_readonly": group_readonly,
         "group_comments": comments,
         "group_comment_url": group_comment_url,
+        "group_activity": group_activity,
     }
 
     return TemplateResponse(request, template, context)
