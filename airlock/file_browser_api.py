@@ -68,6 +68,20 @@ class PathItem:
         """Does this contain other things?"""
         return self.type != PathType.FILE
 
+    def fake_parent(self):
+        """Create a fake parent object to pass to the tree rendering.
+
+        This allows the tree rendering to recurse once per *directory*, rather
+        than once per *file*, which is a lot less expensive recursion.
+        """
+        return PathItem(
+            container=self.container,
+            relpath=self.relpath,
+            type=self.type,
+            children=[self],
+            expanded=True,
+        )
+
     def name(self):
         if self.relpath == ROOT_PATH:
             return self.container.get_id()
@@ -276,8 +290,12 @@ def get_workspace_tree(
     root = workspace.root()
 
     if selected_only:
-        pathlist = [selected_path]
+        pathlist = []
         leaf_directories = set()
+
+        # root path is implicit
+        if selected_path != ROOT_PATH:
+            pathlist.append(selected_path)
 
         # if directory, we also need to also load our children to display in
         # the content area. We don't mind using stat() on the children here, as

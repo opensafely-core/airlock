@@ -105,6 +105,31 @@ class NotificationUpdateType(Enum):
     COMMENT_ADDED = "comment added"
 
 
+READONLY_EVENTS = {
+    AuditEventType.WORKSPACE_FILE_VIEW,
+    AuditEventType.REQUEST_FILE_VIEW,
+}
+
+
+AUDIT_MSG_FORMATS = {
+    AuditEventType.WORKSPACE_FILE_VIEW: "Viewed file",
+    AuditEventType.REQUEST_FILE_VIEW: "Viewed file",
+    AuditEventType.REQUEST_FILE_DOWNLOAD: "Downloaded file",
+    AuditEventType.REQUEST_CREATE: "Created request",
+    AuditEventType.REQUEST_SUBMIT: "Submitted request",
+    AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
+    AuditEventType.REQUEST_APPROVE: "Approved request",
+    AuditEventType.REQUEST_REJECT: "Rejected request",
+    AuditEventType.REQUEST_RELEASE: "Released request",
+    AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
+    AuditEventType.REQUEST_COMMENT: "Commented",
+    AuditEventType.REQUEST_FILE_ADD: "Added file",
+    AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
+    AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
+    AuditEventType.REQUEST_FILE_REJECT: "Rejected file",
+}
+
+
 @dataclass
 class AuditEvent:
     type: AuditEventType
@@ -155,6 +180,9 @@ class AuditEvent:
             msg.append(f"{k}={v}")
 
         return " ".join(msg)
+
+    def description(self):
+        return AUDIT_MSG_FORMATS[self.type]
 
 
 class AirlockContainer(Protocol):
@@ -557,6 +585,15 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         }
 
+    def supporting_files_count(self):
+        return len(
+            [
+                1
+                for filegroup in self.filegroups.values()
+                for request_file in filegroup.supporting_files
+            ]
+        )
+
     def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
         return next(
             (
@@ -691,6 +728,8 @@ class DataAccessLayerProtocol(Protocol):
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        exclude: set[AuditEventType] | None = None,
+        size: int | None = None,
     ) -> list[AuditEvent]:
         raise NotImplementedError()
 
@@ -1288,11 +1327,15 @@ class BusinessLogicLayer:
         user: str | None = None,
         workspace: str | None = None,
         request: str | None = None,
+        exclude_readonly: bool = False,
+        size: int | None = None,
     ) -> list[AuditEvent]:
         return self._dal.get_audit_log(
             user=user,
             workspace=workspace,
             request=request,
+            exclude=READONLY_EVENTS if exclude_readonly else set(),
+            size=size,
         )
 
     def audit_workspace_file_access(

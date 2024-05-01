@@ -137,16 +137,7 @@
   {% endfragment %}
 
   {% #card title=title custom_button=action_button %}
-    {% if context == "request" %}
-      {% #description_item title="Status:" %}{{ release_request.status.name }}{% /description_item %}
-    {% endif %}
   {% /card %}
-
-  {% #breadcrumbs %}
-    {% for crumb in path_item.breadcrumbs %}
-      {% breadcrumb title=crumb.name url=crumb.url active=forloop.last %}
-    {% endfor %}
-  {% /breadcrumbs %}
 
   <div class="flex flex-row">
 
@@ -160,7 +151,7 @@
             hx-push-url="true"
             hx-on:htmx:after-request="setTreeSelection(this, event)"
         >
-          {% include "file_browser/tree.html" with path=root %}
+          {% include "file_browser/tree.html" with path=root.fake_parent %}
         </ul>
       {% /card %}
 

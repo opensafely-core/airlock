@@ -95,8 +95,16 @@ def request_view(request, request_id: str, path: str = ""):
     group_comment_url = None
     group_readonly = release_request.is_final() or not is_author
 
+    activity = []
+
+    if relpath == ROOT_PATH:
+        # viewing the root
+        activity = bll.get_audit_log(
+            request=release_request.id, exclude_readonly=True, size=20
+        )
+
     # if we are viewing a group page, load the specific group data and forms
-    if len(relpath.parts) == 1:
+    elif len(relpath.parts) == 1:
         group = relpath.parts[0]
         filegroup = release_request.filegroups.get(group)
 
@@ -179,6 +187,7 @@ def request_view(request, request_id: str, path: str = ""):
         "request_reject_url": request_reject_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
+        "activity": activity,
         "group_edit_form": group_edit_form,
         "group_edit_url": group_edit_url,
         "group_comment_form": group_comment_form,

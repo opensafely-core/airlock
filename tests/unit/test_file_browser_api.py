@@ -138,6 +138,21 @@ def test_get_workspace_tree_selected_only_file(workspace):
     assert str(tree).strip() == expected.strip()
 
 
+def test_get_workspace_tree_selected_only_root(workspace):
+    tree = get_workspace_tree(workspace, UrlPath(), selected_only=True)
+
+    # only the selected path should be in the tree
+    expected = textwrap.dedent(
+        """
+        workspace***
+          empty_dir
+          some_dir
+        """
+    )
+
+    assert str(tree).strip() == expected.strip()
+
+
 def test_get_workspace_tree_selected_has_empty_dir(workspace):
     selected_path = UrlPath("some_dir")
     # needed for coverage of is_file() branch

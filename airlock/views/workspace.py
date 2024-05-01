@@ -82,6 +82,17 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     ):
         form = AddFileForm(release_request=current_request)
 
+    activity = []
+    project = request.user.workspaces.get(workspace_name, {}).get(
+        "project", "Unknown project"
+    )
+
+    # we are viewing the root, so load workspace audit log
+    if path == "":
+        activity = bll.get_audit_log(
+            workspace=workspace.name, exclude_readonly=True, size=20
+        )
+
     return TemplateResponse(
         request,
         template,
@@ -99,6 +110,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "current_request": current_request,
             "file_in_request": file_in_request,
             "form": form,
+            # for workspace summary page
+            "activity": activity,
+            "project": project,
         },
     )
 

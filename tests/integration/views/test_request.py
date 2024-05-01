@@ -44,6 +44,37 @@ def test_request_id_does_not_exist(airlock_client):
     assert response.status_code == 404
 
 
+def test_request_view_root_summary(airlock_client):
+    airlock_client.login(output_checker=True)
+    audit_user = factories.create_user("audit_user")
+    release_request = factories.create_release_request("workspace", user=audit_user)
+    factories.write_request_file(release_request, "group1", "some_dir/file1.txt")
+    factories.write_request_file(
+        release_request,
+        "group1",
+        "some_dir/file2.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
+    factories.write_request_file(release_request, "group2", "some_dir/file3.txt")
+    factories.write_request_file(
+        release_request,
+        "group2",
+        "some_dir/file4.txt",
+        filetype=RequestFileType.WITHDRAWN,
+    )
+
+    response = airlock_client.get(f"/requests/view/{release_request.id}/")
+    assert response.status_code == 200
+    assert "PENDING" in response.rendered_content
+    # output files
+    assert ">2<" in response.rendered_content
+    # supporting files
+    assert ">1<" in response.rendered_content
+    assert "Recent Activity" in response.rendered_content
+    assert "audit_user" in response.rendered_content
+    assert "Created request" in response.rendered_content
+
+
 def test_request_view_with_directory(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
