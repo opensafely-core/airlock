@@ -381,7 +381,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": os.environ.get("LOG_LEVEL", "WARNING"),
+        "level": os.environ.get("AIRLOCK_LOG_LEVEL", "WARNING"),
     },
     "filters": {
         "missing_variable_error": {
