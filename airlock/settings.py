@@ -308,6 +308,13 @@ else:  # pragma: no cover
         f"variables must be set.\n\n{_missing_env_var_hint}"
     )
 
+AIRLOCK_OUTPUT_CHECKING_ORG = os.environ.get(
+    "AIRLOCK_OUTPUT_CHECKING_ORG", "ebmdatalab"
+)
+AIRLOCK_OUTPUT_CHECKING_REPO = os.environ.get(
+    "AIRLOCK_OUTPUT_CHECKING_REPO", "opensafely-output-review"
+)
+
 AIRLOCK_DATA_ACCESS_LAYER = "local_db.data_access.LocalDBDataAccessLayer"
 
 

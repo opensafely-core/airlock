@@ -20,6 +20,12 @@ AIRLOCK_DEV_USERS_FILE="dev_users.json"
 AIRLOCK_API_TOKEN=
 AIRLOCK_API_ENDPOINT="https://localhost:9000/api/v2"
 
+# The output-checking org and repo to use for notifications
+# This is the repo that issues will be created/updated in 
+# ( currently via a job-server endpoint)
+AIRLOCK_OUTPUT_CHECKING_ORG="ebmdatalab"
+AIRLOCK_OUTPUT_CHECKING_REPO="output-checking-test"
+
 # Opentelemetry
 # Set to True to log opentelemetry traces to the console in local env
 # Warning can be verbose:
