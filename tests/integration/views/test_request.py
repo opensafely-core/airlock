@@ -1210,7 +1210,7 @@ def test_group_comment_success(airlock_client):
     airlock_client.login_with_user(author)
 
     response = airlock_client.post(
-        f"/requests/comment/{release_request.id}/group",
+        f"/requests/comment/create/{release_request.id}/group",
         data={"comment": "opinion"},
         follow=True,
     )
@@ -1235,7 +1235,7 @@ def test_group_comment_bad_user(airlock_client):
     airlock_client.login_with_user(other)
 
     response = airlock_client.post(
-        f"/requests/comment/{release_request.id}/group",
+        f"/requests/comment/create/{release_request.id}/group",
         data={"comment": "comment"},
         follow=True,
     )
@@ -1252,7 +1252,7 @@ def test_group_comment_bad_form(airlock_client):
     airlock_client.login_with_user(author)
 
     response = airlock_client.post(
-        f"/requests/comment/{release_request.id}/group",
+        f"/requests/comment/create/{release_request.id}/group",
         data={},
         follow=True,
     )
@@ -1271,7 +1271,7 @@ def test_group_comment_bad_group(airlock_client):
     airlock_client.login_with_user(author)
 
     response = airlock_client.post(
-        f"/requests/comment/{release_request.id}/badgroup",
+        f"/requests/comment/create/{release_request.id}/badgroup",
         data={"comment": "comment"},
         follow=True,
     )

@@ -134,7 +134,7 @@ urlpatterns = [
         name="group_edit",
     ),
     path(
-        "requests/comment/<str:request_id>/<str:group>",
+        "requests/comment/create/<str:request_id>/<str:group>",
         airlock.views.group_comment,
         name="group_comment",
     ),
