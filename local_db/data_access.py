@@ -203,7 +203,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 )
             else:
                 raise BusinessLogicLayer.APIException(
-                    "{filetype} file has already been added to request "
+                    f"{filetype} file has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 
