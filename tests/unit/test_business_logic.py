@@ -1359,6 +1359,8 @@ def test_group_edit_notifications(
             "request_author": "author",
             "user": "author",
             "updates": expected_updates,
+            "org": settings.AIRLOCK_OUTPUT_CHECKING_ORG,
+            "repo": settings.AIRLOCK_OUTPUT_CHECKING_REPO,
         }
     else:
         assert notification_responses["count"] == 1
