@@ -104,6 +104,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def _comment(self, comment: FileGroupComment):
         return {
+            "id": comment.id,
             "comment": comment.comment,
             "author": comment.author,
             "created_at": comment.created_at,
