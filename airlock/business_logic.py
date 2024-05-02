@@ -574,13 +574,17 @@ class FileGroup:
 class Comment:
     """A user comment on a group"""
 
+    id: str
     comment: str
     author: str
     created_at: datetime
 
     @classmethod
     def from_dict(cls, attrs):
-        return Comment(**attrs)
+        return cls(
+            **{k: v for k, v in attrs.items() if k not in ["id"]},
+            id=f"{attrs.get('id')}",
+        )
 
 
 @dataclass
