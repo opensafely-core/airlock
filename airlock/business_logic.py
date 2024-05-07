@@ -265,6 +265,15 @@ class Workspace:
             relpath=relpath,
         )
 
+    def get_manifest_data(self):
+        manifest_path = self.abspath("metadata/manifest.json")
+        try:
+            return json.loads(manifest_path.read_text())
+        except json.JSONDecodeError as exc:
+            raise BusinessLogicLayer.FileNotFound(
+                "Could not parse manifest.json file: {manifest_path}:\n{exc}"
+            )
+
     def abspath(self, relpath):
         """Get absolute path for file
 
@@ -302,12 +311,10 @@ class CodeRepo:
 
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str):
-        manifest_path = workspace.abspath("metadata/manifest.json")
-
         try:
-            manifest = json.loads(manifest_path.read_text())
+            manifest = workspace.get_manifest_data()
             repo = manifest["repo"]
-        except (json.JSONDecodeError, KeyError):
+        except (BusinessLogicLayer.FileNotFound, KeyError):
             raise cls.RepoNotFound(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
