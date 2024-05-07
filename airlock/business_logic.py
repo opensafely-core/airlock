@@ -270,16 +270,19 @@ class Workspace:
         try:
             return json.loads(manifest_path.read_text())
         except json.JSONDecodeError:
-            raise BusinessLogicLayer.FileNotFound(
+            raise BusinessLogicLayer.ManifestFileError(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
 
-    def get_manifest_for_file(self, relpath):
+    def get_manifest_for_file(self, relpath: UrlPath):
         manifest_data = self.get_manifest_data()
-        # TODO
-        # Handle keyerror
-        # Check if key == relpath
-        return manifest_data["outputs"][relpath]
+        abspath = str(self.abspath(relpath))
+        try:
+            return manifest_data["outputs"][abspath]
+        except KeyError:
+            raise BusinessLogicLayer.ManifestFileError(
+                f"Could not parse data for {abspath} from manifest.json file"
+            )
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -321,7 +324,7 @@ class CodeRepo:
         try:
             manifest = workspace.get_manifest_data()
             repo = manifest["repo"]
-        except (BusinessLogicLayer.FileNotFound, KeyError):
+        except (BusinessLogicLayer.ManifestFileError, KeyError):
             raise cls.RepoNotFound(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
@@ -813,6 +816,9 @@ class BusinessLogicLayer:
         pass
 
     class ApprovalPermissionDenied(APIException):
+        pass
+
+    class ManifestFileError(APIException):
         pass
 
     def get_workspace(self, name: str, user: User) -> Workspace:

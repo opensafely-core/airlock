@@ -1,5 +1,7 @@
 import inspect
 import json
+from hashlib import file_digest
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -70,6 +72,25 @@ def test_workspace_request_filetype(bll):
     assert workspace.request_filetype("foo/bar.txt") is None
 
 
+def test_workspace_manifest_for_file():
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo/bar.csv", "c1,c2,c3\n1,2,3\n4,5,6")
+    file_manifest = workspace.get_manifest_for_file(UrlPath("foo/bar.csv"))
+    assert file_manifest["row_count"] == 2
+    assert file_manifest["col_count"] == 3
+
+
+def test_workspace_manifest_for_file_not_found():
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo/bar.txt")
+    manifest_path = workspace.root() / "metadata/manifest.json"
+    manifest_data = json.loads(manifest_path.read_text())
+    manifest_data["outputs"] = {}
+    manifest_path.write_text(json.dumps(manifest_data))
+    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+        workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
+
+
 def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
     factories.write_request_file(release_request, "group", "bar.html")
@@ -84,6 +105,58 @@ def test_request_container(mock_notifications):
         in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
     assert_no_notifications(mock_notifications)
+
+
+def test_request_file_manifest_data(mock_notifications, bll):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "bar.txt")
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_release_request(workspace, user=user)
+
+    # modify the manifest data to known values for asserts
+    manifest_path = workspace.root() / "metadata/manifest.json"
+    manifest_data = json.loads(manifest_path.read_text())
+    file_manifest = manifest_data["outputs"][str(workspace.root() / "bar.txt")]
+    file_manifest.update(
+        {
+            "job_id": "job-bar",
+            "size": 10,
+            "commit": "abcd",
+            "timestamp": 1715000000,
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest_data))
+
+    bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
+
+    request_file = release_request.filegroups["group"].files[UrlPath("bar.txt")]
+    assert request_file.timestamp == 1715000000
+    assert request_file.commit == "abcd"
+    assert request_file.job_id == "job-bar"
+    assert request_file.size == 10
+    assert request_file.row_count is None
+    assert request_file.col_count is None
+
+
+def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bll):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "bar.txt")
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_release_request(workspace, user=user)
+
+    # modify the manifest data to known values for asserts
+    manifest = workspace.root() / "metadata/manifest.json"
+    manifest_data = json.loads(manifest.read_text())
+    file_manifest = manifest_data["outputs"][str(workspace.root() / "bar.txt")]
+    file_manifest.update(
+        {
+            "content_hash": file_digest(BytesIO(b"foo"), "sha256").hexdigest(),
+        }
+    )
+    manifest.write_text(json.dumps(manifest_data))
+
+    with pytest.raises(AssertionError):
+        bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
 
 
 def test_code_repo_container():
