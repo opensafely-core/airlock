@@ -1399,7 +1399,10 @@ class BusinessLogicLayer:
             "request_author": request.author,
             "user": user.username,
             "updates": updates,
+            "org": settings.AIRLOCK_OUTPUT_CHECKING_ORG,
+            "repo": settings.AIRLOCK_OUTPUT_CHECKING_REPO,
         }
+
         data = send_notification_event(json.dumps(event_data), user.username)
         logger.info(
             "Notification sent: %s %s - %s",
