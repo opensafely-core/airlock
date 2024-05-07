@@ -269,10 +269,17 @@ class Workspace:
         manifest_path = self.abspath("metadata/manifest.json")
         try:
             return json.loads(manifest_path.read_text())
-        except json.JSONDecodeError as exc:
+        except json.JSONDecodeError:
             raise BusinessLogicLayer.FileNotFound(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
+
+    def get_manifest_for_file(self, relpath):
+        manifest_data = self.get_manifest_data()
+        # TODO
+        # Handle keyerror
+        # Check if key == relpath
+        return manifest_data["outputs"][relpath]
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -410,6 +417,12 @@ class RequestFile:
     relpath: UrlPath
     file_id: str
     reviews: list[FileReview]
+    timestamp: int
+    size: int
+    job_id: str
+    commit: str
+    row_count: int | None = None
+    col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
@@ -697,6 +710,12 @@ class DataAccessLayerProtocol(Protocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        timestamp: int,
+        size: int,
+        commit: str,
+        job_id: str,
+        row_count: int | None,
+        col_count: int | None,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -1125,12 +1144,23 @@ class BusinessLogicLayer:
             filetype=filetype.name,
         )
 
+        manifest = workspace.get_manifest_for_file(relpath)
+        assert (
+            manifest["content_hash"] == file_id
+        ), "File hash does not match manifest.json"
+
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
             filetype=filetype,
+            timestamp=manifest["timestamp"],
+            commit=manifest["commit"],
+            size=manifest["size"],
+            job_id=manifest["job_id"],
+            row_count=manifest["row_count"],
+            col_count=manifest["col_count"],
             audit=audit,
         )
         release_request.set_filegroups_from_dict(filegroup_data)

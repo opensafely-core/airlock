@@ -72,6 +72,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             relpath=Path(file_metadata.relpath),
             file_id=file_metadata.file_id,
             filetype=file_metadata.filetype,
+            timestamp=file_metadata.timestamp,
+            size=file_metadata.size,
+            commit=file_metadata.commit,
+            job_id=file_metadata.job_id,
+            row_count=file_metadata.row_count,
+            col_count=file_metadata.col_count,
             reviews=[
                 self._filereview(file_review)
                 for file_review in file_metadata.reviews.all()
@@ -176,6 +182,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        timestamp: int,
+        size: int,
+        commit: str,
+        job_id: str,
+        row_count: int | None,
+        col_count: int | None,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -200,6 +212,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     file_id=file_id,
                     filegroup=filegroupmetadata,
                     filetype=filetype,
+                    timestamp=timestamp,
+                    size=size,
+                    commit=commit,
+                    job_id=job_id,
+                    row_count=row_count,
+                    col_count=col_count,
                 )
             else:
                 raise BusinessLogicLayer.APIException(

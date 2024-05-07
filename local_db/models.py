@@ -132,6 +132,12 @@ class RequestFileMetadata(models.Model):
     # hash – but we should not rely on that)
     file_id = models.TextField()
     filetype = EnumField(default=RequestFileType.OUTPUT, enum=RequestFileType)
+    timestamp = models.FloatField()
+    size = models.IntegerField()
+    job_id = models.TextField()
+    commit = models.TextField()
+    row_count = models.IntegerField(null=True)
+    col_count = models.IntegerField(null=True)
 
     class Meta:
         unique_together = ("relpath", "request")
