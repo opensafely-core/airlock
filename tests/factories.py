@@ -139,9 +139,9 @@ def create_workspace(name, user=None):
 
 def write_workspace_file(workspace, path, contents="", manifest=True):
     workspace = ensure_workspace(workspace)
-    path = workspace.root() / path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(contents)
+    abspath = workspace.root() / path
+    abspath.parent.mkdir(parents=True, exist_ok=True)
+    abspath.write_text(contents)
     if manifest:  # pragma: nocover
         update_manifest(workspace, [path])
 

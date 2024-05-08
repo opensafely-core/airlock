@@ -265,6 +265,24 @@ class Workspace:
             relpath=relpath,
         )
 
+    def get_manifest_data(self):
+        manifest_path = self.abspath("metadata/manifest.json")
+        try:
+            return json.loads(manifest_path.read_text())
+        except json.JSONDecodeError as exc:
+            raise BusinessLogicLayer.ManifestFileError(
+                f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
+            )
+
+    def get_manifest_for_file(self, relpath: UrlPath):
+        manifest_data = self.get_manifest_data()
+        try:
+            return manifest_data["outputs"][str(relpath)]
+        except KeyError:
+            raise BusinessLogicLayer.ManifestFileError(
+                f"Could not parse data for {relpath} from manifest.json file"
+            )
+
     def abspath(self, relpath):
         """Get absolute path for file
 
@@ -302,12 +320,10 @@ class CodeRepo:
 
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str):
-        manifest_path = workspace.abspath("metadata/manifest.json")
-
         try:
-            manifest = json.loads(manifest_path.read_text())
+            manifest = workspace.get_manifest_data()
             repo = manifest["repo"]
-        except (json.JSONDecodeError, KeyError):
+        except (BusinessLogicLayer.ManifestFileError, KeyError):
             raise cls.RepoNotFound(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
@@ -403,6 +419,12 @@ class RequestFile:
     relpath: UrlPath
     file_id: str
     reviews: list[FileReview]
+    timestamp: int
+    size: int
+    job_id: str
+    commit: str
+    row_count: int | None = None
+    col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
 
     @classmethod
@@ -690,6 +712,12 @@ class DataAccessLayerProtocol(Protocol):
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
+        timestamp: int,
+        size: int,
+        commit: str,
+        job_id: str,
+        row_count: int | None,
+        col_count: int | None,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -787,6 +815,9 @@ class BusinessLogicLayer:
         pass
 
     class ApprovalPermissionDenied(APIException):
+        pass
+
+    class ManifestFileError(APIException):
         pass
 
     def get_workspace(self, name: str, user: User) -> Workspace:
@@ -1118,12 +1149,23 @@ class BusinessLogicLayer:
             filetype=filetype.name,
         )
 
+        manifest = workspace.get_manifest_for_file(relpath)
+        assert (
+            manifest["content_hash"] == file_id
+        ), "File hash does not match manifest.json"
+
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
             group_name=group_name,
             relpath=relpath,
             file_id=file_id,
             filetype=filetype,
+            timestamp=manifest["timestamp"],
+            commit=manifest["commit"],
+            size=manifest["size"],
+            job_id=manifest["job_id"],
+            row_count=manifest["row_count"],
+            col_count=manifest["col_count"],
             audit=audit,
         )
         release_request.set_filegroups_from_dict(filegroup_data)
