@@ -46,6 +46,8 @@ def test_get_workspace_tree_general(workspace):
     expected = textwrap.dedent(
         """
         workspace*
+          metadata
+            manifest.json
           empty_dir
           some_dir*
             .file.txt
@@ -145,6 +147,7 @@ def test_get_workspace_tree_selected_only_root(workspace):
     expected = textwrap.dedent(
         """
         workspace***
+          metadata
           empty_dir
           some_dir
         """
@@ -422,6 +425,7 @@ def test_workspace_tree_siblings(workspace):
 
     assert tree.siblings() == []
     assert {s.name() for s in tree.get_path("some_dir").siblings()} == {
+        "metadata",
         "empty_dir",
         "some_dir",
     }
