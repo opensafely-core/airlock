@@ -314,6 +314,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/")
 
     # Log out
+    find_and_click(page.get_by_test_id("nav-account"))
     find_and_click(page.get_by_test_id("nav-logout"))
 
     # Login button is visible now
@@ -375,6 +376,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Logout and log in as second output-checker to do second approval and
     # release
+    find_and_click(page.get_by_test_id("nav-account"))
     find_and_click(page.get_by_test_id("nav-logout"))
     login_as(live_server, page, "output_checker_1")
     # Approve the file
