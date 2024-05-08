@@ -4,3 +4,21 @@
   text-align: left;
   background-color: rgba(248, 250, 252);
 }
+
+#customTable.datatable-table th:first-child,
+#customTable.datatable-table td:first-child {
+  padding-inline-start: 1.25rem;
+
+  button {
+    padding-inline-start: 0;
+  }
+}
+
+#customTable.datatable-table th:last-child,
+#customTable.datatable-table td:last-child {
+  padding-inline-end: 1.25rem;
+
+  button {
+    padding-inline-end: 0;
+  }
+}
