@@ -1277,3 +1277,130 @@ def test_group_comment_bad_group(airlock_client):
     )
 
     assert response.status_code == 404
+
+
+def test_group_comment_delete(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+    airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "typo comment"},
+        follow=True,
+    )
+
+    airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "not-a-typo comment"},
+        follow=True,
+    )
+
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 2
+    bad_comment = release_request.filegroups["group"].comments[0]
+    good_comment = release_request.filegroups["group"].comments[1]
+
+    response = airlock_client.post(
+        f"/requests/comment/delete/{release_request.id}/group",
+        data={"comment_id": bad_comment.id},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+    assert release_request.filegroups["group"].comments[0].id == good_comment.id
+
+
+def test_group_comment_delete_bad_form(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+    airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "typo comment"},
+        follow=True,
+    )
+
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+    comment = release_request.filegroups["group"].comments[0]
+
+    response = airlock_client.post(
+        f"/requests/comment/delete/{release_request.id}/group",
+        data={},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    messages = list(response.context.get("messages", []))
+    assert messages[0].message == "comment_id: This field is required."
+
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+    assert release_request.filegroups["group"].comments[0].id == comment.id
+
+
+def test_group_comment_delete_bad_group(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+    airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "comment A"},
+        follow=True,
+    )
+
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+    comment = release_request.filegroups["group"].comments[0]
+
+    response = airlock_client.post(
+        f"/requests/comment/delete/{release_request.id}/badgroup",
+        data={"comment_id": comment.id},
+        follow=True,
+    )
+
+    assert response.status_code == 404
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+    assert release_request.filegroups["group"].comments[0].id == comment.id
+
+
+def test_group_comment_delete_missing_comment(airlock_client):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+    airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "comment A"},
+        follow=True,
+    )
+
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1
+
+    bad_comment_id = 50
+    assert not release_request.filegroups["group"].comments[0].id == bad_comment_id
+
+    response = airlock_client.post(
+        f"/requests/comment/delete/{release_request.id}/group",
+        data={"comment_id": bad_comment_id},
+        follow=True,
+    )
+
+    assert response.status_code == 404
+    release_request = bll.get_release_request(release_request.id, author)
+    assert len(release_request.filegroups["group"].comments) == 1

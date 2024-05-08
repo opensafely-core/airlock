@@ -22,6 +22,15 @@
         {% for comment in group_comments %}
           {% #list_group_rich_item status_text=comment.created_at|date:"Y-m-d H:i"  title=comment.author %}
             {{ comment.comment }}
+            {% if request.user.username == comment.author %}
+              <div>
+                <form action="{{ group_comment_delete_url }}" method="POST">
+                  {% csrf_token %}
+                  <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                  {% #button variant="danger" type="cancel" %}Delete comment{% /button %}
+                </form>
+              </div>
+            {% endif %}
           {% /list_group_rich_item %}
         {% endfor %}
         {% #list_group_item %}
@@ -36,6 +45,7 @@
       {% /list_group %}
     </div>
   {% endif %}
+
   {% include "activity.html" with activity=group_activity %}
 
 {% /card %}
