@@ -71,7 +71,7 @@ def test_workspace_view_with_empty_directory(airlock_client):
     (workspace.root() / "some_dir").mkdir()
     response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 200
-    assert "Empty Directory" in response.rendered_content
+    assert "This directory is empty" in response.rendered_content
 
 
 def test_workspace_view_with_file(airlock_client):
