@@ -71,8 +71,8 @@
 {% endblock content %}
 
 {% block full_width_content %}
-  <div class="flex-grow grid px-2 gap-2 min-h-full" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
-    <div class="bg-white shadow" style="grid-column: 1 / 1">
+  <div class="browser">
+    <div class="browser__files">
       <ul
         class="tree root"
         hx-boost="true"
@@ -86,7 +86,7 @@
         {% include "file_browser/tree.html" with path=root.fake_parent %}
       </ul>
     </div>
-    <div style="grid-column: 2 / -1">
+    <div class="browser__content">
       {% include "file_browser/contents.html" %}
     </div>
   </div>

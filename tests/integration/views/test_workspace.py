@@ -31,7 +31,7 @@ def test_workspace_view_summary(airlock_client):
     assert "file.txt" in response.rendered_content
     assert "release-request-button" not in response.rendered_content
     assert "TESTPROJECT" in response.rendered_content
-    assert "Recent Activity" in response.rendered_content
+    assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Created request" in response.rendered_content
 

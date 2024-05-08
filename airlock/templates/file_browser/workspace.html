@@ -1,7 +1,9 @@
-{% #card title="Workspace "|add:workspace.name container=True %}
-
-  Project: {{ project }}
-
+{% #card title=workspace.name %}
+  {% #description_list %}
+    {% #description_item title="Project" %}
+      {{ project }}
+    {% /description_item %}
+  {% /description_list %}
 {% /card %}
 
 {% include "activity.html" %}

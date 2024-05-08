@@ -10,36 +10,40 @@
   }
 </style>
 
-
-{% #card title="Recent Activity" container=True %}
-  <table class="datatable" id="customTable">
-    <thead>
-      <tr>
-        <th><div class="flex flex-row gap-2">Time{% datatable_sort_icon %}</div></th>
-        <th><div class="flex flex-row gap-2">User{% datatable_sort_icon %}</div></th>
-        <th><div class="flex flex-row gap-2">Action{% datatable_sort_icon %}</div></th>
-        <th><div class="flex flex-row gap-2">Details{% datatable_sort_icon %}</div></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for log in activity %}
+{% #card title="Recent activity" %}
+  {% if activity %}
+    <table class="datatable" id="customTable">
+      <thead>
         <tr>
-          <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
-          <td>{{ log.user }}</td>
-          <td>{{ log.description }}</td>
-          <td>
-            <ul>
-              {% if log.path %}<li><b>path:</b> {{ log.path }}</li>{% endif %}
-              {% for k,v in log.extra.items %}
-                <li><b>{{ k }}:</b> {{ v }}</li>
-              {% endfor %}
-            </ul>
-          </td>
+          <th><div class="flex flex-row gap-2">Time{% datatable_sort_icon %}</div></th>
+          <th><div class="flex flex-row gap-2">User{% datatable_sort_icon %}</div></th>
+          <th><div class="flex flex-row gap-2">Action{% datatable_sort_icon %}</div></th>
+          <th><div class="flex flex-row gap-2">Details{% datatable_sort_icon %}</div></th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
+      </thead>
+      <tbody>
+        {% for log in activity %}
+          <tr>
+            <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
+            <td>{{ log.user }}</td>
+            <td>{{ log.description }}</td>
+            <td>
+              <ul>
+                {% if log.path %}<li><b>path:</b> {{ log.path }}</li>{% endif %}
+                {% for k,v in log.extra.items %}
+                  <li><b>{{ k }}:</b> {{ v }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    {% #list_group %}
+      {% list_group_empty title="No activity" description="There has been no recent activity on this workspace" %}
+    {% /list_group %}
+  {% endif %}
 {% /card %}
 
 {% vite_asset "assets/src/scripts/components.js" %}
