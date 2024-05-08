@@ -1,0 +1,70 @@
+ul.root {
+  padding: 0.2rem;
+}
+
+ul.tree {
+  list-style: none;
+  font-size: 95%;
+}
+
+ul.tree details ul {
+  border-left: 1px dotted grey;
+  padding-left: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.tree summary {
+  cursor: pointer;
+}
+
+.tree li:has(> a.supporting) {
+  font-style: italic;
+}
+
+.tree li:has(> a.withdrawn) {
+  font-style: italic;
+  text-decoration: line-through;
+}
+
+.tree summary:has(> a.selected),
+.tree li:has(> a.selected) {
+  background-color: lightblue;
+}
+
+.tree summary:has(> a.invalid),
+.tree li:has(> a.invalid) {
+  color: darkgray;
+}
+
+.tree .selected {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tree .filegroup {
+  text-transform: uppercase;
+}
+
+.tree summary:has(> a.filegroup) {
+  background-color: lightgrey;
+}
+
+.tree a.directory {
+  background-repeat: no-repeat;
+  background-size: 1.4rem;
+  background-position: left 0 top 0;
+  padding-left: 1.3rem;
+}
+.tree summary {
+  padding-left: 0.25rem;
+}
+
+.content {
+  width: 100%;
+  max-width: 100%;
+}
+
+.content-scroller {
+  height: 75vh;
+  overflow: scroll;
+}
