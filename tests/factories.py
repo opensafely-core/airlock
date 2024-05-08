@@ -1,3 +1,4 @@
+import csv
 import json
 import subprocess
 import tempfile
@@ -59,6 +60,17 @@ def get_output_metadata(
     with abspath.open("rb") as fp:
         content_hash = file_digest(fp, "sha256").hexdigest()
 
+    rows = cols = None
+    if abspath.suffix == ".csv":
+        with abspath.open() as fp:
+            reader = csv.DictReader(fp)
+            first_row = next(reader, None)
+            if first_row:
+                cols = len(first_row)
+                rows = sum(1 for _ in reader) + 1
+            else:  # pragma: no cover
+                cols = rows = 0
+
     return {
         "level": level,
         "job_id": job_id,
@@ -70,17 +82,21 @@ def get_output_metadata(
         "content_hash": content_hash,
         "excluded": excluded,
         "message": message,
+        "row_count": rows,
+        "col_count": cols,
     }
 
 
 def update_manifest(workspace, files=None):
-    """Write a manfiest based on the files currently in the directory.
+    """Write a manifest based on the files currently in the directory.
 
     Make up action, job ids and commits.
     """
     workspace = ensure_workspace(workspace)
     root = workspace.root()
     manifest_path = root / "metadata/manifest.json"
+
+    skip_paths = [root / "logs", root / "metadata"]
 
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
@@ -90,7 +106,11 @@ def update_manifest(workspace, files=None):
         manifest = {"workspace": workspace.name, "repo": None, "outputs": {}}
 
     if files is None:  # pragma: nocover
-        files = [f.relative_to(root) for f in root.glob("**/*") if f.is_file()]
+        files = [
+            f.relative_to(root)
+            for f in root.glob("**/*")
+            if f.is_file() and not any(1 for path in skip_paths if path in f.parents)
+        ]
 
     for i, f in enumerate(files):
         manifest["outputs"][str(f)] = get_output_metadata(
