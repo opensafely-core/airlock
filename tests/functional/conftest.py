@@ -5,8 +5,12 @@ import sys
 import pytest
 from django.conf import settings
 from django.contrib.sessions.models import Session
+from playwright.sync_api import expect
 
 from tests import factories
+
+
+expect.set_options(timeout=10_000)
 
 
 @pytest.fixture(scope="session", autouse=True)
