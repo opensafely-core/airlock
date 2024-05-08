@@ -6,7 +6,7 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     RequestStatus,
 )
-from local_db import data_access
+from local_db import data_access, models
 from tests import factories
 
 
@@ -138,3 +138,55 @@ def test_delete_file_from_request_bad_path():
 
     with pytest.raises(BusinessLogicLayer.FileNotFound):
         dal.delete_file_from_request(release_request.id, "bad_path", audit)
+
+
+def test_group_comment_delete_bad_params():
+    author = factories.create_user("author", ["workspace"], False)
+    other = factories.create_user("other", ["other-workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    audit = AuditEvent.from_request(
+        request=release_request,
+        type=AuditEventType.REQUEST_COMMENT,
+        user=author,
+        group="group",
+        comment="author comment",
+    )
+    dal.group_comment(release_request, "group", "author comment", author, audit)
+
+    audit = AuditEvent.from_request(
+        request=release_request,
+        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        user=author,
+        group="badgroup",
+        comment="author comment",
+    )
+    with pytest.raises(BusinessLogicLayer.APIException):
+        dal.group_comment_delete(release_request, "badgroup", 1, author, audit)
+
+    audit = AuditEvent.from_request(
+        request=release_request,
+        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        user=author,
+        group="group",
+        comment="other comment",
+    )
+    with pytest.raises(models.FileGroupComment.DoesNotExist):
+        dal.group_comment_delete(release_request, "group", 50, author, audit)
+
+    audit = AuditEvent.from_request(
+        request=release_request,
+        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        user=author,
+        group="group",
+        comment="author comment",
+    )
+    with pytest.raises(BusinessLogicLayer.APIException):
+        dal.group_comment_delete(release_request, "group", 1, other, audit)
