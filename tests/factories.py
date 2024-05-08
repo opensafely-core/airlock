@@ -2,6 +2,7 @@ import json
 import subprocess
 import tempfile
 import time
+from hashlib import file_digest
 from pathlib import Path
 
 from django.conf import settings
@@ -50,6 +51,62 @@ def ensure_workspace(workspace_or_name):
     raise Exception(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
 
 
+# get_output_metadata is imported from job-runner
+def get_output_metadata(
+    abspath, level, job_id, job_request, action, commit, excluded, message=None
+):
+    stat = abspath.stat()
+    with abspath.open("rb") as fp:
+        content_hash = file_digest(fp, "sha256").hexdigest()
+
+    return {
+        "level": level,
+        "job_id": job_id,
+        "job_request": job_request,
+        "action": action,
+        "commit": commit,
+        "size": stat.st_size,
+        "timestamp": stat.st_mtime,
+        "content_hash": content_hash,
+        "excluded": excluded,
+        "message": message,
+    }
+
+
+def update_manifest(workspace, files=None):
+    """Write a manfiest based on the files currently in the directory.
+
+    Make up action, job ids and commits.
+    """
+    workspace = ensure_workspace(workspace)
+    root = workspace.root()
+    manifest_path = root / "metadata/manifest.json"
+
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+        manifest["workspace"] = workspace.name
+        manifest.setdefault("outputs", {})
+    else:
+        manifest = {"workspace": workspace.name, "repo": None, "outputs": {}}
+
+    if files is None:  # pragma: nocover
+        files = [f.relative_to(root) for f in root.glob("**/*") if f.is_file()]
+
+    for i, f in enumerate(files):
+        manifest["outputs"][str(f)] = get_output_metadata(
+            root / f,
+            level="moderately_senstive",
+            job_id=f"job_{i}",
+            job_request=f"job_request_{i}",
+            action=f"action_{i}",
+            commit="abcdefgh" * 5,  # 40 characters,
+            excluded=False,
+        )
+
+    manifest_path.parent.mkdir(exist_ok=True, parents=True)
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+
+
 def create_workspace(name, user=None):
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
@@ -60,11 +117,13 @@ def create_workspace(name, user=None):
     return bll.get_workspace(name, user)
 
 
-def write_workspace_file(workspace, path, contents=""):
+def write_workspace_file(workspace, path, contents="", manifest=True):
     workspace = ensure_workspace(workspace)
     path = workspace.root() / path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(contents)
+    if manifest:  # pragma: nocover
+        update_manifest(workspace, [path])
 
 
 def create_repo(workspace, files=None):
