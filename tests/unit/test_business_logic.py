@@ -116,7 +116,7 @@ def test_request_file_manifest_data(mock_notifications, bll):
     # modify the manifest data to known values for asserts
     manifest_path = workspace.root() / "metadata/manifest.json"
     manifest_data = json.loads(manifest_path.read_text())
-    file_manifest = manifest_data["outputs"][str(workspace.root() / "bar.txt")]
+    file_manifest = manifest_data["outputs"]["bar.txt"]
     file_manifest.update(
         {
             "job_id": "job-bar",
@@ -147,7 +147,7 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
     # modify the manifest data to known values for asserts
     manifest = workspace.root() / "metadata/manifest.json"
     manifest_data = json.loads(manifest.read_text())
-    file_manifest = manifest_data["outputs"][str(workspace.root() / "bar.txt")]
+    file_manifest = manifest_data["outputs"]["bar.txt"]
     file_manifest.update(
         {
             "content_hash": file_digest(BytesIO(b"foo"), "sha256").hexdigest(),

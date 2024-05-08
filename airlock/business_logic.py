@@ -269,19 +269,18 @@ class Workspace:
         manifest_path = self.abspath("metadata/manifest.json")
         try:
             return json.loads(manifest_path.read_text())
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
             raise BusinessLogicLayer.ManifestFileError(
-                "Could not parse manifest.json file: {manifest_path}:\n{exc}"
+                f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
 
     def get_manifest_for_file(self, relpath: UrlPath):
         manifest_data = self.get_manifest_data()
-        abspath = str(self.abspath(relpath))
         try:
-            return manifest_data["outputs"][abspath]
+            return manifest_data["outputs"][str(relpath)]
         except KeyError:
             raise BusinessLogicLayer.ManifestFileError(
-                f"Could not parse data for {abspath} from manifest.json file"
+                f"Could not parse data for {relpath} from manifest.json file"
             )
 
     def abspath(self, relpath):
