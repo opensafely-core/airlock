@@ -6,6 +6,8 @@
     {% #list_group id="requests-workspace" %}
       {% for request in requests_for_workspace %}
         {% #list_group_item href=request.get_url %}{{ request.workspace }} ({{ request.author }}): {{ request.status.name }} {% /list_group_item %}
+      {% empty %}
+        {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
       {% endfor %}
     {% /list_group %}
   {% /card %}
