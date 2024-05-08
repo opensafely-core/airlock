@@ -1,24 +1,21 @@
 {% extends "base.html" %}
 
-{% block extra_styles %}
-  <style>
-    ul.projects p.project {
-      padding: 1rem;
-    }
-  </style>
-{% endblock extra_styles %}
-
 {% block content %}
-  {% #card title="Workspaces for "|add:request.user.username %}
-    <ul class="projects">
-      {% for project, workspaces in projects.items %}
-        <li>
-          <p class="project">{{ project }}</p>
-          {% #list_group id="workspaces" %}
-            {% for workspace in workspaces %}
-              {% #list_group_item href=workspace.get_url %}{{ workspace.name }}{% /list_group_item %}
-            {% endfor %}
-          {% /list_group %}
-      {% endfor %}
-  {% /card %}
+  <div class="flex flex-col gap-8 max-w-3xl">
+    {% article_header title="Workspaces for "|add:request.user.username %}
+
+    {% for project, workspaces in projects.items %}
+      {% #card title=project %}
+        {% #list_group id="workspaces" %}
+          {% for workspace in workspaces %}
+            {% #list_group_item href=workspace.get_url %}{{ workspace.name }}{% /list_group_item %}
+          {% endfor %}
+        {% /list_group %}
+      {% /card %}
+    {% empty %}
+      {% #card title="Workspaces" container=True %}
+        {% list_group_empty title="No workspaces available" description="You do not have access to any workspaces" %}
+      {% /card %}
+    {% endfor %}
+  </div>
 {% endblock content %}
