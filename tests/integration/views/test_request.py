@@ -538,6 +538,16 @@ def test_request_withdraw_not_author(airlock_client):
     assert persisted_request.status == RequestStatus.PENDING
 
 
+def test_empty_requests_for_workspace(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+
+    response = airlock_client.get("/requests/workspace/test1")
+
+    response.render()
+    assert response.status_code == 200
+    assert "There are no requests in this workspace" in response.rendered_content
+
+
 def test_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
     author1 = factories.create_user("author1", ["test1"], False)
