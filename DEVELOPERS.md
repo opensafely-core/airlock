@@ -30,7 +30,7 @@ You'll need an appropriate version of Python on your PATH. Check the
 
 ### Docker
 
-Possibly something API compatibile with Docker would also work, but we
+Possibly something API compatible with Docker would also work, but we
 don't officially support that.
 
 
@@ -82,7 +82,7 @@ set -a; source .env; set +a
 
 ## Assets
 
-The asset build tooling and component library is currently extracted 
+The asset build tooling and component library is currently extracted
 from job-server for use in airlock.
 
 We also add the components browser view at the /ui-components. This acts
@@ -136,7 +136,7 @@ or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`
 #### Debugging
 
 Functional tests run headless by default. To see what's going on, they
-can be run in headed mode. The follwoing command will run just the
+can be run in headed mode. The following command will run just the
 functional tests, in headed mode, slowed down by 500ms. See the
 [playwright docs](https://playwright.dev/python/docs/test-runners#cli-arguments) for additional cli arguments that may be
 useful.
@@ -235,7 +235,7 @@ workspaces again.
 ```
 just job-server/clean
 just job-server/configure GHUSERNAME
-just job-server/create-workspace 
+just job-server/create-workspace
 ```
 
 
@@ -279,7 +279,7 @@ specified in the `mkdocs.yml` located at the repo root.
 Note that most of the config in the `mkdocs.yml` is specific to the within-airlock docs and
 will be ignored when the docs are imported into the main OpenSAFELY documentation.
 
-In order to serve the docs within Airlock, the directory built by mkdocs (with 
+In order to serve the docs within Airlock, the directory built by mkdocs (with
 `just docs-build`) is specified as a static files directory in the `STATICFILES_DIRS`
 setting. A simple view makes them available within Airlock, using the `django.static.serve`
 view (see `airlock/views/docs.py`)

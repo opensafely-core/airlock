@@ -3,44 +3,42 @@
 {% block metatitle %}Login | OpenSAFELY Airlock{% endblock metatitle %}
 
 {% block content %}
-  <section class="flex flex-col max-w-2xl gap-y-4">
-    <h1 class="text-3xl break-words font-bold text-slate-900 mt-2 md:mt-0 md:col-span-3 md:text-4xl">
-      Login
-    </h1>
+  {% #article_header title="Login" class="mb-6" %}
+    <div class="prose">
+      <p>To login to Airlock, you need to:</p>
+      <ul>
+        <li>Log off the VPN, or otherwise access the internet (e.g. on your phone).</li>
+        <li>Go to https://jobs.opensafely.org, and login with Github if you are not already.</li>
+        <li>Go to the Accounts drop down in the top right, and click Settings.</li>
+        <li>Click on the Generate Single Use Token button, and remember the three words shown.</li>
+        <li>Log back in the VPN, if needed.</li>
+        <li>Enter your username and the Single Use Token as generated earlier to complete the login.</li>
+      </ul>
+      <p>Once you have logged in once, you should not need to again, unless you do not access Airlock for a long time.</p>
+    </div>
+  {% /article_header %}
 
-    {% #card title="Login with Single Use Token" subtitle="Log in from Level 4 environments with a Single Use Token" container=True class="md:col-span-2" %}
-      {% if dev_users_file %}
-        {% #alert variant="warning" title="Development login mode" class="mb-6" dismissible=True %}
-          Use credentials specified in:<br>
-          <small><code>{{ dev_users_file }}</code></small>
-        {% /alert %}
-      {% endif %}
-      <form class="gap-2 flex-wrap md:flex-nowrap" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" >
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ next_url }}" />
-        {% form_input type="text" field=token_login_form.user required=True label="GitHub username or OpenSAFELY email address" class="mb-3" placeholder="opensafely" input_class="max-w-md" %}
-        {% form_input type="text" field=token_login_form.token required=True label="Single Use Token" placeholder="three random words" show_placeholder=True class="mb-3" input_class="max-w-md" %}
+  {% #card title="Login with Single Use Token" subtitle="Log in from Level 4 environments with a Single Use Token" container=True class="max-w-2xl" %}
+    {% if dev_users_file %}
+      {% #alert variant="warning" title="Development login mode" class="mb-6" dismissible=True %}
+        Use credentials specified in:<br>
+        <small><code>{{ dev_users_file }}</code></small>
+      {% /alert %}
+    {% endif %}
+    <form class="flex flex-col items-start gap-4" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" >
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_url }}" />
+      {% form_input type="text" field=token_login_form.user required=True label="GitHub username or OpenSAFELY email address" placeholder="opensafely" class="w-full max-w-md" %}
+      {% form_input type="text" field=token_login_form.token required=True label="Single Use Token" placeholder="three random words" show_placeholder=True class="w-full max-w-md" %}
 
-        {% #button type="submit" variant="primary-outline" id="login-button" %}
-          Log in with token
-        {% /button %}
-        <span id="spinner" class="hidden" >
-          {% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2" %}
-        </span>
-      </form>
-      <div class="prose prose-sm mb-6">
-        <p>To login to Airlock, you need to:</p>
-        <ul>
-          <li>Log off the VPN, or otherwise access the internet (e.g. on your phone).</li>
-          <li>Go to https://jobs.opensafely.org, and login with Github if you are not already.</li>
-          <li>Go to the Accounts drop down in the top right, and click Settings.</li>
-          <li>Click on the Generate Single Use Token button, and remember the three words shown.</li>
-          <li>Log back in the VPN, if needed.</li>
-          <li>Enter your username and the Single Use Token as generated earlier to complete the login.</li>
-        </ul>
-        <p>Once you have logged in once, you should not need to again, unless you do not access airlock for a long time.</p>
-      </div>
-    {% /card %}
+      {% #button type="submit" variant="success" id="login-button" class="mt-4" %}
+        Log in with token
+      {% /button %}
+      <span id="spinner" class="hidden" >
+        {% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2" %}
+      </span>
+    </form>
+  {% /card %}
 
 {% endblock content %}
 

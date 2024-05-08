@@ -2,7 +2,7 @@
 {% load django_vite %}
 
 <!DOCTYPE html>
-<html lang="en" class="no-js min-h-screen">
+<html lang="en" class="min-h-screen">
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -11,15 +11,6 @@
     <title>{% block metatitle %}Airlock{% endblock metatitle %}</title>
 
     {% block extra_meta %}{% endblock %}
-
-    <script type="module">
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-
-      window.addEventListener("load", () => {
-        document.body.classList.remove("preload");
-      });
-    </script>
 
     {% vite_hmr_client %}
     {% vite_asset "assets/src/scripts/base.js" %}
@@ -30,7 +21,7 @@
     <link rel="icon" href="{% static "icon.svg" %}" type="image/svg+xml">
   </head>
 
-  <body class="preload flex flex-col min-h-screen text-slate bg-white">
+  <body class="flex flex-col min-h-screen text-slate bg-white">
 
     <header
       class="
@@ -40,16 +31,13 @@
     >
       <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
         <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
-          {% url 'home' as url %}
-          {% url 'login' as login_url %}
-          {% url 'logout' as logout_url %}
           <a
             class="
                    group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500
                    after:absolute after:bottom-1 after:h-[2px] after:left-2 after:bg-bn-strawberry-300 after:w-1 after:transition-all after:opacity-0
                    after:hover:w-11/12 after:hover:opacity-100
                   "
-            href="{{ url }}"
+            href="{% url 'home' %}"
           >
             <span class="transition-colors ease-in duration-150 text-oxford group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
               OpenSAFELY
@@ -60,7 +48,7 @@
           </a>
         </p>
 
-        <ul class="hidden relative flex-row gap-4 mx-1 ml-auto text-sm font-semibold md:flex">
+        <ul class="flex relative flex-row gap-4 mx-1 ml-auto text-sm font-semibold">
           {% for location in nav %}
             <li>
               <a
@@ -88,7 +76,7 @@
                        hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
                        focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
                       "
-                href="{{ login_url }}"
+                href="{% url 'login' %}"
                 rel="nofollow"
                 data-testid="nav-login"
               >
@@ -107,6 +95,7 @@
                            before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
                            before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
                           "
+                    data-testid="nav-account"
                   >
                     Account
                     <span class="opacity-75 ml-1">
@@ -121,23 +110,17 @@
                         <strong class="break-words">{{ request.user.username }}</strong>
                       </span>
                     </p>
+                    <a
+                      class="border-t block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-oxford-50 focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-inset w-full text-left"
+                      href="{% url 'logout' %}"
+                      rel="nofollow"
+                      data-testid="nav-logout"
+                    >
+                      Logout
+                    </a>
                   </div>
                 </details>
               </details-utils>
-            </li>
-            <li>
-              <a
-                class="
-                       relative inline-flex self-start p-2 rounded whitespace-nowrap text-oxford duration-200 bg-bn-strawberry-200 border border-bn-strawberry-300 px-4 mx-0 leading-none transition-all
-                       hover:text-bn-strawberry-700 hover:bg-bn-strawberry-100 hover:border-bn-strawberry-400 hover:shadow-lg
-                       focus:bg-bn-strawberry-100 focus:text-bn-strawberry-700 focus:border-bn-strawberry-400 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500
-                      "
-                href="{{ logout_url }}"
-                rel="nofollow"
-                data-testid="nav-logout"
-              >
-                Logout
-              </a>
             </li>
           {% endif %}
         </ul>
