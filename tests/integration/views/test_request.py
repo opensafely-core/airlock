@@ -67,9 +67,9 @@ def test_request_view_root_summary(airlock_client):
     assert response.status_code == 200
     assert "PENDING" in response.rendered_content
     # output files
-    assert ">2<" in response.rendered_content
+    assert ">\n      2\n    <" in response.rendered_content
     # supporting files
-    assert ">1<" in response.rendered_content
+    assert ">\n      1\n    <" in response.rendered_content
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Created request" in response.rendered_content
