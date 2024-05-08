@@ -162,7 +162,7 @@ test *ARGS: devenv
 
 
 # load example data so there's something to look at in development
-load-example-data: devenv
+load-example-data: devenv && manifests
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -205,6 +205,10 @@ load-example-data: devenv
     # Configure user details for local login
     cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
 
+# generate manifests for local test workspaces
+manifests:
+    cat scripts/manifests.py | $BIN/python manage.py shell
+    
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS: devenv
@@ -213,3 +217,4 @@ docs-serve *ARGS: devenv
 # Build the documentation
 docs-build *ARGS: devenv
     "$BIN"/mkdocs build --clean {{ ARGS }}
+

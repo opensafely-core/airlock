@@ -1493,7 +1493,9 @@ def test_group_comment_permissions(bll):
 
 def test_coderepo_from_workspace_bad_json():
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file("workspace", "metadata/manifest.json", "")
+    bad_manifest = workspace.root() / "metadata/manifest.json"
+    bad_manifest.parent.mkdir()
+    bad_manifest.write_text("")
 
     with pytest.raises(CodeRepo.RepoNotFound):
         CodeRepo.from_workspace(workspace, "commit")

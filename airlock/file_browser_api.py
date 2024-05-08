@@ -504,6 +504,9 @@ def get_path_tree(
 
 
 def children_sort_key(node: PathItem):
-    """Sort children first by directory, then files."""
+    """Sort children first by directory, then files.
+
+    The name metadata is sorted first, as its special."""
     # this works because True == 1 and False == 0
-    return (node.type == PathType.FILE, node.name())
+    name = node.name()
+    return (name != "metadata", node.type == PathType.FILE, name)
