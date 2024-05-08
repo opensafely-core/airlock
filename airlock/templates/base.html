@@ -2,7 +2,7 @@
 {% load django_vite %}
 
 <!DOCTYPE html>
-<html lang="en" class="no-js min-h-screen">
+<html lang="en" class="min-h-screen">
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -11,15 +11,6 @@
     <title>{% block metatitle %}Airlock{% endblock metatitle %}</title>
 
     {% block extra_meta %}{% endblock %}
-
-    <script type="module">
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-
-      window.addEventListener("load", () => {
-        document.body.classList.remove("preload");
-      });
-    </script>
 
     {% vite_hmr_client %}
     {% vite_asset "assets/src/scripts/base.js" %}
@@ -30,7 +21,7 @@
     <link rel="icon" href="{% static "icon.svg" %}" type="image/svg+xml">
   </head>
 
-  <body class="preload flex flex-col min-h-screen text-slate bg-white">
+  <body class="flex flex-col min-h-screen text-slate bg-white">
 
     <header
       class="
