@@ -137,22 +137,22 @@
 {% endblock content %}
 
 {% block full_width_content %}
-  <div class="flex flex-row">
-    <div style="flex-basis: 25%">
-      {% #card %}
-        <ul id="tree" class="tree root"
-            hx-boost="true"
-            hx-target="#selected-contents"
-            hx-select="#selected-contents"
-            hx-swap="outerHTML"
-            hx-push-url="true"
-            hx-on:htmx:after-request="setTreeSelection(this, event)"
-        >
-          {% include "file_browser/tree.html" with path=root.fake_parent %}
-        </ul>
-      {% /card %}
+  <div class="flex-grow grid px-2 gap-2 min-h-full" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+    <div class="bg-white shadow" style="grid-column: 1 / 1">
+      <ul
+        class="tree root"
+        hx-boost="true"
+        hx-on:htmx:after-request="setTreeSelection(this, event)"
+        hx-push-url="true"
+        hx-select="#selected-contents"
+        hx-swap="outerHTML"
+        hx-target="#selected-contents"
+        id="tree"
+      >
+        {% include "file_browser/tree.html" with path=root.fake_parent %}
+      </ul>
     </div>
-    <div style="flex-basis: 75%; max-width: 75%">
+    <div style="grid-column: 2 / -1">
       {% include "file_browser/contents.html" %}
     </div>
   </div>
