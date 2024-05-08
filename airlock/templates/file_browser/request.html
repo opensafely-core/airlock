@@ -1,12 +1,15 @@
-{% #card title="Request "|add:release_request.id container=True %}
-
-
-  {% #description_item title="Status:" %}{{ release_request.status.name }}{% /description_item %}
-
-  {% #description_item title="Files requested for release:" %}{{ release_request.output_files_set|length }}{% /description_item %}
-
-  {% #description_item title="Supporting files not for release:" %}{{ release_request.supporting_files_count }}{% /description_item %}
-
+{% #card title="Request: "|add:release_request.id %}
+  {% #description_list %}
+    {% #description_item title="Status" %}
+      {{ release_request.status.name }}
+    {% /description_item %}
+    {% #description_item title="Files requested for release" %}
+      {{ release_request.output_files_set|length }}
+    {% /description_item %}
+    {% #description_item title="Supporting files not for release" %}
+      {{ release_request.supporting_files_count }}
+    {% /description_item %}
+  {% /description_list %}
 {% /card %}
 
 {% include "activity.html" %}
