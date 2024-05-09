@@ -1,7 +1,7 @@
-{% #card title=path_item.name container=True %}
+{% #card title=path_item.name %}
   {% #list_group %}
     {% if not path_item.children %}
-      {% list_group_empty icon=True title="Empty Directory" %}
+      {% list_group_empty icon=True title="This directory is empty" %}
     {% else %}
       {% for entry in path_item.children %}
         {% #list_group_item href=entry.url %}

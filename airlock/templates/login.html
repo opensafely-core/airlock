@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block metatitle %}Login | OpenSAFELY Airlock{% endblock metatitle %}
 
 {% block content %}
@@ -44,12 +46,5 @@
 
 
 {% block extra_js %}
-
-  <script type="text/javascript">
-    function showSpinner() {
-      document.getElementById('login-button').classList.add('hidden');
-      document.getElementById('spinner').classList.remove('hidden');
-    }
-  </script>
-
+  <script src="{% static 'assets/login.js' %}"></script>
 {% endblock %}

@@ -67,10 +67,10 @@ def test_request_view_root_summary(airlock_client):
     assert response.status_code == 200
     assert "PENDING" in response.rendered_content
     # output files
-    assert ">2<" in response.rendered_content
+    assert ">\n      2\n    <" in response.rendered_content
     # supporting files
-    assert ">1<" in response.rendered_content
-    assert "Recent Activity" in response.rendered_content
+    assert ">\n      1\n    <" in response.rendered_content
+    assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Created request" in response.rendered_content
 
@@ -89,7 +89,7 @@ def test_request_view_root_group(airlock_client):
 
     response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
     assert response.status_code == 200
-    assert "Recent Activity" in response.rendered_content
+    assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Added file" in response.rendered_content
 
@@ -536,6 +536,16 @@ def test_request_withdraw_not_author(airlock_client):
         release_request.id, airlock_client.user
     )
     assert persisted_request.status == RequestStatus.PENDING
+
+
+def test_empty_requests_for_workspace(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+
+    response = airlock_client.get("/requests/workspace/test1")
+
+    response.render()
+    assert response.status_code == 200
+    assert "There are no requests in this workspace" in response.rendered_content
 
 
 def test_requests_for_workspace(airlock_client):

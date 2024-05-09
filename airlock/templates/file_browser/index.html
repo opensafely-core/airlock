@@ -5,84 +5,18 @@
 {% load django_htmx %}
 
 {% block extra_styles %}
+  <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
   <style>
-
-/* tree styles */
-    ul.root {
-      padding: 0.2rem;
-    }
-
-    ul.tree {
-      list-style: none;
-    }
-
-    ul.tree details ul {
-      border-left: 1px dotted grey;
-      padding-left: 0.75rem;
-      margin-left: 0.5rem;
-    }
-
-    .tree summary {
-      cursor: pointer;
-    }
-
-    .tree li:has(>a.supporting) {
-      font-style: italic;
-    }
-
-    .tree li:has(>a.withdrawn) {
-      font-style: italic;
-      text-decoration: line-through;
-    }
-
-    .tree summary:has(>a.selected), .tree li:has(>a.selected) {
-      background-color: lightblue;
-    }
-
-    .tree summary:has(>a.invalid), .tree li:has(>a.invalid) {
-      color: darkgray;
-    }
-
-    .tree .selected {
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .tree .filegroup {
-      text-transform: uppercase;
-    }
-
-    .tree summary:has(>a.filegroup) {
-      background-color: lightgrey;
-    }
-
     .tree a.directory {
-      background-image: url("{% static "folder.png" %}");
-      background-repeat: no-repeat;
-      background-size: 1.4rem;
-      background-position: left 0 top 0;
-      padding-left: 1.3rem;
+      background-image: url("{% static 'folder.png' %}");
     }
-    .tree summary {
-      padding-left: 0.25rem;
-    }
-
-    .content {
-      width:100%;
-      max-width: 100%;
-    }
-
-    .content-scroller {
-      height: 75vh;
-      overflow: scroll;
-    }
-
   </style>
 {% endblock extra_styles %}
 
-{% block full_width_content %}
+{% block content %}
+  <div class="div flex flex-col items-start gap-4">
+    {% article_header title=title %}
 
-  {% fragment as action_button %}
     <div class="flex items-center gap-2">
       {% if context == "request" %}
         {% if is_author %}
@@ -132,60 +66,34 @@
       {% elif context == "request" or context == "workspace" %}
         {% #button type="link" href=workspace.get_requests_url variant="success" id="requests-workspace-button" %}All release requests for workspace{% /button %}
       {% endif %}
-
     </div>
-  {% endfragment %}
+  </div>
+{% endblock content %}
 
-  {% #card title=title custom_button=action_button %}
-  {% /card %}
-
-  <div class="flex flex-row">
-
-    <div style="flex-basis: 25%">
-      {% #card %}
-        <ul id="tree" class="tree root"
-            hx-boost="true"
-            hx-target="#selected-contents"
-            hx-select="#selected-contents"
-            hx-swap="outerHTML"
-            hx-push-url="true"
-            hx-on:htmx:after-request="setTreeSelection(this, event)"
-        >
-          {% include "file_browser/tree.html" with path=root.fake_parent %}
-        </ul>
-      {% /card %}
-
+{% block full_width_content %}
+  <div class="browser">
+    <div class="browser__files">
+      <ul
+        class="tree root"
+        hx-boost="true"
+        hx-on:htmx:after-request="setTreeSelection(this, event)"
+        hx-push-url="true"
+        hx-select="#selected-contents"
+        hx-swap="outerHTML"
+        hx-target="#selected-contents"
+        id="tree"
+      >
+        {% include "file_browser/tree.html" with path=root.fake_parent %}
+      </ul>
     </div>
-    <div style="flex-basis: 75%; max-width: 75%">
+    <div class="browser__content">
       {% include "file_browser/contents.html" %}
     </div>
   </div>
-
 {% endblock full_width_content %}
 
 {% block extra_js %}
   <script type="text/javascript" src="{% static 'htmx-1.9.10.min.js' %}"></script>
   {% django_htmx_script %}
-
-  <script type="text/javascript">
-    // keep the selected class up to date in the tree on the client side
-    function setTreeSelection(tree, event) {
-      // target here is the hx-get link that has been clicked on
-
-      // remove class from currently selected node
-      tree.querySelector('.selected')?.classList.remove('selected');
-
-      let target = event.srcElement;
-
-      // set current selected
-      target.classList.add('selected');
-      // ensure parent details container is open, which means clicking on a directory will open containers.
-      target.closest("details").open = true;
-
-      // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
-      if (target.classList.contains("filegroup")) {
-        target.closest("li.tree").querySelectorAll("details").forEach((e) => e.open = true)
-      }
-    }
-  </script>
+  <script src="{% static 'assets/file_browser/index.js' %}"></script>
 {% endblock %}
