@@ -2,13 +2,13 @@
   <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
     <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
       <a
-        class="group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500 after:absolute after:bottom-1 after:h-[2px] after:left-2 after:bg-bn-strawberry-300 after:w-1 after:transition-all after:opacity-0 after:hover:w-11/12 after:hover:opacity-100"
+        class="group relative bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500"
         href="{% url 'home' %}"
       >
         <span class="transition-colors ease-in duration-150 text-oxford group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
           OpenSAFELY
         </span>
-        <span class="transition-colors ease-in duration-300 text-oxford-600 group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
+        <span class="transition-colors ease-in duration-150 text-oxford-600 group-hover:text-bn-strawberry-700 group-focus:text-bn-strawberry-700">
           Airlock
         </span>
       </a>
@@ -22,8 +22,6 @@
                    relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
                    hover:text-bn-strawberry-700
                    focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-                   before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-                   before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
                    {% if location.is_active %}border-t-oxford-600/50 text-oxford-600{% endif %}
                   "
             href="{{ location.url }}"
@@ -58,8 +56,6 @@
                        flex relative h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0 cursor-pointer
                        hover:text-bn-strawberry-700
                        focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-                       before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-                       before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
                       "
                 data-testid="nav-account"
               >
