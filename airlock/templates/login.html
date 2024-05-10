@@ -5,7 +5,7 @@
 {% block metatitle %}Login | OpenSAFELY Airlock{% endblock metatitle %}
 
 {% block content %}
-  {% #article_header title="Login" class="mb-6" %}
+  {% #airlock_header title="Login" class="mb-6" %}
     <div class="prose">
       <p>To login to Airlock, you need to:</p>
       <ul>
@@ -18,7 +18,7 @@
       </ul>
       <p>Once you have logged in once, you should not need to again, unless you do not access Airlock for a long time.</p>
     </div>
-  {% /article_header %}
+  {% /airlock_header %}
 
   {% #card title="Login with Single Use Token" subtitle="Log in from Level 4 environments with a Single Use Token" container=True class="max-w-2xl" %}
     {% if dev_users_file %}
