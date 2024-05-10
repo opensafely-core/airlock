@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block metatitle %}Workspaces for {{ request.user.username }} |  Airlock{% endblock metatitle %}
+
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
     {% airlock_header title="Workspaces for "|add:request.user.username %}

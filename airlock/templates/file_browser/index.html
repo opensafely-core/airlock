@@ -4,6 +4,8 @@
 {% load django_vite %}
 {% load django_htmx %}
 
+{% block metatitle %}{{ title }} |  Airlock{% endblock metatitle %}
+
 {% block extra_styles %}
   <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
   <style>
