@@ -200,6 +200,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comments": comments,
         "group_comment_url": group_comment_url,
         "group_activity": group_activity,
+        "show_c3": settings.SHOW_C3,
     }
 
     return TemplateResponse(request, template, context)
