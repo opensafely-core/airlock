@@ -423,6 +423,7 @@ class RequestFile:
     size: int
     job_id: str
     commit: str
+    repo: str
     row_count: int | None = None
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -715,6 +716,7 @@ class DataAccessLayerProtocol(Protocol):
         timestamp: int,
         size: int,
         commit: str,
+        repo: str,
         job_id: str,
         row_count: int | None,
         col_count: int | None,
@@ -1162,6 +1164,7 @@ class BusinessLogicLayer:
             filetype=filetype,
             timestamp=manifest["timestamp"],
             commit=manifest["commit"],
+            repo=manifest["repo"],
             size=manifest["size"],
             job_id=manifest["job_id"],
             row_count=manifest["row_count"],

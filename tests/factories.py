@@ -54,7 +54,7 @@ def ensure_workspace(workspace_or_name):
 
 # get_output_metadata is imported from job-runner
 def get_output_metadata(
-    abspath, level, job_id, job_request, action, commit, excluded, message=None
+    abspath, level, job_id, job_request, action, commit, repo, excluded, message=None
 ):
     stat = abspath.stat()
     with abspath.open("rb") as fp:
@@ -76,6 +76,7 @@ def get_output_metadata(
         "job_id": job_id,
         "job_request": job_request,
         "action": action,
+        "repo": repo,
         "commit": commit,
         "size": stat.st_size,
         "timestamp": stat.st_mtime,
@@ -98,12 +99,17 @@ def update_manifest(workspace, files=None):
 
     skip_paths = [root / "logs", root / "metadata"]
 
+    repo = "http://example.com"
+
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         manifest["workspace"] = workspace.name
+        repo = manifest["repo"] or repo
         manifest.setdefault("outputs", {})
     else:
-        manifest = {"workspace": workspace.name, "repo": None, "outputs": {}}
+        manifest = {"workspace": workspace.name, "repo": repo, "outputs": {}}
+
+    manifest["repo"] = repo
 
     if files is None:  # pragma: nocover
         files = [
@@ -120,6 +126,7 @@ def update_manifest(workspace, files=None):
             job_request=f"job_request_{i}",
             action=f"action_{i}",
             commit="abcdefgh" * 5,  # 40 characters,
+            repo=repo,
             excluded=False,
         )
 
@@ -185,8 +192,9 @@ def create_repo(workspace, files=None):
     )
 
     commit = response.stdout.strip()
-
-    manifest = {"repo": str(repo_dir)}
+    update_manifest(workspace)
+    manifest = workspace.get_manifest_data()
+    manifest["repo"] = str(repo_dir)
     write_workspace_file(workspace, "metadata/manifest.json", json.dumps(manifest))
 
     return CodeRepo.from_workspace(workspace, commit)

@@ -136,6 +136,7 @@ class RequestFileMetadata(models.Model):
     size = models.IntegerField()
     job_id = models.TextField()
     commit = models.TextField()
+    repo = models.URLField()
     row_count = models.IntegerField(null=True)
     col_count = models.IntegerField(null=True)
 
