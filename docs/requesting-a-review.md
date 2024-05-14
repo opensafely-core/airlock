@@ -1,3 +1,8 @@
+!!! Note
+This process is under development and currently only applies to release requests
+submitted by internal researchers.
+
+
 ## Submitting a request
 
 Once the researcher has finished working on the release request, the next step is to
@@ -6,10 +11,14 @@ and click "Submit For Review".
 
 The status of the release request will transition to "Submitted".
 
-!!!note "Notifying output checkers"
-    :construction: Work in progress :construction:
+A GitHub issue will be automatically created and output-checkers will be notified
+in Slack of the new release request.
 
-    Currently, the researcher needs to notify output checkers of the submitted request by email or slack.
-    
-    In future, output checkers will be automatically notified when new release requests are submitted
-    for review. 
+
+### Completing the release request form
+
+After submitting their request on Airlock, researchers complete [this form](https://docs.google.com/document/d/1uWRiFps6tDA2SpxSxf0C2G9mOVWMQ6TQ/edit)
+and attach it to the GitHub issue. To find the relevant GitHub issue, go to the
+[opensafely-output-review](https://github.com/ebmdatalab/opensafely-output-review/issues/)
+issues list. Issues created by Airlock are titled with
+the workspace name and Airlock release request ID.
