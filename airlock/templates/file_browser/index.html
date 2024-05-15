@@ -16,56 +16,58 @@
 {% endblock extra_styles %}
 
 {% block content %}
-  {% #airlock_header title=title context=context workspace_url=workspace.get_url current_release=current_request.get_url all_requests=workspace.get_requests_url workspace_name=workspace user=release_request.author id=release_request.id %}
-
-    {% if context == "request" and is_author and release_request.status.name == "PENDING" %}
-      <form action="{{ request_submit_url }}" method="POST">
-        {% csrf_token %}
-        {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
-      </form>
-    {% endif %}
-
-    {% if context == "request" and is_author and release_request.status.name == "SUBMITTED" %}
-      {% #modal id="withdrawRequest" button_text="Withdraw this request" variant="warning" %}
-        {% #card container=True title="Withdraw this request" %}
-          <form action="{{ request_withdraw_url }}" method="POST">
+  {% if context == "request" %}
+    {% #airlock_header context=context release_request=release_request title=title workspace=workspace %}
+      {% if is_author %}
+        {% if release_request.status.name == "PENDING" %}
+          <form action="{{ request_submit_url }}" method="POST">
             {% csrf_token %}
-            <div class="pb-8">
-              This will withdraw the entire request.
-              Once a request is withdrawn, it cannot be resubmitted and must be
-              recreated from scratch.
-              Please confirm you wish to withdraw this request.
-            </div>
-            {% #button type="submit" variant="danger" class="action-button btn-sm" id="withdraw-request-confirm" %}Withdraw{% /button %}
-            {% #button variant="primary" type="cancel" %}Cancel{% /button %}
+            {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
           </form>
-        {% /card %}
-      {% /modal %}
-    {% endif %}
+        {% elif release_request.status.name == "SUBMITTED" %}
+          {% #modal id="withdrawRequest" button_text="Withdraw this request" variant="warning" %}
+            {% #card container=True title="Withdraw this request" %}
+              <form action="{{ request_withdraw_url }}" method="POST">
+                {% csrf_token %}
 
-    {% if is_output_checker and release_request.status.name == "SUBMITTED" %}
-      <form action="{{ request_reject_url }}" method="POST">
-        {% csrf_token %}
-        {% #button type="submit" variant="danger" class="action-button btn-sm" id="reject-request-button" %}Reject request{% /button %}
-      </form>
-    {% endif %}
-
-    {% if is_output_checker and release_request.status.name == "SUBMITTED" %}
-      {% if release_request.all_files_approved %}
-        <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
-          {% csrf_token %}
-          {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2 htmx-indicator" %}
-          {% /button %}
-        </form>
-      {% else %}
-        {% #button disabled=True class="relative group btn-sm" variant="warning" id="release-files-button" %}
-          Release Files
-          {% tooltip class="airlock-tooltip" content="Releasing to jobs.opensafely.org is disabled until all files have been approved by two reviewers" %}
-        {% /button %}
+                <div class="pb-8">
+                  This will withdraw the entire request.
+                  Once a request is withdrawn, it cannot be resubmitted and must be
+                  recreated from scratch.
+                  Please confirm you wish to withdraw this request.
+                </div>
+                {% #button type="submit" variant="danger" class="action-button btn-sm" id="withdraw-request-confirm" %}Withdraw{% /button %}
+                {% #button variant="primary" type="cancel" %}Cancel{% /button %}
+              </form>
+            {% /card %}
+          {% /modal %}
+        {% endif %}
+      {% elif is_output_checker %}
+        {% if release_request.status.name == "SUBMITTED" %}
+          <form action="{{ request_reject_url }}" method="POST">
+            {% csrf_token %}
+            {% #button type="submit" variant="danger" class="action-button btn-sm" id="reject-request-button" %}Reject request{% /button %}
+          </form>
+          {% if release_request.all_files_approved %}
+            <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
+              {% csrf_token %}
+              {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2 htmx-indicator" %}
+              {% /button %}
+            </form>
+          {% else %}
+            {% #button disabled=True class="relative group btn-sm" variant="warning" id="release-files-button" %}
+              Release Files
+              {% tooltip class="airlock-tooltip" content="Releasing to jobs.opensafely.org is disabled until all files have been approved by two reviewers" %}
+            {% /button %}
+          {% endif %}
+        {% endif %}
       {% endif %}
-    {% endif %}
+    {% /airlock_header %}
+  {% else %}
+    {% #airlock_header context=context current_request=current_request title=title workspace=workspace %}
+    {% /airlock_header %}
+  {% endif %}
 
-  {% /airlock_header %}
 {% endblock content %}
 
 {% block full_width_content %}
