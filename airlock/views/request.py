@@ -202,6 +202,8 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comment_url": group_comment_url,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
+        # TODO, but for now stops template variable errors
+        "multiselect_url": "",
     }
 
     return TemplateResponse(request, template, context)
