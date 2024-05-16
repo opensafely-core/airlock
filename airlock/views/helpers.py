@@ -1,7 +1,9 @@
 from email.utils import parsedate
 
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseNotModified
+from django.utils.safestring import mark_safe
 
 from airlock.business_logic import bll
 from airlock.file_browser_api import PathItem
@@ -71,3 +73,18 @@ def get_path_item_from_tree_or_404(tree: PathItem, path: UrlPath | str):
         return tree.get_path(UrlPath(path))
     except tree.PathNotFound:
         raise Http404()
+
+
+def display_multiple_messages(request, msgs, level="success"):
+    func = getattr(messages, level)
+    func(request, mark_safe("<br/>".join(msgs)))
+
+
+def display_form_errors(request, form):
+    msgs = []
+
+    for name, error_list in form.errors.items():
+        for error in error_list:
+            msgs.append(f"{name}: {error}")
+
+    display_multiple_messages(request, msgs, "error")
