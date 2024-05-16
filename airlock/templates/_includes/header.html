@@ -60,9 +60,13 @@
                 data-testid="nav-account"
               >
                 Account
-                <span class="opacity-75 ml-1">
-                  {% icon_chevron_down_mini class="h-5 w-5 inline-block group-open:hidden" %}
-                  {% icon_chevron_up_mini class="h-5 w-5 hidden group-open:inline-block" %}
+                <span class="opacity-75 ml-1 flex items-baseline">
+                  <span class="material-symbols-sharp text-sm hidden group-open:inline-block">
+                    keyboard_arrow_up
+                  </span>
+                  <span class="material-symbols-sharp text-sm inline-block group-open:hidden">
+                    keyboard_arrow_down
+                  </span>
                 </span>
               </summary>
               <div class="absolute border-0 origin-top-right top-full mt-2 right-0 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
