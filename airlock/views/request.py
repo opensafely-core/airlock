@@ -24,6 +24,7 @@ from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import (
+    display_form_errors,
     download_file,
     get_path_item_from_tree_or_404,
     get_release_request_or_raise,
@@ -461,8 +462,6 @@ def group_comment(request, request_id, group):
             messages.success(request, "Comment added")
 
     else:
-        for field, error_list in form.errors.items():
-            for error in error_list:
-                messages.error(request, f"{field}: {error}")
+        display_form_errors(request, form)
 
     return redirect(release_request.get_url(group))

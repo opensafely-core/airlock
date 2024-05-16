@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from django.contrib import messages
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -14,9 +13,13 @@ from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm
 from airlock.types import UrlPath
+from airlock.views.helpers import (
+    display_form_errors,
+    get_path_item_from_tree_or_404,
+    get_workspace_or_raise,
+    serve_file,
+)
 from services.tracing import instrument
-
-from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
@@ -170,9 +173,7 @@ def workspace_add_file_to_request(request, workspace_name):
                 f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
     else:
-        for error_list in form.errors.values():
-            for error in error_list:
-                messages.error(request, str(error))
+        display_form_errors(request, form)
 
     # Redirect to the file in the workspace
     return redirect(workspace.get_url(relpath))
