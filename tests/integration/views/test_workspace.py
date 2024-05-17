@@ -521,6 +521,27 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
     assert "already exists" in message.message
 
 
+def test_workspace_request_file_invalid_form(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    response = airlock_client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={},
+        follow=True,
+    )
+
+    assert response.request["PATH_INFO"] == workspace.get_url()
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "next_url: This field is required" in message.message
+
+
 @pytest.mark.parametrize(
     "urlpath,post_data",
     [

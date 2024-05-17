@@ -1,6 +1,6 @@
 import pytest
 
-from airlock.forms import AddFilesForm
+from airlock.forms import AddFilesForm, MultiselectForm
 from tests import factories
 
 
@@ -78,6 +78,19 @@ def test_add_files_form_new_filegroup(new_group_name, is_valid):
         # new_filegroup also present
         "filegroup": "default",
         "new_filegroup": new_group_name,
+        "next_url": "/next",
     }
     form = AddFilesForm(data, release_request=release_request)
     assert form.is_valid() == is_valid
+
+
+def test_multiselect_validation():
+    form = MultiselectForm({})
+    assert form.is_valid() is False
+    assert form.errors["next_url"] == ["This field is required."]
+
+    form = MultiselectForm({"next_url": "https://evil.com/"})
+    assert form.is_valid() is False
+    assert form.errors["next_url"] == [
+        "Must be relative url (no scheme/hostname) but with absolute url path"
+    ]
