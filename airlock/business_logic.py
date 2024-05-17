@@ -236,10 +236,10 @@ class Workspace:
         return self.name
 
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
-        return reverse(
-            "workspace_view",
-            kwargs={"workspace_name": self.name, "path": relpath},
-        )
+        kwargs = {"workspace_name": self.name}
+        if relpath != ROOT_PATH:
+            kwargs["path"] = str(relpath)
+        return reverse("workspace_view", kwargs=kwargs)
 
     def get_requests_url(self):
         return reverse(
@@ -346,13 +346,15 @@ class CodeRepo:
         return f"{self.name}@{self.commit[:7]}"
 
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+        kwargs = {
+            "workspace_name": self.name,
+            "commit": self.commit,
+        }
+        if relpath != ROOT_PATH:
+            kwargs["path"] = str(relpath)
         return reverse(
             "code_view",
-            kwargs={
-                "workspace_name": self.workspace,
-                "commit": self.commit,
-                "path": relpath,
-            },
+            kwargs=kwargs,
         )
 
     def get_contents_url(

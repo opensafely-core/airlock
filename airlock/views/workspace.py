@@ -187,7 +187,14 @@ def workspace_multiselect(request, workspace_name: str):
             raise Http404(f"Invalid action {action}")
     else:
         display_form_errors(request, multiform)
-        return redirect(multiform.cleaned_data.get("next_url", workspace.get_url()))
+
+        # redirect back where we came from
+        if "next_url" not in multiform.errors:
+            url = multiform.cleaned_data["next_url"]
+        else:
+            url = workspace.get_url()
+
+        return redirect(url)
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -197,8 +204,6 @@ def workspace_add_file_to_request(request, workspace_name):
 
     # pull out list of files from raw POST data to be able to create the form with
     files = [v for k, v in request.POST.items() if k.startswith("file_")]
-    # get raw source of POST, to use in case form doesn't validate
-    next_url = request.POST["next_url"]
 
     # check the files all exist
     try:
@@ -242,4 +247,9 @@ def workspace_add_file_to_request(request, workspace_name):
         display_form_errors(request, form)
 
     # redirect back where we came from
-    return redirect(next_url)
+    if "next_url" not in form.errors:
+        url = form.cleaned_data["next_url"]
+    else:
+        url = workspace.get_url()
+
+    return redirect(url)

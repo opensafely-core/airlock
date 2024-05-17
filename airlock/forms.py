@@ -11,6 +11,15 @@ class ListField(forms.Field):
     widget = forms.SelectMultiple
 
 
+class InternalRedirectField(forms.CharField):
+    """Ensure is internal url path, not absolute url."""
+
+    def validate(self, value):
+        super().validate(value)
+        if value[0] != "/":
+            raise forms.ValidationError("Must be absolute url path")
+
+
 class TokenLoginForm(forms.Form):
     user = forms.CharField()
     token = forms.CharField()
@@ -30,9 +39,9 @@ class AddFilesForm(forms.Form):
         (RequestFileType.SUPPORTING.name, RequestFileType.SUPPORTING.name.title()),
     ]
 
+    next_url = InternalRedirectField()
     filegroup = forms.ChoiceField(required=False)
     new_filegroup = forms.CharField(required=False)
-    next_url = forms.CharField(required=False)
 
     def __init__(self, *args, **kwargs):
         release_request = kwargs.pop("release_request")
