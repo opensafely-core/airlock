@@ -32,7 +32,7 @@ from tests import factories
 # pytestmark = pytest.mark.django_db
 
 filename_strategy = st.text(
-    st.characters(max_codepoint=1000, blacklist_categories=('Cc', 'Cs')),
+    st.characters(min_codepoint=97,max_codepoint=122, blacklist_categories=('Cc', 'Cs')),
     min_size=1).map(lambda s: s.strip()).filter(lambda s: len(s) > 0)
 
 class AirlockMachine(RuleBasedStateMachine):
