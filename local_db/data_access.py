@@ -48,6 +48,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         return metadata.to_dict()
 
+    # ONLY FOR TESTING!
+    def _delete_release_request(
+        self,
+        id: str | None = None,  # noqa: A002
+    ):
+        RequestMetadata.objects.filter(id=id).delete()
+
     def _find_metadata(self, request_id: str):
         try:
             return RequestMetadata.objects.get(id=request_id)
