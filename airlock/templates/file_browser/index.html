@@ -8,6 +8,7 @@
 
 {% block extra_styles %}
   <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/file_browser/tree.css' %}">
 {% endblock extra_styles %}
 
 {% block content %}
@@ -71,7 +72,7 @@
   <div class="browser">
     <div class="browser__files">
       <ul
-        class="tree root"
+        class="tree root tree__root"
         hx-boost="true"
         hx-on:htmx:after-request="setTreeSelection(this, event)"
         hx-push-url="true"
