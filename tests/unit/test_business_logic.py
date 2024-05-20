@@ -674,6 +674,18 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             "author",
             "request_withdrawn",
         ),
+        (
+            RequestStatus.SUBMITTED,
+            RequestStatus.RETURNED,
+            "checker",
+            "request_returned",
+        ),
+        (
+            RequestStatus.RETURNED,
+            RequestStatus.SUBMITTED,
+            "author",
+            "request_submitted",
+        ),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
     ],
 )
@@ -692,11 +704,10 @@ def test_set_status_notifications(
     )
     release_request = factories.refresh_release_request(release_request)
 
-    if current == RequestStatus.SUBMITTED:
+    if current != RequestStatus.PENDING:
         bll.set_status(release_request, RequestStatus.SUBMITTED, user=users["author"])
-    elif current == RequestStatus.APPROVED:
-        bll.set_status(release_request, RequestStatus.SUBMITTED, user=users["author"])
-        bll.set_status(release_request, RequestStatus.APPROVED, user=users["checker"])
+    if current in [RequestStatus.APPROVED, RequestStatus.RETURNED]:
+        bll.set_status(release_request, current, user=users["checker"])
 
     bll.set_status(release_request, future, users[user])
     assert_last_notification(mock_notifications, notification_event_type)
@@ -789,6 +800,87 @@ def test_set_status_approved_only_supporting_file_denied(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.set_status(release_request, RequestStatus.APPROVED, user=user)
+
+
+def test_submit_request(bll, mock_notifications):
+    """
+    From pending
+    """
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=RequestStatus.PENDING
+    )
+    factories.write_request_file(release_request, "group", "test/file.txt")
+    bll.submit_request(release_request, author)
+    assert release_request.status == RequestStatus.SUBMITTED
+    assert_last_notification(mock_notifications, "request_submitted")
+
+
+def test_return_request_files_not_reviewed(bll, mock_notifications):
+    author = factories.create_user("author", ["workspace"], False)
+    checker = factories.create_user("checker", ["workspace"], True)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=RequestStatus.SUBMITTED
+    )
+    # file approved twice
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=True
+    )
+    # file rejected twice
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", rejected=True
+    )
+    # file with one approval
+    factories.write_request_file(release_request, "group", "test/file2.txt")
+    release_request = factories.refresh_release_request(release_request)
+    bll.approve_file(release_request, UrlPath("test/file2.txt"), user=checker)
+    release_request = factories.refresh_release_request(release_request)
+
+    with pytest.raises(
+        BusinessLogicLayer.RequestPermissionDenied, match="request has unreviewed files"
+    ):
+        bll.set_status(release_request, RequestStatus.RETURNED, checker)
+
+
+def test_resubmit_request(bll, mock_notifications):
+    """
+    From returned
+    Files with rejected status are moved to undecided
+    """
+    author = factories.create_user("author", ["workspace"], False)
+    checker = factories.create_user("checker", [], True)
+    release_request = factories.create_release_request(
+        "workspace", user=author, status=RequestStatus.SUBMITTED
+    )
+    # One file is approved by both, one is rejected
+    factories.write_request_file(
+        release_request, "group", "test/file.txt", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "test/file1.txt", rejected=True
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    # checker returns request
+    bll.set_status(release_request, RequestStatus.RETURNED, checker)
+
+    # author re-submits with no changes to files
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.SUBMITTED
+    assert_last_notification(mock_notifications, "request_submitted")
+
+    for i in range(2):
+        # approved file review is still approved
+        approved_file_review = release_request.get_file_review_for_reviewer(
+            "group/test/file.txt", f"output-checker-{i}"
+        )
+        assert approved_file_review.status == FileReviewStatus.APPROVED
+        # rejected file review is now undecided approved
+        rejected_file_review = release_request.get_file_review_for_reviewer(
+            "group/test/file1.txt", f"output-checker-{i}"
+        )
+        assert rejected_file_review.status == FileReviewStatus.UNDECIDED
 
 
 def test_add_file_to_request_not_author(bll):
@@ -1377,7 +1469,7 @@ def test_approve_then_reject_file(bll):
 @pytest.mark.parametrize(
     "review", [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
 )
-def test_review_then_reset_review_file(bll, review):
+def test_reviewreset_then_reset_review_file(bll, review):
     release_request, path, author = setup_empty_release_request()
     checker = factories.create_user("checker", [], True)
 
@@ -1424,6 +1516,102 @@ def test_reset_review_file_no_reviews(bll):
 
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 0
+
+
+def test_mark_file_undecided(bll):
+    # Set up submitted request
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+
+    # Write a request file that already has 2 rejected reviewsso that we can
+    # set the request to RETURNED
+    path = Path("path/file.txt")
+    factories.write_request_file(
+        release_request,
+        "default",
+        path,
+        rejected=True,
+    )
+
+    # setup the initial file status for our test checker
+    checker = factories.create_user("checker", [], True)
+    bll.reject_file(release_request, path, checker)
+    release_request = factories.refresh_release_request(release_request)
+
+    # set the request to returned
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.RETURNED, user=checker
+    )
+
+    # mark file review as undecided
+    review = release_request.get_file_review_for_reviewer(
+        UrlPath("default" / path), checker.username
+    )
+    bll.mark_file_undecided(release_request, review, path, checker)
+    release_request = factories.refresh_release_request(release_request)
+    review = release_request.get_file_review_for_reviewer(
+        UrlPath("default" / path), checker.username
+    )
+    assert review.status == FileReviewStatus.UNDECIDED
+
+
+@pytest.mark.parametrize(
+    "request_status,file_status",
+    [
+        # can only mark undecided for a rejected file on a returned request
+        (RequestStatus.SUBMITTED, FileReviewStatus.REJECTED),
+        (RequestStatus.APPROVED, FileReviewStatus.REJECTED),
+        (RequestStatus.RELEASED, FileReviewStatus.REJECTED),
+        (RequestStatus.RETURNED, FileReviewStatus.APPROVED),
+    ],
+)
+def test_mark_file_undecided_permission_errors(bll, request_status, file_status):
+    # Set up submitted request
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+
+    # Write a request file that already has 2 reviews; these are both rejected for
+    # requests that we want to be in RETURNED status, and approved
+    # for SUBMITTED/APPROVED/RELEASED, so we can set the request status
+    path = Path("path/file.txt")
+    factories.write_request_file(
+        release_request,
+        "default",
+        path,
+        rejected=file_status == RequestStatus.RETURNED,
+        approved=file_status != RequestStatus.RETURNED,
+    )
+
+    # setup the initial file status for our test checker
+    checker = factories.create_user("checker", [], True)
+    if file_status == FileReviewStatus.APPROVED:
+        bll.approve_file(release_request, path, checker)
+    else:
+        bll.reject_file(release_request, path, checker)
+    release_request = factories.refresh_release_request(release_request)
+
+    # set the request status
+    # For released, first move the initially submitted request to approved
+    if request_status == RequestStatus.RELEASED:
+        bll.set_status(
+            release_request=release_request,
+            to_status=RequestStatus.APPROVED,
+            user=checker,
+        )
+    # If necessary, move the initally submitted request to the final state for testing
+    if request_status != RequestStatus.SUBMITTED:
+        bll.set_status(
+            release_request=release_request, to_status=request_status, user=checker
+        )
+
+    review = release_request.get_file_review_for_reviewer(
+        UrlPath("default" / path), checker.username
+    )
+    assert review.status == file_status
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.mark_file_undecided(release_request, review, path, checker)
 
 
 def test_get_file_review_for_reviewer(bll):

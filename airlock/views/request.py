@@ -273,7 +273,7 @@ def request_submit(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        bll.set_status(release_request, RequestStatus.SUBMITTED, request.user)
+        bll.submit_request(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
