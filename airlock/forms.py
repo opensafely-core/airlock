@@ -1,4 +1,5 @@
 from django import forms
+from django.forms.formsets import formset_factory
 
 from airlock.business_logic import FileGroup, RequestFileType
 
@@ -45,7 +46,6 @@ class AddFilesForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         release_request = kwargs.pop("release_request")
-        self.files_to_add = kwargs.pop("files", [])
         super().__init__(*args, **kwargs)
 
         if release_request:
@@ -59,21 +59,6 @@ class AddFilesForm(forms.Form):
         self.fields["filegroup"].choices = group_choices
         self.fields["new_filegroup"]
 
-        # dynamically add 2 enumerated fields per file
-        for i, filename in enumerate(self.files_to_add):
-            # filename as hidden field
-            self.fields[f"file_{i}"] = forms.CharField(
-                required=True,
-                initial=filename,
-                widget=forms.HiddenInput(),
-            )
-            # filetype for this file
-            self.fields[f"filetype_{i}"] = forms.ChoiceField(
-                choices=self.FILETYPE_CHOICES,
-                required=True,
-                initial=RequestFileType.OUTPUT.name,
-            )
-
     def clean_new_filegroup(self):
         new_filegroup = self.cleaned_data.get("new_filegroup", "").lower()
         if new_filegroup in [fg.lower() for fg in self.filegroup_names]:
@@ -84,13 +69,26 @@ class AddFilesForm(forms.Form):
         else:
             return new_filegroup
 
-    def file_fields(self):
-        """Template helper to loop through each files fields."""
-        for i, filename in enumerate(self.files_to_add):
-            yield {
-                "file": self.fields[f"file_{i}"],
-                "filetype": self.fields[f"filetype_{i}"],
-            }
+
+class AddFileForm(forms.Form):
+    FILETYPE_CHOICES = [
+        (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
+        (RequestFileType.SUPPORTING.name, RequestFileType.SUPPORTING.name.title()),
+    ]
+
+    file = forms.CharField(
+        required=True,
+        widget=forms.HiddenInput(),
+    )
+    filetype = forms.ChoiceField(
+        choices=FILETYPE_CHOICES,
+        required=True,
+        initial=RequestFileType.OUTPUT.name,
+        widget=forms.RadioSelect
+    )
+
+
+AddFileFormSet = formset_factory(AddFileForm, extra=0)
 
 
 class GroupEditForm(forms.Form):

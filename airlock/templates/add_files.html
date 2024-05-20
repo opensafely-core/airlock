@@ -4,24 +4,12 @@
 
 {% #modal id="addRequestFile" custom_button=button autoshow=True %}
   {% #card container=True title="Add Files to Request" %}
+
     <form action="{{ add_file_url }}" method="POST" aria-label="add-file-form">
       {% csrf_token %}
       <input type=hidden name="next_url" value="{{ form.fields.next_url.initial }}"/>
       {% #list_group %}
-        {% for fields in form.file_fields %}
-          {% #list_group_item %}
-            {% with i=forloop.counter0|stringformat:"s" %}
-              <div class="flex items-center gap-2 justify-between">
-                <input type="hidden" name="file_{{ i }}" value="{{ fields.file.initial }}"/>
-                <span>{{ fields.file.initial }}</span>
-                <div class="flex items-center gap-2">
-                  {% form_radio id="output_filetype_"|add:i name="filetype_"|add:i value="OUTPUT" label="Output" checked=True %}
-                  {% form_radio id="supporting_filetype_"|add:i name="filetype_"|add:i value="SUPPORTING" label="Supporting" %}
-                </div>
-              </div>
-            {% endwith %}
-          {% /list_group_item %}
-        {% endfor %}
+         {{ formset }}
       {% /list_group %}
 
       {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}

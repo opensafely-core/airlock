@@ -11,7 +11,7 @@ from opentelemetry import trace
 
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
-from airlock.forms import AddFilesForm, MultiselectForm
+from airlock.forms import AddFilesForm, AddFileFormSet, MultiselectForm
 from airlock.types import UrlPath
 from airlock.views.helpers import (
     display_form_errors,
@@ -170,12 +170,18 @@ def workspace_multiselect(request, workspace_name: str):
             add_files_form.fields["next_url"].initial = multiform.cleaned_data[
                 "next_url"
             ]
+            add_files_formset = AddFileFormSet(
+                 initial=[
+                      {"file": filename} for filename in multiform.cleaned_data["selected"]
+                 ]
+            )
 
             return TemplateResponse(
                 request,
                 template="add_files.html",
                 context={
                     "form": add_files_form,
+                    "formset": add_files_formset,
                     "add_file_url": reverse(
                         "workspace_add_file",
                         kwargs={"workspace_name": workspace_name},
@@ -202,19 +208,19 @@ def workspace_multiselect(request, workspace_name: str):
 def workspace_add_file_to_request(request, workspace_name):
     workspace = get_workspace_or_raise(request.user, workspace_name)
 
-    # pull out list of files from raw POST data to be able to create the form with
-    files = [v for k, v in request.POST.items() if k.startswith("file_")]
-
     # check the files all exist
-    try:
-        for relpath in files:
-            workspace.abspath(relpath)
-    except bll.FileNotFound:
-        raise Http404(f"file {relpath} does not exist")
+    formset = AddFileFormSet(request.POST)
+    if formset.is_valid():
+        try:
+            for formset_form in formset:
+                relpath = formset_form.cleaned_data["file"]
+                workspace.abspath(relpath)
+        except bll.FileNotFound:
+            raise Http404(f"file {relpath} does not exist")
 
     release_request = bll.get_or_create_current_request(workspace_name, request.user)
-    form = AddFilesForm(request.POST, release_request=release_request, files=files)
-
+    form = AddFilesForm(request.POST, release_request=release_request)
+    
     if form.is_valid():
         group_name = (
             form.cleaned_data.get("new_filegroup")
@@ -223,8 +229,9 @@ def workspace_add_file_to_request(request, workspace_name):
         )
         msgs = []
         success = False
-        for i, relpath in enumerate(files):
-            filetype = RequestFileType[form.cleaned_data[f"filetype_{i}"]]
+        for formset_form in formset:
+            relpath = formset_form.cleaned_data["file"]
+            filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
             try:
                 bll.add_file_to_request(
                     release_request, relpath, request.user, group_name, filetype
