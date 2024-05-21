@@ -181,8 +181,10 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     page.locator("#id_new_filegroup").fill("my-new-group")
 
     # By default, the selected filetype is OUTPUT
-    expect(page.locator("#output_filetype_0")).to_be_checked()
-    expect(page.locator("#supporting_filetype_0")).not_to_be_checked()
+    expect(page.locator("input[name=form-0-filetype][value=OUTPUT]")).to_be_checked()
+    expect(
+        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
+    ).not_to_be_checked()
 
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
@@ -247,7 +249,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     page.locator("select[name=filegroup]").select_option("my-new-group")
     # Select supporting file
-    page.locator("#supporting_filetype_0").check()
+    page.locator("input[name=form-0-filetype][value=SUPPORTING]").check()
 
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))

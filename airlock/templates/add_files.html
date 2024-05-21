@@ -1,25 +1,24 @@
 {# hide default button, as we are going to autoshow the modal anyway #}
 {% fragment as button %}
 {% endfragment %}
-
+<style>
+  div.filetype-radio div { display: inline; }
+  div.filetype-radio label { display: inline; }
+</style>
 {% #modal id="addRequestFile" custom_button=button autoshow=True %}
   {% #card container=True title="Add Files to Request" %}
     <form action="{{ add_file_url }}" method="POST" aria-label="add-file-form">
       {% csrf_token %}
-      <input type=hidden name="next_url" value="{{ form.fields.next_url.initial }}"/>
+      {{ form.next_url }}
+      {{ formset.management_form }}
       {% #list_group %}
-        {% for fields in form.file_fields %}
+        {% for formset_form in formset %}
           {% #list_group_item %}
-            {% with i=forloop.counter0|stringformat:"s" %}
-              <div class="flex items-center gap-2 justify-between">
-                <input type="hidden" name="file_{{ i }}" value="{{ fields.file.initial }}"/>
-                <span>{{ fields.file.initial }}</span>
-                <div class="flex items-center gap-2">
-                  {% form_radio id="output_filetype_"|add:i name="filetype_"|add:i value="OUTPUT" label="Output" checked=True %}
-                  {% form_radio id="supporting_filetype_"|add:i name="filetype_"|add:i value="SUPPORTING" label="Supporting" %}
-                </div>
-              </div>
-            {% endwith %}
+            <div class="flex items-center gap-2 justify-between">
+              <span>{{ formset_form.file.value }}</span>
+              {{ formset_form.file }}
+              {% form_radios field=formset_form.filetype class="flex flex-row" %}
+            </div>
           {% /list_group_item %}
         {% endfor %}
       {% /list_group %}

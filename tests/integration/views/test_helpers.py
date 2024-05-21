@@ -45,7 +45,7 @@ def test_display_form_errors():
 
     form = forms.TokenLoginForm(request.POST)
     form.is_valid()
-    helpers.display_form_errors(request, form)
+    helpers.display_form_errors(request, form.errors)
 
     ctx = Context({"messages": get_messages(request)})
     template = Template("{% for message in messages %}{{ message }}{% endfor %}")

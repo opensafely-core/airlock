@@ -348,6 +348,19 @@ def test_workspace_multiselect_bad_form(airlock_client, bll):
     assert "selected: This field is required" in message.message
 
 
+def test_workspace_multiselect_bad_form_with_next_url(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+    factories.create_workspace("test1")
+
+    response = airlock_client.post(
+        "/workspaces/multiselect/test1",
+        data={"next_url": "/next"},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/next"
+
+
 @pytest.mark.parametrize("filetype", ["OUTPUT", "SUPPORTING"])
 def test_workspace_request_file_creates(airlock_client, bll, filetype):
     airlock_client.login(workspaces=["test1"])
@@ -358,8 +371,10 @@ def test_workspace_request_file_creates(airlock_client, bll, filetype):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": filetype,
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": filetype,
             "filegroup": "default",
             "next_url": workspace.get_url("test/path.txt"),
         },
@@ -387,8 +402,10 @@ def test_workspace_request_file_request_already_exists(airlock_client, bll):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "filegroup": "default",
             "next_url": workspace.get_url("test/path.txt"),
         },
@@ -416,8 +433,10 @@ def test_workspace_request_file_with_new_filegroup(airlock_client, bll):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "next_url": workspace.get_url("test/path.txt"),
             # new filegroup overrides a selected existing one (or the default)
             "filegroup": "default",
@@ -445,8 +464,10 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
     airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "next_url": workspace.get_url("test/path.txt"),
             "filegroup": "default",
         },
@@ -459,8 +480,10 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "next_url": workspace.get_url("test/path.txt"),
             "filegroup": "default",
         },
@@ -480,8 +503,10 @@ def test_workspace_request_file_request_path_does_not_exist(airlock_client):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "next_url": workspace.get_url("test/path.txt"),
             "filegroup": "default",
         },
@@ -502,8 +527,10 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "file_0": "test/path.txt",
-            "filetype_0": "OUTPUT",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
             "next_url": workspace.get_url("test/path.txt"),
             "filegroup": "default",
             "new_filegroup": "test_group",
@@ -529,7 +556,12 @@ def test_workspace_request_file_invalid_form(airlock_client, bll):
 
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
-        data={},
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": "OUTPUT",
+        },
         follow=True,
     )
 
@@ -540,6 +572,29 @@ def test_workspace_request_file_invalid_form(airlock_client, bll):
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "next_url: This field is required" in message.message
+
+
+def test_workspace_request_file_invalid_formset(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    response = airlock_client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={
+            "next_url": workspace.get_url("test/path.txt"),
+            "filegroup": "default",
+            "new_filegroup": "test_group",
+        },
+        follow=True,
+    )
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "At least one form must be completed" in message.message
 
 
 @pytest.mark.parametrize(

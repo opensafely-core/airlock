@@ -1,6 +1,6 @@
 import pytest
 
-from airlock.forms import AddFilesForm, MultiselectForm
+from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from tests import factories
 
 
@@ -8,21 +8,24 @@ pytestmark = pytest.mark.django_db
 
 
 def test_add_files_form_no_release_request():
-    form = AddFilesForm(release_request=None)
+    form = AddFileForm(release_request=None)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
-def test_add_files_form_with_files():
-    form = AddFilesForm(release_request=None, files=["foo.txt", "bar.txt"])
-    assert form.fields["file_0"].initial == "foo.txt"
-    assert form.fields["filetype_0"].initial == "OUTPUT"
-    assert form.fields["filetype_0"].choices == [
+def test_filetype_formset():
+    formset = FileTypeFormSet(initial=[{"file": f} for f in ["foo.txt", "bar.txt"]])
+    form1 = list(formset)[0]
+    form2 = list(formset)[1]
+
+    assert form1.fields["file"].get_bound_field(form1, "file").value() == "foo.txt"
+    assert form1.fields["filetype"].initial == "OUTPUT"
+    assert form1.fields["filetype"].choices == [
         ("OUTPUT", "Output"),
         ("SUPPORTING", "Supporting"),
     ]
-    assert form.fields["file_1"].initial == "bar.txt"
-    assert form.fields["filetype_1"].initial == "OUTPUT"
-    assert form.fields["filetype_1"].choices == [
+    assert form2.fields["file"].get_bound_field(form2, "file").value() == "bar.txt"
+    assert form2.fields["filetype"].initial == "OUTPUT"
+    assert form2.fields["filetype"].choices == [
         ("OUTPUT", "Output"),
         ("SUPPORTING", "Supporting"),
     ]
@@ -30,7 +33,7 @@ def test_add_files_form_with_files():
 
 def test_add_files_form_empty_release_request():
     release_request = factories.create_release_request("workspace")
-    form = AddFilesForm(release_request=release_request)
+    form = AddFileForm(release_request=release_request)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
@@ -43,7 +46,7 @@ def test_add_files_form_filegroup_choices():
     other_release_request = factories.create_release_request("workspace1")
     factories.create_filegroup(other_release_request, "other_group")
 
-    form = AddFilesForm(release_request=release_request)
+    form = AddFileForm(release_request=release_request)
     # default group is always first, other choices are sorted
     assert form.fields["filegroup"].choices == [
         ("default", "default"),
@@ -80,7 +83,7 @@ def test_add_files_form_new_filegroup(new_group_name, is_valid):
         "new_filegroup": new_group_name,
         "next_url": "/next",
     }
-    form = AddFilesForm(data, release_request=release_request)
+    form = AddFileForm(data, release_request=release_request)
     assert form.is_valid() == is_valid
 
 

@@ -80,11 +80,16 @@ def display_multiple_messages(request, msgs, level="success"):
     func(request, mark_safe("<br/>".join(msgs)))
 
 
-def display_form_errors(request, form):
+def display_form_errors(request, *form_errors):
     msgs = []
 
-    for name, error_list in form.errors.items():
-        for error in error_list:
-            msgs.append(f"{name}: {error}")
+    for errors in form_errors:
+        for name, error_list in errors.items():
+            for error in error_list:
+                if name:
+                    msg = f"{name}: {error}"
+                else:
+                    msg = error
+                msgs.append(msg)
 
     display_multiple_messages(request, msgs, "error")

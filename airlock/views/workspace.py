@@ -11,7 +11,7 @@ from opentelemetry import trace
 
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
-from airlock.forms import AddFilesForm, MultiselectForm
+from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath
 from airlock.views.helpers import (
     display_form_errors,
@@ -159,21 +159,20 @@ def workspace_multiselect(request, workspace_name: str):
         action = multiform.cleaned_data["action"]
 
         if action == "add_files":
-            add_files_form = AddFilesForm(
+            add_file_form = AddFileForm(
                 release_request=bll.get_current_request(workspace_name, request.user),
-                files=multiform.cleaned_data["selected"],
+                initial={"next_url": multiform.cleaned_data["next_url"]},
             )
-            # this was the only way I could find to inject a value into
-            # initial, which is used in the form rendering
-            add_files_form.fields["next_url"].initial = multiform.cleaned_data[
-                "next_url"
-            ]
 
+            filetype_formset = FileTypeFormSet(
+                initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
+            )
             return TemplateResponse(
                 request,
                 template="add_files.html",
                 context={
-                    "form": add_files_form,
+                    "form": add_file_form,
+                    "formset": filetype_formset,
                     "add_file_url": reverse(
                         "workspace_add_file",
                         kwargs={"workspace_name": workspace_name},
@@ -184,7 +183,7 @@ def workspace_multiselect(request, workspace_name: str):
         else:
             raise Http404(f"Invalid action {action}")
     else:
-        display_form_errors(request, multiform)
+        display_form_errors(request, multiform.errors)
 
         # redirect back where we came from
         if "next_url" not in multiform.errors:
@@ -199,55 +198,69 @@ def workspace_multiselect(request, workspace_name: str):
 @require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = get_workspace_or_raise(request.user, workspace_name)
+    release_request = bll.get_or_create_current_request(workspace_name, request.user)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileTypeFormSet(request.POST)
 
-    # pull out list of files from raw POST data to be able to create the form with
-    files = [v for k, v in request.POST.items() if k.startswith("file_")]
+    # default redirect in case of error
+    next_url = workspace.get_url()
+    errors = False
+
+    if not form.is_valid():
+        display_form_errors(request, form.errors)
+        errors = True
+
+    if "next_url" not in form.errors:
+        next_url = form.cleaned_data["next_url"]
+
+    if not formset.is_valid():
+        form_errors = [f.errors for f in formset]
+        non_form_errors = formset.non_form_errors()
+        if non_form_errors:  # pragma: no cover
+            form_errors = [{"": non_form_errors}] + form_errors
+        display_form_errors(request, *form_errors)
+        errors = True
+
+    if errors:
+        # redirect back where we came from with errors
+        return redirect(next_url)
 
     # check the files all exist
     try:
-        for relpath in files:
+        for formset_form in formset:
+            relpath = formset_form.cleaned_data["file"]
             workspace.abspath(relpath)
     except bll.FileNotFound:
         raise Http404(f"file {relpath} does not exist")
 
-    release_request = bll.get_or_create_current_request(workspace_name, request.user)
-    form = AddFilesForm(request.POST, release_request=release_request, files=files)
+    group_name = (
+        form.cleaned_data.get("new_filegroup")
+        or form.cleaned_data.get("filegroup")
+        or ""
+    )
+    msgs = []
+    success = False
+    for formset_form in formset:
+        relpath = formset_form.cleaned_data["file"]
+        filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-    if form.is_valid():
-        group_name = (
-            form.cleaned_data.get("new_filegroup")
-            or form.cleaned_data.get("filegroup")
-            or ""
-        )
-        msgs = []
-        success = False
-        for i, relpath in enumerate(files):
-            filetype = RequestFileType[form.cleaned_data[f"filetype_{i}"]]
-            try:
-                bll.add_file_to_request(
-                    release_request, relpath, request.user, group_name, filetype
-                )
-            except bll.APIException as err:
-                # This exception is raised if the file has already been added
-                # (to any group on the request)
-                msgs.append(f"{relpath}: {err}")
-            else:
-                success = True
-                msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
-                )
+        try:
+            bll.add_file_to_request(
+                release_request, relpath, request.user, group_name, filetype
+            )
+        except bll.APIException as err:
+            # This exception is raised if the file has already been added
+            # (to any group on the request)
+            msgs.append(f"{relpath}: {err}")
+        else:
+            success = True
+            msgs.append(
+                f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
+            )
 
-        # if any succeeded, show as success
-        level = "success" if success else "error"
-        display_multiple_messages(request, msgs, level)
-
-    else:
-        display_form_errors(request, form)
+    # if any succeeded, show as success
+    level = "success" if success else "error"
+    display_multiple_messages(request, msgs, level)
 
     # redirect back where we came from
-    if "next_url" not in form.errors:
-        url = form.cleaned_data["next_url"]
-    else:
-        url = workspace.get_url()
-
-    return redirect(url)
+    return redirect(next_url)

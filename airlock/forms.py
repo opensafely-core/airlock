@@ -1,4 +1,5 @@
 from django import forms
+from django.forms.formsets import BaseFormSet, formset_factory
 
 from airlock.business_logic import FileGroup, RequestFileType
 
@@ -13,6 +14,8 @@ class ListField(forms.Field):
 
 class InternalRedirectField(forms.CharField):
     """Ensure is internal url path, not absolute url."""
+
+    widget = forms.HiddenInput
 
     def validate(self, value):
         super().validate(value)
@@ -35,12 +38,7 @@ class MultiselectForm(forms.Form):
     selected = ListField()  # the list of files selected
 
 
-class AddFilesForm(forms.Form):
-    FILETYPE_CHOICES = [
-        (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
-        (RequestFileType.SUPPORTING.name, RequestFileType.SUPPORTING.name.title()),
-    ]
-
+class AddFileForm(forms.Form):
     next_url = InternalRedirectField()
     filegroup = forms.ChoiceField(required=False)
     new_filegroup = forms.CharField(required=False)
@@ -61,21 +59,6 @@ class AddFilesForm(forms.Form):
         self.fields["filegroup"].choices = group_choices
         self.fields["new_filegroup"]
 
-        # dynamically add 2 enumerated fields per file
-        for i, filename in enumerate(self.files_to_add):
-            # filename as hidden field
-            self.fields[f"file_{i}"] = forms.CharField(
-                required=True,
-                initial=filename,
-                widget=forms.HiddenInput(),
-            )
-            # filetype for this file
-            self.fields[f"filetype_{i}"] = forms.ChoiceField(
-                choices=self.FILETYPE_CHOICES,
-                required=True,
-                initial=RequestFileType.OUTPUT.name,
-            )
-
     def clean_new_filegroup(self):
         new_filegroup = self.cleaned_data.get("new_filegroup", "").lower()
         if new_filegroup in [fg.lower() for fg in self.filegroup_names]:
@@ -86,13 +69,46 @@ class AddFilesForm(forms.Form):
         else:
             return new_filegroup
 
-    def file_fields(self):
-        """Template helper to loop through each files fields."""
-        for i, filename in enumerate(self.files_to_add):
-            yield {
-                "file": self.fields[f"file_{i}"],
-                "filetype": self.fields[f"filetype_{i}"],
-            }
+
+class FileTypeForm(forms.Form):
+    FILETYPE_CHOICES = [
+        (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
+        (RequestFileType.SUPPORTING.name, RequestFileType.SUPPORTING.name.title()),
+    ]
+
+    file = forms.CharField(
+        required=True,
+        widget=forms.HiddenInput(),
+    )
+    filetype = forms.ChoiceField(
+        choices=FILETYPE_CHOICES,
+        required=True,
+        initial=RequestFileType.OUTPUT.name,
+        widget=forms.RadioSelect(
+            attrs={"class": "filetype-radio flex items-center gap-2"}
+        ),
+    )
+
+
+class RequiredOneBaseFormSet(BaseFormSet):  # type: ignore
+    def clean(self):
+        """
+        Add custom validation to ensure at least one form has data.
+        """
+        if any(self.errors):
+            return  # pragma: no cover
+
+        # Check that at least one form has data
+        valid_forms = 0
+        for form in self.forms:  # pragma: no cover
+            if form.cleaned_data and any(form.cleaned_data.values()):
+                valid_forms += 1
+
+        if valid_forms < 1:
+            raise forms.ValidationError("At least one form must be completed.")
+
+
+FileTypeFormSet = formset_factory(FileTypeForm, extra=0, formset=RequiredOneBaseFormSet)
 
 
 class GroupEditForm(forms.Form):

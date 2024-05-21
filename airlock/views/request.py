@@ -464,6 +464,6 @@ def group_comment(request, request_id, group):
             messages.success(request, "Comment added")
 
     else:
-        display_form_errors(request, form)
+        display_form_errors(request, form.errors)
 
     return redirect(release_request.get_url(group))
