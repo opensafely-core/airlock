@@ -59,8 +59,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    current_request = bll.get_current_request(workspace_name, request.user)
-
     # Only include the AddFileForm if this pathitem is a file that
     # can be added to a request - i.e. it is a file and it's not
     # already on the curent request for the user, and the user
@@ -73,14 +71,15 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # changed.
     form = None
     file_in_request = (
-        current_request and path_item.relpath in current_request.all_files_set()
+        workspace.current_request
+        and path_item.relpath in workspace.current_request.all_files_set()
     )
     if (
         path_item.is_valid()
         and request.user.can_create_request(workspace_name)
-        and (current_request is None or not file_in_request)
+        and (workspace.current_request is None or not file_in_request)
     ):
-        form = AddFileForm(release_request=current_request)
+        form = AddFileForm(release_request=workspace.current_request)
 
     activity = []
     project = request.user.workspaces.get(workspace_name, {}).get(
@@ -107,7 +106,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},
             ),
-            "current_request": current_request,
+            "current_request": workspace.current_request,
             "file_in_request": file_in_request,
             "form": form,
             # for workspace summary page
