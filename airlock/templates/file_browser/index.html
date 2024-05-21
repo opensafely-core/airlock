@@ -48,7 +48,7 @@
               {% csrf_token %}
               {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}
                 Release Files
-                <img class="icon icon--green-700 animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
+                <img height="16" width="16" class="icon icon--green-700 animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
               {% /button %}
             </form>
           {% else %}

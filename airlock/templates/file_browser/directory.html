@@ -6,9 +6,9 @@
       {% for entry in path_item.children %}
         {% #list_group_item href=entry.url %}
           {% if entry.is_directory %}
-            <img class="icon mr-1" src="/static/icons/folder.svg" alt="" />
+            <img height="16" width="16" class="icon mr-1" src="/static/icons/folder.svg" alt="" />
           {% else %}
-            <img class="icon mr-1" src="/static/icons/draft.svg" alt="" />
+            <img height="16" width="16" class="icon mr-1" src="/static/icons/draft.svg" alt="" />
           {% endif %}
           {{ entry.name }}
         {% /list_group_item %}
