@@ -1,5 +1,3 @@
-{% load static %}
-
 <header class="header">
   <h1 class="header__title">
     {{ title }}
@@ -23,21 +21,21 @@
           <div>
             <dt>
               <span class="sr-only">Workspace</span>
-              <img class="icon" src="{% static 'icons/stacks.svg' %}" alt="">
+              <img class="icon" src="/static/icons/stacks.svg" alt="">
             </dt>
             <dd>{{ workspace }}</dd>
           </div>
           <div>
             <dt>
               <span class="sr-only">User</span>
-              <img class="icon" src="{% static 'icons/person.svg' %}" alt="">
+              <img class="icon" src="/static/icons/person.svg" alt="">
             </dt>
             <dd>{{ release_request.author }}</dd>
           </div>
           <div>
             <dt>
               <span class="sr-only">ID</span>
-              <img class="icon" src="{% static 'icons/token.svg' %}" alt=""></dt>
+              <img class="icon" src="/static/icons/token.svg" alt=""></dt>
             <dd>{{ release_request.id }}</dd>
           </div>
         </dl>
