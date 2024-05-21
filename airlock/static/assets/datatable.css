@@ -1,8 +1,8 @@
 .datatable thead {
-  position: sticky;
-  top: 0;
-  text-align: left;
   background-color: rgba(248, 250, 252);
+  position: sticky;
+  text-align: left;
+  top: 0;
 }
 
 #customTable.datatable-table th:first-child,

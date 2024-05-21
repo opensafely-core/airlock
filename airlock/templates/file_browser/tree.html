@@ -1,10 +1,12 @@
+{% load static %}
+
 {% for child in path.children %}
   <li class="tree tree__item">
     {% if child.is_directory %}
       <details class="tree__folder group" {% if child.expanded %}open{% endif %}>
         <summary class="tree__folder-name">
-          <span class="material-symbols-sharp tree__folder-icon tree__folder-icon--open">folder_open</span>
-          <span class="material-symbols-sharp tree__folder-icon tree__folder-icon--closed">folder</span>
+          <img class="icon tree__folder-icon tree__folder-icon--open" src="{% static 'icons/folder_open.svg' %}" alt="" />
+          <img class="icon tree__folder-icon tree__folder-icon--closed" src="{% static 'icons/folder.svg' %}" alt="" />
           <a class="{{ child.html_classes }} tree__folder-link" href="{{ child.url }}">{{ child.display }}</a>
         </summary>
         {% if child.children %}
@@ -15,9 +17,7 @@
       </details>
     {% else %}
       <a class="{{ child.html_classes }} tree__file" href="{{ child.url }}">
-        <span class="material-symbols-sharp tree__file-icon">
-          draft
-        </span>
+        <img class="icon tree__file-icon" src="{% static 'icons/draft.svg' %}" alt="" />
         <span class="tree__file-name">{{ child.display }}</span>
       </a>
     {% endif %}
