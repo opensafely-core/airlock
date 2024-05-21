@@ -73,10 +73,8 @@
 
 .tree__folder-icon,
 .tree__file-icon {
-  color: #475569;
+  filter: invert(31%) sepia(1%) saturate(0%) hue-rotate(9deg) brightness(97%) contrast(86%);
   cursor: pointer;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
 }
 
 .tree__folder-icon--closed {
