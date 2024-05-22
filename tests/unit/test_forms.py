@@ -1,32 +1,43 @@
 import pytest
 
-from airlock.forms import AddFileForm
+from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from tests import factories
 
 
 pytestmark = pytest.mark.django_db
 
 
-def test_add_file_form_no_release_request():
+def test_add_files_form_no_release_request():
     form = AddFileForm(release_request=None)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
-def test_add_file_form_file_type_choices():
-    form = AddFileForm(release_request=None)
-    assert form.fields["filetype"].choices == [
+def test_filetype_formset():
+    formset = FileTypeFormSet(initial=[{"file": f} for f in ["foo.txt", "bar.txt"]])
+    form1 = list(formset)[0]
+    form2 = list(formset)[1]
+
+    assert form1.fields["file"].get_bound_field(form1, "file").value() == "foo.txt"
+    assert form1.fields["filetype"].initial == "OUTPUT"
+    assert form1.fields["filetype"].choices == [
+        ("OUTPUT", "Output"),
+        ("SUPPORTING", "Supporting"),
+    ]
+    assert form2.fields["file"].get_bound_field(form2, "file").value() == "bar.txt"
+    assert form2.fields["filetype"].initial == "OUTPUT"
+    assert form2.fields["filetype"].choices == [
         ("OUTPUT", "Output"),
         ("SUPPORTING", "Supporting"),
     ]
 
 
-def test_add_file_form_empty_release_request():
+def test_add_files_form_empty_release_request():
     release_request = factories.create_release_request("workspace")
     form = AddFileForm(release_request=release_request)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
-def test_add_file_form_filegroup_choices():
+def test_add_files_form_filegroup_choices():
     release_request = factories.create_release_request("workspace")
     for group in ["b_group", "a_group"]:
         factories.create_filegroup(release_request, group)
@@ -57,7 +68,7 @@ def test_add_file_form_filegroup_choices():
         ("test 1", True),
     ],
 )
-def test_add_file_form_new_filegroup(new_group_name, is_valid):
+def test_add_files_form_new_filegroup(new_group_name, is_valid):
     release_request = factories.create_release_request("workspace")
     factories.create_filegroup(release_request, "test")
     release_request = factories.refresh_release_request(release_request)
@@ -70,7 +81,19 @@ def test_add_file_form_new_filegroup(new_group_name, is_valid):
         # new_filegroup also present
         "filegroup": "default",
         "new_filegroup": new_group_name,
-        "filetype": "OUTPUT",
+        "next_url": "/next",
     }
     form = AddFileForm(data, release_request=release_request)
     assert form.is_valid() == is_valid
+
+
+def test_multiselect_validation():
+    form = MultiselectForm({})
+    assert form.is_valid() is False
+    assert form.errors["next_url"] == ["This field is required."]
+
+    form = MultiselectForm({"next_url": "https://evil.com/"})
+    assert form.is_valid() is False
+    assert form.errors["next_url"] == [
+        "Must be relative url (no scheme/hostname) but with absolute url path"
+    ]

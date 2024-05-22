@@ -1,0 +1,56 @@
+<header class="header">
+  <h1 class="header__title">
+    {{ title }}
+  </h1>
+
+  {% if context == "request" and workspace.get_url %}
+    <a class="header__link header__nav-link" href="{{ workspace.get_url }}" id="workspace-home-button">
+      &larr; Back to workspace
+    </a>
+  {% elif context == "workspace" and current_request.get_url %}
+    <a class="header__link header__nav-link" href="{{ current_request.get_url }}" id="current-request-button">
+      View current release request &rarr;
+    </a>
+  {% endif %}
+
+  {% if context == "request" or context == "workspace" %}
+    <div class="header__subtitle">
+
+      {% if context == "request" %}
+        <dl class="heading__meta">
+          <div>
+            <dt>
+              <span class="sr-only">Workspace</span>
+              {% icon_rectangle_stack_outline class="" %}
+            </dt>
+            <dd>{{ workspace }}</dd>
+          </div>
+          <div>
+            <dt>
+              <span class="sr-only">User</span>
+              {% icon_user_outline class="" %}
+            </dt>
+            <dd>{{ release_request.author }}</dd>
+          </div>
+          <div>
+            <dt>{% icon_code_bracket_outline class="" %}</dt>
+            <dd>{{ release_request.id }}</dd>
+          </div>
+        </dl>
+      {% endif %}
+
+      {% if context == "workspace" and workspace.get_requests_url %}
+        <a class="header__link" href="{{ workspace.get_requests_url }}" id="requests-workspace-button">
+          View all release requests for workspace
+        </a>
+      {% endif %}
+
+    </div>
+  {% endif %}
+
+  {% if children %}
+    <div class="header__actions">
+      {{ children }}
+    </div>
+  {% endif %}
+</header>
