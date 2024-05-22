@@ -1,22 +1,19 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
     {% if context == "workspace" %}
-      {% if form %}
-        {% #modal id="addRequestFile" button_text="Add File to Request" variant="success" %}
-          {% #card container=True title="Add a file" %}
-            <form action="{{ request_file_url }}" method="POST" aria-label="add-file-form">
-              {% csrf_token %}
-              {% form_radios class="w-full max-w-lg mx-auto" label="Type of file" field=form.filetype selected=form.filetype.value %}
-              {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
-              {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
-              <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-              <div class="mt-2">
-                {% #button type="submit" variant="success" id="add-file-button" %}Add File to Request{% /button %}
-                {% #button variant="danger" type="cancel" %}Cancel{% /button %}
-              </div>
-            </form>
-          {% /card %}
-        {% /modal %}
+      {% if add_file %}
+        <form
+          method="POST"
+          hx-post="{{ multiselect_url }}"
+          hx-target="#multiselect_modal"
+          hx-swap="outerHtml"
+        >
+          {% #button type="submit" name="action" value="add_files" variant="success" %}Add File to Request{% /button %}
+          <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+          <input type=hidden name="next_url" value="{{ request.path }}"/>
+          {% csrf_token %}
+        </form>
+        <div id="multiselect_modal"></div>
       {% elif file_in_request %}
         {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
           Add File to Request

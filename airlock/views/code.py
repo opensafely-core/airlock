@@ -22,9 +22,6 @@ def get_repo_or_raise(user: User, workspace_name: str, commit: str):
 
     try:
         return CodeRepo.from_workspace(workspace, commit)
-    except bll.FileNotFound:
-        # cannot find manifest.json
-        raise Http404()
     except (CodeRepo.RepoNotFound, CodeRepo.CommitNotFound):
         raise Http404()
 

@@ -26,6 +26,12 @@ def clear_all_traces():
     test_exporter.clear()
 
 
+# mark every test iwth django_db
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        item.add_marker(pytest.mark.django_db)
+
+
 # Fail the test run if we see any warnings
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     if terminalreporter.stats.get("warnings"):  # pragma: no cover

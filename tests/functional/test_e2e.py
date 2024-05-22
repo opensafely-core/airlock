@@ -176,13 +176,15 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("[data-modal=addRequestFile]"))
+    find_and_click(page.locator("button[value=add_files]"))
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
 
     # By default, the selected filetype is OUTPUT
-    expect(page.locator("#id_filetype1")).to_be_checked()
-    expect(page.locator("#id_filetype2")).not_to_be_checked()
+    expect(page.locator("input[name=form-0-filetype][value=OUTPUT]")).to_be_checked()
+    expect(
+        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
+    ).not_to_be_checked()
 
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
@@ -243,11 +245,11 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Add supporting file to request, choosing the group we created previously
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("[data-modal=addRequestFile]"))
+    find_and_click(page.locator("button[value=add_files]"))
 
-    page.locator("#id_filegroup").select_option("my-new-group")
+    page.locator("select[name=filegroup]").select_option("my-new-group")
     # Select supporting file
-    page.locator("#id_filetype2").check()
+    page.locator("input[name=form-0-filetype][value=SUPPORTING]").check()
 
     # Click the button to add the file to a release request
     find_and_click(page.get_by_role("form").locator("#add-file-button"))

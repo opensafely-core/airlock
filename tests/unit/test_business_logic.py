@@ -66,6 +66,21 @@ def test_workspace_container():
     assert workspace.request_filetype("path") is None
 
 
+def test_workspace_from_directory_errors():
+    with pytest.raises(BusinessLogicLayer.WorkspaceNotFound):
+        Workspace.from_directory("workspace", {})
+
+    (settings.WORKSPACE_DIR / "workspace").mkdir()
+    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+        Workspace.from_directory("workspace")
+
+    manifest_path = settings.WORKSPACE_DIR / "workspace/metadata/manifest.json"
+    manifest_path.parent.mkdir(parents=True)
+    manifest_path.write_text(":")
+    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+        Workspace.from_directory("workspace")
+
+
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
@@ -75,18 +90,23 @@ def test_workspace_request_filetype(bll):
 def test_workspace_manifest_for_file():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.csv", "c1,c2,c3\n1,2,3\n4,5,6")
+
     file_manifest = workspace.get_manifest_for_file(UrlPath("foo/bar.csv"))
     assert file_manifest["row_count"] == 2
     assert file_manifest["col_count"] == 3
 
 
-def test_workspace_manifest_for_file_not_found():
+def test_workspace_manifest_for_file_not_found(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
     manifest_path = workspace.root() / "metadata/manifest.json"
     manifest_data = json.loads(manifest_path.read_text())
     manifest_data["outputs"] = {}
     manifest_path.write_text(json.dumps(manifest_data))
+
+    workspace = bll.get_workspace(
+        "workspace", factories.create_user(workspaces=["workspace"])
+    )
     with pytest.raises(BusinessLogicLayer.ManifestFileError):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
 
@@ -176,7 +196,7 @@ def test_code_repo_container():
 
 
 @pytest.mark.parametrize("output_checker", [False, True])
-def test_provider_get_workspaces_for_user(output_checker):
+def test_provider_get_workspaces_for_user(bll, output_checker):
     factories.create_workspace("foo")
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
@@ -187,11 +207,9 @@ def test_provider_get_workspaces_for_user(output_checker):
     }
     user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
 
-    bll = BusinessLogicLayer(data_access_layer=None)
-
     assert bll.get_workspaces_for_user(user) == [
-        Workspace("foo", {"project": "project 1"}),
-        Workspace("bar", {"project": "project 2"}),
+        bll.get_workspace("foo", user),
+        bll.get_workspace("bar", user),
     ]
 
 
@@ -203,7 +221,7 @@ def mock_old_api(monkeypatch):
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
 
 
-def test_provider_request_release_files_request_not_approved(mock_notifications):
+def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -213,7 +231,6 @@ def test_provider_request_release_files_request_not_approved(mock_notifications)
         status=RequestStatus.SUBMITTED,
     )
 
-    bll = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(bll.InvalidStateTransition):
         bll.release_files(release_request, checker)
 
@@ -223,7 +240,7 @@ def test_provider_request_release_files_request_not_approved(mock_notifications)
     assert_no_notifications(mock_notifications)
 
 
-def test_provider_request_release_files_invalid_file_type(mock_notifications):
+def test_provider_request_release_files_invalid_file_type(bll, mock_notifications):
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
     release_request = factories.create_release_request(
@@ -243,7 +260,6 @@ def test_provider_request_release_files_invalid_file_type(mock_notifications):
 
     release_request = factories.refresh_release_request(release_request)
     factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
-    bll = BusinessLogicLayer(data_access_layer=None)
     with pytest.raises(bll.RequestPermissionDenied):
         bll.release_files(release_request, checker)
     assert_last_notification(mock_notifications, "request_approved")
@@ -497,10 +513,10 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     checker = factories.create_user("checker", [], True)
     audit_type = bll.STATUS_AUDIT_EVENT[future]
     release_request1 = factories.create_release_request(
-        "workspace", user=author, status=current
+        "workspace1", user=author, status=current
     )
     release_request2 = factories.create_release_request(
-        "workspace", user=author, status=current
+        "workspace2", user=author, status=current
     )
 
     if valid_author:
@@ -510,7 +526,7 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
         assert audit_log[0].type == audit_type
         assert audit_log[0].user == author.username
         assert audit_log[0].request == release_request1.id
-        assert audit_log[0].workspace == "workspace"
+        assert audit_log[0].workspace == "workspace1"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request1, future, user=author)
@@ -525,7 +541,7 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
         if current == RequestStatus.REJECTED:
             # We cannot add files to a rejected request, so re-create the request
             release_request2 = factories.create_release_request(
-                "workspace", user=author, status=RequestStatus.SUBMITTED
+                "workspace2", user=author, status=RequestStatus.SUBMITTED
             )
             factories.write_request_file(
                 release_request2, "group", "test/file.txt", approved=True
@@ -540,7 +556,7 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
         assert audit_log[0].type == audit_type
         assert audit_log[0].user == checker.username
         assert audit_log[0].request == release_request2.id
-        assert audit_log[0].workspace == "workspace"
+        assert audit_log[0].workspace == "workspace2"
     else:
         with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
             bll.set_status(release_request2, future, user=checker)
@@ -1564,11 +1580,9 @@ def test_group_comment_permissions(bll):
     assert len(release_request.filegroups["group"].comments) == 2
 
 
-def test_coderepo_from_workspace_bad_json():
+def test_coderepo_from_workspace_bad_json(bll):
     workspace = factories.create_workspace("workspace")
-    bad_manifest = workspace.root() / "metadata/manifest.json"
-    bad_manifest.parent.mkdir()
-    bad_manifest.write_text("")
+    workspace.manifest = {}
 
     with pytest.raises(CodeRepo.RepoNotFound):
         CodeRepo.from_workspace(workspace, "commit")
