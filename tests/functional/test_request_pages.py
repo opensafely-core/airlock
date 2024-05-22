@@ -58,7 +58,8 @@ def test_request_file_withdraw(live_server, context, page, bll):
     expect(file2_locator).to_have_class(re.compile("withdrawn"))
 
 
-def test_request_group_edit_comment(live_server, context, page, bll):
+def test_request_group_edit_comment(live_server, context, page, bll, settings):
+    settings.SHOW_C3 = True
     author = login_as_user(
         live_server,
         context,

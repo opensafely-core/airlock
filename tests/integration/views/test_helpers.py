@@ -1,4 +1,10 @@
-from airlock import renderers
+from django.contrib.messages.api import get_messages
+from django.contrib.messages.storage.session import SessionStorage
+from django.contrib.sessions.backends.db import SessionStore
+from django.template import Context, Template
+from django.test import RequestFactory
+
+from airlock import forms, renderers
 from airlock.views import helpers
 
 
@@ -29,3 +35,21 @@ def test_serve_file(tmp_path, rf):
     )
     response = helpers.serve_file(request, renderer)
     assert response.status_code == 200
+
+
+def test_display_form_errors():
+    request = RequestFactory().get("/")
+    request.session = SessionStore()
+    messages = SessionStorage(request)
+    request._messages = messages
+
+    form = forms.TokenLoginForm(request.POST)
+    form.is_valid()
+    helpers.display_form_errors(request, form.errors)
+
+    ctx = Context({"messages": get_messages(request)})
+    template = Template("{% for message in messages %}{{ message }}{% endfor %}")
+    content = template.render(ctx)
+
+    # assert the <br/> has not been escaped
+    assert content == "user: This field is required.<br/>token: This field is required."

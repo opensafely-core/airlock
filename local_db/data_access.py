@@ -75,6 +75,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             timestamp=file_metadata.timestamp,
             size=file_metadata.size,
             commit=file_metadata.commit,
+            repo=file_metadata.repo,
             job_id=file_metadata.job_id,
             row_count=file_metadata.row_count,
             col_count=file_metadata.col_count,
@@ -185,6 +186,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         timestamp: int,
         size: int,
         commit: str,
+        repo: str,
         job_id: str,
         row_count: int | None,
         col_count: int | None,
@@ -215,13 +217,14 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     timestamp=timestamp,
                     size=size,
                     commit=commit,
+                    repo=repo,
                     job_id=job_id,
                     row_count=row_count,
                     col_count=col_count,
                 )
             else:
                 raise BusinessLogicLayer.APIException(
-                    f"{filetype} file has already been added to request "
+                    f"{filetype.name.title()} file has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
 

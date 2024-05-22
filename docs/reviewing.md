@@ -27,9 +27,9 @@ Whilst viewing a file in an Airlock release request, they have the option of:
 
 ## Dealing with discrepancies and rejected files
 
-Output checkers and researchers can add comments on each file group to request
+<!-- Output checkers and researchers can add comments on each file group to request
 information and discuss discrepancies. Comments are recorded and displayed on the
-file group with the user's username and a timestamp.
+file group with the user's username and a timestamp. -->
 
 Researchers should withdraw any files that have been rejected in order for their
 release request to progress. They can add further files, including revised versions

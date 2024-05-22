@@ -146,8 +146,8 @@ def test_request_view_with_submitted_request(airlock_client):
         "workspace", status=RequestStatus.SUBMITTED
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert "Reject Request" in response.rendered_content
-    assert "Release Files" in response.rendered_content
+    assert "Reject request" in response.rendered_content
+    assert "Release files" in response.rendered_content
 
 
 def test_request_view_with_authored_request_file(airlock_client):

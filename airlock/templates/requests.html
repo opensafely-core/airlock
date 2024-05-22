@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 
+{% block metatitle %}Requests |  Airlock{% endblock metatitle %}
+
 {% block content %}
-  <div class="flex flex-col gap-8 max-w-3xl">
-    {% article_header title="Requests" %}
+  <div class="flex flex-col gap-4 max-w-3xl">
+    {% airlock_header title="Requests" %}
 
     {% #card title="Requests by "|add:request.user.username %}
       {% #list_group id="authored-requests" %}
