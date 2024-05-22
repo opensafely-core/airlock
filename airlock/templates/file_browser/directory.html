@@ -1,16 +1,61 @@
-{% #card title=path_item.name %}
-  {% #list_group %}
-    {% if not path_item.children %}
-      {% list_group_empty icon=True title="This directory is empty" %}
-    {% else %}
-      {% for entry in path_item.children %}
-        {% #list_group_item href=entry.url %}
-          {{ entry.name}}
-          {% if entry.is_directory %}
-            {% icon_folder_outline class="h-6 w-6 text-slate-600 inline" %}
-          {% endif %}
-        {% /list_group_item %}
-      {% endfor %}
-    {% endif %}
-  {% /list_group %}
+{% load django_vite %}
+{% load airlock %}
+{% load static %}
+
+<style>
+  #customTable thead {
+    position: sticky;
+    top: 0;
+    text-align: left;
+    background-color: rgba(248,250,252);
+  }
+
+  #customTable td.name a.directory {
+    background-image: url(/static/folder.png);
+    background-repeat: no-repeat;
+    background-size: 1.4rem;
+    background-position: left -0.2rem top 0;
+    padding-left: 1.1rem;
+  }
+
+</style>
+
+{% #card title=path_item.name container=True %}
+  {% if not path_item.children %}
+    This directory is empty
+  {% else %}
+    {% #table class="dir_table" id="customTable" %}
+      {% #table_head %}
+        <tr>
+          <th>
+            <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+          </th>
+          <th>
+            <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
+          </th>
+          <th>
+            <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
+          </th>
+        </tr>
+      {% /table_head %}
+      <tbody>
+        {% for path in path_item.children %}
+          <tr>
+            <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+            <td data-order="{{ path.size }}">{{ path.size_kb }}</td>
+            <td>{{ path.modified|date:"Y-m-d H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    {% /table %}
+    </form>
+
+    {% vite_asset "assets/src/scripts/components.js" %}
+
+    <script type="text/javascript">
+      // ensure datatable is initialised when loading over HTMX
+      window.initCustomTable ? window.initCustomTable() : null;
+    </script>
+
+  {% endif %}
 {% /card %}

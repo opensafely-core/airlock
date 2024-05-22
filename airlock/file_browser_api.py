@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
@@ -125,6 +126,26 @@ class PathItem:
 
     def file_type(self):
         return self.suffix().lstrip(".")
+
+    def size(self) -> int:
+        if self.type == PathType.FILE:
+            return self.container.get_size(self.relpath)
+        else:
+            return 0
+
+    def size_kb(self) -> str:
+        size = self.size()
+        if size == 0:
+            return ""
+
+        kb = to_kb(size)
+        return f"{kb} Kb"
+
+    def modified(self) -> datetime | None:
+        if self.type == PathType.FILE:
+            return self.container.get_modified_time(self.relpath)
+        else:
+            return None
 
     def breadcrumbs(self):
         item = self
@@ -510,3 +531,8 @@ def children_sort_key(node: PathItem):
     # this works because True == 1 and False == 0
     name = node.name()
     return (name != "metadata", node.type == PathType.FILE, name)
+
+
+def to_kb(value_in_bytes):
+    """Convert given value to Mb"""
+    return round(value_in_bytes / 1024, 2)

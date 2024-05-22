@@ -207,6 +207,12 @@ class AirlockContainer(Protocol):
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
+    def get_size(self, relpath: UrlPath) -> int:
+        """Get the size of a file"""
+
+    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
+        """Get modified time of a file"""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -304,6 +310,16 @@ class Workspace:
             raise BusinessLogicLayer.ManifestFileError(
                 f"Could not parse data for {relpath} from manifest.json file"
             )
+
+    def get_size(self, relpath: UrlPath) -> int:
+        return int(self.get_manifest_for_file(relpath).get("size", 0))
+
+    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
+        ts = self.get_manifest_for_file(relpath).get("timestamp")
+        if ts:
+            return datetime.utcfromtimestamp(ts)
+        else:  # pragma: no cover
+            return None
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -412,6 +428,14 @@ class CodeRepo:
             relpath=relpath,
             cache_id="",
         )
+
+    def get_size(self, relpath: UrlPath) -> int:
+        """Get the size of a file"""
+        return 0  # pragma: no cover
+
+    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
+        """Get modified time of a file"""
+        return None  # pragma: no cover
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
@@ -593,6 +617,12 @@ class ReleaseRequest:
             relpath=request_file.relpath,
             cache_id=request_file.file_id,
         )
+
+    def get_size(self, relpath: UrlPath) -> int:
+        return int(self.get_request_file(relpath).size)
+
+    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
+        return datetime.utcfromtimestamp(self.get_request_file(relpath).timestamp)
 
     def get_request_file(self, relpath: UrlPath | str):
         relpath = UrlPath(relpath)
