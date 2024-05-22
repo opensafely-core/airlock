@@ -6,7 +6,7 @@ from tests import factories
 
 
 @pytest.mark.django_db
-def test_command():
+def test_command(bll):
     workspace = factories.create_workspace("workspace")
     release_request = factories.create_release_request(workspace)
     factories.write_request_file(
@@ -23,6 +23,9 @@ def test_command():
     file_meta.timestamp = 1
     file_meta.save()
 
+    workspace = bll.get_workspace(
+        "workspace", factories.create_user(workspaces=["workspace"])
+    )
     manifest = workspace.get_manifest_for_file(file_meta.relpath)
     for attr in ["commit", "size", "job_id", "timestamp", "repo"]:
         assert getattr(file_meta, attr) != manifest[attr]
