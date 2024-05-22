@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Protocol, Self, cast
+from typing import Any, Protocol, Self, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -217,11 +217,43 @@ class Workspace:
     """
 
     name: str
-    metadata: dict[str, str] = field(default_factory=dict)
+    manifest: dict[str, Any]
+    metadata: dict[str, str]
+    current_request: ReleaseRequest | None
 
-    def __post_init__(self):
-        if not self.root().exists():
-            raise BusinessLogicLayer.WorkspaceNotFound(self.name)
+    @classmethod
+    def from_directory(
+        cls,
+        name: str,
+        metadata: dict[str, str] | None = None,
+        current_request: ReleaseRequest | None = None,
+    ) -> Workspace:
+        root = settings.WORKSPACE_DIR / name
+        if not root.exists():
+            raise BusinessLogicLayer.WorkspaceNotFound(name)
+
+        manifest_path = root / "metadata/manifest.json"
+        if not manifest_path.exists():
+            raise BusinessLogicLayer.ManifestFileError(
+                f"{manifest_path} does not exist"
+            )
+
+        try:
+            manifest = json.loads(manifest_path.read_text())
+        except json.JSONDecodeError as exc:
+            raise BusinessLogicLayer.ManifestFileError(
+                f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
+            )
+
+        if metadata is None:  # pragma: no cover
+            metadata = {}
+
+        return cls(
+            name,
+            manifest=manifest,
+            metadata=metadata,
+            current_request=current_request,
+        )
 
     def __str__(self):
         return self.get_id()
@@ -236,10 +268,10 @@ class Workspace:
         return self.name
 
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
-        return reverse(
-            "workspace_view",
-            kwargs={"workspace_name": self.name, "path": relpath},
-        )
+        kwargs = {"workspace_name": self.name}
+        if relpath != ROOT_PATH:
+            kwargs["path"] = str(relpath)
+        return reverse("workspace_view", kwargs=kwargs)
 
     def get_requests_url(self):
         return reverse(
@@ -265,19 +297,9 @@ class Workspace:
             relpath=relpath,
         )
 
-    def get_manifest_data(self):
-        manifest_path = self.abspath("metadata/manifest.json")
-        try:
-            return json.loads(manifest_path.read_text())
-        except json.JSONDecodeError as exc:
-            raise BusinessLogicLayer.ManifestFileError(
-                f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
-            )
-
     def get_manifest_for_file(self, relpath: UrlPath):
-        manifest_data = self.get_manifest_data()
         try:
-            return manifest_data["outputs"][str(relpath)]
+            return self.manifest["outputs"][str(relpath)]
         except KeyError:
             raise BusinessLogicLayer.ManifestFileError(
                 f"Could not parse data for {relpath} from manifest.json file"
@@ -321,8 +343,7 @@ class CodeRepo:
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str):
         try:
-            manifest = workspace.get_manifest_data()
-            repo = manifest["repo"]
+            repo = workspace.manifest["repo"]
         except (BusinessLogicLayer.ManifestFileError, KeyError):
             raise cls.RepoNotFound(
                 "Could not parse manifest.json file: {manifest_path}:\n{exc}"
@@ -346,13 +367,15 @@ class CodeRepo:
         return f"{self.name}@{self.commit[:7]}"
 
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+        kwargs = {
+            "workspace_name": self.name,
+            "commit": self.commit,
+        }
+        if relpath != ROOT_PATH:
+            kwargs["path"] = str(relpath)
         return reverse(
             "code_view",
-            kwargs={
-                "workspace_name": self.workspace,
-                "commit": self.commit,
-                "path": relpath,
-            },
+            kwargs=kwargs,
         )
 
     def get_contents_url(
@@ -423,6 +446,7 @@ class RequestFile:
     size: int
     job_id: str
     commit: str
+    repo: str
     row_count: int | None = None
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -715,6 +739,7 @@ class DataAccessLayerProtocol(Protocol):
         timestamp: int,
         size: int,
         commit: str,
+        repo: str,
         job_id: str,
         row_count: int | None,
         col_count: int | None,
@@ -826,12 +851,18 @@ class BusinessLogicLayer:
         if user is None or not user.has_permission(name):
             raise self.WorkspacePermissionDenied()
 
-        # this is a bit awkward. IF the user is an output checker, they may not
+        # this is a bit awkward. If the user is an output checker, they may not
         # have the workspace metadata in their User instance, so we provide an
         # empty metadata instance.
         # Currently, the only place this metadata is used is in the workspace
         # index, to group by project, so its mostly fine that its not here.
-        return Workspace(name, user.workspaces.get(name, {}))
+        metadata = user.workspaces.get(name, {})
+
+        return Workspace.from_directory(
+            name,
+            metadata=metadata,
+            current_request=self.get_current_request(name, user),
+        )
 
     def get_workspaces_for_user(self, user: User) -> list[Workspace]:
         """Get all the local workspace directories that a user has permission for."""
@@ -1162,6 +1193,7 @@ class BusinessLogicLayer:
             filetype=filetype,
             timestamp=manifest["timestamp"],
             commit=manifest["commit"],
+            repo=manifest["repo"],
             size=manifest["size"],
             job_id=manifest["job_id"],
             row_count=manifest["row_count"],

@@ -24,6 +24,7 @@ from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import (
+    display_form_errors,
     download_file,
     get_path_item_from_tree_or_404,
     get_release_request_or_raise,
@@ -200,6 +201,9 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comments": comments,
         "group_comment_url": group_comment_url,
         "group_activity": group_activity,
+        "show_c3": settings.SHOW_C3,
+        # TODO, but for now stops template variable errors
+        "multiselect_url": "",
     }
 
     return TemplateResponse(request, template, context)
@@ -460,8 +464,6 @@ def group_comment(request, request_id, group):
             messages.success(request, "Comment added")
 
     else:
-        for field, error_list in form.errors.items():
-            for error in error_list:
-                messages.error(request, f"{field}: {error}")
+        display_form_errors(request, form.errors)
 
     return redirect(release_request.get_url(group))

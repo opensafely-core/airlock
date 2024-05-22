@@ -146,6 +146,7 @@ TEMPLATES = [
             ],
             "builtins": [
                 "slippers.templatetags.slippers",  # required for assets library
+                "airlock.templatetags.airlock_components",  # required for airlock custom components
             ],
             "debug": DEBUG,  # required for template coverage
         },
@@ -402,3 +403,5 @@ LOGGING = {
         },
     },
 }
+
+SHOW_C3 = os.environ.get("AIRLOCK_SHOW_C3", "false") == "True"
