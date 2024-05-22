@@ -52,6 +52,11 @@ urlpatterns = [
         name="workspace_contents",
     ),
     path(
+        "workspaces/multiselect/<str:workspace_name>",
+        airlock.views.workspace_multiselect,
+        name="workspace_multiselect",
+    ),
+    path(
         "workspaces/add-file-to-request/<str:workspace_name>",
         airlock.views.workspace_add_file_to_request,
         name="workspace_add_file",

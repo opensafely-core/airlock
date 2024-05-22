@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from django.contrib import messages
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -12,11 +11,16 @@ from opentelemetry import trace
 
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
-from airlock.forms import AddFileForm
+from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath
+from airlock.views.helpers import (
+    display_form_errors,
+    display_multiple_messages,
+    get_path_item_from_tree_or_404,
+    get_workspace_or_raise,
+    serve_file,
+)
 from services.tracing import instrument
-
-from .helpers import get_path_item_from_tree_or_404, get_workspace_or_raise, serve_file
 
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
@@ -59,28 +63,24 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    current_request = bll.get_current_request(workspace_name, request.user)
-
-    # Only include the AddFileForm if this pathitem is a file that
-    # can be added to a request - i.e. it is a file and it's not
-    # already on the curent request for the user, and the user
-    # is allowed to add it to a request (if they are an output-checker they
-    # are allowed to view all workspaces, but not necessarily create
-    # requests for them.)
+    # Only show the add form button this pathitem is a file that can be added
+    # to a request - i.e. it is a file and it's not already on the curent
+    # request for the user, and the user is allowed to add it to a request (if
+    # they are an output-checker they are allowed to view all workspaces, but
+    # not necessarily create requests for them.)
     # Currently we can just rely on checking the relpath against
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
-    form = None
     file_in_request = (
-        current_request and path_item.relpath in current_request.all_files_set()
+        workspace.current_request
+        and path_item.relpath in workspace.current_request.all_files_set()
     )
-    if (
+    add_file = (
         path_item.is_valid()
         and request.user.can_create_request(workspace_name)
-        and (current_request is None or not file_in_request)
-    ):
-        form = AddFileForm(release_request=current_request)
+        and (workspace.current_request is None or not file_in_request)
+    )
 
     activity = []
     project = request.user.workspaces.get(workspace_name, {}).get(
@@ -107,9 +107,14 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},
             ),
-            "current_request": current_request,
+            "current_request": workspace.current_request,
             "file_in_request": file_in_request,
-            "form": form,
+            # for add file buttons
+            "add_file": add_file,
+            "multiselect_url": reverse(
+                "workspace_multiselect",
+                kwargs={"workspace_name": workspace_name},
+            ),
             # for workspace summary page
             "activity": activity,
             "project": project,
@@ -139,23 +144,106 @@ def workspace_contents(request, workspace_name: str, path: str):
 
 @instrument(func_attributes={"workspace": "workspace_name"})
 @require_http_methods(["POST"])
+def workspace_multiselect(request, workspace_name: str):
+    """User has selected multiple files and wishes to perform an action on them.
+
+
+    In some cases, we need to return a further form as a modal for more information for each file.
+    In others, we can just perform the requested action and redirect.
+    """
+    workspace = get_workspace_or_raise(request.user, workspace_name)
+
+    multiform = MultiselectForm(request.POST)
+
+    if multiform.is_valid():
+        action = multiform.cleaned_data["action"]
+
+        if action == "add_files":
+            add_file_form = AddFileForm(
+                release_request=bll.get_current_request(workspace_name, request.user),
+                initial={"next_url": multiform.cleaned_data["next_url"]},
+            )
+
+            filetype_formset = FileTypeFormSet(
+                initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
+            )
+            return TemplateResponse(
+                request,
+                template="add_files.html",
+                context={
+                    "form": add_file_form,
+                    "formset": filetype_formset,
+                    "add_file_url": reverse(
+                        "workspace_add_file",
+                        kwargs={"workspace_name": workspace_name},
+                    ),
+                },
+            )
+        # TODO: withdraw action
+        else:
+            raise Http404(f"Invalid action {action}")
+    else:
+        display_form_errors(request, multiform.errors)
+
+        # redirect back where we came from
+        if "next_url" not in multiform.errors:
+            url = multiform.cleaned_data["next_url"]
+        else:
+            url = workspace.get_url()
+
+        return redirect(url)
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["POST"])
 def workspace_add_file_to_request(request, workspace_name):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-    relpath = UrlPath(request.POST["path"])
-    try:
-        workspace.abspath(relpath)
-    except bll.FileNotFound:
-        raise Http404()
-
     release_request = bll.get_or_create_current_request(workspace_name, request.user)
     form = AddFileForm(request.POST, release_request=release_request)
-    if form.is_valid():
-        group_name = (
-            form.cleaned_data.get("new_filegroup")
-            or form.cleaned_data.get("filegroup")
-            or ""
-        )
-        filetype = RequestFileType[form.cleaned_data["filetype"]]
+    formset = FileTypeFormSet(request.POST)
+
+    # default redirect in case of error
+    next_url = workspace.get_url()
+    errors = False
+
+    if not form.is_valid():
+        display_form_errors(request, form.errors)
+        errors = True
+
+    if "next_url" not in form.errors:
+        next_url = form.cleaned_data["next_url"]
+
+    if not formset.is_valid():
+        form_errors = [f.errors for f in formset]
+        non_form_errors = formset.non_form_errors()
+        if non_form_errors:  # pragma: no cover
+            form_errors = [{"": non_form_errors}] + form_errors
+        display_form_errors(request, *form_errors)
+        errors = True
+
+    if errors:
+        # redirect back where we came from with errors
+        return redirect(next_url)
+
+    # check the files all exist
+    try:
+        for formset_form in formset:
+            relpath = formset_form.cleaned_data["file"]
+            workspace.abspath(relpath)
+    except bll.FileNotFound:
+        raise Http404(f"file {relpath} does not exist")
+
+    group_name = (
+        form.cleaned_data.get("new_filegroup")
+        or form.cleaned_data.get("filegroup")
+        or ""
+    )
+    msgs = []
+    success = False
+    for formset_form in formset:
+        relpath = formset_form.cleaned_data["file"]
+        filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
+
         try:
             bll.add_file_to_request(
                 release_request, relpath, request.user, group_name, filetype
@@ -163,16 +251,16 @@ def workspace_add_file_to_request(request, workspace_name):
         except bll.APIException as err:
             # This exception is raised if the file has already been added
             # (to any group on the request)
-            messages.error(request, str(err))
+            msgs.append(f"{relpath}: {err}")
         else:
-            messages.success(
-                request,
-                f"{filetype.name.title()} file has been added to request (file group '{group_name}')",
+            success = True
+            msgs.append(
+                f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
             )
-    else:
-        for error_list in form.errors.values():
-            for error in error_list:
-                messages.error(request, str(error))
 
-    # Redirect to the file in the workspace
-    return redirect(workspace.get_url(relpath))
+    # if any succeeded, show as success
+    level = "success" if success else "error"
+    display_multiple_messages(request, msgs, level)
+
+    # redirect back where we came from
+    return redirect(next_url)

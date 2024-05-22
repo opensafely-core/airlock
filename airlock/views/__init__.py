@@ -19,6 +19,7 @@ from .workspace import (
     workspace_add_file_to_request,
     workspace_contents,
     workspace_index,
+    workspace_multiselect,
     workspace_view,
 )
 
@@ -41,6 +42,7 @@ __all__ = [
     "group_edit",
     "group_comment",
     "workspace_add_file_to_request",
+    "workspace_multiselect",
     "workspace_contents",
     "workspace_index",
     "workspace_view",
