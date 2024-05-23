@@ -1,6 +1,6 @@
+import hashlib
 import inspect
 import json
-from datetime import datetime
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
@@ -112,24 +112,47 @@ def test_workspace_manifest_for_file_not_found(bll):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
 
 
-def test_get_size():
+def test_get_file_metadata():
     workspace = factories.create_workspace("workspace")
-    assert workspace.get_size(UrlPath("metadata/foo.log")) == 0
+    empty = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    assert empty.size is None
+    assert empty.size_mb == ""
+    assert empty.timestamp is None
+    assert empty.modified_at is None
+    assert empty.content_hash is None
+
+    # small log file
     factories.write_workspace_file(
         workspace, "metadata/foo.log", contents="foo", manifest=False
     )
-    assert workspace.get_size(UrlPath("metadata/foo.log")) == 3
 
+    from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    assert from_file.size == 3
+    assert from_file.size_mb == "<0.01 Mb"
+    assert from_file.timestamp is not None
+    assert from_file.content_hash == hashlib.sha256(b"foo").hexdigest()
 
-def test_get_modified_time():
-    workspace = factories.create_workspace("workspace")
-    assert workspace.get_modified_time(UrlPath("metadata/foo.log")) is None
+    # larger output file
+    contents = "x," * 1024 * 1024
     factories.write_workspace_file(
-        workspace, "metadata/foo.log", contents="foo", manifest=False
+        workspace, "output/bar.csv", contents=contents, manifest=True
     )
-    assert isinstance(
-        workspace.get_modified_time(UrlPath("metadata/foo.log")), datetime
+
+    from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
+    assert from_metadata.size == len(contents)
+    assert from_metadata.size_mb == "2.0 Mb"
+    assert from_metadata.timestamp is not None
+    assert (
+        from_metadata.content_hash
+        == hashlib.sha256(contents.encode("utf8")).hexdigest()
     )
+
+    (workspace.root() / "directory").mkdir()
+    directory = workspace.get_file_metadata(UrlPath("directory"))
+    assert directory.size is None
+    assert directory.size_mb == ""
+    assert directory.timestamp is None
+    assert directory.content_hash is None
 
 
 def test_request_container(mock_notifications):

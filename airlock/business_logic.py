@@ -26,7 +26,7 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import UrlPath
+from airlock.types import FileMetadata, UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
@@ -207,11 +207,8 @@ class AirlockContainer(Protocol):
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
-    def get_size(self, relpath: UrlPath) -> int:
-        """Get the size of a file"""
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        """Get modified time of a file"""
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+        """Get the file metadata"""
 
 
 @dataclass(order=True)
@@ -311,35 +308,18 @@ class Workspace:
                 f"No entry for {relpath} from manifest.json file"
             )
 
-    def get_size(self, relpath: UrlPath) -> int:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+        """Get file metadata, i.e. size, timestamp, hash"""
         try:
-            return int(self.get_manifest_for_file(relpath).get("size", 0))
+            return FileMetadata.from_manifest(self.get_manifest_for_file(relpath))
         except BusinessLogicLayer.ManifestFileError:
             pass
 
         # not in manifest, e.g. log file. Check disk
         try:
-            abspath = self.abspath(relpath)
+            return FileMetadata.from_path(self.abspath(relpath))
         except BusinessLogicLayer.FileNotFound:
-            return 0
-
-        return int(abspath.stat().st_size)
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        try:
-            return datetime.utcfromtimestamp(
-                self.get_manifest_for_file(relpath).get("timestamp")
-            )
-        except BusinessLogicLayer.ManifestFileError:
-            pass
-
-        # not in manifest, e.g. log file. Check disk
-        try:
-            abspath = self.abspath(relpath)
-        except BusinessLogicLayer.FileNotFound:
-            return None
-
-        return datetime.utcfromtimestamp(abspath.stat().st_mtime)
+            return FileMetadata.empty()
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -449,13 +429,9 @@ class CodeRepo:
             cache_id="",
         )
 
-    def get_size(self, relpath: UrlPath) -> int:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
         """Get the size of a file"""
-        return 0  # pragma: no cover
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        """Get modified time of a file"""
-        return None  # pragma: no cover
+        return FileMetadata.empty()  # pragma: no cover
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
@@ -638,11 +614,13 @@ class ReleaseRequest:
             cache_id=request_file.file_id,
         )
 
-    def get_size(self, relpath: UrlPath) -> int:
-        return int(self.get_request_file(relpath).size)
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        return datetime.utcfromtimestamp(self.get_request_file(relpath).timestamp)
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+        rfile = self.get_request_file(relpath)
+        return FileMetadata(
+            rfile.size,
+            rfile.timestamp,
+            _content_hash=rfile.file_id,
+        )
 
     def get_request_file(self, relpath: UrlPath | str):
         relpath = UrlPath(relpath)
