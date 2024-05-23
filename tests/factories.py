@@ -104,7 +104,7 @@ def update_manifest(workspace: Workspace | str, files=None):
 
     manifest_path = root / "metadata/manifest.json"
 
-    skip_paths = [root / "logs", root / "metadata"]
+    skip_paths = [root / "metadata"]
 
     repo = "http://example.com/org/repo"
 

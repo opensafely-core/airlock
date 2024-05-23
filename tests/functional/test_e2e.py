@@ -219,7 +219,11 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
 
     # Locate the link by its name, because later when we're looking at
     # the request, there will be 2 files that match .locator(".file:scope")
-    file_link = page.get_by_role("link", name="file.txt").locator(".file:scope")
+    file_link = (
+        page.locator("#tree")
+        .get_by_role("link", name="file.txt")
+        .locator(".file:scope")
+    )
 
     # Click to open the filegroup tree
     filegroup_link.click()

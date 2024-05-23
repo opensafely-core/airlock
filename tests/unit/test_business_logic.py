@@ -1,5 +1,6 @@
 import inspect
 import json
+from datetime import datetime
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
@@ -109,6 +110,26 @@ def test_workspace_manifest_for_file_not_found(bll):
     )
     with pytest.raises(BusinessLogicLayer.ManifestFileError):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
+
+
+def test_get_size():
+    workspace = factories.create_workspace("workspace")
+    assert workspace.get_size(UrlPath("metadata/foo.log")) == 0
+    factories.write_workspace_file(
+        workspace, "metadata/foo.log", contents="foo", manifest=False
+    )
+    assert workspace.get_size(UrlPath("metadata/foo.log")) == 3
+
+
+def test_get_modified_time():
+    workspace = factories.create_workspace("workspace")
+    assert workspace.get_modified_time(UrlPath("metadata/foo.log")) is None
+    factories.write_workspace_file(
+        workspace, "metadata/foo.log", contents="foo", manifest=False
+    )
+    assert isinstance(
+        workspace.get_modified_time(UrlPath("metadata/foo.log")), datetime
+    )
 
 
 def test_request_container(mock_notifications):
