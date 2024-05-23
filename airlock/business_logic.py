@@ -333,7 +333,7 @@ class Workspace:
         except BusinessLogicLayer.ManifestFileError:
             pass
 
-        # not in manifest, check disk
+        # not in manifest, e.g. log file. Check disk
         try:
             abspath = self.abspath(relpath)
         except BusinessLogicLayer.FileNotFound:

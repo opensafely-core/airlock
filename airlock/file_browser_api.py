@@ -137,11 +137,11 @@ class PathItem:
         size = self.size()
         if size == 0:
             return "0 Mb"
-        mb = to_mb(size)
-        i     elif size < 10240:
+        elif size < 10240:
             return "<0.01 Mb"
-
-        return f"{mb} Mb"
+        # all our test files are small
+        else:  # pragma: no cover
+            return f"{to_mb(size)} Mb"
 
     def modified(self) -> datetime | None:
         if self.type == PathType.FILE:
@@ -535,6 +535,6 @@ def children_sort_key(node: PathItem):
     return (name != "metadata", node.type == PathType.FILE, name)
 
 
-def to_mb(value_in_bytes):
+def to_mb(value_in_bytes):  # pragma: no cover
     """Convert given value to Mb"""
     return round(value_in_bytes / (1024 * 1024), 2)
