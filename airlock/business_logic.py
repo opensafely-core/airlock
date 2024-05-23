@@ -308,18 +308,38 @@ class Workspace:
             return self.manifest["outputs"][str(relpath)]
         except KeyError:
             raise BusinessLogicLayer.ManifestFileError(
-                f"Could not parse data for {relpath} from manifest.json file"
+                f"No entry for {relpath} from manifest.json file"
             )
 
     def get_size(self, relpath: UrlPath) -> int:
-        return int(self.get_manifest_for_file(relpath).get("size", 0))
+        try:
+            return int(self.get_manifest_for_file(relpath).get("size", 0))
+        except BusinessLogicLayer.ManifestFileError:
+            pass
+
+        # not in manifest, e.g. log file. Check disk
+        try:
+            abspath = self.abspath(relpath)
+        except BusinessLogicLayer.FileNotFound:
+            return 0
+
+        return int(abspath.stat().st_size)
 
     def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        ts = self.get_manifest_for_file(relpath).get("timestamp")
-        if ts:
-            return datetime.utcfromtimestamp(ts)
-        else:  # pragma: no cover
+        try:
+            return datetime.utcfromtimestamp(
+                self.get_manifest_for_file(relpath).get("timestamp")
+            )
+        except BusinessLogicLayer.ManifestFileError:
+            pass
+
+        # not in manifest, check disk
+        try:
+            abspath = self.abspath(relpath)
+        except BusinessLogicLayer.FileNotFound:
             return None
+
+        return datetime.utcfromtimestamp(abspath.stat().st_mtime)
 
     def abspath(self, relpath):
         """Get absolute path for file
