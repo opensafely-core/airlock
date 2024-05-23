@@ -5,10 +5,9 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
-from airlock.business_logic import CodeRepo, bll
+from airlock.business_logic import CodeRepo, Workspace, bll
 from airlock.file_browser_api import get_code_tree
 from airlock.types import UrlPath
-from airlock.users import User
 from airlock.views.helpers import (
     get_path_item_from_tree_or_404,
     get_workspace_or_raise,
@@ -17,9 +16,7 @@ from airlock.views.helpers import (
 from services.tracing import instrument
 
 
-def get_repo_or_raise(user: User, workspace_name: str, commit: str):
-    workspace = get_workspace_or_raise(user, workspace_name)
-
+def get_repo_or_raise(workspace: Workspace, commit: str):
     try:
         return CodeRepo.from_workspace(workspace, commit)
     except (CodeRepo.RepoNotFound, CodeRepo.CommitNotFound):
@@ -30,7 +27,8 @@ def get_repo_or_raise(user: User, workspace_name: str, commit: str):
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"workspace": "workspace_name", "commit": "commit"})
 def view(request, workspace_name: str, commit: str, path: str = ""):
-    repo = get_repo_or_raise(request.user, workspace_name, commit)
+    workspace = get_workspace_or_raise(request.user, workspace_name)
+    repo = get_repo_or_raise(workspace, commit)
     template = "file_browser/index.html"
     selected_only = False
 
@@ -52,7 +50,7 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         request,
         template,
         {
-            "workspace": workspace_name,
+            "workspace": workspace,
             "repo": repo,
             "root": tree,
             "path_item": path_item,
@@ -70,7 +68,8 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
 @xframe_options_sameorigin
 @require_http_methods(["GET"])
 def contents(request, workspace_name: str, commit: str, path: str):
-    repo = get_repo_or_raise(request.user, workspace_name, commit)
+    workspace = get_workspace_or_raise(request.user, workspace_name)
+    repo = get_repo_or_raise(workspace, commit)
 
     try:
         renderer = repo.get_renderer(UrlPath(path))
