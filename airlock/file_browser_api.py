@@ -97,7 +97,8 @@ class PathItem:
         return self.name()
 
     def url(self):
-        suffix = "/" if self.is_directory() else ""
+        url = self.container.get_url(self.relpath)
+        suffix = "/" if (self.is_directory() and not url.endswith("/")) else ""
         return self.container.get_url(self.relpath) + suffix
 
     def contents_url(self, download: bool = False):
