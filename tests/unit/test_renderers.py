@@ -62,7 +62,7 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     time = 1709652904  # date this test was written
     abspath = request.abspath(grouppath)
     os.utime(abspath, (time, time))
-    request_file = request.get_request_file(grouppath)
+    request_file = request.get_request_file_from_urlpath(grouppath)
 
     renderer_class = renderers.get_renderer(request_file.relpath)
     renderer = renderer_class.from_file(

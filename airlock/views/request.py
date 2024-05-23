@@ -287,7 +287,7 @@ def file_withdraw(request, request_id, path: str):
     grouppath = UrlPath(path)
 
     try:
-        release_request.get_request_file(grouppath)
+        release_request.get_request_file_from_urlpath(grouppath)
     except bll.FileNotFound:
         raise Http404()
 
@@ -297,7 +297,7 @@ def file_withdraw(request, request_id, path: str):
         raise PermissionDenied(str(exc))
 
     try:
-        release_request.get_request_file(grouppath)
+        release_request.get_request_file_from_urlpath(grouppath)
     except bll.FileNotFound:
         # its been removed - redirect to group that contained
         redirect_url = release_request.get_url(grouppath.parts[0])
@@ -331,7 +331,7 @@ def file_approve(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        relpath = release_request.get_request_file(path).relpath
+        relpath = release_request.get_request_file_from_urlpath(path).relpath
     except bll.FileNotFound:
         raise Http404()
 
@@ -350,7 +350,7 @@ def file_reject(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        relpath = release_request.get_request_file(path).relpath
+        relpath = release_request.get_request_file_from_urlpath(path).relpath
     except bll.FileNotFound:
         raise Http404()
 

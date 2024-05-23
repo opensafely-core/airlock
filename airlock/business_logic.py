@@ -606,7 +606,7 @@ class ReleaseRequest:
         return url
 
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
-        request_file = self.get_request_file(relpath)
+        request_file = self.get_request_file_from_urlpath(relpath)
         renderer_class = renderers.get_renderer(relpath)
         return renderer_class.from_file(
             self.abspath(relpath),
@@ -615,14 +615,15 @@ class ReleaseRequest:
         )
 
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
-        rfile = self.get_request_file(relpath)
+        rfile = self.get_request_file_from_urlpath(relpath)
         return FileMetadata(
             rfile.size,
             rfile.timestamp,
             _content_hash=rfile.file_id,
         )
 
-    def get_request_file(self, relpath: UrlPath | str):
+    def get_request_file_from_urlpath(self, relpath: UrlPath | str):
+        """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
         file_relpath = UrlPath(*relpath.parts[1:])
@@ -640,7 +641,7 @@ class ReleaseRequest:
 
         The first part of the relpath is the group, so we parse and validate that first.
         """
-        request_file = self.get_request_file(relpath)
+        request_file = self.get_request_file_from_urlpath(relpath)
         return self.root() / request_file.file_id
 
     def all_files_set(self):
@@ -672,7 +673,7 @@ class ReleaseRequest:
         return next(
             (
                 r
-                for r in self.get_request_file(urlpath).reviews
+                for r in self.get_request_file_from_urlpath(urlpath).reviews
                 if r.reviewer == reviewer
             ),
             None,
@@ -680,7 +681,7 @@ class ReleaseRequest:
 
     def request_filetype(self, urlpath: UrlPath):
         try:
-            return self.get_request_file(urlpath).filetype
+            return self.get_request_file_from_urlpath(urlpath).filetype
         except BusinessLogicLayer.FileNotFound:
             return None
 

@@ -1022,7 +1022,7 @@ def test_request_all_files_set(bll):
     assert len(filegroup.supporting_files) == 1
 
 
-def test_request_release_get_request_file(bll):
+def test_request_release_get_request_file_from_urlpath(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
@@ -1032,12 +1032,12 @@ def test_request_release_get_request_file(bll):
     )
 
     with pytest.raises(bll.FileNotFound):
-        release_request.get_request_file("badgroup" / path)
+        release_request.get_request_file_from_urlpath("badgroup" / path)
 
     with pytest.raises(bll.FileNotFound):
-        release_request.get_request_file("default/does/not/exist")
+        release_request.get_request_file_from_urlpath("default/does/not/exist")
 
-    request_file = release_request.get_request_file("default" / path)
+    request_file = release_request.get_request_file_from_urlpath("default" / path)
     assert request_file.relpath == path
 
 
