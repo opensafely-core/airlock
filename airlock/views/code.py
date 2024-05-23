@@ -32,6 +32,7 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
     template = "file_browser/index.html"
     selected_only = False
 
+    return_url = request.GET.get("return_url")
     if request.htmx:
         template = "file_browser/contents.html"
         selected_only = True
@@ -60,6 +61,8 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
             "context": "repo",
             "title": f"{repo.repo}@{commit[:7]}",
             "current_request": current_request,
+            "return_url": return_url,
+            "code_url": "",
         },
     )
 

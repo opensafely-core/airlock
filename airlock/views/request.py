@@ -89,12 +89,17 @@ def request_view(request, request_id: str, path: str = ""):
             "file_withdraw",
             kwargs={"request_id": request_id, "path": path},
         )
-        code_url = reverse(
-            "code_view",
-            kwargs={
-                "workspace_name": release_request.workspace,
-                "commit": release_request.get_request_file_from_urlpath(path).commit,
-            },
+        code_url = (
+            reverse(
+                "code_view",
+                kwargs={
+                    "workspace_name": release_request.workspace,
+                    "commit": release_request.get_request_file_from_urlpath(
+                        path
+                    ).commit,
+                },
+            )
+            + f"?return_url={release_request.get_url(path)}"
         )
 
     group_edit_form = None
@@ -213,6 +218,7 @@ def request_view(request, request_id: str, path: str = ""):
         # TODO, but for now stops template variable errors
         "multiselect_url": "",
         "code_url": code_url,
+        "return_url": "",
     }
 
     return TemplateResponse(request, template, context)

@@ -97,12 +97,15 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() or path not in workspace.manifest["outputs"]:
         code_url = None
     else:
-        code_url = reverse(
-            "code_view",
-            kwargs={
-                "workspace_name": workspace.name,
-                "commit": workspace.get_manifest_for_file(path)["commit"],
-            },
+        code_url = (
+            reverse(
+                "code_view",
+                kwargs={
+                    "workspace_name": workspace.name,
+                    "commit": workspace.get_manifest_for_file(path)["commit"],
+                },
+            )
+            + f"?return_url={workspace.get_url(path)}"
         )
 
     return TemplateResponse(
@@ -131,6 +134,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "project": project,
             # for code button
             "code_url": code_url,
+            "return_url": "",
         },
     )
 
