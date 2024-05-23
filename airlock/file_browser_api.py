@@ -451,7 +451,7 @@ def get_code_tree(
 
     leaf_directories = set()
 
-    if selected_only:
+    if selected_only and selected_path != ROOT_PATH:
         # we only want the selected path, and its immediate children if it has any
         pathlist = [selected_path]
 
