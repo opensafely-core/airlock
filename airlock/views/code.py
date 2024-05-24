@@ -1,4 +1,5 @@
-from django.http import Http404
+from django.contrib import messages
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -27,12 +28,18 @@ def get_repo_or_raise(workspace: Workspace, commit: str):
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"workspace": "workspace_name", "commit": "commit"})
 def view(request, workspace_name: str, commit: str, path: str = ""):
+    return_url = request.GET.get("return_url")
     workspace = get_workspace_or_raise(request.user, workspace_name)
-    repo = get_repo_or_raise(workspace, commit)
+
+    try:
+        repo = CodeRepo.from_workspace(workspace, commit)
+    except (CodeRepo.RepoNotFound, CodeRepo.CommitNotFound) as e:
+        messages.error(request, str(e))
+        return HttpResponseRedirect(return_url or workspace.get_url())
+
     template = "file_browser/index.html"
     selected_only = False
 
-    return_url = request.GET.get("return_url")
     if request.htmx:
         template = "file_browser/contents.html"
         selected_only = True

@@ -82,20 +82,42 @@ def test_code_view_dir_redirects(airlock_client):
     )
 
 
-def test_code_view_no_repo(airlock_client):
+@pytest.mark.parametrize(
+    "code_url,redirected_url",
+    [
+        ("/code/view/workspace/notexist/", "/workspaces/view/workspace/"),
+        (
+            "/code/view/workspace/notexist/?return_url=/workspaces/view/workspace/foo.txt",
+            "/workspaces/view/workspace/foo.txt",
+        ),
+    ],
+)
+def test_code_view_no_repo(airlock_client, code_url, redirected_url):
     airlock_client.login(output_checker=True)
     factories.create_workspace("workspace")
 
-    response = airlock_client.get("/code/view/workspace/notexist/")
-    assert response.status_code == 404
+    response = airlock_client.get(code_url)
+    assert response.status_code == 302
+    assert response.url == redirected_url
 
 
-def test_code_view_no_commit(airlock_client):
+@pytest.mark.parametrize(
+    "code_url,redirected_url",
+    [
+        ("/code/view/workspace/abcdefg/", "/workspaces/view/workspace/"),
+        (
+            "/code/view/workspace/abcdefg/?return_url=/workspaces/view/workspace/foo.txt",
+            "/workspaces/view/workspace/foo.txt",
+        ),
+    ],
+)
+def test_code_view_no_commit(airlock_client, code_url, redirected_url):
     airlock_client.login(output_checker=True)
     factories.create_repo("workspace")
 
-    response = airlock_client.get("/code/view/workspace/abcdefg/")
-    assert response.status_code == 404
+    response = airlock_client.get(code_url)
+    assert response.status_code == 302
+    assert response.url == redirected_url
 
 
 def test_code_contents_file(airlock_client):
@@ -112,4 +134,11 @@ def test_code_contents_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     repo = factories.create_repo("workspace")
     response = airlock_client.get(f"/code/contents/workspace/{repo.commit}/notexist")
+    assert response.status_code == 404
+
+
+def test_code_contents_repo_not_exists(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.create_workspace("workspace")
+    response = airlock_client.get("/code/contents/workspace/notexist/foo.txt")
     assert response.status_code == 404
