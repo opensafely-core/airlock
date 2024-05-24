@@ -8,6 +8,7 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Protocol, Self, cast
 
@@ -675,10 +676,8 @@ class ReleaseRequest:
     def get_request_file_from_output_path(self, relpath: UrlPath | str):
         """Get the request file from the output path, which does not include the group"""
         relpath = UrlPath(relpath)
-        for file_group in self.filegroups.values():
-            for request_file in file_group.output_files:
-                if request_file.relpath == relpath:
-                    return request_file
+        if relpath in self.all_files_by_name:
+            return self.all_files_by_name[relpath]
 
         raise BusinessLogicLayer.FileNotFound(relpath)
 
@@ -690,28 +689,29 @@ class ReleaseRequest:
         request_file = self.get_request_file_from_urlpath(relpath)
         return self.root() / request_file.file_id
 
-    def all_files_set(self):
+    @cached_property
+    def all_files_by_name(self) -> dict[UrlPath, RequestFile]:
         """Return the relpaths for all files on the request, of any filetype"""
         return {
-            request_file.relpath
+            request_file.relpath: request_file
             for filegroup in self.filegroups.values()
             for request_file in filegroup.files.values()
         }
 
-    def output_files_set(self):
+    def output_files_set(self) -> set[UrlPath]:
         """Return the relpaths for output files on the request"""
         return {
-            request_file.relpath
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.output_files
+            rfile.relpath
+            for rfile in self.all_files_by_name.values()
+            if rfile.filetype == RequestFileType.OUTPUT
         }
 
     def supporting_files_count(self):
         return len(
             [
                 1
-                for filegroup in self.filegroups.values()
-                for request_file in filegroup.supporting_files
+                for rfile in self.all_files_by_name.values()
+                if rfile.filetype == RequestFileType.SUPPORTING
             ]
         )
 
@@ -1233,7 +1233,7 @@ class BusinessLogicLayer:
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
-    ):
+    ) -> ReleaseRequest:
         self._validate_editable(release_request, user)
 
         relpath = UrlPath(relpath)

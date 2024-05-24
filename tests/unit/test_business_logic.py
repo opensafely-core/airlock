@@ -1020,7 +1020,7 @@ def test_withdraw_file_from_request_not_author(bll, state):
         bll.withdraw_file_from_request(release_request, UrlPath("bad/path"), user=other)
 
 
-def test_request_all_files_set(bll):
+def test_request_all_files_by_name(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path = Path("path/file.txt")
     supporting_path = Path("path/supporting_file.txt")
@@ -1038,8 +1038,9 @@ def test_request_all_files_set(bll):
         release_request, supporting_path, author, filetype=RequestFileType.SUPPORTING
     )
 
-    # all_files_set consists of output files and supporting files
-    assert release_request.all_files_set() == {path, supporting_path}
+    release_request = factories.refresh_release_request(release_request)
+    # all_files_by_name consists of output files and supporting files
+    assert release_request.all_files_by_name.keys() == {path, supporting_path}
 
     filegroup = release_request.filegroups["default"]
     assert len(filegroup.files) == 2
