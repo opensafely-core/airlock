@@ -94,6 +94,11 @@ urlpatterns = [
         name="file_reject",
     ),
     path(
+        "requests/reset_review/<str:request_id>/<path:path>",
+        airlock.views.file_reset_review,
+        name="file_reset_review",
+    ),
+    path(
         "requests/withdraw/<str:request_id>/<path:path>",
         airlock.views.file_withdraw,
         name="file_withdraw",

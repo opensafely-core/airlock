@@ -3,6 +3,7 @@ from .docs import serve_docs
 from .request import (
     file_approve,
     file_reject,
+    file_reset_review,
     file_withdraw,
     group_comment,
     group_edit,
@@ -34,6 +35,7 @@ __all__ = [
     "request_contents",
     "request_index",
     "request_reject",
+    "file_reset_review",
     "request_release_files",
     "request_submit",
     "request_view",

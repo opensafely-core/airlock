@@ -378,6 +378,25 @@ def file_reject(request, request_id, path: str):
     return redirect(release_request.get_url(path))
 
 
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def file_reset_review(request, request_id, path: str):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    try:
+        relpath = release_request.get_request_file(path).relpath
+    except bll.FileNotFound:
+        raise Http404()
+
+    try:
+        bll.reset_review_file(release_request, relpath, request.user)
+    except bll.ApprovalPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.success(request, "File review has been reset")
+    return redirect(release_request.get_url(path))
+
+
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])

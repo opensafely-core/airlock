@@ -322,6 +322,19 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
 
+    def reset_review_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        with transaction.atomic():
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+
+            review = FileReview.objects.get(file=request_file, reviewer=username)
+            review.delete()
+
+            self._create_audit_log(audit)
+
     def _create_audit_log(self, audit: AuditEvent) -> AuditLog:
         event = AuditLog.objects.create(
             type=audit.type,
