@@ -24,9 +24,8 @@ def release_request(researcher_user):
     yield release_request
 
 
-def test_code_from_workspace(live_server, page, researcher_user):
+def test_code_from_workspace(live_server, page, context):
     code_button = page.locator("#file-code-button")
-    return_button = page.locator("#return-button")
 
     # At a directory view, the code button is not displayed
     page.goto(live_server.url + "/workspaces/view/test-dir1/")
@@ -40,18 +39,24 @@ def test_code_from_workspace(live_server, page, researcher_user):
     file_url = "/workspaces/view/test-dir1/foo.txt"
     page.goto(live_server.url + file_url)
     expect(code_button).to_be_visible()
-    code_button.click()
 
-    # return url (the workspace file) is passed to code view as a query param,
-    # and used as the href for the return button
-    url_parts = urlsplit(page.url)
-    assert url_parts.query == f"return_url={file_url}"
-    expect(page.locator("body")).to_contain_text("project.yaml")
+    with context.expect_page() as new_page_info:
+        code_button.click()  # Opens code in a new tab
+        new_page = new_page_info.value
+
+    return_button = new_page.locator("#return-button")
+
+    expect(new_page.locator("body")).to_contain_text("project.yaml")
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)
 
+    # return url (the workspace file) is passed to code view as a query param,
+    # and used as the href for the return button
+    url_parts = urlsplit(new_page.url)
+    assert url_parts.query == f"return_url={file_url}"
+
     file_link = (
-        page.locator("#tree")
+        new_page.locator("#tree")
         .get_by_role("link", name="project.yaml")
         .locator(".file:scope")
     )
@@ -60,9 +65,10 @@ def test_code_from_workspace(live_server, page, researcher_user):
     expect(return_button).to_have_attribute("href", file_url)
 
 
-def test_code_from_request(live_server, page, release_request, output_checker_user):
+def test_code_from_request(
+    live_server, page, context, release_request, output_checker_user
+):
     code_button = page.locator("#file-code-button")
-    return_button = page.locator("#return-button")
 
     # At a directory view, the code button is not displayed
     page.goto(live_server.url + f"/requests/view/{release_request.id}/group/")
@@ -72,18 +78,22 @@ def test_code_from_request(live_server, page, release_request, output_checker_us
     file_url = f"/requests/view/{release_request.id}/group/foo.txt"
     page.goto(live_server.url + file_url)
     expect(code_button).to_be_visible()
-    code_button.click()
 
+    with context.expect_page() as new_page_info:
+        code_button.click()  # Opens code in a new tab
+        new_page = new_page_info.value
+
+    return_button = new_page.locator("#return-button")
     # return url (the release_request file) is passed to code view as a query param,
     # and used as the href for the return button
-    url_parts = urlsplit(page.url)
+    url_parts = urlsplit(new_page.url)
     assert url_parts.query == f"return_url={file_url}"
-    expect(page.locator("body")).to_contain_text("project.yaml")
+    expect(new_page.locator("body")).to_contain_text("project.yaml")
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)
 
     file_link = (
-        page.locator("#tree")
+        new_page.locator("#tree")
         .get_by_role("link", name="project.yaml")
         .locator(".file:scope")
     )
