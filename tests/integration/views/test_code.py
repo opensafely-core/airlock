@@ -109,6 +109,10 @@ def test_code_view_no_repo(airlock_client, code_url, redirected_url):
             "/code/view/workspace/abcdefg/?return_url=/workspaces/view/workspace/foo.txt",
             "/workspaces/view/workspace/foo.txt",
         ),
+        (
+            "/code/view/workspace/abcdefg/?return_url=http://example.com",
+            "/workspaces/view/workspace/",
+        ),
     ],
 )
 def test_code_view_no_commit(airlock_client, code_url, redirected_url):
