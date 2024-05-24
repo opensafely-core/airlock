@@ -161,11 +161,11 @@ def write_workspace_file(workspace, path, contents="", manifest=True):
     abspath = workspace.root() / path
     abspath.parent.mkdir(parents=True, exist_ok=True)
     abspath.write_text(contents)
-    if manifest:  # pragma: nocover
+    if manifest:
         update_manifest(workspace, [path])
 
 
-def create_repo(workspace, files=None):
+def create_repo(workspace, files=None, temporary=True):
     workspace = ensure_workspace(workspace)
     repo_dir = settings.GIT_REPO_DIR / workspace.name
 
@@ -180,20 +180,28 @@ def create_repo(workspace, files=None):
     subprocess.run(["git", "config", "user.name", "Test"], check=True, env=env)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = Path(tmpdir)
-        for name, content in files:
-            p = tmpdir / name
-            p.parent.mkdir(exist_ok=True, parents=True)
-            if isinstance(content, bytes):  # pragma: nocover
-                p.write_bytes(content)
-            else:
-                p.write_text(content)
+        if temporary:
+            repo_content_dir = Path(tmpdir)
+        else:  # pragma: nocover
+            repo_content_dir = repo_dir
 
-        env["GIT_WORK_TREE"] = tmpdir
-        subprocess.run(["git", "add", "."], check=True, env=env)
-        subprocess.run(
-            ["git", "commit", "--quiet", "-m", "initial"], check=True, env=env
+        for name, content in files:
+            p = repo_content_dir / name
+            p.parent.mkdir(exist_ok=True, parents=True)
+            if not p.exists():
+                if isinstance(content, bytes):  # pragma: nocover
+                    p.write_bytes(content)
+                else:
+                    p.write_text(content)
+
+        env["GIT_WORK_TREE"] = repo_content_dir
+        response = subprocess.run(
+            ["git", "add", "."], capture_output=True, check=True, env=env
         )
+        if b"nothing to commit" not in response.stdout:  # pragma: nocover
+            response = subprocess.run(
+                ["git", "commit", "--quiet", "-m", "initial"], check=False, env=env
+            )
 
     response = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -206,8 +214,14 @@ def create_repo(workspace, files=None):
     commit = response.stdout.strip()
     update_manifest(workspace)
     workspace.manifest["repo"] = str(repo_dir)
+    for output in workspace.manifest["outputs"].values():
+        output["repo"] = str(repo_dir)
+        output["commit"] = str(commit)
     write_workspace_file(
-        workspace, "metadata/manifest.json", json.dumps(workspace.manifest)
+        workspace,
+        "metadata/manifest.json",
+        json.dumps(workspace.manifest, indent=2),
+        manifest=False,
     )
 
     return CodeRepo.from_workspace(workspace, commit)
