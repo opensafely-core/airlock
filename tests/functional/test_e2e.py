@@ -354,7 +354,12 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     find_and_click(page.locator("#file-reject-button"))
     expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
 
-    # Change our minds & approve the file
+    # Change our minds & remove the review
+    expect(page.locator("#file-reset-button")).not_to_have_attribute("disabled", "")
+    find_and_click(page.locator("#file-reset-button"))
+    expect(page.locator("#file-reset-button")).to_have_attribute("disabled", "")
+
+    # Think some more & finally approve the file
     expect(page.locator("#file-approve-button")).not_to_have_attribute("disabled", "")
     find_and_click(page.locator("#file-approve-button"))
     expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
