@@ -23,6 +23,7 @@ from airlock.business_logic import (
     UrlPath,
     Workspace,
 )
+from airlock.types import WorkspaceFileState
 from tests import factories
 
 
@@ -153,6 +154,30 @@ def test_get_file_metadata():
     assert directory.size_mb == ""
     assert directory.timestamp is None
     assert directory.content_hash is None
+
+
+def test_workspace_get_workspace_state(bll):
+    path = UrlPath("foo/bar.txt")
+    workspace = factories.create_workspace("workspace")
+    user = factories.create_user(workspaces=["workspace"])
+
+    assert workspace.get_workspace_state(path) is None
+
+    factories.write_workspace_file(workspace, path, contents="foo")
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNRELEASED
+
+    release_request = factories.create_release_request(workspace, user=user)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNRELEASED
+
+    factories.write_request_file(release_request, "group", path)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNDER_REVIEW
+
+    factories.write_workspace_file(workspace, path, contents="changed")
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.CONTENT_UPDATED
 
 
 def test_request_container(mock_notifications):

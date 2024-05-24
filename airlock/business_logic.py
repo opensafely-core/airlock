@@ -26,7 +26,7 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import FileMetadata, UrlPath
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
@@ -210,6 +210,9 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
         """Get the file metadata"""
 
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        """Get workspace state of file."""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -275,6 +278,29 @@ class Workspace:
         if relpath != ROOT_PATH:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
+
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        try:
+            self.abspath(relpath)
+        except BusinessLogicLayer.FileNotFound:
+            return None
+
+        # TODO check if file has been released once we can do that
+
+        if self.current_request:
+            try:
+                rfile = self.current_request.get_request_file_from_output_path(relpath)
+            except BusinessLogicLayer.FileNotFound:
+                return WorkspaceFileState.UNRELEASED
+
+            content_hash = self.get_file_metadata(relpath).content_hash
+
+            if rfile.file_id == content_hash:
+                return WorkspaceFileState.UNDER_REVIEW
+            else:
+                return WorkspaceFileState.CONTENT_UPDATED
+
+        return WorkspaceFileState.UNRELEASED
 
     def get_requests_url(self):
         return reverse(
@@ -394,6 +420,10 @@ class CodeRepo:
             kwargs=kwargs,
         )
 
+    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        """Get state of path."""
+        return None  # pragma: no cover
+
     def get_contents_url(
         self, relpath: UrlPath = ROOT_PATH, download: bool = False
     ) -> str:
@@ -435,6 +465,9 @@ class CodeRepo:
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
+
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        return None
 
 
 @dataclass(frozen=True)
@@ -622,6 +655,9 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        return None
+
     def get_request_file_from_urlpath(self, relpath: UrlPath | str):
         """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
@@ -635,6 +671,16 @@ class ReleaseRequest:
             raise BusinessLogicLayer.FileNotFound(relpath)
 
         return request_file
+
+    def get_request_file_from_output_path(self, relpath: UrlPath | str):
+        """Get the request file from the output path, which does not include the group"""
+        relpath = UrlPath(relpath)
+        for file_group in self.filegroups.values():
+            for request_file in file_group.output_files:
+                if request_file.relpath == relpath:
+                    return request_file
+
+        raise BusinessLogicLayer.FileNotFound(relpath)
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
