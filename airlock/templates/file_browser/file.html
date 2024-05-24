@@ -49,7 +49,7 @@
             {% #button type="submit" variant="success" id="file-approve-button" %}Approve File{% /button %}
           </form>
         {% else %}
-          {% #button type="submit" variant="success" disabled=True id="file-approve-button" %}Approve File{% /button %}
+          {% #button type="submit" variant="success" disabled=True id="file-approve-button" tooltip="File already approved." %}Approve File{% /button %}
         {% endif %}
         {% if file_reject_url %}
           <form action="{{ file_reject_url }}" method="POST">
@@ -57,7 +57,7 @@
             {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
           </form>
         {% else %}
-          {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+          {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" tooltip="File already rejected." %}Reject File{% /button %}
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
       {% endif %}
