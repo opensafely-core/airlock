@@ -12,7 +12,7 @@ from opentelemetry import trace
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
-from airlock.types import UrlPath
+from airlock.types import UrlPath, WorkspaceFileState
 from airlock.views.helpers import (
     display_form_errors,
     display_multiple_messages,
@@ -72,14 +72,15 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
-    file_in_request = (
-        workspace.current_request
-        and path_item.relpath in workspace.current_request.all_files_set()
-    )
+    valid_states_to_add = [
+        WorkspaceFileState.UNRELEASED,
+        # TODO WorkspaceFileState.CONTENT_UPDATED,
+    ]
+
     add_file = (
         path_item.is_valid()
         and request.user.can_create_request(workspace_name)
-        and (workspace.current_request is None or not file_in_request)
+        and workspace.get_workspace_state(path_item.relpath) in valid_states_to_add
     )
 
     activity = []
@@ -108,7 +109,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 kwargs={"workspace_name": workspace_name},
             ),
             "current_request": workspace.current_request,
-            "file_in_request": file_in_request,
             # for add file buttons
             "add_file": add_file,
             "multiselect_url": reverse(
