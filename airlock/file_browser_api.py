@@ -13,7 +13,7 @@ from airlock.business_logic import (
     RequestFileType,
     Workspace,
 )
-from airlock.types import FileMetadata, UrlPath
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
@@ -50,6 +50,7 @@ class PathItem:
     relpath: UrlPath
 
     type: PathType | None = None
+    workspace_state: WorkspaceFileState | None = None
     children: list[PathItem] = field(default_factory=list)
     parent: PathItem | None = None
 
@@ -168,6 +169,9 @@ class PathItem:
         need to.
         """
         classes = [self.type.value.lower()] if self.type else []
+
+        if self.workspace_state:
+            classes.append(self.workspace_state.value.lower())
 
         if self.request_filetype:
             classes.append(self.request_filetype.value.lower())
@@ -499,6 +503,7 @@ def get_path_tree(
                     node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
+                node.workspace_state = container.get_workspace_state(path)
 
             tree.append(node)
 
