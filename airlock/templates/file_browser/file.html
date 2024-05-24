@@ -65,6 +65,9 @@
       {% endif %}
     {% endif %}
     {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
+    {% if code_url %}
+      {% #button type="link" variant="primary" id="file-code-button" href=code_url external=True %}View code{% /button %}
+    {% endif %}
   </div>
 
 {% endfragment %}

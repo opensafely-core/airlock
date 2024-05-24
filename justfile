@@ -205,10 +205,10 @@ load-example-data: devenv && manifests
     # Configure user details for local login
     cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
 
-# generate manifests for local test workspaces
+# generate manifests and git repos for local test workspaces
 manifests:
     cat scripts/manifests.py | $BIN/python manage.py shell
-    
+
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS: devenv

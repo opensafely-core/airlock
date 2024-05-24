@@ -97,7 +97,8 @@ class PathItem:
         return self.name()
 
     def url(self):
-        suffix = "/" if self.is_directory() else ""
+        url = self.container.get_url(self.relpath)
+        suffix = "/" if (self.is_directory() and not url.endswith("/")) else ""
         return self.container.get_url(self.relpath) + suffix
 
     def contents_url(self, download: bool = False):
@@ -450,7 +451,7 @@ def get_code_tree(
 
     leaf_directories = set()
 
-    if selected_only:
+    if selected_only and selected_path != ROOT_PATH:
         # we only want the selected path, and its immediate children if it has any
         pathlist = [selected_path]
 

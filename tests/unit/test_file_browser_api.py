@@ -539,3 +539,47 @@ def test_get_code_tree(workspace):
     )
 
     assert str(tree).strip() == expected.strip()
+
+
+def test_get_code_tree_root(workspace):
+    repo = factories.create_repo(
+        workspace,
+        [
+            ("bar/1.txt", ""),
+            ("foo/1.txt", ""),
+            ("foo/2.txt", ""),
+            ("foo/baz/3.txt", ""),
+        ],
+    )
+
+    tree = get_code_tree(repo, UrlPath("."), selected_only=False)
+
+    expected = textwrap.dedent(
+        f"""
+        {repo.get_id()}***
+          bar
+            1.txt
+          foo
+            baz
+              3.txt
+            1.txt
+            2.txt
+        """
+    )
+    assert str(tree).strip() == expected.strip()
+
+    tree = get_code_tree(repo, UrlPath("."), selected_only=True)
+
+    expected = textwrap.dedent(
+        f"""
+        {repo.get_id()}***
+          bar
+            1.txt
+          foo
+            baz
+              3.txt
+            1.txt
+            2.txt
+        """
+    )
+    assert str(tree).strip() == expected.strip()
