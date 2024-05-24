@@ -249,8 +249,13 @@ def write_request_file(
     user=None,
     filetype=RequestFileType.OUTPUT,
     approved=False,
+    workspace=None,
 ):
-    workspace = ensure_workspace(request.workspace)
+    # if ensure_workspace is passed a string, it will always create a
+    # new workspace. Optionally pass a workspace instance, which will
+    # ensure that adding a file uses the commit from the workspace's
+    # manifest.json
+    workspace = ensure_workspace(workspace or request.workspace)
     try:
         workspace.abspath(path)
     except bll.FileNotFound:
