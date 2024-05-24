@@ -43,6 +43,7 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
+
         {% if file_approve_url %}
           <form action="{{ file_approve_url }}" method="POST">
             {% csrf_token %}
@@ -51,6 +52,16 @@
         {% else %}
           {% #button type="submit" variant="success" disabled=True id="file-approve-button" tooltip="File already approved." %}Approve File{% /button %}
         {% endif %}
+
+        {% if file_reset_review_url %}
+          <form action="{{ file_reset_review_url }}" method="POST">
+            {% csrf_token %}
+            {% #button type="submit" variant="success" id="file-reset-button" %}Reset Review{% /button %}
+          </form>
+        {% else %}
+          {% #button type="submit" variant="success" disabled=True id="file-reset-button" tooltip="File not yet reviewed." %}Reset Review{% /button %}
+        {% endif %}
+
         {% if file_reject_url %}
           <form action="{{ file_reject_url }}" method="POST">
             {% csrf_token %}

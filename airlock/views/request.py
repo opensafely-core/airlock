@@ -168,6 +168,7 @@ def request_view(request, request_id: str, path: str = ""):
     ]:
         file_approve_url = None
         file_reject_url = None
+        file_reset_review_url = None
     else:
         file_approve_url = reverse(
             "file_approve",
@@ -175,6 +176,10 @@ def request_view(request, request_id: str, path: str = ""):
         )
         file_reject_url = reverse(
             "file_reject",
+            kwargs={"request_id": request_id, "path": path},
+        )
+        file_reset_review_url = reverse(
+            "file_reset_review",
             kwargs={"request_id": request_id, "path": path},
         )
 
@@ -188,6 +193,8 @@ def request_view(request, request_id: str, path: str = ""):
                 file_reject_url = None
             else:
                 assert False, "Invalid FileReviewStatus value"
+        else:
+            file_reset_review_url = None
 
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
@@ -201,6 +208,7 @@ def request_view(request, request_id: str, path: str = ""):
         "is_output_checker": request.user.output_checker,
         "file_approve_url": file_approve_url,
         "file_reject_url": file_reject_url,
+        "file_reset_review_url": file_reset_review_url,
         "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
