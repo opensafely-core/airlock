@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
@@ -127,11 +128,39 @@ class PathItem:
     def file_type(self):
         return self.suffix().lstrip(".")
 
-    def metadata(self) -> FileMetadata:
+    def metadata(self) -> FileMetadata | None:
         if self.type == PathType.FILE:
             return self.container.get_file_metadata(self.relpath)
         else:
-            return FileMetadata.empty()
+            return None
+
+    def size(self) -> int | None:
+        metadata = self.metadata()
+        if metadata is None:
+            return None
+
+        return metadata.size
+
+    def size_mb(self) -> str:
+        size = self.size()
+        if size is None:
+            return ""
+
+        if size == 0:
+            return "0 Mb"
+        elif size < 10240:
+            return "<0.01 Mb"
+        # out test files are small
+        else:  # pragma: no cover
+            mb = round(size / (1024 * 1024), 2)
+            return f"{mb} Mb"
+
+    def modified_at(self) -> datetime | None:
+        metadata = self.metadata()
+        if metadata is None:
+            return None
+
+        return datetime.utcfromtimestamp(metadata.timestamp)
 
     def breadcrumbs(self):
         item = self

@@ -42,8 +42,8 @@
         {% for path in path_item.children %}
           <tr>
             <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
-            <td data-order="{{ path.metadata.size }}">{{ path.metadata.size_mb }}</td>
-            <td>{{ path.metadata.modified_at|date:"Y-m-d H:i" }}</td>
+            <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+            <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -208,7 +208,7 @@ class AirlockContainer(Protocol):
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
@@ -295,9 +295,13 @@ class Workspace:
             except BusinessLogicLayer.FileNotFound:
                 return WorkspaceFileState.UNRELEASED
 
-            content_hash = self.get_file_metadata(relpath).content_hash
+            metadata = self.get_file_metadata(relpath)
+            if metadata is None:  # pragma: no cover
+                raise BusinessLogicLayer.ManifestFileError(
+                    f"no file metadata available for {relpath}"
+                )
 
-            if rfile.file_id == content_hash:
+            if rfile.file_id == metadata.content_hash:
                 return WorkspaceFileState.UNDER_REVIEW
             else:
                 return WorkspaceFileState.CONTENT_UPDATED
@@ -336,7 +340,7 @@ class Workspace:
                 f"No entry for {relpath} from manifest.json file"
             )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get file metadata, i.e. size, timestamp, hash"""
         try:
             return FileMetadata.from_manifest(self.get_manifest_for_file(relpath))
@@ -347,7 +351,7 @@ class Workspace:
         try:
             return FileMetadata.from_path(self.abspath(relpath))
         except BusinessLogicLayer.FileNotFound:
-            return FileMetadata.empty()
+            return None
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -461,9 +465,9 @@ class CodeRepo:
             cache_id="",
         )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the size of a file"""
-        return FileMetadata.empty()  # pragma: no cover
+        return None  # pragma: no cover
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
@@ -649,7 +653,7 @@ class ReleaseRequest:
             cache_id=request_file.file_id,
         )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         rfile = self.get_request_file_from_urlpath(relpath)
         return FileMetadata(
             rfile.size,

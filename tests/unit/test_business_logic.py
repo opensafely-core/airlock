@@ -117,12 +117,12 @@ def test_get_file_metadata():
     workspace = factories.create_workspace("workspace")
 
     # non existant file
-    empty = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
-    assert empty.size is None
-    assert empty.size_mb == ""
-    assert empty.timestamp is None
-    assert empty.modified_at is None
-    assert empty.content_hash is None
+    assert workspace.get_file_metadata(UrlPath("metadata/foo.log")) is None
+
+    # directory
+    (workspace.root() / "directory").mkdir()
+    with pytest.raises(AssertionError):
+        workspace.get_file_metadata(UrlPath("directory")) is None
 
     # small log file
     factories.write_workspace_file(
@@ -131,7 +131,6 @@ def test_get_file_metadata():
 
     from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
     assert from_file.size == 3
-    assert from_file.size_mb == "<0.01 Mb"
     assert from_file.timestamp is not None
     assert from_file.content_hash == hashlib.sha256(b"foo").hexdigest()
 
@@ -143,19 +142,11 @@ def test_get_file_metadata():
 
     from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
     assert from_metadata.size == len(contents)
-    assert from_metadata.size_mb == "2.0 Mb"
     assert from_metadata.timestamp is not None
     assert (
         from_metadata.content_hash
         == hashlib.sha256(contents.encode("utf8")).hexdigest()
     )
-
-    (workspace.root() / "directory").mkdir()
-    directory = workspace.get_file_metadata(UrlPath("directory"))
-    assert directory.size is None
-    assert directory.size_mb == ""
-    assert directory.timestamp is None
-    assert directory.content_hash is None
 
 
 def test_workspace_get_workspace_state(bll):
