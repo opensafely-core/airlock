@@ -115,6 +115,8 @@ def test_workspace_manifest_for_file_not_found(bll):
 
 def test_get_file_metadata():
     workspace = factories.create_workspace("workspace")
+
+    # non existant file
     empty = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
     assert empty.size is None
     assert empty.size_mb == ""

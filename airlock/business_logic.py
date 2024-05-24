@@ -281,6 +281,7 @@ class Workspace:
         return reverse("workspace_view", kwargs=kwargs)
 
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        # defence in depth, we've been given a bad file path
         try:
             self.abspath(relpath)
         except BusinessLogicLayer.FileNotFound:
