@@ -14,7 +14,7 @@
           {% csrf_token %}
         </form>
         <div id="multiselect_modal"></div>
-      {% elif file_in_request %}
+      {% elif path_item.workspace_state.value == "UNDER_REVIEW" %}
         {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
           Add File to Request
         {% /button %}

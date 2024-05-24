@@ -1,6 +1,6 @@
+import hashlib
 import inspect
 import json
-from datetime import datetime
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
@@ -23,6 +23,7 @@ from airlock.business_logic import (
     UrlPath,
     Workspace,
 )
+from airlock.types import WorkspaceFileState
 from tests import factories
 
 
@@ -112,24 +113,64 @@ def test_workspace_manifest_for_file_not_found(bll):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
 
 
-def test_get_size():
+def test_get_file_metadata():
     workspace = factories.create_workspace("workspace")
-    assert workspace.get_size(UrlPath("metadata/foo.log")) == 0
+
+    # non existant file
+    assert workspace.get_file_metadata(UrlPath("metadata/foo.log")) is None
+
+    # directory
+    (workspace.root() / "directory").mkdir()
+    with pytest.raises(AssertionError):
+        workspace.get_file_metadata(UrlPath("directory")) is None
+
+    # small log file
     factories.write_workspace_file(
         workspace, "metadata/foo.log", contents="foo", manifest=False
     )
-    assert workspace.get_size(UrlPath("metadata/foo.log")) == 3
 
+    from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    assert from_file.size == 3
+    assert from_file.timestamp is not None
+    assert from_file.content_hash == hashlib.sha256(b"foo").hexdigest()
 
-def test_get_modified_time():
-    workspace = factories.create_workspace("workspace")
-    assert workspace.get_modified_time(UrlPath("metadata/foo.log")) is None
+    # larger output file
+    contents = "x," * 1024 * 1024
     factories.write_workspace_file(
-        workspace, "metadata/foo.log", contents="foo", manifest=False
+        workspace, "output/bar.csv", contents=contents, manifest=True
     )
-    assert isinstance(
-        workspace.get_modified_time(UrlPath("metadata/foo.log")), datetime
+
+    from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
+    assert from_metadata.size == len(contents)
+    assert from_metadata.timestamp is not None
+    assert (
+        from_metadata.content_hash
+        == hashlib.sha256(contents.encode("utf8")).hexdigest()
     )
+
+
+def test_workspace_get_workspace_state(bll):
+    path = UrlPath("foo/bar.txt")
+    workspace = factories.create_workspace("workspace")
+    user = factories.create_user(workspaces=["workspace"])
+
+    assert workspace.get_workspace_state(path) is None
+
+    factories.write_workspace_file(workspace, path, contents="foo")
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNRELEASED
+
+    release_request = factories.create_release_request(workspace, user=user)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNRELEASED
+
+    factories.write_request_file(release_request, "group", path)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.UNDER_REVIEW
+
+    factories.write_workspace_file(workspace, path, contents="changed")
+    assert workspace.get_workspace_state(path) == WorkspaceFileState.CONTENT_UPDATED
 
 
 def test_request_container(mock_notifications):
@@ -972,7 +1013,7 @@ def test_withdraw_file_from_request_not_author(bll, state):
         bll.withdraw_file_from_request(release_request, UrlPath("bad/path"), user=other)
 
 
-def test_request_all_files_set(bll):
+def test_request_all_files_by_name(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path = Path("path/file.txt")
     supporting_path = Path("path/supporting_file.txt")
@@ -990,8 +1031,9 @@ def test_request_all_files_set(bll):
         release_request, supporting_path, author, filetype=RequestFileType.SUPPORTING
     )
 
-    # all_files_set consists of output files and supporting files
-    assert release_request.all_files_set() == {path, supporting_path}
+    release_request = factories.refresh_release_request(release_request)
+    # all_files_by_name consists of output files and supporting files
+    assert release_request.all_files_by_name.keys() == {path, supporting_path}
 
     filegroup = release_request.filegroups["default"]
     assert len(filegroup.files) == 2
@@ -999,7 +1041,7 @@ def test_request_all_files_set(bll):
     assert len(filegroup.supporting_files) == 1
 
 
-def test_request_release_get_request_file(bll):
+def test_request_release_get_request_file_from_urlpath(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
     release_request = factories.create_release_request("id")
@@ -1009,12 +1051,12 @@ def test_request_release_get_request_file(bll):
     )
 
     with pytest.raises(bll.FileNotFound):
-        release_request.get_request_file("badgroup" / path)
+        release_request.get_request_file_from_urlpath("badgroup" / path)
 
     with pytest.raises(bll.FileNotFound):
-        release_request.get_request_file("default/does/not/exist")
+        release_request.get_request_file_from_urlpath("default/does/not/exist")
 
-    request_file = release_request.get_request_file("default" / path)
+    request_file = release_request.get_request_file_from_urlpath("default" / path)
     assert request_file.relpath == path
 
 

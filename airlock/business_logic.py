@@ -8,6 +8,7 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Protocol, Self, cast
 
@@ -26,7 +27,7 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import UrlPath
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
@@ -207,11 +208,11 @@ class AirlockContainer(Protocol):
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
-    def get_size(self, relpath: UrlPath) -> int:
-        """Get the size of a file"""
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+        """Get the file metadata"""
 
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        """Get modified time of a file"""
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        """Get workspace state of file."""
 
 
 @dataclass(order=True)
@@ -279,6 +280,34 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        # defence in depth, we've been given a bad file path
+        try:
+            self.abspath(relpath)
+        except BusinessLogicLayer.FileNotFound:
+            return None
+
+        # TODO check if file has been released once we can do that
+
+        if self.current_request:
+            try:
+                rfile = self.current_request.get_request_file_from_output_path(relpath)
+            except BusinessLogicLayer.FileNotFound:
+                return WorkspaceFileState.UNRELEASED
+
+            metadata = self.get_file_metadata(relpath)
+            if metadata is None:  # pragma: no cover
+                raise BusinessLogicLayer.ManifestFileError(
+                    f"no file metadata available for {relpath}"
+                )
+
+            if rfile.file_id == metadata.content_hash:
+                return WorkspaceFileState.UNDER_REVIEW
+            else:
+                return WorkspaceFileState.CONTENT_UPDATED
+
+        return WorkspaceFileState.UNRELEASED
+
     def get_requests_url(self):
         return reverse(
             "requests_for_workspace",
@@ -311,35 +340,18 @@ class Workspace:
                 f"No entry for {relpath} from manifest.json file"
             )
 
-    def get_size(self, relpath: UrlPath) -> int:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+        """Get file metadata, i.e. size, timestamp, hash"""
         try:
-            return int(self.get_manifest_for_file(relpath).get("size", 0))
+            return FileMetadata.from_manifest(self.get_manifest_for_file(relpath))
         except BusinessLogicLayer.ManifestFileError:
             pass
 
         # not in manifest, e.g. log file. Check disk
         try:
-            abspath = self.abspath(relpath)
-        except BusinessLogicLayer.FileNotFound:
-            return 0
-
-        return int(abspath.stat().st_size)
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        try:
-            return datetime.utcfromtimestamp(
-                self.get_manifest_for_file(relpath).get("timestamp")
-            )
-        except BusinessLogicLayer.ManifestFileError:
-            pass
-
-        # not in manifest, e.g. log file. Check disk
-        try:
-            abspath = self.abspath(relpath)
+            return FileMetadata.from_path(self.abspath(relpath))
         except BusinessLogicLayer.FileNotFound:
             return None
-
-        return datetime.utcfromtimestamp(abspath.stat().st_mtime)
 
     def abspath(self, relpath):
         """Get absolute path for file
@@ -414,6 +426,10 @@ class CodeRepo:
             kwargs=kwargs,
         )
 
+    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        """Get state of path."""
+        return None  # pragma: no cover
+
     def get_contents_url(
         self, relpath: UrlPath = ROOT_PATH, download: bool = False
     ) -> str:
@@ -449,16 +465,15 @@ class CodeRepo:
             cache_id="",
         )
 
-    def get_size(self, relpath: UrlPath) -> int:
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the size of a file"""
-        return 0  # pragma: no cover
-
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        """Get modified time of a file"""
         return None  # pragma: no cover
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
+
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        return None
 
 
 @dataclass(frozen=True)
@@ -630,7 +645,7 @@ class ReleaseRequest:
         return url
 
     def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
-        request_file = self.get_request_file(relpath)
+        request_file = self.get_request_file_from_urlpath(relpath)
         renderer_class = renderers.get_renderer(relpath)
         return renderer_class.from_file(
             self.abspath(relpath),
@@ -638,13 +653,19 @@ class ReleaseRequest:
             cache_id=request_file.file_id,
         )
 
-    def get_size(self, relpath: UrlPath) -> int:
-        return int(self.get_request_file(relpath).size)
+    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+        rfile = self.get_request_file_from_urlpath(relpath)
+        return FileMetadata(
+            rfile.size,
+            rfile.timestamp,
+            _content_hash=rfile.file_id,
+        )
 
-    def get_modified_time(self, relpath: UrlPath) -> datetime | None:
-        return datetime.utcfromtimestamp(self.get_request_file(relpath).timestamp)
+    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+        return None
 
-    def get_request_file(self, relpath: UrlPath | str):
+    def get_request_file_from_urlpath(self, relpath: UrlPath | str):
+        """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
         file_relpath = UrlPath(*relpath.parts[1:])
@@ -657,36 +678,45 @@ class ReleaseRequest:
 
         return request_file
 
+    def get_request_file_from_output_path(self, relpath: UrlPath | str):
+        """Get the request file from the output path, which does not include the group"""
+        relpath = UrlPath(relpath)
+        if relpath in self.all_files_by_name:
+            return self.all_files_by_name[relpath]
+
+        raise BusinessLogicLayer.FileNotFound(relpath)
+
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
 
         The first part of the relpath is the group, so we parse and validate that first.
         """
-        request_file = self.get_request_file(relpath)
+        request_file = self.get_request_file_from_urlpath(relpath)
         return self.root() / request_file.file_id
 
-    def all_files_set(self):
+    @cached_property
+    def all_files_by_name(self) -> dict[UrlPath, RequestFile]:
         """Return the relpaths for all files on the request, of any filetype"""
         return {
-            request_file.relpath
+            request_file.relpath: request_file
             for filegroup in self.filegroups.values()
             for request_file in filegroup.files.values()
         }
 
-    def output_files_set(self):
+    def output_files_set(self) -> set[UrlPath]:
         """Return the relpaths for output files on the request"""
         return {
-            request_file.relpath
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.output_files
+            rfile.relpath
+            for rfile in self.all_files_by_name.values()
+            if rfile.filetype == RequestFileType.OUTPUT
         }
 
     def supporting_files_count(self):
         return len(
             [
                 1
-                for filegroup in self.filegroups.values()
-                for request_file in filegroup.supporting_files
+                for rfile in self.all_files_by_name.values()
+                if rfile.filetype == RequestFileType.SUPPORTING
             ]
         )
 
@@ -694,7 +724,7 @@ class ReleaseRequest:
         return next(
             (
                 r
-                for r in self.get_request_file(urlpath).reviews
+                for r in self.get_request_file_from_urlpath(urlpath).reviews
                 if r.reviewer == reviewer
             ),
             None,
@@ -702,7 +732,7 @@ class ReleaseRequest:
 
     def request_filetype(self, urlpath: UrlPath):
         try:
-            return self.get_request_file(urlpath).filetype
+            return self.get_request_file_from_urlpath(urlpath).filetype
         except BusinessLogicLayer.FileNotFound:
             return None
 
@@ -1208,7 +1238,7 @@ class BusinessLogicLayer:
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
-    ):
+    ) -> ReleaseRequest:
         self._validate_editable(release_request, user)
 
         relpath = UrlPath(relpath)

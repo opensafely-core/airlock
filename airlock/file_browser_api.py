@@ -14,7 +14,7 @@ from airlock.business_logic import (
     RequestFileType,
     Workspace,
 )
-from airlock.types import UrlPath
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
@@ -51,6 +51,7 @@ class PathItem:
     relpath: UrlPath
 
     type: PathType | None = None
+    workspace_state: WorkspaceFileState | None = None
     children: list[PathItem] = field(default_factory=list)
     parent: PathItem | None = None
 
@@ -127,27 +128,39 @@ class PathItem:
     def file_type(self):
         return self.suffix().lstrip(".")
 
-    def size(self) -> int:
+    def metadata(self) -> FileMetadata | None:
         if self.type == PathType.FILE:
-            return self.container.get_size(self.relpath)
+            return self.container.get_file_metadata(self.relpath)
         else:
-            return 0
+            return None
+
+    def size(self) -> int | None:
+        metadata = self.metadata()
+        if metadata is None:
+            return None
+
+        return metadata.size
 
     def size_mb(self) -> str:
         size = self.size()
+        if size is None:
+            return ""
+
         if size == 0:
             return "0 Mb"
         elif size < 10240:
             return "<0.01 Mb"
-        # all our test files are small
+        # out test files are small
         else:  # pragma: no cover
-            return f"{to_mb(size)} Mb"
+            mb = round(size / (1024 * 1024), 2)
+            return f"{mb} Mb"
 
-    def modified(self) -> datetime | None:
-        if self.type == PathType.FILE:
-            return self.container.get_modified_time(self.relpath)
-        else:
+    def modified_at(self) -> datetime | None:
+        metadata = self.metadata()
+        if metadata is None:
             return None
+
+        return datetime.utcfromtimestamp(metadata.timestamp)
 
     def breadcrumbs(self):
         item = self
@@ -185,6 +198,9 @@ class PathItem:
         need to.
         """
         classes = [self.type.value.lower()] if self.type else []
+
+        if self.workspace_state:
+            classes.append(self.workspace_state.value.lower())
 
         if self.request_filetype:
             classes.append(self.request_filetype.value.lower())
@@ -516,6 +532,7 @@ def get_path_tree(
                     node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
+                node.workspace_state = container.get_workspace_state(path)
 
             tree.append(node)
 
@@ -533,8 +550,3 @@ def children_sort_key(node: PathItem):
     # this works because True == 1 and False == 0
     name = node.name()
     return (name != "metadata", node.type == PathType.FILE, name)
-
-
-def to_mb(value_in_bytes):  # pragma: no cover
-    """Convert given value to Mb"""
-    return round(value_in_bytes / (1024 * 1024), 2)

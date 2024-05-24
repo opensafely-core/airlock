@@ -731,7 +731,7 @@ def test_file_withdraw_file_pending(airlock_client):
     release_request = factories.refresh_release_request(release_request)
 
     # ensure it does exist
-    release_request.get_request_file("group/path/test.txt")
+    release_request.get_request_file_from_urlpath("group/path/test.txt")
 
     response = airlock_client.post(
         f"/requests/withdraw/{release_request.id}/group/path/test.txt",
@@ -742,7 +742,7 @@ def test_file_withdraw_file_pending(airlock_client):
     persisted_request = factories.bll.get_release_request(release_request.id, author)
 
     with pytest.raises(factories.bll.FileNotFound):
-        persisted_request.get_request_file("group/path/test.txt")
+        persisted_request.get_request_file_from_urlpath("group/path/test.txt")
 
 
 def test_file_withdraw_file_submitted(airlock_client):
@@ -757,7 +757,7 @@ def test_file_withdraw_file_submitted(airlock_client):
     release_request = factories.refresh_release_request(release_request)
 
     # ensure it does exist
-    release_request.get_request_file("group/path/test.txt")
+    release_request.get_request_file_from_urlpath("group/path/test.txt")
 
     response = airlock_client.post(
         f"/requests/withdraw/{release_request.id}/group/path/test.txt",
@@ -769,7 +769,9 @@ def test_file_withdraw_file_submitted(airlock_client):
     assert "This file has been withdrawn" in response.rendered_content
 
     persisted_request = factories.bll.get_release_request(release_request.id, author)
-    request_file = persisted_request.get_request_file("group/path/test.txt")
+    request_file = persisted_request.get_request_file_from_urlpath(
+        "group/path/test.txt"
+    )
     assert request_file.filetype == RequestFileType.WITHDRAWN
 
 

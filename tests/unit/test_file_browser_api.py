@@ -10,6 +10,7 @@ from airlock.file_browser_api import (
     get_request_tree,
     get_workspace_tree,
 )
+from airlock.types import WorkspaceFileState
 from tests import factories
 from tests.conftest import get_trace
 
@@ -37,8 +38,16 @@ def release_request(workspace):
     return rr
 
 
-def test_get_workspace_tree_general(workspace):
+def test_get_workspace_tree_general(release_request):
     """Tests an entire tree for the basics."""
+    # refresh workspace
+    workspace = factories.create_workspace("workspace")
+
+    # add new file not in request
+    factories.write_workspace_file(workspace, "some_dir/file_d.txt", "file_d")
+    # modified file in request
+    factories.write_workspace_file(workspace, "some_dir/file_c.txt", "changed")
+
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
@@ -55,6 +64,7 @@ def test_get_workspace_tree_general(workspace):
             file_a.txt**
             file_b.txt
             file_c.txt
+            file_d.txt
         """
     )
 
@@ -67,6 +77,24 @@ def test_get_workspace_tree_general(workspace):
     assert tree.get_path("some_dir").type == PathType.DIR
     assert tree.get_path("some_dir/file_a.txt").type == PathType.FILE
     assert tree.get_path("some_dir/file_b.txt").type == PathType.FILE
+
+    # state
+    assert (
+        tree.get_path("some_dir/file_a.txt").workspace_state
+        == WorkspaceFileState.UNDER_REVIEW
+    )
+    assert (
+        tree.get_path("some_dir/file_b.txt").workspace_state
+        == WorkspaceFileState.UNDER_REVIEW
+    )
+    assert (
+        tree.get_path("some_dir/file_c.txt").workspace_state
+        == WorkspaceFileState.CONTENT_UPDATED
+    )
+    assert (
+        tree.get_path("some_dir/file_d.txt").workspace_state
+        == WorkspaceFileState.UNRELEASED
+    )
 
     # selected
     assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
