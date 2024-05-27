@@ -187,9 +187,9 @@ django==5.0.6 \
 django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip \
     --hash=sha256:db70db8737dd269c346f7af6e0c735a3d6462b944302f6bc0178c7bac9a4c7ee
     # via -r requirements.dev.in
-django-debug-toolbar==4.3.0 \
-    --hash=sha256:0b0dddee5ea29b9cb678593bc0d7a6d76b21d7799cb68e091a2148341a80f3c4 \
-    --hash=sha256:e09b7dcb8417b743234dfc57c95a7c1d1d87a88844abd13b4c5387f807b31bf6
+django-debug-toolbar==4.4.1 \
+    --hash=sha256:7a62d8696bdba0f0d6eda701e8a5e433f742b8a09ce1fd0b8f8d82af3b7adeb6 \
+    --hash=sha256:d89c2c4539192a8bde497d3bbfa35b93001b5381f7dfc26921ca6bad6d95d9de
     # via
     #   -r requirements.dev.in
     #   django-debug-toolbar-template-profiler
