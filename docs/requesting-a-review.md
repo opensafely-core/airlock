@@ -1,8 +1,3 @@
-!!! Note
-    This process is under development and currently only applies to release requests
-    submitted by internal researchers.
-
-
 ## Submitting a request
 
 Once the researcher has finished working on the release request, the next step is to
