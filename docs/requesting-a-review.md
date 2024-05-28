@@ -18,7 +18,4 @@ in Slack of the new release request.
 ### Completing the release request form
 
 After submitting their request on Airlock, researchers complete [this form](https://docs.google.com/document/d/1uWRiFps6tDA2SpxSxf0C2G9mOVWMQ6TQ/edit)
-and attach it to the GitHub issue. To find the relevant GitHub issue, go to the
-[opensafely-output-review](https://github.com/ebmdatalab/opensafely-output-review/issues/)
-issues list. Issues created by Airlock are titled with
-the workspace name and Airlock release request ID.
+and email it to datarelease@opensafely.org, with the subject "Airlock release request".
