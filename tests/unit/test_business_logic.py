@@ -4,7 +4,7 @@ import json
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -327,7 +327,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
     assert_last_notification(mock_notifications, "request_approved")
 
 
-def test_provider_request_release_files(mock_old_api, mock_notifications):
+def test_provider_request_release_files(mock_old_api, mock_notifications, bll):
     old_api.create_release.return_value = "jobserver_id"
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
@@ -354,7 +354,6 @@ def test_provider_request_release_files(mock_old_api, mock_notifications):
 
     abspath = release_request.abspath("group" / relpath)
 
-    bll = BusinessLogicLayer(data_access_layer=Mock())
     bll.release_files(release_request, checker)
 
     expected_json = {
@@ -391,6 +390,23 @@ def test_provider_request_release_files(mock_old_api, mock_notifications):
     assert request_json[1]["event_type"] == "request_updated"
     assert request_json[2]["event_type"] == "request_approved"
     assert request_json[3]["event_type"] == "request_released"
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0].type == AuditEventType.REQUEST_RELEASE
+    assert audit_log[0].user == checker.username
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].workspace == "workspace"
+
+    assert audit_log[1].type == AuditEventType.REQUEST_FILE_RELEASE
+    assert audit_log[1].user == checker.username
+    assert audit_log[1].request == release_request.id
+    assert audit_log[1].workspace == "workspace"
+    assert audit_log[1].path == Path("test/file.txt")
+
+    assert audit_log[2].type == AuditEventType.REQUEST_APPROVE
+    assert audit_log[2].user == checker.username
+    assert audit_log[2].request == release_request.id
+    assert audit_log[2].workspace == "workspace"
 
 
 def test_provider_get_requests_for_workspace(bll):
