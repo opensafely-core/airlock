@@ -1201,7 +1201,7 @@ def test_group_edit_bad_group(airlock_client):
     assert response.status_code == 404
 
 
-def test_group_comment_success(airlock_client):
+def test_group_comment_create_success(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
@@ -1225,7 +1225,7 @@ def test_group_comment_success(airlock_client):
     assert release_request.filegroups["group"].comments[0].author == "author"
 
 
-def test_group_comment_bad_user(airlock_client):
+def test_group_comment_create_bad_user(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
 
@@ -1243,7 +1243,7 @@ def test_group_comment_bad_user(airlock_client):
     assert response.status_code == 403
 
 
-def test_group_comment_bad_form(airlock_client):
+def test_group_comment_create_bad_form(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
@@ -1262,7 +1262,7 @@ def test_group_comment_bad_form(airlock_client):
     assert messages[0].message == "comment: This field is required."
 
 
-def test_group_comment_bad_group(airlock_client):
+def test_group_comment_create_bad_group(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)

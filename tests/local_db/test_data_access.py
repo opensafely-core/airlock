@@ -159,7 +159,7 @@ def test_group_comment_delete_bad_params():
         group="group",
         comment="author comment",
     )
-    dal.group_comment(release_request, "group", "author comment", author, audit)
+    dal.group_comment_create(release_request, "group", "author comment", author, audit)
 
     audit = AuditEvent.from_request(
         request=release_request,

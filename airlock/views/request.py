@@ -106,7 +106,7 @@ def request_view(request, request_id: str, path: str = ""):
     group_edit_url = None
     comments = []
     group_comment_form = None
-    group_comment_url = None
+    group_comment_create_url = None
     group_comment_delete_url = None
     group_readonly = release_request.is_final() or not is_author
 
@@ -137,8 +137,8 @@ def request_view(request, request_id: str, path: str = ""):
 
         comments = filegroup.comments
         group_comment_form = GroupCommentForm()
-        group_comment_url = reverse(
-            "group_comment",
+        group_comment_create_url = reverse(
+            "group_comment_create",
             kwargs={"request_id": request_id, "group": group},
         )
         group_comment_delete_url = reverse(
@@ -225,7 +225,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comment_form": group_comment_form,
         "group_readonly": group_readonly,
         "group_comments": comments,
-        "group_comment_url": group_comment_url,
+        "group_comment_create_url": group_comment_create_url,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors
@@ -491,14 +491,14 @@ def group_edit(request, request_id, group):
 
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})
 @require_http_methods(["POST"])
-def group_comment(request, request_id, group):
+def group_comment_create(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     form = GroupCommentForm(request.POST)
 
     if form.is_valid():
         try:
-            bll.group_comment(
+            bll.group_comment_create(
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],

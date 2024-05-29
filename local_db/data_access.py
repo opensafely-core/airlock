@@ -428,7 +428,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
         return changed
 
-    def group_comment(
+    def group_comment_create(
         self,
         request_id: str,
         group: str,

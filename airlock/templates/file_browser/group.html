@@ -34,7 +34,7 @@
           {% /list_group_rich_item %}
         {% endfor %}
         {% #list_group_item %}
-          <form action="{{ group_comment_url }}" method="POST" aria-label="group-comment-form">
+          <form action="{{ group_comment_create_url }}" method="POST" aria-label="group-comment-form">
             {% csrf_token %}
             {% form_textarea field=group_comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=True %}
             <div class="mt-2">
