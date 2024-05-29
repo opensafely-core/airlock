@@ -135,8 +135,8 @@ urlpatterns = [
     ),
     path(
         "requests/comment/create/<str:request_id>/<str:group>",
-        airlock.views.group_comment,
-        name="group_comment",
+        airlock.views.group_comment_create,
+        name="group_comment_create",
     ),
     path(
         "requests/comment/delete/<str:request_id>/<str:group>",

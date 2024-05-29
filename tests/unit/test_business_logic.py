@@ -1619,7 +1619,9 @@ def test_group_edit_bad_group(bll):
         (RequestStatus.SUBMITTED, 1),
     ],
 )
-def test_group_comment_success(bll, mock_notifications, status, notification_count):
+def test_group_comment_create_success(
+    bll, mock_notifications, status, notification_count
+):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], False)
     release_request = factories.create_release_request(
@@ -1634,8 +1636,8 @@ def test_group_comment_success(bll, mock_notifications, status, notification_cou
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment(release_request, "group", "question?", other)
-    bll.group_comment(release_request, "group", "answer!", author)
+    bll.group_comment_create(release_request, "group", "question?", other)
+    bll.group_comment_create(release_request, "group", "answer!", author)
 
     notification_responses = parse_notification_responses(mock_notifications)
     assert notification_responses["count"] == notification_count
@@ -1665,7 +1667,7 @@ def test_group_comment_success(bll, mock_notifications, status, notification_cou
     assert audit_log[0].extra["comment"] == "answer!"
 
 
-def test_group_comment_permissions(bll):
+def test_group_comment_create_permissions(bll):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaboratorr", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
@@ -1682,14 +1684,14 @@ def test_group_comment_permissions(bll):
     assert len(release_request.filegroups["group"].comments) == 0
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.group_comment(release_request, "group", "question?", other)
+        bll.group_comment_create(release_request, "group", "question?", other)
 
-    bll.group_comment(release_request, "group", "collaborator", collaborator)
+    bll.group_comment_create(release_request, "group", "collaborator", collaborator)
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
-    bll.group_comment(release_request, "group", "checker", checker)
+    bll.group_comment_create(release_request, "group", "checker", checker)
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 2
@@ -1711,8 +1713,8 @@ def test_group_comment_delete_success(bll):
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment(release_request, "group", "typo comment", other)
-    bll.group_comment(release_request, "group", "not-a-typo comment", other)
+    bll.group_comment_create(release_request, "group", "typo comment", other)
+    bll.group_comment_create(release_request, "group", "not-a-typo comment", other)
 
     release_request = factories.refresh_release_request(release_request)
 
@@ -1765,7 +1767,7 @@ def test_group_comment_delete_permissions(bll):
     )
     release_request = factories.refresh_release_request(release_request)
 
-    bll.group_comment(release_request, "group", "author comment", author)
+    bll.group_comment_create(release_request, "group", "author comment", author)
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
@@ -1782,7 +1784,7 @@ def test_group_comment_delete_permissions(bll):
     assert len(release_request.filegroups["group"].comments) == 1
 
 
-def test_group_comment_invalid_params(bll):
+def test_group_comment_create_invalid_params(bll):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
 
@@ -1797,7 +1799,7 @@ def test_group_comment_invalid_params(bll):
     with pytest.raises(bll.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)
 
-    bll.group_comment(release_request, "group", "author comment", author)
+    bll.group_comment_create(release_request, "group", "author comment", author)
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1

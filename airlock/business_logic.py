@@ -890,7 +890,7 @@ class DataAccessLayerProtocol(Protocol):
     ) -> list[NotificationUpdateType]:
         raise NotImplementedError()
 
-    def group_comment(
+    def group_comment_create(
         self,
         request_id: str,
         group: str,
@@ -1499,7 +1499,7 @@ class BusinessLogicLayer:
                 release_request, NotificationEventType.REQUEST_UPDATED, user, updates
             )
 
-    def group_comment(
+    def group_comment_create(
         self, release_request: ReleaseRequest, group: str, comment: str, user: User
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
@@ -1515,7 +1515,7 @@ class BusinessLogicLayer:
             comment=comment,
         )
 
-        self._dal.group_comment(
+        self._dal.group_comment_create(
             release_request.id, group, comment, user.username, audit
         )
 
