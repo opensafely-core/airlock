@@ -1346,7 +1346,10 @@ def test_approve_then_reject_file(bll):
     assert len(current_reviews) == 1
 
 
-def test_approve_then_reset_review_file(bll):
+@pytest.mark.parametrize(
+    "review", [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
+)
+def test_review_then_reset_review_file(bll, review):
     release_request, path, author = setup_empty_release_request()
     checker = factories.create_user("checker", [], True)
 
@@ -1357,39 +1360,17 @@ def test_approve_then_reset_review_file(bll):
 
     assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
-    bll.approve_file(release_request, path, checker)
+    if review == FileReviewStatus.APPROVED:
+        bll.approve_file(release_request, path, checker)
+    elif review == FileReviewStatus.REJECTED:
+        bll.reject_file(release_request, path, checker)
+    else:
+        assert False
 
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
-    print(current_reviews)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.APPROVED
-    assert type(current_reviews[0]) == FileReview
-
-    bll.reset_review_file(release_request, path, checker)
-
-    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
-    assert len(current_reviews) == 0
-
-
-def test_reject_then_reset_review_file(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
-    )
-
-    assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
-
-    bll.approve_file(release_request, path, checker)
-
-    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
-    print(current_reviews)
-    assert len(current_reviews) == 1
-    assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.APPROVED
+    assert current_reviews[0].status == review
     assert type(current_reviews[0]) == FileReview
 
     bll.reset_review_file(release_request, path, checker)
