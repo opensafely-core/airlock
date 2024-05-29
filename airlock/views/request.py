@@ -392,7 +392,7 @@ def file_reset_review(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        relpath = release_request.get_request_file(path).relpath
+        relpath = release_request.get_request_file_from_urlpath(path).relpath
     except bll.FileNotFound:
         raise Http404()
 
