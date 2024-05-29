@@ -100,3 +100,14 @@ def test_code_renderer_from_contents(suffix, mimetype, template_path):
     assert response.headers["Content-Type"].split(";")[0] == mimetype
     assert response.headers["ETag"] == renderer.etag
     assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
+
+
+def test_csv_renderer_handles_empty_file(tmp_path):
+    empty_csv = tmp_path / "empty.csv"
+    empty_csv.write_text("")
+    relpath = empty_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(empty_csv, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
