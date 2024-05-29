@@ -723,6 +723,12 @@ def test_file_reset_review(airlock_client):
     )
     assert len(reviews) == 0
 
+    # verify a re-request
+    response = airlock_client.post(
+        f"/requests/reset_review/{release_request.id}/group/{path}"
+    )
+    assert response.status_code == 404
+
 
 def test_request_reject_output_checker(airlock_client):
     airlock_client.login(output_checker=True)

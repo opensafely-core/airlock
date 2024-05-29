@@ -1379,6 +1379,25 @@ def test_review_then_reset_review_file(bll, review):
     assert len(current_reviews) == 0
 
 
+def test_reset_review_file_no_reviews(bll):
+    release_request, path, author = setup_empty_release_request()
+    checker = factories.create_user("checker", [], True)
+
+    bll.add_file_to_request(release_request, path, author)
+    bll.set_status(
+        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    )
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 0
+
+    with pytest.raises(bll.FileReviewNotFound):
+        bll.reset_review_file(release_request, path, checker)
+
+    current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
+    assert len(current_reviews) == 0
+
+
 def test_get_file_review_for_reviewer(bll):
     release_request, path, author = setup_empty_release_request()
     checker = factories.create_user("checker", [], True)

@@ -917,6 +917,9 @@ class BusinessLogicLayer:
     class FileNotFound(APIException):
         pass
 
+    class FileReviewNotFound(APIException):
+        pass
+
     class InvalidStateTransition(APIException):
         pass
 

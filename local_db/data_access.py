@@ -330,7 +330,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
 
-            review = FileReview.objects.get(file=request_file, reviewer=username)
+            try:
+                review = FileReview.objects.get(file=request_file, reviewer=username)
+            except FileReview.DoesNotExist:
+                raise BusinessLogicLayer.FileReviewNotFound(relpath, username)
+
             review.delete()
 
             self._create_audit_log(audit)

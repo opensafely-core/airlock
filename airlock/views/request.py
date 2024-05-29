@@ -400,6 +400,8 @@ def file_reset_review(request, request_id, path: str):
         bll.reset_review_file(release_request, relpath, request.user)
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
+    except bll.FileReviewNotFound:
+        raise Http404()
 
     messages.success(request, "File review has been reset")
     return redirect(release_request.get_url(path))
