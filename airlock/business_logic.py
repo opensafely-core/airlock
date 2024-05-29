@@ -87,6 +87,7 @@ class AuditEventType(Enum):
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+    REQUEST_FILE_RESET_REVIEW = "REQUEST_FILE_RESET_REVIEW"
 
 
 class NotificationEventType(Enum):
@@ -128,6 +129,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
     AuditEventType.REQUEST_FILE_REJECT: "Rejected file",
+    AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
 }
 
 
@@ -853,6 +855,11 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def reset_review_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
     def audit_event(self, audit: AuditEvent):
         raise NotImplementedError()
 
@@ -908,6 +915,9 @@ class BusinessLogicLayer:
         pass
 
     class FileNotFound(APIException):
+        pass
+
+    class FileReviewNotFound(APIException):
         pass
 
     class InvalidStateTransition(APIException):
@@ -1417,6 +1427,22 @@ class BusinessLogicLayer:
         )
 
         self._dal.reject_file(release_request.id, relpath, user.username, audit)
+
+    def reset_review_file(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        """Reset a file to have no review from this user"""
+
+        self._verify_permission_to_review_file(release_request, relpath, user)
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
+            user=user,
+            path=relpath,
+        )
+
+        self._dal.reset_review_file(release_request.id, relpath, user.username, audit)
 
     def group_edit(
         self,
