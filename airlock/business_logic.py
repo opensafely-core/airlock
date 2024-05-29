@@ -583,9 +583,12 @@ class Comment:
 
     @classmethod
     def from_dict(cls, attrs):
+        # `id` is implemented as an `int` in the current DAL, and as a `str`
+        # in the BLL, so we need to add a conversion here (instead of just passing
+        # it straight through with the other `attrs`)
         return cls(
             **{k: v for k, v in attrs.items() if k not in ["id"]},
-            id=f"{attrs.get('id')}",
+            id=str(attrs["id"]),
         )
 
 
