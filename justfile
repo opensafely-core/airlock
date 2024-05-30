@@ -123,7 +123,7 @@ mypy *ARGS: devenv
 # fix formatting and import sort ordering
 fix: devenv
     $BIN/ruff format .
-    $BIN/ruff --fix .
+    $BIN/ruff check --fix .
     $BIN/djhtml --tabwidth 2 airlock/
 
 # run airlock with django dev server

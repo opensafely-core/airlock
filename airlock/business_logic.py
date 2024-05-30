@@ -81,6 +81,7 @@ class AuditEventType(Enum):
     # request edits
     REQUEST_EDIT = "REQUEST_EDIT"
     REQUEST_COMMENT = "REQUEST_COMMENT"
+    REQUEST_COMMENT_DELETE = "REQUEST_COMMENT_DELETE"
 
     # request file status
     REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
@@ -126,6 +127,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_RELEASE: "Released request",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
+    AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
     AuditEventType.REQUEST_FILE_ADD: "Added file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
@@ -576,13 +578,20 @@ class FileGroup:
 class Comment:
     """A user comment on a group"""
 
+    id: str
     comment: str
     author: str
     created_at: datetime
 
     @classmethod
     def from_dict(cls, attrs):
-        return Comment(**attrs)
+        # `id` is implemented as an `int` in the current DAL, and as a `str`
+        # in the BLL, so we need to add a conversion here (instead of just passing
+        # it straight through with the other `attrs`)
+        return cls(
+            **{k: v for k, v in attrs.items() if k not in ["id"]},
+            id=str(attrs["id"]),
+        )
 
 
 @dataclass
@@ -891,11 +900,21 @@ class DataAccessLayerProtocol(Protocol):
     ) -> list[NotificationUpdateType]:
         raise NotImplementedError()
 
-    def group_comment(
+    def group_comment_create(
         self,
         request_id: str,
         group: str,
         comment: str,
+        username: str,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
+    def group_comment_delete(
+        self,
+        request_id: str,
+        group: str,
+        comment_id: str,
         username: str,
         audit: AuditEvent,
     ):
@@ -1497,7 +1516,7 @@ class BusinessLogicLayer:
                 release_request, NotificationEventType.REQUEST_UPDATED, user, updates
             )
 
-    def group_comment(
+    def group_comment_create(
         self, release_request: ReleaseRequest, group: str, comment: str, user: User
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
@@ -1513,8 +1532,44 @@ class BusinessLogicLayer:
             comment=comment,
         )
 
-        self._dal.group_comment(
+        self._dal.group_comment_create(
             release_request.id, group, comment, user.username, audit
+        )
+
+    def group_comment_delete(
+        self, release_request: ReleaseRequest, group: str, comment_id: str, user: User
+    ):
+        if release_request.workspace not in user.workspaces:
+            raise self.RequestPermissionDenied(
+                f"User {user.username} does not have permission to access this workspace"
+            )
+
+        filegroup = release_request.filegroups.get(group)
+        if not filegroup:
+            raise self.FileNotFound(f"Filegroup {group} not found")
+
+        comment = next(
+            (c for c in filegroup.comments if c.id == comment_id),
+            None,
+        )
+        if not comment:
+            raise self.FileNotFound(f"Comment {comment_id} not found")
+
+        if not user.username == comment.author:
+            raise self.RequestPermissionDenied(
+                f"User {user.username} is not the author of this comment, so cannot delete"
+            )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_COMMENT_DELETE,
+            user=user,
+            group=group,
+            comment=comment.comment,
+        )
+
+        self._dal.group_comment_delete(
+            release_request.id, group, comment_id, user.username, audit
         )
 
     def get_audit_log(

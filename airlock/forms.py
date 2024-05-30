@@ -126,3 +126,7 @@ class GroupEditForm(forms.Form):
 
 class GroupCommentForm(forms.Form):
     comment = forms.CharField()
+
+
+class GroupCommentDeleteForm(forms.Form):
+    comment_id = forms.CharField()

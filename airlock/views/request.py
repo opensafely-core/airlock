@@ -19,7 +19,7 @@ from airlock.business_logic import (
     bll,
 )
 from airlock.file_browser_api import get_request_tree
-from airlock.forms import GroupCommentForm, GroupEditForm
+from airlock.forms import GroupCommentDeleteForm, GroupCommentForm, GroupEditForm
 from airlock.types import UrlPath
 from services.tracing import instrument
 
@@ -106,7 +106,8 @@ def request_view(request, request_id: str, path: str = ""):
     group_edit_url = None
     comments = []
     group_comment_form = None
-    group_comment_url = None
+    group_comment_create_url = None
+    group_comment_delete_url = None
     group_readonly = release_request.is_final() or not is_author
 
     activity = []
@@ -136,8 +137,12 @@ def request_view(request, request_id: str, path: str = ""):
 
         comments = filegroup.comments
         group_comment_form = GroupCommentForm()
-        group_comment_url = reverse(
-            "group_comment",
+        group_comment_create_url = reverse(
+            "group_comment_create",
+            kwargs={"request_id": request_id, "group": group},
+        )
+        group_comment_delete_url = reverse(
+            "group_comment_delete",
             kwargs={"request_id": request_id, "group": group},
         )
 
@@ -220,13 +225,14 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comment_form": group_comment_form,
         "group_readonly": group_readonly,
         "group_comments": comments,
-        "group_comment_url": group_comment_url,
+        "group_comment_create_url": group_comment_create_url,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors
         "multiselect_url": "",
         "code_url": code_url,
         "return_url": "",
+        "group_comment_delete_url": group_comment_delete_url,
     }
 
     return TemplateResponse(request, template, context)
@@ -485,14 +491,14 @@ def group_edit(request, request_id, group):
 
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})
 @require_http_methods(["POST"])
-def group_comment(request, request_id, group):
+def group_comment_create(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     form = GroupCommentForm(request.POST)
 
     if form.is_valid():
         try:
-            bll.group_comment(
+            bll.group_comment_create(
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
@@ -509,5 +515,40 @@ def group_comment(request, request_id, group):
 
     else:
         display_form_errors(request, form.errors)
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_comment_delete(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    form = GroupCommentDeleteForm(request.POST)
+
+    if form.is_valid():
+        comment_id = form.cleaned_data["comment_id"]
+        try:
+            bll.group_comment_delete(
+                release_request,
+                group=group,
+                comment_id=comment_id,
+                user=request.user,
+            )
+        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        except bll.FileNotFound:
+            raise Http404(
+                request, f"Comment not found in group {group} with id {comment_id}"
+            )
+        else:
+            messages.success(request, "Comment deleted")
+
+    else:
+        for field, error_list in form.errors.items():
+            for error in error_list:
+                messages.error(request, f"{field}: {error}")
 
     return redirect(release_request.get_url(group))
