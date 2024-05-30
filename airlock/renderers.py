@@ -121,7 +121,7 @@ class CSVRenderer(Renderer):
 
     def context(self):
         reader = csv.reader(self.stream)
-        headers = next(reader)
+        headers = next(reader, [])
         return {"headers": headers, "rows": reader}
 
 
