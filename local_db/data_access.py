@@ -289,6 +289,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         metadata = self._find_metadata(request_id)
         return self._get_filegroups(metadata)
 
+    def release_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        self._create_audit_log(audit)
+
     def approve_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):

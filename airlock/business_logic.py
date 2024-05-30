@@ -89,6 +89,7 @@ class AuditEventType(Enum):
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
     REQUEST_FILE_RESET_REVIEW = "REQUEST_FILE_RESET_REVIEW"
+    REQUEST_FILE_RELEASE = "REQUEST_FILE_RELEASE"
 
 
 class NotificationEventType(Enum):
@@ -132,6 +133,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
     AuditEventType.REQUEST_FILE_REJECT: "Rejected file",
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
+    AuditEventType.REQUEST_FILE_RELEASE: "File released",
 }
 
 
@@ -846,6 +848,11 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def release_file(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
     def withdraw_file_from_request(
         self,
         request_id: str,
@@ -1369,28 +1376,35 @@ class BusinessLogicLayer:
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
-    def release_files(self, request: ReleaseRequest, user: User):
-        """Release all files from a request to job-server.
+    def release_files(self, release_request: ReleaseRequest, user: User):
+        """Release all files from a release_request to job-server.
 
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
         """
 
         # we check this is valid status transition *before* releasing the files
-        self.check_status(request, RequestStatus.RELEASED, user)
+        self.check_status(release_request, RequestStatus.RELEASED, user)
 
-        file_paths = request.get_output_file_paths()
+        file_paths = release_request.get_output_file_paths()
         self.validate_file_types(file_paths)
 
-        filelist = old_api.create_filelist(file_paths, request)
+        filelist = old_api.create_filelist(file_paths, release_request)
         jobserver_release_id = old_api.create_release(
-            request.workspace, filelist.json(), user.username
+            release_request.workspace, filelist.json(), user.username
         )
 
         for relpath, abspath in file_paths:
+            audit = AuditEvent.from_request(
+                request=release_request,
+                type=AuditEventType.REQUEST_FILE_RELEASE,
+                user=user,
+                path=relpath,
+            )
+            self._dal.release_file(release_request.id, relpath, user.username, audit)
             old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
-        self.set_status(request, RequestStatus.RELEASED, user)
+        self.set_status(release_request, RequestStatus.RELEASED, user)
 
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
