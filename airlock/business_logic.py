@@ -1395,7 +1395,6 @@ class BusinessLogicLayer:
         )
 
         for relpath, abspath in file_paths:
-            old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
             audit = AuditEvent.from_request(
                 request=release_request,
                 type=AuditEventType.REQUEST_FILE_RELEASE,
@@ -1403,6 +1402,7 @@ class BusinessLogicLayer:
                 path=relpath,
             )
             self._dal.release_file(release_request.id, relpath, user.username, audit)
+            old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
 
