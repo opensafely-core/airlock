@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 import old_api
 from airlock.business_logic import (
@@ -327,7 +328,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
     assert_last_notification(mock_notifications, "request_approved")
 
 
-def test_provider_request_release_files(mock_old_api, mock_notifications, bll):
+def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
     old_api.create_release.return_value = "jobserver_id"
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
@@ -354,7 +355,15 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll):
 
     abspath = release_request.abspath("group" / relpath)
 
+    freezer.move_to("2022-01-01T12:34:56")
     bll.release_files(release_request, checker)
+
+    # TODO: when we do this, it reverses the order of the audit log in the data struct??
+    release_request = factories.refresh_release_request(release_request)
+
+    request_file = release_request.filegroups["group"].files[relpath]
+    assert request_file.release_output_checker == checker.username
+    assert request_file.release_date == parse_datetime("2022-01-01T12:34:56Z")
 
     expected_json = {
         "files": [
@@ -392,21 +401,22 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll):
     assert request_json[3]["event_type"] == "request_released"
 
     audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0].type == AuditEventType.REQUEST_RELEASE
-    assert audit_log[0].user == checker.username
-    assert audit_log[0].request == release_request.id
-    assert audit_log[0].workspace == "workspace"
 
-    assert audit_log[1].type == AuditEventType.REQUEST_FILE_RELEASE
-    assert audit_log[1].user == checker.username
-    assert audit_log[1].request == release_request.id
-    assert audit_log[1].workspace == "workspace"
-    assert audit_log[1].path == Path("test/file.txt")
+    assert audit_log[3].type == AuditEventType.REQUEST_APPROVE
+    assert audit_log[3].user == checker.username
+    assert audit_log[3].request == release_request.id
+    assert audit_log[3].workspace == "workspace"
 
-    assert audit_log[2].type == AuditEventType.REQUEST_APPROVE
-    assert audit_log[2].user == checker.username
-    assert audit_log[2].request == release_request.id
-    assert audit_log[2].workspace == "workspace"
+    assert audit_log[4].type == AuditEventType.REQUEST_FILE_RELEASE
+    assert audit_log[4].user == checker.username
+    assert audit_log[4].request == release_request.id
+    assert audit_log[4].workspace == "workspace"
+    assert audit_log[4].path == Path("test/file.txt")
+
+    assert audit_log[5].type == AuditEventType.REQUEST_RELEASE
+    assert audit_log[5].user == checker.username
+    assert audit_log[5].request == release_request.id
+    assert audit_log[5].workspace == "workspace"
 
 
 def test_provider_get_requests_for_workspace(bll):

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 
 from airlock.business_logic import (
     AuditEvent,
@@ -221,7 +222,18 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def release_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
-        self._create_audit_log(audit)
+        with transaction.atomic():
+            # nb. the business logic layer approve_file() should confirm that this path
+            # is part of the request before calling this method
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+
+            request_file.release_date = timezone.now()
+            request_file.release_output_checker = username
+            request_file.save()
+
+            self._create_audit_log(audit)
 
     def approve_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
