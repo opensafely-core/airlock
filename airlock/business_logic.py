@@ -513,9 +513,11 @@ class RequestFile:
     job_id: str
     commit: str
     repo: str
+    release_output_checker: str
     row_count: int | None = None
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
+    release_date: datetime | None = None
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
