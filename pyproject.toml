@@ -27,6 +27,7 @@ testpaths = [
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:opentelemetry.*:",
+    "ignore::DeprecationWarning:pytest_freezegun.*:",
 ]
 
 [tool.coverage.run]
