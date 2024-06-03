@@ -152,7 +152,8 @@ def create_workspace(name, user=None):
     workspace_dir = settings.WORKSPACE_DIR / name
     if not workspace_dir.exists():
         workspace_dir.mkdir(exist_ok=True, parents=True)
-        update_manifest(name)
+
+    update_manifest(name)
     return bll.get_workspace(name, user)
 
 
