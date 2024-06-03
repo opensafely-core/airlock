@@ -35,9 +35,18 @@ jobs:
           install-just: true
       - name: Set up development environment
         run: just devenv
+
       - name: Run tests
         run: |
           just test-all
+
+      # not actually needed for tests, but we want to make sure the dev tooling
+      # is still working
+      - name: Validate load-example-data dev tooling works
+        run: |
+            just manage migrate
+            just load-example-data
+ 
 
   docker-test-dev:
     runs-on: ubuntu-22.04
