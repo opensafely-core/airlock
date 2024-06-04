@@ -1,5 +1,6 @@
 import pytest
 from django.contrib import messages
+from django.contrib.messages.api import get_messages
 from django.shortcuts import reverse
 
 from airlock.business_logic import AuditEventType, RequestFileType, bll
@@ -402,14 +403,16 @@ def test_workspace_multiselect_bad_form(airlock_client, bll):
         follow=True,
     )
 
-    assert response.status_code == 200
-    all_messages = [msg for msg in response.context["messages"]]
+    assert response.status_code == 400
+    assert response.headers["HX-Redirect"] == "/workspaces/view/test1/"
+
+    all_messages = list(get_messages(response.wsgi_request))
     assert len(all_messages) == 1
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "action: This field is required" in message.message
     assert "next_url: This field is required" in message.message
-    assert "selected: This field is required" in message.message
+    assert "selected: You must select at least one file" in message.message
 
 
 def test_workspace_multiselect_bad_form_with_next_url(airlock_client, bll):
@@ -421,8 +424,8 @@ def test_workspace_multiselect_bad_form_with_next_url(airlock_client, bll):
         data={"next_url": "/next"},
     )
 
-    assert response.status_code == 302
-    assert response.headers["Location"] == "/next"
+    assert response.status_code == 400
+    assert response.headers["HX-Redirect"] == "/next"
 
 
 @pytest.mark.parametrize("filetype", ["OUTPUT", "SUPPORTING"])

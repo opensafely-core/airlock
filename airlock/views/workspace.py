@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -189,7 +189,10 @@ def workspace_multiselect(request, workspace_name: str):
         else:
             url = workspace.get_url()
 
-        return redirect(url)
+        # tell HTMX to redirect us
+        response = HttpResponse("", status=400)
+        response.headers["HX-Redirect"] = url
+        return response
 
 
 def multiselect_add_files(request, multiform, workspace):

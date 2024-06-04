@@ -35,7 +35,10 @@ class MultiselectForm(forms.Form):
 
     action = forms.CharField()  # which submit button was used
     next_url = InternalRedirectField()  # where do we return to when complete
-    selected = ListField()  # the list of files selected
+    # the list of files selected
+    selected = ListField(
+        error_messages={"required": "You must select at least one file"},
+    )
 
 
 class AddFileForm(forms.Form):
