@@ -30,6 +30,11 @@
           <th>
             <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
           </th>
+          {% if context == "workspace" %}
+            <th>
+              <div class="flex flex-row gap-2">Review State{% datatable_sort_icon %}</div>
+            </th>
+          {% endif %}
           <th>
             <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
           </th>
@@ -42,6 +47,9 @@
         {% for path in path_item.children %}
           <tr>
             <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+            {% if context == "workspace" %}
+              <td>{{ path.display_status }}</td>
+            {% endif %}
             <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
             <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
           </tr>

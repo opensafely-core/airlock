@@ -29,6 +29,9 @@ class WorkspaceFileState(Enum):
     RELEASED = "RELEASED"
     CONTENT_UPDATED = "UPDATED"
 
+    def formatted(self):
+        return self.value.title().replace("_", " ")
+
 
 @dataclass
 class FileMetadata:

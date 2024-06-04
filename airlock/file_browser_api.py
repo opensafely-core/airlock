@@ -96,6 +96,13 @@ class PathItem:
 
         return self.name()
 
+    def display_status(self):
+        """Status of this path."""
+        if isinstance(self.container, Workspace) and self.workspace_state:
+            return self.workspace_state.formatted()
+        # TODO request states
+        return ""
+
     def url(self):
         url = self.container.get_url(self.relpath)
         suffix = "/" if (self.is_directory() and not url.endswith("/")) else ""
