@@ -193,20 +193,37 @@ def workspace_multiselect(request, workspace_name: str):
 
 
 def multiselect_add_files(request, multiform, workspace):
+    files_to_add = []
+    files_ignored = {}
+
+    # validate which files can be added
+    for f in multiform.cleaned_data["selected"]:
+        workspace.abspath(f)  # validate path
+
+        state = workspace.get_workspace_state(UrlPath(f))
+        if state == WorkspaceFileState.UNRELEASED:
+            files_to_add.append(f)
+        else:
+            rfile = workspace.current_request.get_request_file_from_output_path(f)
+            files_ignored[f] = f"already in group {rfile.group}"
+
     add_file_form = AddFileForm(
         release_request=workspace.current_request,
         initial={"next_url": multiform.cleaned_data["next_url"]},
     )
 
     filetype_formset = FileTypeFormSet(
-        initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
+        initial=[{"file": f} for f in files_to_add],
     )
+
     return TemplateResponse(
         request,
         template="add_files.html",
         context={
             "form": add_file_form,
             "formset": filetype_formset,
+            "files_ignored": files_ignored,
+            "no_valid_files": len(files_to_add) == 0,
             "add_file_url": reverse(
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace.name},

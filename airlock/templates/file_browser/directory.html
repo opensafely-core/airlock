@@ -20,42 +20,71 @@
 
 </style>
 
-{% #card title=path_item.name container=True %}
+
+{% fragment as buttons %}
+  {% if context == "workspace" %}
+    {% if path_item.children %}
+      <div class="div flex flex-col items-start gap-4">
+        <div class="flex items-center gap-2">
+          {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form"%}Add Files to Request{% /button %}
+        </div>
+        <div id="multiselect_modal"></div>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endfragment %}
+
+
+{% #card title=path_item.name container=True custom_button=buttons %}
   {% if not path_item.children %}
     This directory is empty
   {% else %}
-    {% #table class="dir_table" id="customTable" %}
-      {% #table_head %}
-        <tr>
-          <th>
-            <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
-          </th>
-          {% if context == "workspace" %}
-            <th>
-              <div class="flex flex-row gap-2">Review State{% datatable_sort_icon %}</div>
-            </th>
-          {% endif %}
-          <th>
-            <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
-          </th>
-          <th>
-            <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
-          </th>
-        </tr>
-      {% /table_head %}
-      <tbody>
-        {% for path in path_item.children %}
+    <form id="multiselect_form"
+          method="POST"
+          hx-post="{{ multiselect_url }}"
+          hx-target="#multiselect_modal"
+          hx-swap="outerHtml"
+    >
+
+      {% csrf_token %}
+      <input type=hidden name="next_url" value="{{ request.path }}"/>
+
+      {% #table class="dir_table" id="customTable" %}
+        {% #table_head %}
           <tr>
-            <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+            <th>
+              <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+            </th>
             {% if context == "workspace" %}
-              <td>{{ path.display_status }}</td>
+              <th>
+                <div class="flex flex-row gap-2">Review State{% datatable_sort_icon %}</div>
+              </th>
             {% endif %}
-            <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
-            <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
+            <th>
+              <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
+            </th>
+            <th>
+              <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
+            </th>
+            <th data-searchable="false" data-sortable="false">
+              <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
+            </th>
           </tr>
-        {% endfor %}
-      </tbody>
-    {% /table %}
+        {% /table_head %}
+        <tbody>
+          {% for path in path_item.children %}
+            <tr>
+              <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+              {% if context == "workspace" %}
+                <td>{{ path.display_status }}</td>
+              {% endif %}
+              <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+              <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
+              <td>{% form_checkbox name="selected" value=path.relpath custom_field=True %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      {% /table %}
     </form>
 
     {% vite_asset "assets/src/scripts/components.js" %}
@@ -63,6 +92,17 @@
     <script type="text/javascript">
       // ensure datatable is initialised when loading over HTMX
       window.initCustomTable ? window.initCustomTable() : null;
+
+      // implement select all checkbox
+      function toggleSelectAll(elem, event) {
+        const form = document.querySelector("#multiselect_form");
+
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+
+        checkboxes.forEach(function(checkbox) {
+          checkbox.checked = elem.checked;
+        });
+      }
     </script>
 
   {% endif %}

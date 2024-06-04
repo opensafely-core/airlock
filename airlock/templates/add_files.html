@@ -12,6 +12,14 @@
       {{ form.next_url }}
       {{ formset.management_form }}
       {% #list_group %}
+        {% for name, reason in files_ignored.items %}
+          {% #list_group_item %}
+            <div class="flex items-center gap-2 justify-between">
+              <span>{{ name }}</span>
+              <span class="flex flex-row">{{ reason }}</span>
+            </div>
+          {% /list_group_item %}
+        {% endfor %}
         {% for formset_form in formset %}
           {% #list_group_item %}
             <div class="flex items-center gap-2 justify-between">
@@ -23,10 +31,13 @@
         {% endfor %}
       {% /list_group %}
 
-      {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
-      {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
+      {% if not no_valid_files %}
+        {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
+        {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
+      {% endif %}
+
       <div class="mt-2">
-        {% #button type="submit" variant="success" id="add-file-button" %}Add Files to Request{% /button %}
+        {% #button type="submit" variant="success" id="add-file-button" disabled=no_valid_files %}Add Files to Request{% /button %}
         {% #button variant="danger" type="cancel" %}Cancel{% /button %}
       </div>
     </form>
