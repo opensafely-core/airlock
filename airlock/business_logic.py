@@ -505,6 +505,7 @@ class RequestFile:
     """
 
     relpath: UrlPath
+    group: str
     file_id: str
     reviews: list[FileReview]
     timestamp: int
