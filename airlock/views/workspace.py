@@ -176,26 +176,7 @@ def workspace_multiselect(request, workspace_name: str):
         action = multiform.cleaned_data["action"]
 
         if action == "add_files":
-            add_file_form = AddFileForm(
-                release_request=bll.get_current_request(workspace_name, request.user),
-                initial={"next_url": multiform.cleaned_data["next_url"]},
-            )
-
-            filetype_formset = FileTypeFormSet(
-                initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
-            )
-            return TemplateResponse(
-                request,
-                template="add_files.html",
-                context={
-                    "form": add_file_form,
-                    "formset": filetype_formset,
-                    "add_file_url": reverse(
-                        "workspace_add_file",
-                        kwargs={"workspace_name": workspace_name},
-                    ),
-                },
-            )
+            return multiselect_add_files(request, multiform, workspace)
         # TODO: withdraw action
         else:
             raise Http404(f"Invalid action {action}")
@@ -209,6 +190,29 @@ def workspace_multiselect(request, workspace_name: str):
             url = workspace.get_url()
 
         return redirect(url)
+
+
+def multiselect_add_files(request, multiform, workspace):
+    add_file_form = AddFileForm(
+        release_request=workspace.current_request,
+        initial={"next_url": multiform.cleaned_data["next_url"]},
+    )
+
+    filetype_formset = FileTypeFormSet(
+        initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
+    )
+    return TemplateResponse(
+        request,
+        template="add_files.html",
+        context={
+            "form": add_file_form,
+            "formset": filetype_formset,
+            "add_file_url": reverse(
+                "workspace_add_file",
+                kwargs={"workspace_name": workspace.name},
+            ),
+        },
+    )
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})
