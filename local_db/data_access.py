@@ -70,6 +70,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def _request_file(self, file_metadata: RequestFileMetadata):
         return dict(
             relpath=Path(file_metadata.relpath),
+            group=file_metadata.filegroup.name,
             file_id=file_metadata.file_id,
             filetype=file_metadata.filetype,
             timestamp=file_metadata.timestamp,

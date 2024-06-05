@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -176,26 +176,7 @@ def workspace_multiselect(request, workspace_name: str):
         action = multiform.cleaned_data["action"]
 
         if action == "add_files":
-            add_file_form = AddFileForm(
-                release_request=bll.get_current_request(workspace_name, request.user),
-                initial={"next_url": multiform.cleaned_data["next_url"]},
-            )
-
-            filetype_formset = FileTypeFormSet(
-                initial=[{"file": f} for f in multiform.cleaned_data["selected"]],
-            )
-            return TemplateResponse(
-                request,
-                template="add_files.html",
-                context={
-                    "form": add_file_form,
-                    "formset": filetype_formset,
-                    "add_file_url": reverse(
-                        "workspace_add_file",
-                        kwargs={"workspace_name": workspace_name},
-                    ),
-                },
-            )
+            return multiselect_add_files(request, multiform, workspace)
         # TODO: withdraw action
         else:
             raise Http404(f"Invalid action {action}")
@@ -208,7 +189,50 @@ def workspace_multiselect(request, workspace_name: str):
         else:
             url = workspace.get_url()
 
-        return redirect(url)
+        # tell HTMX to redirect us
+        response = HttpResponse("", status=400)
+        response.headers["HX-Redirect"] = url
+        return response
+
+
+def multiselect_add_files(request, multiform, workspace):
+    files_to_add = []
+    files_ignored = {}
+
+    # validate which files can be added
+    for f in multiform.cleaned_data["selected"]:
+        workspace.abspath(f)  # validate path
+
+        state = workspace.get_workspace_state(UrlPath(f))
+        if state == WorkspaceFileState.UNRELEASED:
+            files_to_add.append(f)
+        else:
+            rfile = workspace.current_request.get_request_file_from_output_path(f)
+            files_ignored[f] = f"already in group {rfile.group}"
+
+    add_file_form = AddFileForm(
+        release_request=workspace.current_request,
+        initial={"next_url": multiform.cleaned_data["next_url"]},
+    )
+
+    filetype_formset = FileTypeFormSet(
+        initial=[{"file": f} for f in files_to_add],
+    )
+
+    return TemplateResponse(
+        request,
+        template="add_files.html",
+        context={
+            "form": add_file_form,
+            "formset": filetype_formset,
+            "files_ignored": files_ignored,
+            "no_valid_files": len(files_to_add) == 0,
+            "add_file_url": reverse(
+                "workspace_add_file",
+                kwargs={"workspace_name": workspace.name},
+            ),
+        },
+    )
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})
