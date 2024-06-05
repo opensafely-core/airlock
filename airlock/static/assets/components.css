@@ -90,8 +90,9 @@
   white-space: nowrap;
 }
 
-.heading__meta svg {
-  color: #888;
+.heading__meta img {
+  filter: invert(66%) sepia(0%) saturate(526%) hue-rotate(136deg)
+    brightness(81%) contrast(88%);
   height: 1.25rem;
   width: 1.25rem;
 }

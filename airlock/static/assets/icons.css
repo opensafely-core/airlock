@@ -1,0 +1,21 @@
+/* https://fonts.google.com/icons?icon.size=24&icon.color=%23000000&icon.style=Sharp */
+.icon {
+  height: 16px;
+  width: 16px;
+}
+
+/* https://codepen.io/sosuke/pen/Pjoqqp */
+.icon--green-700 {
+  filter: invert(35%) sepia(53%) saturate(665%) hue-rotate(90deg)
+    brightness(98%) contrast(93%);
+}
+
+.icons--sort {
+  width: 16px;
+  height: 16px;
+}
+
+.icon.htmx-indicator {
+  width: 0;
+  height: 0;
+}

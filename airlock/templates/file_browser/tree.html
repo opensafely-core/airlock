@@ -1,18 +1,23 @@
 {% for child in path.children %}
-  <li class="tree ">
+  <li class="tree tree__item">
     {% if child.is_directory %}
-      <details {% if child.expanded %}open{% endif %}>
-        <summary>
-          <a class="{{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
+      <details class="tree__folder group" {% if child.expanded %}open{% endif %}>
+        <summary class="tree__folder-name">
+          <img height="16" width="16" class="icon tree__folder-icon tree__folder-icon--open" src="/static/icons/folder_open.svg" alt="" />
+          <img height="16" width="16" class="icon tree__folder-icon tree__folder-icon--closed" src="/static/icons/folder.svg" alt="" />
+          <a class="{{ child.html_classes }} tree__folder-link" href="{{ child.url }}">{{ child.display }}</a>
         </summary>
         {% if child.children %}
-          <ul class="tree">
+          <ul class="tree tree__child-list">
             {% include "file_browser/tree.html" with path=child %}
           </ul>
         {% endif %}
       </details>
     {% else %}
-      <a class="{{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
+      <a class="{{ child.html_classes }} tree__file" href="{{ child.url }}">
+        <img height="16" width="16" class="icon tree__file-icon" src="/static/icons/draft.svg" alt="" />
+        <span class="tree__file-name">{{ child.display }}</span>
+      </a>
     {% endif %}
   </li>
 {% endfor %}

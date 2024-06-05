@@ -1,5 +1,6 @@
 import json
 import re
+import time
 
 import pytest
 from playwright.sync_api import expect
@@ -466,6 +467,10 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     find_and_click(page.get_by_test_id("nav-requests"))
 
     page.get_by_role("link", name="test-workspace: SUBMITTED").click()
+
+    # give the js time to set up the dialog
+    time.sleep(0.1)
+
     find_and_click(page.locator("[data-modal=withdrawRequest]"))
     find_and_click(page.locator("#withdraw-request-confirm"))
 

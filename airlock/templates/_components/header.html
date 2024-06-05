@@ -37,19 +37,21 @@
           <div>
             <dt>
               <span class="sr-only">Workspace</span>
-              {% icon_rectangle_stack_outline class="" %}
+              <img class="icon" src="/static/icons/stacks.svg" alt="">
             </dt>
             <dd>{{ workspace }}</dd>
           </div>
           <div>
             <dt>
               <span class="sr-only">User</span>
-              {% icon_user_outline class="" %}
+              <img class="icon" src="/static/icons/person.svg" alt="">
             </dt>
             <dd>{{ release_request.author }}</dd>
           </div>
           <div>
-            <dt>{% icon_code_bracket_outline class="" %}</dt>
+            <dt>
+              <span class="sr-only">ID</span>
+              <img class="icon" src="/static/icons/token.svg" alt=""></dt>
             <dd>{{ release_request.id }}</dd>
           </div>
         </dl>

@@ -36,8 +36,8 @@
       {% #button type="submit" variant="success" id="login-button" class="mt-4" %}
         Log in with token
       {% /button %}
-      <span id="spinner" class="hidden" >
-        {% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2" %}
+      <span id="spinner" class="hidden">
+        <img height="16" width="16" class="icon icon--green-700 animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
       </span>
     </form>
   {% /card %}

@@ -8,11 +8,6 @@
 
 {% block extra_styles %}
   <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
-  <style>
-    .tree a.directory {
-      background-image: url("{% static 'folder.png' %}");
-    }
-  </style>
 {% endblock extra_styles %}
 
 {% block content %}
@@ -51,7 +46,9 @@
           {% if release_request.all_files_approved %}
             <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
               {% csrf_token %}
-              {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}Release Files{% icon_custom_spinner class="h-6 w-6 text-green-700 animate-spin stroke-current stroke-2 htmx-indicator" %}
+              {% #button type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}
+                Release Files
+                <img height="16" width="16" class="icon icon--green-700 animate-spin htmx-indicator" src="{% static 'icons/progress_activity.svg' %}" alt="">
               {% /button %}
             </form>
           {% else %}
@@ -74,7 +71,7 @@
   <div class="browser">
     <div class="browser__files">
       <ul
-        class="tree root"
+        class="tree root tree__root"
         hx-boost="true"
         hx-on:htmx:after-request="setTreeSelection(this, event)"
         hx-push-url="true"
