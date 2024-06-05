@@ -35,7 +35,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             status=metadata.status,
             author=metadata.author,
             created_at=metadata.created_at,
-            filegroups=self._get_filegroups(metadata),
+            filegroups=metadata.get_filegroups(),
         )
 
     def create_release_request(
@@ -65,12 +65,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
             raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
-
-    def _get_filegroups(self, metadata: RequestMetadata):
-        return {
-            group_metadata.name: group_metadata.to_dict()
-            for group_metadata in metadata.filegroups.all()
-        }
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
@@ -180,7 +174,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups()
 
     def delete_file_from_request(
         self,
@@ -206,7 +200,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups()
 
     def withdraw_file_from_request(
         self,
@@ -234,7 +228,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups()
 
     def release_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent

@@ -90,6 +90,11 @@ class RequestMetadata(models.Model):
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
+    def get_filegroups(self):
+        return {
+            group_metadata.name: group_metadata.to_dict()
+            for group_metadata in self.filegroups.all()
+        }
 
 class FileGroupMetadata(models.Model):
     """A group of files that share context and controls"""
