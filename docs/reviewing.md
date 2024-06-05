@@ -5,7 +5,7 @@ Whilst viewing a file in an Airlock release request, they have the option of:
 * **Reject** — output is not currently acceptable for release. 
 
 !!!warning "Retrictions for authors"
-    Airlock does not permit users to approve or reject files that are part of release requests they created themselves.
+    Airlock does not permit users to approve or request changes to files that are part of release requests they created themselves.
 
 
 ## Viewing release requests on Airlock
@@ -25,17 +25,18 @@ Whilst viewing a file in an Airlock release request, they have the option of:
     Request authors are not permitted to download files from their own requests,
     even if they are also output checkers.
 
-## Dealing with discrepancies and rejected files
+## Dealing with discrepancies and requested changes to files
 
 <!-- Output checkers and researchers can add comments on each file group to request
 information and discuss discrepancies. Comments are recorded and displayed on the
 file group with the user's username and a timestamp. -->
 
-Researchers should withdraw any files that have been rejected in order for their
-release request to progress. They can add further files, including revised versions
-of rejected files, and then ask the output checkers for further review.
+Researchers should withdraw or update any files that have had changes requested in
+order for their release request to progress. They can add further files, including
+revised versions of problematic files, and then ask the output checkers for further
+review.
 
 Files require approval by two output checkers in order to be released. If the two output checkers 
-do not agree on whether a file should be approved or rejected,
-and there is no way to satisfy the rejecting output checker, it is possible for a
-third output checker to supply the second approving review.
+do not agree on whether a file should be approved or changes should be requested,
+and there is no way to satisfy the output checker who requests changes, it is possible
+for a third output checker to supply the second approving review.

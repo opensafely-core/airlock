@@ -388,7 +388,7 @@ def file_reject(request, request_id, path: str):
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
-    messages.success(request, "File has been rejected")
+    messages.success(request, "File changes have been requested")
     return redirect(release_request.get_url(path))
 
 
