@@ -229,8 +229,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
 
-            request_file.release_date = timezone.now()
-            request_file.release_output_checker = username
+            request_file.released_at = timezone.now()
+            request_file.released_by = username
             request_file.save()
 
             self._create_audit_log(audit)

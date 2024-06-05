@@ -11,12 +11,12 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="requestfilemetadata",
-            name="release_date",
+            name="released_at",
             field=models.DateTimeField(default=None, null=True),
         ),
         migrations.AddField(
             model_name="requestfilemetadata",
-            name="release_output_checker",
+            name="released_by",
             field=models.TextField(default=""),
             preserve_default=False,
         ),

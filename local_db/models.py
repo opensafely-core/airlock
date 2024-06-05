@@ -181,10 +181,10 @@ class RequestFileMetadata(models.Model):
     repo = models.URLField()
     row_count = models.IntegerField(null=True)
     col_count = models.IntegerField(null=True)
-    # release_date to be null if file has not been released
-    release_date = models.DateTimeField(default=None, null=True)
+    # released_at to be null if file has not been released
+    released_at = models.DateTimeField(default=None, null=True)
     # just username, as we have no User model
-    release_output_checker = models.TextField()
+    released_by = models.TextField()
 
     class Meta:
         unique_together = ("relpath", "request")

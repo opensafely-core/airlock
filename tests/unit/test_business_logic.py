@@ -362,8 +362,8 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     release_request = factories.refresh_release_request(release_request)
 
     request_file = release_request.filegroups["group"].files[relpath]
-    assert request_file.release_output_checker == checker.username
-    assert request_file.release_date == parse_datetime("2022-01-01T12:34:56Z")
+    assert request_file.released_by == checker.username
+    assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
 
     expected_json = {
         "files": [
