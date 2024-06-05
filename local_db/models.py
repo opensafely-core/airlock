@@ -106,6 +106,22 @@ class FileGroupMetadata(models.Model):
     class Meta:
         unique_together = ("request", "name")
 
+    def to_dict(self):
+        """Unpack file group db data into FileGroup, RequestFile & Comment objects."""
+        return dict(
+            name=self.name,
+            context=self.context,
+            controls=self.controls,
+            updated_at=self.updated_at,
+            comments=[
+                comment.to_dict()
+                for comment in self.comments.all().order_by("created_at")
+            ],
+            files=[
+                file_metadata.to_dict()
+                for file_metadata in self.request_files.all()
+            ],
+        )
 
 class FileGroupComment(models.Model):
     filegroup = models.ForeignKey(
