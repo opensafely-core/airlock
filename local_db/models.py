@@ -1,4 +1,5 @@
 import enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -151,6 +152,22 @@ class RequestFileMetadata(models.Model):
     class Meta:
         unique_together = ("relpath", "request")
 
+    def to_dict(self):
+        return dict(
+            relpath=Path(self.relpath),
+            group=self.filegroup.name,
+            file_id=self.file_id,
+            filetype=self.filetype,
+            timestamp=self.timestamp,
+            size=self.size,
+            commit=self.commit,
+            repo=self.repo,
+            job_id=self.job_id,
+            row_count=self.row_count,
+            col_count=self.col_count,
+            reviews=[file_review.to_dict() for file_review in self.reviews.all()],
+        )
+
 
 class FileReview(models.Model):
     """An output checker's review of a file"""
@@ -174,6 +191,7 @@ class FileReview(models.Model):
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
+
 
 class AuditLog(models.Model):
     type = EnumField(enum=AuditEventType)

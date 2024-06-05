@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from django.db import transaction
 
@@ -67,25 +66,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         except RequestMetadata.DoesNotExist:
             raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
 
-    def _request_file(self, file_metadata: RequestFileMetadata):
-        return dict(
-            relpath=Path(file_metadata.relpath),
-            group=file_metadata.filegroup.name,
-            file_id=file_metadata.file_id,
-            filetype=file_metadata.filetype,
-            timestamp=file_metadata.timestamp,
-            size=file_metadata.size,
-            commit=file_metadata.commit,
-            repo=file_metadata.repo,
-            job_id=file_metadata.job_id,
-            row_count=file_metadata.row_count,
-            col_count=file_metadata.col_count,
-            reviews=[
-                file_review.to_dict()
-                for file_review in file_metadata.reviews.all()
-            ],
-        )
-
     def _filegroup(self, filegroup_metadata: FileGroupMetadata):
         """Unpack file group db data into FileGroup and RequestFile objects."""
         return dict(
@@ -98,7 +78,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 for comment in filegroup_metadata.comments.all().order_by("created_at")
             ],
             files=[
-                self._request_file(file_metadata)
+                file_metadata.to_dict()
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
