@@ -59,11 +59,22 @@ class RequestFileType(Enum):
 
 
 class UserFileReviewStatus(Enum):
+    """An individual user's vote on a specific file."""
+
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     UNDECIDED = (
         "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
     )
+
+
+class RequestFileReviewStatus(Enum):
+    """The current state of all user reviews on this file."""
+
+    REJECTED = "REJECTED"
+    APPROVED = "APPROVED"
+    CONFLICTED = "CONFLICTED"
+    INCOMPLETE = "INCOMPLETE"
 
 
 class AuditEventType(Enum):
@@ -230,6 +241,14 @@ class AirlockContainer(Protocol):
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
         """Get workspace state of file."""
 
+    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        """Get request status of file."""
+
+    def get_user_request_state(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        """Get user's request status of file."""
+
 
 @dataclass(order=True)
 class Workspace:
@@ -323,6 +342,14 @@ class Workspace:
                 return WorkspaceFileState.CONTENT_UPDATED
 
         return WorkspaceFileState.UNRELEASED
+
+    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return None
+
+    def get_user_request_state(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return None
 
     def get_requests_url(self):
         return reverse(
@@ -491,6 +518,14 @@ class CodeRepo:
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
         return None
 
+    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return None
+
+    def get_user_request_state(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return None
+
 
 @dataclass(frozen=True)
 class FileReview:
@@ -539,20 +574,35 @@ class RequestFile:
             },
         )
 
-    def approved_for_release(self):
+    def status(self) -> RequestFileReviewStatus:
+        """The status of RequestFile, based on mutliple reviews.
+
+        We specificially only require 2 APPROVED votes, rather than all votes
+        being APPROVED, as this allows a 3rd review to mark a file APPROVED to
+        unblock things if one of the initial reviewers is unavailable.
         """
-        A file is approved for release if it has been approved by two reviewers
-        """
-        return (
-            len(
-                [
-                    review
-                    for review in self.reviews.values()
-                    if review.status == UserFileReviewStatus.APPROVED
-                ]
-            )
-            >= 2
-        )
+        all_reviews = [v.status for v in self.reviews.values()]
+
+        if len(all_reviews) < 2:
+            # not enough votes yet
+            return RequestFileReviewStatus.INCOMPLETE
+
+        # if we have 2+ APPROVED reviews, we are APPROVED
+        if all_reviews.count(UserFileReviewStatus.APPROVED) >= 2:
+            return RequestFileReviewStatus.APPROVED
+
+        # do the reviews disagree?
+        if len(set(all_reviews)) > 1:
+            return RequestFileReviewStatus.CONFLICTED
+
+        # only case left is all reviews are REJECTED
+        return RequestFileReviewStatus.REJECTED
+
+    def status_for_user(self, user: User) -> UserFileReviewStatus | None:
+        if user.username in self.reviews:
+            return self.reviews[user.username].status
+        else:
+            return None
 
     def rejected_reviews(self):
         return [
@@ -716,6 +766,14 @@ class ReleaseRequest:
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
         return None
 
+    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return self.get_request_file_from_urlpath(relpath).status()
+
+    def get_user_request_state(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return self.get_request_file_from_urlpath(relpath).status_for_user(user)
+
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
@@ -792,7 +850,7 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.approved_for_release()
+            request_file.status() == RequestFileReviewStatus.APPROVED
             for filegroup in self.filegroups.values()
             for request_file in filegroup.output_files
         )
