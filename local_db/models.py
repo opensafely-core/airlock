@@ -115,6 +115,14 @@ class FileGroupComment(models.Model):
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "comment": self.comment,
+            "author": self.author,
+            "created_at": self.created_at,
+        }
+
 
 class RequestFileMetadata(models.Model):
     """Represents attributes of a single file in a request"""

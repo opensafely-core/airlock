@@ -94,7 +94,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             controls=filegroup_metadata.controls,
             updated_at=filegroup_metadata.updated_at,
             comments=[
-                self._comment(comment)
+                comment.to_dict()
                 for comment in filegroup_metadata.comments.all().order_by("created_at")
             ],
             files=[
@@ -102,14 +102,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 for file_metadata in filegroup_metadata.request_files.all()
             ],
         )
-
-    def _comment(self, comment: FileGroupComment):
-        return {
-            "id": comment.id,
-            "comment": comment.comment,
-            "author": comment.author,
-            "created_at": comment.created_at,
-        }
 
     def _get_filegroups(self, metadata: RequestMetadata):
         return {
