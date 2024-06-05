@@ -517,7 +517,7 @@ class RequestFile:
     relpath: UrlPath
     group: str
     file_id: str
-    reviews: list[FileReview]
+    reviews: dict[str, FileReview]
     timestamp: int
     size: int
     job_id: str
@@ -533,7 +533,10 @@ class RequestFile:
     def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "reviews"},
-            reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
+            reviews={
+                value["reviewer"]: FileReview.from_dict(value)
+                for value in attrs.get("reviews", ())
+            },
         )
 
     def approved_for_release(self):
@@ -544,7 +547,7 @@ class RequestFile:
             len(
                 [
                     review
-                    for review in self.reviews
+                    for review in self.reviews.values()
                     if review.status == UserFileReviewStatus.APPROVED
                 ]
             )
@@ -554,7 +557,7 @@ class RequestFile:
     def rejected_reviews(self):
         return [
             review
-            for review in self.reviews
+            for review in self.reviews.values()
             if review.status == UserFileReviewStatus.REJECTED
         ]
 
@@ -566,7 +569,7 @@ class RequestFile:
             len(
                 [
                     review
-                    for review in self.reviews
+                    for review in self.reviews.values()
                     if review.status
                     in [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
                 ]
@@ -713,7 +716,7 @@ class ReleaseRequest:
     def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
         return None
 
-    def get_request_file_from_urlpath(self, relpath: UrlPath | str):
+    def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
@@ -767,16 +770,6 @@ class ReleaseRequest:
                 for rfile in self.all_files_by_name.values()
                 if rfile.filetype == RequestFileType.SUPPORTING
             ]
-        )
-
-    def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
-        return next(
-            (
-                r
-                for r in self.get_request_file_from_urlpath(urlpath).reviews
-                if r.reviewer == reviewer
-            ),
-            None,
         )
 
     def request_filetype(self, urlpath: UrlPath):
