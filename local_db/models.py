@@ -107,6 +107,7 @@ class RequestMetadata(models.Model):
             filegroups=self.get_filegroups(),
         )
 
+
 class FileGroupMetadata(models.Model):
     """A group of files that share context and controls"""
 
@@ -134,10 +135,10 @@ class FileGroupMetadata(models.Model):
                 for comment in self.comments.all().order_by("created_at")
             ],
             files=[
-                file_metadata.to_dict()
-                for file_metadata in self.request_files.all()
+                file_metadata.to_dict() for file_metadata in self.request_files.all()
             ],
         )
+
 
 class FileGroupComment(models.Model):
     filegroup = models.ForeignKey(

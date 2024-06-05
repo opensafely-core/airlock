@@ -1,4 +1,3 @@
-
 from django.db import transaction
 
 from airlock.business_logic import (
