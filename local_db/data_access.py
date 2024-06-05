@@ -27,17 +27,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     Implementation of DataAccessLayerProtocol using local_db models to store data
     """
 
-    def _request(self, metadata: RequestMetadata):
-        """Unpack the db data into the Request object."""
-        return dict(
-            id=metadata.id,
-            workspace=metadata.workspace,
-            status=metadata.status,
-            author=metadata.author,
-            created_at=metadata.created_at,
-            filegroups=metadata.get_filegroups(),
-        )
-
     def create_release_request(
         self,
         workspace: str,
@@ -58,7 +47,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             audit.request = metadata.id
             self._create_audit_log(audit)
 
-        return self._request(metadata)
+        return metadata.to_dict()
 
     def _find_metadata(self, request_id: str):
         try:
@@ -74,11 +63,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return groupmetadata
 
     def get_release_request(self, request_id: str):
-        return self._request(self._find_metadata(request_id))
+        return self._find_metadata(request_id).to_dict()
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
@@ -88,7 +77,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_requests_authored_by_user(self, username: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(author=username).order_by(
                 "status"
             )
@@ -96,7 +85,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_requests_for_workspace(self, workspace: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(workspace=workspace).order_by(
                 "created_at"
             )
@@ -104,7 +93,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_outstanding_requests_for_review(self):
         return [
-            self._request(metadata)
+            metadata.to_dict()
             for metadata in RequestMetadata.objects.filter(
                 status=RequestStatus.SUBMITTED
             )

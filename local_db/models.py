@@ -96,6 +96,17 @@ class RequestMetadata(models.Model):
             for group_metadata in self.filegroups.all()
         }
 
+    def to_dict(self):
+        """Unpack the db data into a dict for the Request object."""
+        return dict(
+            id=self.id,
+            workspace=self.workspace,
+            status=self.status,
+            author=self.author,
+            created_at=self.created_at,
+            filegroups=self.get_filegroups(),
+        )
+
 class FileGroupMetadata(models.Model):
     """A group of files that share context and controls"""
 
@@ -112,7 +123,7 @@ class FileGroupMetadata(models.Model):
         unique_together = ("request", "name")
 
     def to_dict(self):
-        """Unpack file group db data into FileGroup, RequestFile & Comment objects."""
+        """Unpack file group db data for FileGroup, RequestFile & Comment objects."""
         return dict(
             name=self.name,
             context=self.context,
