@@ -5,10 +5,10 @@ import requests
 
 from airlock.business_logic import (
     AuditEventType,
-    FileReviewStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
+    UserFileReviewStatus,
     bll,
 )
 from tests import factories
@@ -705,7 +705,7 @@ def test_file_approve(airlock_client):
         .files[relpath]
         .reviews[0]
     )
-    assert review.status == FileReviewStatus.APPROVED
+    assert review.status == UserFileReviewStatus.APPROVED
     assert review.reviewer == "testuser"
 
 
@@ -731,7 +731,7 @@ def test_file_reject(airlock_client):
         .files[relpath]
         .reviews[0]
     )
-    assert review.status == FileReviewStatus.REJECTED
+    assert review.status == UserFileReviewStatus.REJECTED
     assert review.reviewer == "testuser"
 
 
@@ -758,7 +758,7 @@ def test_file_reset_review(airlock_client):
         .files[relpath]
         .reviews[0]
     )
-    assert review.status == FileReviewStatus.REJECTED
+    assert review.status == UserFileReviewStatus.REJECTED
     assert review.reviewer == "testuser"
 
     # then reset it to have no review

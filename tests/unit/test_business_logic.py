@@ -18,10 +18,10 @@ from airlock.business_logic import (
     CodeRepo,
     DataAccessLayerProtocol,
     FileReview,
-    FileReviewStatus,
     RequestFileType,
     RequestStatus,
     UrlPath,
+    UserFileReviewStatus,
     Workspace,
 )
 from airlock.types import WorkspaceFileState
@@ -921,12 +921,12 @@ def test_resubmit_request(bll, mock_notifications):
         approved_file_review = release_request.get_file_review_for_reviewer(
             "group/test/file.txt", f"output-checker-{i}"
         )
-        assert approved_file_review.status == FileReviewStatus.APPROVED
+        assert approved_file_review.status == UserFileReviewStatus.APPROVED
         # rejected file review is now undecided approved
         rejected_file_review = release_request.get_file_review_for_reviewer(
             "group/test/file1.txt", f"output-checker-{i}"
         )
-        assert rejected_file_review.status == FileReviewStatus.UNDECIDED
+        assert rejected_file_review.status == UserFileReviewStatus.UNDECIDED
 
 
 def test_add_file_to_request_not_author(bll):
@@ -1441,7 +1441,7 @@ def test_approve_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.APPROVED
+    assert current_reviews[0].status == UserFileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
     audit_log = bll.get_audit_log(request=release_request.id)
@@ -1469,7 +1469,7 @@ def test_reject_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.REJECTED
+    assert current_reviews[0].status == UserFileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
 
@@ -1499,7 +1499,7 @@ def test_approve_then_reject_file(bll):
     print(current_reviews)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.APPROVED
+    assert current_reviews[0].status == UserFileReviewStatus.APPROVED
     assert type(current_reviews[0]) == FileReview
 
     bll.reject_file(release_request, path, checker)
@@ -1507,13 +1507,13 @@ def test_approve_then_reject_file(bll):
     current_reviews = _get_current_file_reviews(bll, release_request, path, checker)
     assert len(current_reviews) == 1
     assert current_reviews[0].reviewer == "checker"
-    assert current_reviews[0].status == FileReviewStatus.REJECTED
+    assert current_reviews[0].status == UserFileReviewStatus.REJECTED
     assert type(current_reviews[0]) == FileReview
     assert len(current_reviews) == 1
 
 
 @pytest.mark.parametrize(
-    "review", [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
+    "review", [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
 )
 def test_reviewreset_then_reset_review_file(bll, review):
     release_request, path, author = setup_empty_release_request()
@@ -1526,9 +1526,9 @@ def test_reviewreset_then_reset_review_file(bll, review):
 
     assert len(_get_current_file_reviews(bll, release_request, path, checker)) == 0
 
-    if review == FileReviewStatus.APPROVED:
+    if review == UserFileReviewStatus.APPROVED:
         bll.approve_file(release_request, path, checker)
-    elif review == FileReviewStatus.REJECTED:
+    elif review == UserFileReviewStatus.REJECTED:
         bll.reject_file(release_request, path, checker)
     else:
         assert False
@@ -1599,17 +1599,17 @@ def test_mark_file_undecided(bll):
     review = release_request.get_file_review_for_reviewer(
         UrlPath("default" / path), checker.username
     )
-    assert review.status == FileReviewStatus.UNDECIDED
+    assert review.status == UserFileReviewStatus.UNDECIDED
 
 
 @pytest.mark.parametrize(
     "request_status,file_status",
     [
         # can only mark undecided for a rejected file on a returned request
-        (RequestStatus.SUBMITTED, FileReviewStatus.REJECTED),
-        (RequestStatus.APPROVED, FileReviewStatus.REJECTED),
-        (RequestStatus.RELEASED, FileReviewStatus.REJECTED),
-        (RequestStatus.RETURNED, FileReviewStatus.APPROVED),
+        (RequestStatus.SUBMITTED, UserFileReviewStatus.REJECTED),
+        (RequestStatus.APPROVED, UserFileReviewStatus.REJECTED),
+        (RequestStatus.RELEASED, UserFileReviewStatus.REJECTED),
+        (RequestStatus.RETURNED, UserFileReviewStatus.APPROVED),
     ],
 )
 def test_mark_file_undecided_permission_errors(bll, request_status, file_status):
@@ -1632,7 +1632,7 @@ def test_mark_file_undecided_permission_errors(bll, request_status, file_status)
 
     # setup the initial file status for our test checker
     checker = factories.create_user("checker", [], True)
-    if file_status == FileReviewStatus.APPROVED:
+    if file_status == UserFileReviewStatus.APPROVED:
         bll.approve_file(release_request, path, checker)
     else:
         bll.reject_file(release_request, path, checker)
@@ -1680,11 +1680,11 @@ def test_get_file_review_for_reviewer(bll):
 
     assert (
         release_request.get_file_review_for_reviewer(fullpath, "checker").status
-        is FileReviewStatus.APPROVED
+        is UserFileReviewStatus.APPROVED
     )
     assert (
         release_request.get_file_review_for_reviewer(fullpath, "checker2").status
-        is FileReviewStatus.REJECTED
+        is UserFileReviewStatus.REJECTED
     )
 
     bll.reject_file(release_request, path, checker)
@@ -1693,11 +1693,11 @@ def test_get_file_review_for_reviewer(bll):
 
     assert (
         release_request.get_file_review_for_reviewer(fullpath, "checker").status
-        is FileReviewStatus.REJECTED
+        is UserFileReviewStatus.REJECTED
     )
     assert (
         release_request.get_file_review_for_reviewer(fullpath, "checker2").status
-        is FileReviewStatus.APPROVED
+        is UserFileReviewStatus.APPROVED
     )
 
 

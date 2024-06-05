@@ -6,10 +6,10 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     DataAccessLayerProtocol,
-    FileReviewStatus,
     NotificationUpdateType,
     RequestFileType,
     RequestStatus,
+    UserFileReviewStatus,
 )
 from airlock.types import UrlPath
 from local_db.models import (
@@ -252,7 +252,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=username
             )
-            review.status = FileReviewStatus.APPROVED
+            review.status = UserFileReviewStatus.APPROVED
             review.save()
 
             self._create_audit_log(audit)
@@ -268,7 +268,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=username
             )
-            review.status = FileReviewStatus.REJECTED
+            review.status = UserFileReviewStatus.REJECTED
             review.save()
 
             self._create_audit_log(audit)
@@ -297,7 +297,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
             review = FileReview.objects.get(file=request_file, reviewer=reviewer)
-            review.status = FileReviewStatus.UNDECIDED
+            review.status = UserFileReviewStatus.UNDECIDED
             review.save()
 
             self._create_audit_log(audit)

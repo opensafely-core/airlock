@@ -11,9 +11,9 @@ from ulid import ulid  # type: ignore
 
 from airlock.business_logic import (
     AuditEventType,
-    FileReviewStatus,
     RequestFileType,
     RequestStatus,
+    UserFileReviewStatus,
 )
 
 
@@ -215,7 +215,7 @@ class FileReview(models.Model):
         RequestFileMetadata, related_name="reviews", on_delete=models.RESTRICT
     )
     reviewer = models.TextField()
-    status = EnumField(default=FileReviewStatus.REJECTED, enum=FileReviewStatus)
+    status = EnumField(default=UserFileReviewStatus.REJECTED, enum=UserFileReviewStatus)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

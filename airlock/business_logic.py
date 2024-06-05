@@ -58,7 +58,7 @@ class RequestFileType(Enum):
     CODE = "code"
 
 
-class FileReviewStatus(Enum):
+class UserFileReviewStatus(Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     UNDECIDED = (
@@ -499,7 +499,7 @@ class FileReview:
     """
 
     reviewer: str
-    status: FileReviewStatus
+    status: UserFileReviewStatus
     created_at: datetime
     updated_at: datetime
 
@@ -545,7 +545,7 @@ class RequestFile:
                 [
                     review
                     for review in self.reviews
-                    if review.status == FileReviewStatus.APPROVED
+                    if review.status == UserFileReviewStatus.APPROVED
                 ]
             )
             >= 2
@@ -555,7 +555,7 @@ class RequestFile:
         return [
             review
             for review in self.reviews
-            if review.status == FileReviewStatus.REJECTED
+            if review.status == UserFileReviewStatus.REJECTED
         ]
 
     def reviewed(self):
@@ -568,7 +568,7 @@ class RequestFile:
                     review
                     for review in self.reviews
                     if review.status
-                    in [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
+                    in [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
                 ]
             )
             >= 2
@@ -1587,12 +1587,12 @@ class BusinessLogicLayer:
         """Change an existing rejected file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
-        if review.status != FileReviewStatus.REJECTED:
+        if review.status != UserFileReviewStatus.REJECTED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review from {review.status.name} to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review from {review.status.name} to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         audit = AuditEvent.from_request(
