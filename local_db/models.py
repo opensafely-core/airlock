@@ -166,6 +166,14 @@ class FileReview(models.Model):
     class Meta:
         unique_together = ("file", "reviewer")
 
+    def to_dict(self):
+        """Convert a FileReview object into a dict"""
+        return dict(
+            reviewer=self.reviewer,
+            status=self.status,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
 
 class AuditLog(models.Model):
     type = EnumField(enum=AuditEventType)

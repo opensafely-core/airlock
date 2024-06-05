@@ -81,7 +81,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             row_count=file_metadata.row_count,
             col_count=file_metadata.col_count,
             reviews=[
-                self._filereview(file_review)
+                file_review.to_dict()
                 for file_review in file_metadata.reviews.all()
             ],
         )
@@ -108,15 +108,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             group_metadata.name: self._filegroup(group_metadata)
             for group_metadata in metadata.filegroups.all()
         }
-
-    def _filereview(self, file_review: FileReview):
-        """Convert a FileReview object into a dict"""
-        return dict(
-            reviewer=file_review.reviewer,
-            status=file_review.status,
-            created_at=file_review.created_at,
-            updated_at=file_review.updated_at,
-        )
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
