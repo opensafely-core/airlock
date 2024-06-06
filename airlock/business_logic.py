@@ -1144,7 +1144,6 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
-            RequestStatus.PENDING,  # allow un-submission
             RequestStatus.RETURNED,
             RequestStatus.WITHDRAWN,
         ],
@@ -1275,7 +1274,7 @@ class BusinessLogicLayer:
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
         notification_event = self.STATUS_EVENT_NOTIFICATION.get(to_status)
-        if notification_event:
+        if notification_event:  # pragma: no cover
             self.send_notification(release_request, notification_event, user)
 
     def _validate_editable(self, release_request, user):
