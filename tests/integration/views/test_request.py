@@ -7,10 +7,10 @@ from airlock.business_logic import (
     AuditEventType,
     RequestFileType,
     RequestStatus,
-    UrlPath,
     UserFileReviewStatus,
     bll,
 )
+from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
 

@@ -13,11 +13,11 @@ from airlock.business_logic import (
     AuditEventType,
     CodeRepo,
     RequestFileType,
-    UrlPath,
     Workspace,
     bll,
 )
 from airlock.lib.git import ensure_git_init
+from airlock.types import UrlPath
 from airlock.users import User
 
 

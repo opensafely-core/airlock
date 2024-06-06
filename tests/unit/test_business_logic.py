@@ -20,11 +20,10 @@ from airlock.business_logic import (
     RequestFileReviewStatus,
     RequestFileType,
     RequestStatus,
-    UrlPath,
     UserFileReviewStatus,
     Workspace,
 )
-from airlock.types import WorkspaceFileStatus
+from airlock.types import UrlPath, WorkspaceFileStatus
 from tests import factories
 
 
