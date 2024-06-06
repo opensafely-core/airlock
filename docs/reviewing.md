@@ -2,7 +2,7 @@ Two output checkers independently review each file and record their decisions us
 Whilst viewing a file in an Airlock release request, they have the option of: 
 
 * **Approve** — output meets disclosure requirements and is safe to be released
-* **Reject** — output is not currently acceptable for release. 
+* **Request Changes** — output is not currently acceptable for release. 
 
 !!!warning "Retrictions for authors"
     Airlock does not permit users to approve or request changes to files that are part of release requests they created themselves.
