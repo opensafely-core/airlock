@@ -1,7 +1,7 @@
 import pytest
 from django.contrib import messages
 from django.contrib.messages.api import get_messages
-from django.shortcuts import reverse
+from django.urls import reverse
 
 from airlock.business_logic import AuditEventType, RequestFileType, bll
 from airlock.types import UrlPath
