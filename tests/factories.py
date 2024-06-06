@@ -93,14 +93,12 @@ def update_manifest(workspace: Workspace | str, files=None):
 
     Make up action, job ids and commits.
     """
-    update_object = False
-    if isinstance(workspace, str):
-        name = workspace
-        root = settings.WORKSPACE_DIR / workspace
-    else:
-        update_object = True
+    if isinstance(workspace, Workspace):
         name = workspace.name
         root = workspace.root()
+    else:
+        name = workspace
+        root = settings.WORKSPACE_DIR / workspace
 
     manifest_path = root / "metadata/manifest.json"
 
@@ -140,7 +138,7 @@ def update_manifest(workspace: Workspace | str, files=None):
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
-    if update_object:
+    if isinstance(workspace, Workspace):
         workspace.manifest = manifest
 
 
@@ -195,7 +193,7 @@ def create_repo(workspace, files=None, temporary=True):
                 else:
                     p.write_text(content)
 
-        env["GIT_WORK_TREE"] = repo_content_dir
+        env["GIT_WORK_TREE"] = str(repo_content_dir)
         response = subprocess.run(
             ["git", "add", "."], capture_output=True, check=True, env=env
         )
