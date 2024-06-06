@@ -345,7 +345,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
         )
 
     release_request = factories.refresh_release_request(release_request)
-    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
+    bll.set_status(release_request, RequestStatus.APPROVED, checker)
     with pytest.raises(bll.RequestPermissionDenied):
         bll.release_files(release_request, checker)
     assert_last_notification(mock_notifications, "request_approved")
@@ -374,7 +374,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "test",
         filetype=RequestFileType.SUPPORTING,
     )
-    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
+    bll.set_status(release_request, RequestStatus.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
 
@@ -544,14 +544,14 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
     release_request1 = factories.create_release_request(
         "workspace", other_user, id="r1", status=RequestStatus.SUBMITTED
     )
-    factories.bll.set_status(release_request1, RequestStatus.RETURNED, output_checker)
+    bll.set_status(release_request1, RequestStatus.RETURNED, output_checker)
 
     # requests not visible to output checker
     # status returned, but authored by output checker
     release_request2 = factories.create_release_request(
         "workspace", user, id="r2", status=RequestStatus.SUBMITTED
     )
-    factories.bll.set_status(release_request2, RequestStatus.RETURNED, output_checker)
+    bll.set_status(release_request2, RequestStatus.RETURNED, output_checker)
 
     # requests authored by other users, status other than returned
     for i, status in enumerate(
