@@ -181,6 +181,10 @@ class RequestFileMetadata(models.Model):
     repo = models.URLField()
     row_count = models.IntegerField(null=True)
     col_count = models.IntegerField(null=True)
+    # released_at to be null if file has not been released
+    released_at = models.DateTimeField(default=None, null=True)
+    # just username, as we have no User model
+    released_by = models.TextField(null=True)
 
     class Meta:
         unique_together = ("relpath", "request")
@@ -199,6 +203,8 @@ class RequestFileMetadata(models.Model):
             row_count=self.row_count,
             col_count=self.col_count,
             reviews=[file_review.to_dict() for file_review in self.reviews.all()],
+            released_at=self.released_at,
+            released_by=self.released_by,
         )
 
 
