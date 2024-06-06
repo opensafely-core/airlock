@@ -162,7 +162,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups()
+        return metadata.get_filegroups_to_dict()
 
     def delete_file_from_request(
         self,
@@ -188,7 +188,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups()
+        return metadata.get_filegroups_to_dict()
 
     def withdraw_file_from_request(
         self,
@@ -216,7 +216,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups()
+        return metadata.get_filegroups_to_dict()
 
     def release_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent

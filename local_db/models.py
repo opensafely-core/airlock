@@ -90,7 +90,7 @@ class RequestMetadata(models.Model):
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
-    def get_filegroups(self):
+    def get_filegroups_to_dict(self):
         return {
             group_metadata.name: group_metadata.to_dict()
             for group_metadata in self.filegroups.all()
@@ -104,7 +104,7 @@ class RequestMetadata(models.Model):
             status=self.status,
             author=self.author,
             created_at=self.created_at,
-            filegroups=self.get_filegroups(),
+            filegroups=self.get_filegroups_to_dict(),
         )
 
 
