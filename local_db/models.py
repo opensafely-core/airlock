@@ -1,4 +1,5 @@
 import enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -89,6 +90,23 @@ class RequestMetadata(models.Model):
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
 
+    def get_filegroups_to_dict(self):
+        return {
+            group_metadata.name: group_metadata.to_dict()
+            for group_metadata in self.filegroups.all()
+        }
+
+    def to_dict(self):
+        """Unpack the db data into a dict for the Request object."""
+        return dict(
+            id=self.id,
+            workspace=self.workspace,
+            status=self.status,
+            author=self.author,
+            created_at=self.created_at,
+            filegroups=self.get_filegroups_to_dict(),
+        )
+
 
 class FileGroupMetadata(models.Model):
     """A group of files that share context and controls"""
@@ -105,6 +123,22 @@ class FileGroupMetadata(models.Model):
     class Meta:
         unique_together = ("request", "name")
 
+    def to_dict(self):
+        """Unpack file group db data for FileGroup, RequestFile & Comment objects."""
+        return dict(
+            name=self.name,
+            context=self.context,
+            controls=self.controls,
+            updated_at=self.updated_at,
+            comments=[
+                comment.to_dict()
+                for comment in self.comments.all().order_by("created_at")
+            ],
+            files=[
+                file_metadata.to_dict() for file_metadata in self.request_files.all()
+            ],
+        )
+
 
 class FileGroupComment(models.Model):
     filegroup = models.ForeignKey(
@@ -114,6 +148,14 @@ class FileGroupComment(models.Model):
     comment = models.TextField()
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "comment": self.comment,
+            "author": self.author,
+            "created_at": self.created_at,
+        }
 
 
 class RequestFileMetadata(models.Model):
@@ -143,6 +185,22 @@ class RequestFileMetadata(models.Model):
     class Meta:
         unique_together = ("relpath", "request")
 
+    def to_dict(self):
+        return dict(
+            relpath=Path(self.relpath),
+            group=self.filegroup.name,
+            file_id=self.file_id,
+            filetype=self.filetype,
+            timestamp=self.timestamp,
+            size=self.size,
+            commit=self.commit,
+            repo=self.repo,
+            job_id=self.job_id,
+            row_count=self.row_count,
+            col_count=self.col_count,
+            reviews=[file_review.to_dict() for file_review in self.reviews.all()],
+        )
+
 
 class FileReview(models.Model):
     """An output checker's review of a file"""
@@ -157,6 +215,15 @@ class FileReview(models.Model):
 
     class Meta:
         unique_together = ("file", "reviewer")
+
+    def to_dict(self):
+        """Convert a FileReview object into a dict"""
+        return dict(
+            reviewer=self.reviewer,
+            status=self.status,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
 
 
 class AuditLog(models.Model):
