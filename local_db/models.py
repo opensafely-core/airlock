@@ -184,7 +184,7 @@ class RequestFileMetadata(models.Model):
     # released_at to be null if file has not been released
     released_at = models.DateTimeField(default=None, null=True)
     # just username, as we have no User model
-    released_by = models.TextField()
+    released_by = models.TextField(null=True)
 
     class Meta:
         unique_together = ("relpath", "request")

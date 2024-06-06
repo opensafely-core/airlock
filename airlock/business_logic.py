@@ -513,7 +513,7 @@ class RequestFile:
     job_id: str
     commit: str
     repo: str
-    released_by: str
+    released_by: str | None = None
     row_count: int | None = None
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
