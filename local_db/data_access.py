@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from django.db import transaction
 
 from airlock.business_logic import (
@@ -28,17 +26,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     Implementation of DataAccessLayerProtocol using local_db models to store data
     """
 
-    def _request(self, metadata: RequestMetadata):
-        """Unpack the db data into the Request object."""
-        return dict(
-            id=metadata.id,
-            workspace=metadata.workspace,
-            status=metadata.status,
-            author=metadata.author,
-            created_at=metadata.created_at,
-            filegroups=self._get_filegroups(metadata),
-        )
-
     def create_release_request(
         self,
         workspace: str,
@@ -59,72 +46,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             audit.request = metadata.id
             self._create_audit_log(audit)
 
-        return self._request(metadata)
+        return metadata.to_dict()
 
     def _find_metadata(self, request_id: str):
         try:
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
             raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
-
-    def _request_file(self, file_metadata: RequestFileMetadata):
-        return dict(
-            relpath=Path(file_metadata.relpath),
-            group=file_metadata.filegroup.name,
-            file_id=file_metadata.file_id,
-            filetype=file_metadata.filetype,
-            timestamp=file_metadata.timestamp,
-            size=file_metadata.size,
-            commit=file_metadata.commit,
-            repo=file_metadata.repo,
-            job_id=file_metadata.job_id,
-            row_count=file_metadata.row_count,
-            col_count=file_metadata.col_count,
-            reviews=[
-                self._filereview(file_review)
-                for file_review in file_metadata.reviews.all()
-            ],
-        )
-
-    def _filegroup(self, filegroup_metadata: FileGroupMetadata):
-        """Unpack file group db data into FileGroup and RequestFile objects."""
-        return dict(
-            name=filegroup_metadata.name,
-            context=filegroup_metadata.context,
-            controls=filegroup_metadata.controls,
-            updated_at=filegroup_metadata.updated_at,
-            comments=[
-                self._comment(comment)
-                for comment in filegroup_metadata.comments.all().order_by("created_at")
-            ],
-            files=[
-                self._request_file(file_metadata)
-                for file_metadata in filegroup_metadata.request_files.all()
-            ],
-        )
-
-    def _comment(self, comment: FileGroupComment):
-        return {
-            "id": comment.id,
-            "comment": comment.comment,
-            "author": comment.author,
-            "created_at": comment.created_at,
-        }
-
-    def _get_filegroups(self, metadata: RequestMetadata):
-        return {
-            group_metadata.name: self._filegroup(group_metadata)
-            for group_metadata in metadata.filegroups.all()
-        }
-
-    def _filereview(self, file_review: FileReview):
-        """Convert a FileReview object into a dict"""
-        return dict(
-            reviewer=file_review.reviewer,
-            status=file_review.status,
-            created_at=file_review.created_at,
-            updated_at=file_review.updated_at,
-        )
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
@@ -134,11 +62,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return groupmetadata
 
     def get_release_request(self, request_id: str):
-        return self._request(self._find_metadata(request_id))
+        return self._find_metadata(request_id).to_dict()
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
@@ -148,7 +76,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_requests_authored_by_user(self, username: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(author=username).order_by(
                 "status"
             )
@@ -156,7 +84,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_requests_for_workspace(self, workspace: str):
         return [
-            self._request(request)
+            request.to_dict()
             for request in RequestMetadata.objects.filter(workspace=workspace).order_by(
                 "created_at"
             )
@@ -164,7 +92,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
     def get_outstanding_requests_for_review(self):
         return [
-            self._request(metadata)
+            metadata.to_dict()
             for metadata in RequestMetadata.objects.filter(
                 status=RequestStatus.SUBMITTED
             )
@@ -234,7 +162,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups_to_dict()
 
     def delete_file_from_request(
         self,
@@ -260,7 +188,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups_to_dict()
 
     def withdraw_file_from_request(
         self,
@@ -288,7 +216,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         # Return updated FileGroups data
         metadata = self._find_metadata(request_id)
-        return self._get_filegroups(metadata)
+        return metadata.get_filegroups_to_dict()
 
     def release_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
