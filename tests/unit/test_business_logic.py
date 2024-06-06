@@ -362,7 +362,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
-    relpath = Path("test/file.txt")
+    relpath = UrlPath("test/file.txt")
     factories.write_request_file(
         release_request, "group", relpath, "test", approved=True
     )
