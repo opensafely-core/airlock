@@ -999,7 +999,7 @@ def test_add_file_to_request_not_author(bll):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], True)
 
-    path = Path("path/file.txt")
+    path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1014,7 +1014,7 @@ def test_add_file_to_request_not_author(bll):
 def test_add_file_to_request_invalid_file_type(bll):
     author = factories.create_user("author", ["workspace"], False)
 
-    path = Path("path/file.foo")
+    path = UrlPath("path/file.foo")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1042,7 +1042,7 @@ def test_add_file_to_request_states(
 ):
     author = factories.create_user("author", ["workspace"], False)
 
-    path = Path("path/file.txt")
+    path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1099,7 +1099,7 @@ def test_add_file_to_request_default_filetype(bll):
 )
 def test_add_file_to_request_with_filetype(bll, filetype, success):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file.txt")
+    path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1123,8 +1123,8 @@ def test_withdraw_file_from_request_pending(bll, mock_notifications):
         user=author,
         status=RequestStatus.PENDING,
     )
-    path1 = Path("path/file1.txt")
-    path2 = Path("path/file2.txt")
+    path1 = UrlPath("path/file1.txt")
+    path2 = UrlPath("path/file2.txt")
     factories.write_request_file(
         release_request, "group", path1, contents="1", user=author
     )
@@ -1170,7 +1170,7 @@ def test_withdraw_file_from_request_submitted(bll, mock_notifications):
         user=author,
         status=RequestStatus.SUBMITTED,
     )
-    path1 = Path("path/file1.txt")
+    path1 = UrlPath("path/file1.txt")
     factories.write_request_file(release_request, "group", path1, user=author)
     release_request = factories.refresh_release_request(release_request)
 
@@ -1247,8 +1247,8 @@ def test_withdraw_file_from_request_not_author(bll, state):
 
 def test_request_all_files_by_name(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file.txt")
-    supporting_path = Path("path/supporting_file.txt")
+    path = UrlPath("path/file.txt")
+    supporting_path = UrlPath("path/supporting_file.txt")
     workspace = factories.create_workspace("workspace")
     for fp in [path, supporting_path]:
         factories.write_workspace_file(workspace, fp)
@@ -1323,7 +1323,7 @@ def test_request_release_request_filetype(bll):
 
 def setup_empty_release_request():
     author = factories.create_user("author", ["workspace"], False)
-    path = Path("path/file.txt")
+    path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1366,8 +1366,8 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     assert len(release_request.filegroups) == 1
 
     workspace = bll.get_workspace("workspace", author)
-    path1 = Path("path/file1.txt")
-    path2 = Path("path/file2.txt")
+    path1 = UrlPath("path/file1.txt")
+    path2 = UrlPath("path/file2.txt")
     factories.write_workspace_file(workspace, path1)
     factories.write_workspace_file(workspace, path2)
     bll.add_file_to_request(release_request, path1, author, "test_group")
@@ -1382,8 +1382,8 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     }
 
     assert release_request_files == {
-        "test_group": [Path("path/file.txt"), Path("path/file1.txt")],
-        "test_group1": [Path("path/file2.txt")],
+        "test_group": [UrlPath("path/file.txt"), UrlPath("path/file1.txt")],
+        "test_group1": [UrlPath("path/file2.txt")],
     }
 
 
@@ -1473,7 +1473,7 @@ def test_approve_file_not_part_of_request(bll):
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
 
-    bad_path = Path("path/file2.txt")
+    bad_path = UrlPath("path/file2.txt")
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, bad_path, checker)
 
