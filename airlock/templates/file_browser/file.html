@@ -65,10 +65,10 @@
         {% if file_reject_url %}
           <form action="{{ file_reject_url }}" method="POST">
             {% csrf_token %}
-            {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Reject File{% /button %}
+            {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Request Changes{% /button %}
           </form>
         {% else %}
-          {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" tooltip="File already rejected." %}Reject File{% /button %}
+          {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" tooltip="File changes already requested." %}Request Changes{% /button %}
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
       {% endif %}

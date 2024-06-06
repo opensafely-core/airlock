@@ -131,7 +131,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_ADD: "Added file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
-    AuditEventType.REQUEST_FILE_REJECT: "Rejected file",
+    AuditEventType.REQUEST_FILE_REJECT: "Changes requested to file",
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
     AuditEventType.REQUEST_FILE_RELEASE: "File released",
 }
