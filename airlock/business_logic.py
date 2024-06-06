@@ -47,6 +47,7 @@ class RequestStatus(Enum):
     # output checker set statuses
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    RETURNED = "RETURNED"
     RELEASED = "RELEASED"
 
 
@@ -76,6 +77,7 @@ class AuditEventType(Enum):
     REQUEST_WITHDRAW = "REQUEST_WITHDRAW"
     REQUEST_APPROVE = "REQUEST_APPROVE"
     REQUEST_REJECT = "REQUEST_REJECT"
+    REQUEST_RETURN = "REQUEST_RETURN"
     REQUEST_RELEASE = "REQUEST_RELEASE"
 
     # request edits
@@ -98,6 +100,7 @@ class NotificationEventType(Enum):
     REQUEST_APPROVED = "request_approved"
     REQUEST_RELEASED = "request_released"
     REQUEST_REJECTED = "request_rejected"
+    REQUEST_RETURNED = "request_returned"
     REQUEST_UPDATED = "request_updated"
 
 
@@ -124,6 +127,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
     AuditEventType.REQUEST_APPROVE: "Approved request",
     AuditEventType.REQUEST_REJECT: "Rejected request",
+    AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
@@ -541,6 +545,12 @@ class RequestFile:
             >= 2
         )
 
+    def reviewed(self):
+        """
+        A file is reviewed if it has been approved OR rejected by two reviewers
+        """
+        return len(self.reviews) >= 2
+
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -771,8 +781,19 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         )
 
+    def all_files_reviewed(self):
+        return all(
+            request_file.reviewed()
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.output_files
+        )
+
     def is_final(self):
-        return self.status not in [RequestStatus.PENDING, RequestStatus.SUBMITTED]
+        return self.status not in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+            RequestStatus.RETURNED,
+        ]
 
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
@@ -1124,6 +1145,11 @@ class BusinessLogicLayer:
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
             RequestStatus.PENDING,  # allow un-submission
+            RequestStatus.RETURNED,
+            RequestStatus.WITHDRAWN,
+        ],
+        RequestStatus.RETURNED: [
+            RequestStatus.SUBMITTED,
             RequestStatus.WITHDRAWN,
         ],
         RequestStatus.APPROVED: [
@@ -1139,6 +1165,7 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
         RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
         RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
+        RequestStatus.RETURNED: AuditEventType.REQUEST_RETURN,
         RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
         RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
     }
@@ -1147,6 +1174,7 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
         RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
         RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
+        RequestStatus.RETURNED: NotificationEventType.REQUEST_RETURNED,
         RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
         RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
     }
@@ -1183,6 +1211,7 @@ class BusinessLogicLayer:
         if to_status in [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
+            RequestStatus.RETURNED,
             RequestStatus.RELEASED,
         ]:
             if not user.output_checker:
@@ -1209,6 +1238,14 @@ class BusinessLogicLayer:
             ):
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
+                )
+
+            if (
+                to_status == RequestStatus.APPROVED
+                and not release_request.all_files_reviewed()
+            ):
+                raise self.RequestPermissionDenied(
+                    f"Cannot set status to {to_status.name}; request has unreviewed files."
                 )
 
     def set_status(
@@ -1250,6 +1287,7 @@ class BusinessLogicLayer:
         if release_request.status not in [
             RequestStatus.PENDING,
             RequestStatus.SUBMITTED,
+            RequestStatus.RETURNED,
         ]:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
