@@ -183,17 +183,13 @@ class PathItem:
         return crumbs
 
     def is_output(self):
-        return self.container.request_filetype(self.relpath) == RequestFileType.OUTPUT
+        return self.request_filetype == RequestFileType.OUTPUT
 
     def is_supporting(self):
-        return (
-            self.container.request_filetype(self.relpath) == RequestFileType.SUPPORTING
-        )
+        return self.request_filetype == RequestFileType.SUPPORTING
 
     def is_withdrawn(self):
-        return (
-            self.container.request_filetype(self.relpath) == RequestFileType.WITHDRAWN
-        )
+        return self.request_filetype == RequestFileType.WITHDRAWN
 
     def is_valid(self):
         return is_valid_file_type(Path(self.relpath))
