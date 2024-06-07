@@ -81,13 +81,43 @@
         {% endif %}
         {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
       {% endif %}
-    {% endif %}
-    {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
-    {% if code_url %}
-      {% #button type="link" variant="primary" id="file-code-button" href=code_url external=True %}View code{% /button %}
-    {% endif %}
-  </div>
 
+    <details-utils close-click-outside close-esc>
+      <details class="more-dropdown">
+        <summary class="more-dropdown__btn">
+          More…
+          <span class="opacity-75 ml-1">
+            <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+            <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
+          </span>
+        </summary>
+        <ul class="more-dropdown__nav">
+          {% if is_output_checker %}
+            <li class="more-dropdown__item">
+              <a href="{{ path_item.download_url }}" class="more-dropdown__link" id="download-button">
+                <img class="more-dropdown__icon" src="/static/icons/cloud_download.svg" alt="">
+                Download file
+              </a>
+            </li>
+          {% endif %}
+          <li class="more-dropdown__item">
+            <a href="{{ path_item.contents_url }}" class="more-dropdown__link" id="view-button" target="_blank" rel="noopener noreferrer">
+              <img class="more-dropdown__icon" src="/static/icons/open_in_new.svg" alt="">
+              Open in new tab
+            </a>
+          </li>
+          {% if code_url %}
+            <li class="more-dropdown__item">
+              <a href="{{ code_url }}" class="more-dropdown__link" id="file-code-button" target="_blank" rel="noopener noreferrer">
+                <img class="more-dropdown__icon" src="/static/icons/code_blocks.svg" alt="">
+                View source code
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </details>
+    </details-utils>
+  </div>
 {% endfragment %}
 
 {% #card id="fileCard" title=path_item.name container=True custom_button=buttons %}
