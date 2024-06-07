@@ -57,14 +57,14 @@
           {% if file_approve_url %}
             <form action="{{ file_approve_url }}" method="POST">
               {% csrf_token %}
-              <button class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
                 Approve file
               </button>
             </form>
           {% elif file_reset_review_url and file_reject_url %}
             <form action="{{ file_reset_review_url }}" method="POST">
               {% csrf_token %}
-              <button class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-reset-button" type="submit">
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-reset-button" type="submit">
                 Approve file
               </button>
             </form>
@@ -73,14 +73,14 @@
           {% if file_reject_url %}
             <form action="{{ file_reject_url }}" method="POST">
               {% csrf_token %}
-              <button class="btn-group__btn btn-group__btn--right" id="file-reject-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reject-button" type="submit">
                 Request changes
               </button>
             </form>
           {% elif file_reset_review_url and file_approve_url %}
             <form action="{{ file_reset_review_url }}" method="POST">
               {% csrf_token %}
-              <button class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" type="submit">
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" type="submit">
                 Request changes
               </button>
             </form>
@@ -91,7 +91,7 @@
 
     <details-utils close-click-outside close-esc>
       <details class="more-dropdown">
-        <summary class="more-dropdown__btn">
+        <summary class="more-dropdown__btn" id="file-button-more">
           More…
           <span class="opacity-75 ml-1">
             <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
