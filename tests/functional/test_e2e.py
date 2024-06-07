@@ -351,22 +351,30 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(release_button).to_be_disabled()
 
     # Reject the file
-    expect(page.locator("#file-reject-button")).not_to_have_attribute("disabled", "")
+    expect(page.locator("#file-reject-button")).to_have_attribute(
+        "aria-pressed", "false"
+    )
     find_and_click(page.locator("#file-reject-button"))
-    expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
+    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
     # Change our minds & remove the review
-    expect(page.locator("#file-reset-button")).not_to_have_attribute("disabled", "")
+    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
     find_and_click(page.locator("#file-reset-button"))
-    expect(page.locator("#file-reset-button")).to_have_attribute("disabled", "")
+    expect(page.locator("#file-reject-button")).to_have_attribute(
+        "aria-pressed", "false"
+    )
 
     # Think some more & finally approve the file
-    expect(page.locator("#file-approve-button")).not_to_have_attribute("disabled", "")
+    expect(page.locator("#file-approve-button")).to_have_attribute(
+        "aria-pressed", "false"
+    )
     find_and_click(page.locator("#file-approve-button"))
-    expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
+    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
     # File is only approved once, so the release files button is still disabled
     expect(release_button).to_be_disabled()
+
+    find_and_click(page.locator("#file-button-more"))
 
     # Download the file
     with page.expect_download() as download_info:
@@ -383,8 +391,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
         "src",
         release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
     )
-    expect(page.locator("#file-approve-button")).to_have_attribute("disabled", "")
-    expect(page.locator("#file-reject-button")).to_have_attribute("disabled", "")
+    expect(page.locator("#file-approve-button")).not_to_be_visible()
+    expect(page.locator("#file-reject-button")).not_to_be_visible()
+    expect(page.locator("#file-reset-button")).not_to_be_visible()
 
     # Logout and log in as second output-checker to do second approval and
     # release
