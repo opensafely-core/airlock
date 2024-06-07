@@ -43,6 +43,15 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
+        <div>
+          {% if not file_reset_review_url %}
+            <span class="file-status file-status--warning">No status</span>
+          {% elif file_approve_url %}
+            <span class="file-status file-status--danger">Rejected</span>
+          {% elif file_reject_url %}
+            <span class="file-status file-status--success">Approved</span>
+          {% endif %}
+        </div>
 
         {% if file_approve_url %}
           <form action="{{ file_approve_url }}" method="POST">
