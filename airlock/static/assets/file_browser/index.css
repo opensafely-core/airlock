@@ -126,3 +126,9 @@
   width: 200%;
   z-index: -2;
 }
+
+/* File Card */
+#fileCard h2 {
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
