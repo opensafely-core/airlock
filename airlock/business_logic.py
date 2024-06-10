@@ -349,7 +349,7 @@ class Workspace:
     def get_user_request_state(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
-        return None
+        return None  # pragma: nocover
 
     def get_requests_url(self):
         return reverse(
@@ -524,7 +524,7 @@ class CodeRepo:
     def get_user_request_state(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
-        return None
+        return None  # pragma: no cover
 
 
 @dataclass(frozen=True)

@@ -11,10 +11,13 @@ from airlock.business_logic import (
     AirlockContainer,
     CodeRepo,
     ReleaseRequest,
+    RequestFileReviewStatus,
     RequestFileType,
+    UserFileReviewStatus,
     Workspace,
 )
 from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
+from airlock.users import User
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
@@ -52,6 +55,8 @@ class PathItem:
 
     type: PathType | None = None
     workspace_state: WorkspaceFileState | None = None
+    request_state: RequestFileReviewStatus | None = None
+    user_request_state: UserFileReviewStatus | None = None
     children: list[PathItem] = field(default_factory=list)
     parent: PathItem | None = None
 
@@ -204,7 +209,15 @@ class PathItem:
         classes = [self.type.value.lower()] if self.type else []
 
         if self.workspace_state:
-            classes.append(self.workspace_state.value.lower())
+            classes.append(f"workspace_{self.workspace_state.value.lower()}")
+
+        if self.request_state:
+            classes.append(f"request_{self.request_state.value.lower()}")
+
+        if self.user_request_state:
+            classes.append(f"user_{self.user_request_state.value.lower()}")
+        else:
+            classes.append("user_incomplete")
 
         if self.request_filetype:
             classes.append(self.request_filetype.value.lower())
@@ -382,6 +395,7 @@ def get_request_tree(
     release_request: ReleaseRequest,
     selected_path: UrlPath | str = ROOT_PATH,
     selected_only: bool = False,
+    user: User | None = None,
 ):
     """Build a tree recursively for a ReleaseRequest
 
@@ -433,6 +447,7 @@ def get_request_tree(
                 parent=group_node,
                 selected_path=selected_path,
                 expand_all=True,
+                user=user,
             )
 
         root_node.children.append(group_node)
@@ -494,6 +509,7 @@ def get_path_tree(
     selected_path: UrlPath = ROOT_PATH,
     expand_all: bool = False,
     leaf_directories: set[UrlPath] | None = None,
+    user: User | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
@@ -536,7 +552,15 @@ def get_path_tree(
                     node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
+                # get_path_tree needs to work with both Workspace and
+                # ReleaseRequest containers, so we have these container specfic
+                # calls
                 node.workspace_state = container.get_workspace_state(path)
+                node.request_state = container.get_request_state(path)
+                if user:
+                    node.user_request_state = container.get_user_request_state(
+                        path, user
+                    )
 
             tree.append(node)
 
