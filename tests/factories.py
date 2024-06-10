@@ -251,6 +251,7 @@ def write_request_file(
     filetype=RequestFileType.OUTPUT,
     approved=False,
     workspace=None,
+    rejected=False,
 ):
     # if ensure_workspace is passed a string, it will always create a
     # new workspace. Optionally pass a workspace instance, which will
@@ -276,6 +277,14 @@ def write_request_file(
                 relpath=UrlPath(path),
                 username=f"output-checker-{i}",
                 audit=create_audit_event(AuditEventType.REQUEST_FILE_APPROVE),
+            )
+    elif rejected:
+        for i in range(2):
+            bll._dal.reject_file(
+                request,
+                relpath=UrlPath(path),
+                username=f"output-checker-{i}",
+                audit=create_audit_event(AuditEventType.REQUEST_FILE_REJECT),
             )
 
 

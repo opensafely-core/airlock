@@ -47,6 +47,7 @@ class RequestStatus(Enum):
     # output checker set statuses
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    RETURNED = "RETURNED"
     RELEASED = "RELEASED"
 
 
@@ -60,6 +61,9 @@ class RequestFileType(Enum):
 class FileReviewStatus(Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    UNDECIDED = (
+        "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
+    )
 
 
 class AuditEventType(Enum):
@@ -76,6 +80,7 @@ class AuditEventType(Enum):
     REQUEST_WITHDRAW = "REQUEST_WITHDRAW"
     REQUEST_APPROVE = "REQUEST_APPROVE"
     REQUEST_REJECT = "REQUEST_REJECT"
+    REQUEST_RETURN = "REQUEST_RETURN"
     REQUEST_RELEASE = "REQUEST_RELEASE"
 
     # request edits
@@ -89,6 +94,7 @@ class AuditEventType(Enum):
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
     REQUEST_FILE_RESET_REVIEW = "REQUEST_FILE_RESET_REVIEW"
+    REQUEST_FILE_UNDECIDED = "REQUEST_FILE_UNDECIDED"
     REQUEST_FILE_RELEASE = "REQUEST_FILE_RELEASE"
 
 
@@ -98,6 +104,7 @@ class NotificationEventType(Enum):
     REQUEST_APPROVED = "request_approved"
     REQUEST_RELEASED = "request_released"
     REQUEST_REJECTED = "request_rejected"
+    REQUEST_RETURNED = "request_returned"
     REQUEST_UPDATED = "request_updated"
 
 
@@ -112,6 +119,7 @@ class NotificationUpdateType(Enum):
 READONLY_EVENTS = {
     AuditEventType.WORKSPACE_FILE_VIEW,
     AuditEventType.REQUEST_FILE_VIEW,
+    AuditEventType.REQUEST_FILE_UNDECIDED,
 }
 
 
@@ -124,6 +132,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
     AuditEventType.REQUEST_APPROVE: "Approved request",
     AuditEventType.REQUEST_REJECT: "Rejected request",
+    AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
@@ -133,6 +142,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
     AuditEventType.REQUEST_FILE_REJECT: "Changes requested to file",
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
+    AuditEventType.REQUEST_FILE_UNDECIDED: "Rejected file moved to undecided",
     AuditEventType.REQUEST_FILE_RELEASE: "File released",
 }
 
@@ -541,6 +551,29 @@ class RequestFile:
             >= 2
         )
 
+    def rejected_reviews(self):
+        return [
+            review
+            for review in self.reviews
+            if review.status == FileReviewStatus.REJECTED
+        ]
+
+    def reviewed(self):
+        """
+        A file is reviewed if it has been approved OR rejected by two reviewers
+        """
+        return (
+            len(
+                [
+                    review
+                    for review in self.reviews
+                    if review.status
+                    in [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
+                ]
+            )
+            >= 2
+        )
+
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -771,8 +804,19 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         )
 
+    def all_files_reviewed(self):
+        return all(
+            request_file.reviewed()
+            for filegroup in self.filegroups.values()
+            for request_file in filegroup.output_files
+        )
+
     def is_final(self):
-        return self.status not in [RequestStatus.PENDING, RequestStatus.SUBMITTED]
+        return self.status not in [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+            RequestStatus.RETURNED,
+        ]
 
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
@@ -876,6 +920,11 @@ class DataAccessLayerProtocol(Protocol):
 
     def reset_review_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
+    def mark_file_undecided(
+        self, request_id: str, relpath: UrlPath, reviewer: str, audit: AuditEvent
     ):
         raise NotImplementedError()
 
@@ -1123,7 +1172,11 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
-            RequestStatus.PENDING,  # allow un-submission
+            RequestStatus.RETURNED,
+            RequestStatus.WITHDRAWN,
+        ],
+        RequestStatus.RETURNED: [
+            RequestStatus.SUBMITTED,
             RequestStatus.WITHDRAWN,
         ],
         RequestStatus.APPROVED: [
@@ -1139,6 +1192,7 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
         RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
         RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
+        RequestStatus.RETURNED: AuditEventType.REQUEST_RETURN,
         RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
         RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
     }
@@ -1147,6 +1201,7 @@ class BusinessLogicLayer:
         RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
         RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
         RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
+        RequestStatus.RETURNED: NotificationEventType.REQUEST_RETURNED,
         RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
         RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
     }
@@ -1183,6 +1238,7 @@ class BusinessLogicLayer:
         if to_status in [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
+            RequestStatus.RETURNED,
             RequestStatus.RELEASED,
         ]:
             if not user.output_checker:
@@ -1209,6 +1265,14 @@ class BusinessLogicLayer:
             ):
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
+                )
+
+            if (
+                to_status == RequestStatus.RETURNED
+                and not release_request.all_files_reviewed()
+            ):
+                raise self.RequestPermissionDenied(
+                    f"Cannot set status to {to_status.name}; request has unreviewed files."
                 )
 
     def set_status(
@@ -1238,7 +1302,7 @@ class BusinessLogicLayer:
         self._dal.set_status(release_request.id, to_status, audit)
         release_request.status = to_status
         notification_event = self.STATUS_EVENT_NOTIFICATION.get(to_status)
-        if notification_event:
+        if notification_event:  # pragma: no cover
             self.send_notification(release_request, notification_event, user)
 
     def _validate_editable(self, release_request, user):
@@ -1250,6 +1314,7 @@ class BusinessLogicLayer:
         if release_request.status not in [
             RequestStatus.PENDING,
             RequestStatus.SUBMITTED,
+            RequestStatus.RETURNED,
         ]:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
@@ -1409,6 +1474,22 @@ class BusinessLogicLayer:
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
 
+    def submit_request(self, request: ReleaseRequest, user: User):
+        """
+        Change status to SUBMITTED. If the request is currently in
+        RETURNED status, mark any rejected reviews as undecided.
+        """
+        self.check_status(request, RequestStatus.SUBMITTED, user)
+        if request.status == RequestStatus.RETURNED:
+            for filegroup in request.filegroups.values():
+                for request_file in filegroup.output_files:
+                    rejected_reviews = request_file.rejected_reviews()
+                    for review in rejected_reviews:
+                        self.mark_file_undecided(
+                            request, review, request_file.relpath, user
+                        )
+        self.set_status(request, RequestStatus.SUBMITTED, user)
+
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
     ):
@@ -1479,6 +1560,36 @@ class BusinessLogicLayer:
         )
 
         self._dal.reset_review_file(release_request.id, relpath, user.username, audit)
+
+    def mark_file_undecided(
+        self,
+        release_request: ReleaseRequest,
+        review: FileReview,
+        relpath: UrlPath,
+        user: User,
+    ):
+        """Change an existing rejected file in a returned request to undecided before re-submitting"""
+        if release_request.status != RequestStatus.RETURNED:
+            raise self.ApprovalPermissionDenied(
+                f"cannot change file review to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+            )
+
+        if review.status != FileReviewStatus.REJECTED:
+            raise self.ApprovalPermissionDenied(
+                f"cannot change file review from {review.status.name} to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+            )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_UNDECIDED,
+            user=user,
+            reviewer=review.reviewer,
+            path=relpath,
+        )
+
+        self._dal.mark_file_undecided(
+            release_request.id, relpath, review.reviewer, audit
+        )
 
     def group_edit(
         self,

@@ -276,13 +276,25 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             request_file = RequestFileMetadata.objects.get(
                 request_id=request_id, relpath=relpath
             )
-
             try:
                 review = FileReview.objects.get(file=request_file, reviewer=username)
             except FileReview.DoesNotExist:
                 raise BusinessLogicLayer.FileReviewNotFound(relpath, username)
 
             review.delete()
+
+            self._create_audit_log(audit)
+
+    def mark_file_undecided(
+        self, request_id: str, relpath: UrlPath, reviewer: str, audit: AuditEvent
+    ):
+        with transaction.atomic():
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+            review = FileReview.objects.get(file=request_file, reviewer=reviewer)
+            review.status = FileReviewStatus.UNDECIDED
+            review.save()
 
             self._create_audit_log(audit)
 
