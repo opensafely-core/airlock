@@ -581,6 +581,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
         (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, True, False),
         (RequestStatus.SUBMITTED, RequestStatus.RETURNED, False, True),
         (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.PENDING, False, False),
         (RequestStatus.RETURNED, RequestStatus.SUBMITTED, True, False),
         (RequestStatus.RETURNED, RequestStatus.WITHDRAWN, True, False),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, False, True),
