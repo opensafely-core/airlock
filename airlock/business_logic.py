@@ -1762,9 +1762,14 @@ class BusinessLogicLayer:
             "request_author": request.author,
             "user": user.username,
             "updates": updates,
-            "org": settings.AIRLOCK_OUTPUT_CHECKING_ORG,
-            "repo": settings.AIRLOCK_OUTPUT_CHECKING_REPO,
         }
+        if settings.AIRLOCK_OUTPUT_CHECKING_ORG:
+            event_data.update(
+                {
+                    "org": settings.AIRLOCK_OUTPUT_CHECKING_ORG,
+                    "repo": settings.AIRLOCK_OUTPUT_CHECKING_REPO,
+                }
+            )
 
         data = send_notification_event(json.dumps(event_data), user.username)
         logger.info(

@@ -1747,8 +1747,10 @@ def test_group_edit_author(bll, mock_notifications):
     ],
 )
 def test_group_edit_notifications(
-    bll, mock_notifications, new_context, new_controls, expected_updates
+    bll, mock_notifications, new_context, new_controls, expected_updates, settings
 ):
+    # Set the output checking org and repo to override any local settings
+    settings.AIRLOCK_OUTPUT_CHECKING_ORG = settings.AIRLOCK_OUTPUT_CHECKING_REPO = None
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
     factories.write_request_file(
@@ -1780,11 +1782,44 @@ def test_group_edit_notifications(
             "request_author": "author",
             "user": "author",
             "updates": expected_updates,
-            "org": settings.AIRLOCK_OUTPUT_CHECKING_ORG,
-            "repo": settings.AIRLOCK_OUTPUT_CHECKING_REPO,
         }
     else:
         assert notification_responses["count"] == 1
+
+
+@pytest.mark.parametrize(
+    "org,repo,sent_in_notification", [(None, None, False), ("test", "foo", True)]
+)
+def test_notifications_org_repo(
+    bll, mock_notifications, settings, org, repo, sent_in_notification
+):
+    settings.AIRLOCK_OUTPUT_CHECKING_ORG = org
+    settings.AIRLOCK_OUTPUT_CHECKING_REPO = repo
+    author = factories.create_user("author", ["workspace"], False)
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
+
+    # notifications endpoint called when request submitted
+    notification_responses = parse_notification_responses(mock_notifications)
+    assert notification_responses["count"] == 1
+    (notification,) = notification_responses["request_json"]
+    expected_notification = {
+        "event_type": "request_submitted",
+        "workspace": "workspace",
+        "request": release_request.id,
+        "request_author": "author",
+        "user": "author",
+        "updates": None,
+    }
+    if sent_in_notification:
+        expected_notification.update({"org": "test", "repo": "foo"})
+    assert notification == expected_notification
 
 
 def test_group_edit_not_author(bll):
