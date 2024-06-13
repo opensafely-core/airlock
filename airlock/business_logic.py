@@ -755,10 +755,10 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
-    def output_files_set(self) -> set[UrlPath]:
+    def output_files(self) -> dict[UrlPath, RequestFile]:
         """Return the relpaths for output files on the request"""
         return {
-            rfile.relpath
+            rfile.relpath: rfile
             for rfile in self.all_files_by_name.values()
             if rfile.filetype == RequestFileType.OUTPUT
         }
@@ -1270,7 +1270,7 @@ class BusinessLogicLayer:
 
             if (
                 to_status == RequestStatus.APPROVED
-                and not release_request.output_files_set()
+                and not release_request.output_files()
             ):
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
@@ -1490,13 +1490,10 @@ class BusinessLogicLayer:
         """
         self.check_status(request, RequestStatus.SUBMITTED, user)
         if request.status == RequestStatus.RETURNED:
-            for filegroup in request.filegroups.values():
-                for request_file in filegroup.output_files:
-                    rejected_reviews = request_file.rejected_reviews()
-                    for review in rejected_reviews:
-                        self.mark_file_undecided(
-                            request, review, request_file.relpath, user
-                        )
+            for rfile in request.output_files().values():
+                for review in rfile.rejected_reviews():
+                    self.mark_file_undecided(request, review, rfile.relpath, user)
+
         self.set_status(request, RequestStatus.SUBMITTED, user)
 
     def _verify_permission_to_review_file(
@@ -1517,7 +1514,7 @@ class BusinessLogicLayer:
                 "only an output checker can approve a file"
             )
 
-        if relpath not in release_request.output_files_set():
+        if relpath not in release_request.output_files():
             raise self.ApprovalPermissionDenied(
                 "file is not an output file on this request"
             )
