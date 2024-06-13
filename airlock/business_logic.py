@@ -113,6 +113,7 @@ class AuditEventType(Enum):
 
     # request file status
     REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
+    REQUEST_FILE_UPDATE = "REQUEST_FILE_UPDATE"
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
     REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
@@ -136,6 +137,7 @@ class NotificationEventType(Enum):
 
 class NotificationUpdateType(Enum):
     FILE_ADDED = "file added"
+    FILE_UPDATED = "file updated"
     FILE_WITHDRAWN = "file withdrawn"
     CONTEXT_EDITIED = "context edited"
     CONTROLS_EDITED = "controls edited"
@@ -167,6 +169,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
     AuditEventType.REQUEST_FILE_ADD: "Added file",
+    AuditEventType.REQUEST_FILE_UPDATE: "Updated file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
     AuditEventType.REQUEST_FILE_REJECT: "Changes requested to file",
@@ -1583,6 +1586,108 @@ class BusinessLogicLayer:
             updates = [
                 self._get_notification_update_dict(
                     NotificationUpdateType.FILE_ADDED, group_name, user
+                )
+            ]
+            self.send_notification(
+                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
+            )
+
+        return release_request
+
+    def update_file_in_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str = "default",
+        filetype: RequestFileType = RequestFileType.OUTPUT,
+    ) -> ReleaseRequest:
+        self._validate_editable(release_request, user)
+
+        relpath = UrlPath(relpath)
+        if not is_valid_file_type(Path(relpath)):
+            raise self.RequestPermissionDenied(
+                f"Cannot update file of type {relpath.suffix} in request"
+            )
+
+        workspace = self.get_workspace(release_request.workspace, user)
+        if (
+            workspace.get_workspace_status(UrlPath(relpath))
+            != WorkspaceFileStatus.CONTENT_UPDATED
+        ):
+            raise self.RequestPermissionDenied(
+                "Cannot update file in request if it is not updated on disk"
+            )
+
+        src = workspace.abspath(relpath)
+        file_id = store_file(release_request, src)
+
+        manifest = workspace.get_manifest_for_file(relpath)
+        assert (
+            manifest["content_hash"] == file_id
+        ), "File hash does not match manifest.json"
+
+        reviews = release_request.get_request_file_from_output_path(relpath).reviews
+        for reviewer_username in reviews:
+            audit = AuditEvent.from_request(
+                request=release_request,
+                type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
+                user=user,
+                path=relpath,
+                group=group_name,
+                filetype=filetype.name,
+                reviewer=reviewer_username,
+            )
+            self._dal.reset_review_file(
+                request_id=release_request.id,
+                relpath=relpath,
+                audit=audit,
+                username=reviewer_username,
+            )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_WITHDRAW,
+            user=user,
+            path=relpath,
+            group=group_name,
+            filetype=filetype.name,
+        )
+        filegroup_data = self._dal.delete_file_from_request(
+            request_id=release_request.id,
+            relpath=relpath,
+            audit=audit,
+        )
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_UPDATE,
+            user=user,
+            path=relpath,
+            group=group_name,
+            filetype=filetype.name,
+        )
+        filegroup_data = self._dal.add_file_to_request(
+            request_id=release_request.id,
+            group_name=group_name,
+            relpath=relpath,
+            file_id=file_id,
+            filetype=filetype,
+            timestamp=manifest["timestamp"],
+            commit=manifest["commit"],
+            repo=manifest["repo"],
+            size=manifest["size"],
+            job_id=manifest["job_id"],
+            row_count=manifest["row_count"],
+            col_count=manifest["col_count"],
+            audit=audit,
+        )
+        release_request.set_filegroups_from_dict(filegroup_data)
+
+        if release_request.status != RequestStatus.PENDING:
+            updates = [
+                self._get_notification_update_dict(
+                    NotificationUpdateType.FILE_UPDATED, group_name, user
                 )
             ]
             self.send_notification(

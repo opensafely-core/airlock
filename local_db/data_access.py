@@ -194,13 +194,18 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         with transaction.atomic():
             # defense in depth
             request = self._find_metadata(request_id)
-            assert request.status == RequestStatus.PENDING
+
+            assert (
+                request.status == RequestStatus.PENDING
+                or request.status == RequestStatus.RETURNED
+            )
 
             try:
                 request_file = RequestFileMetadata.objects.get(
                     request_id=request_id,
                     relpath=relpath,
                 )
+
             except RequestFileMetadata.DoesNotExist:
                 raise BusinessLogicLayer.FileNotFound(relpath)
 

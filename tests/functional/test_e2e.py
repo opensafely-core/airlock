@@ -461,6 +461,66 @@ def test_e2e_release_files(
     expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
 
 
+def test_e2e_update_file(page, live_server, dev_users):
+    """
+    Test researcher updates a modified file in a returned request
+    """
+    # set up a returned file & request
+    author = factories.create_user("researcher", ["test-workspace"], False)
+    path = "subdir/file.txt"
+
+    factories.create_request_at_status(
+        "test-workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path=path, group="default", rejected=True)],
+    )
+
+    # change the file on disk
+    workspace = bll.get_workspace("test-workspace", author)
+    factories.write_workspace_file(workspace, path, contents="changed")
+
+    # Log in as researcher
+    login_as(live_server, page, "researcher")
+
+    # Click on to workspaces link
+    find_and_click(page.get_by_test_id("nav-workspaces"))
+    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
+
+    # Click on the workspace
+    find_and_click(page.locator("#workspaces").get_by_role("link"))
+    expect(page.locator("body")).to_contain_text("subdir")
+    # subdirectories start off collapsed; the file links are not present
+    assert page.get_by_role("link", name="file.txt").all() == []
+    assert page.get_by_role("link", name="file.foo").all() == []
+
+    # Click on the subdir and then the file link to view in the workspace
+    # There will be more than one link to the folder/file in the page,
+    # one in the explorer, and one in the main folder view
+    # Click on the first link we find
+    find_and_click(page.get_by_role("link", name="subdir").first)
+
+    # click on the multi-select checkbox
+    find_and_click(page.locator('input[name="selected"]'))
+
+    # Update file in request
+    # Find the add file button and click on it to open the modal
+    find_and_click(page.locator("button[value=add_files]"))
+
+    # By default, the selected filetype is OUTPUT
+    expect(page.locator("input[name=form-0-filetype][value=OUTPUT]")).to_be_checked()
+    expect(
+        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
+    ).not_to_be_checked()
+
+    # Click the button to add the file to a release request
+    find_and_click(page.get_by_role("form").locator("#add-file-button"))
+
+    expect(page.locator("body")).to_contain_text(
+        "Output file has been updated in request"
+    )
+
+
 def test_e2e_reject_request(page, live_server, dev_users):
     """
     Test output-checker rejects a release request
