@@ -228,7 +228,10 @@ def multiselect_add_files(request, multiform, workspace):
         workspace.abspath(f)  # validate path
 
         state = workspace.get_workspace_status(UrlPath(f))
-        if state == WorkspaceFileStatus.UNRELEASED:
+        if (
+            state == WorkspaceFileStatus.UNRELEASED
+            or state == WorkspaceFileStatus.CONTENT_UPDATED
+        ):
             files_to_add.append(f)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
@@ -309,19 +312,34 @@ def workspace_add_file_to_request(request, workspace_name):
         relpath = formset_form.cleaned_data["file"]
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-        try:
-            bll.add_file_to_request(
-                release_request, relpath, request.user, group_name, filetype
-            )
-        except bll.APIException as err:
-            # This exception is raised if the file has already been added
-            # (to any group on the request)
-            msgs.append(f"{relpath}: {err}")
+        status = workspace.get_workspace_status(UrlPath(relpath))
+        if status == WorkspaceFileStatus.CONTENT_UPDATED:
+            try:
+                bll.update_file_in_request(
+                    release_request, relpath, request.user, group_name, filetype
+                )
+            except bll.APIException as err:  # pragma: no cover
+                # it's pretty difficult to hit this error
+                msgs.append(f"{relpath}: {err}")
+            else:
+                success = True
+                msgs.append(
+                    f"{relpath}: {filetype.name.title()} file has been updated in request (file group '{group_name}')",
+                )
         else:
-            success = True
-            msgs.append(
-                f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
-            )
+            try:
+                bll.add_file_to_request(
+                    release_request, relpath, request.user, group_name, filetype
+                )
+            except bll.APIException as err:
+                # This exception is raised if the file has already been added
+                # (to any group on the request)
+                msgs.append(f"{relpath}: {err}")
+            else:
+                success = True
+                msgs.append(
+                    f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
+                )
 
     # if any succeeded, show as success
     level = "success" if success else "error"

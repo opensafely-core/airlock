@@ -22,6 +22,7 @@ from airlock.business_logic import (
     RequestStatus,
     UserFileReviewStatus,
     Workspace,
+    store_file,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
 from tests import factories
@@ -1577,6 +1578,201 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
     else:
         with pytest.raises(AttributeError):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
+
+
+def test_update_file_in_request_invalid_file_type(bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    relpath = UrlPath("path/file.foo")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+
+    # This code reproduces bll.add_file_to_request() - except without the
+    # safeguards - in order that we can give update_file_in_request()
+    # the correct context to hit this test
+
+    workspace = bll.get_workspace(release_request.workspace, author)
+    src = workspace.abspath(relpath)
+    file_id = store_file(release_request, src)
+    manifest = workspace.get_manifest_for_file(relpath)
+    group_name = "default"
+
+    audit = AuditEvent.from_request(
+        request=release_request,
+        type=AuditEventType.REQUEST_FILE_ADD,
+        user=author,
+        path=relpath,
+        group=group_name,
+        filetype=RequestFileType.OUTPUT.name,
+    )
+
+    bll._dal.add_file_to_request(
+        request_id=release_request.id,
+        group_name=group_name,
+        relpath=relpath,
+        file_id=file_id,
+        filetype=RequestFileType.OUTPUT,
+        timestamp=manifest["timestamp"],
+        commit=manifest["commit"],
+        repo=manifest["repo"],
+        size=manifest["size"],
+        job_id=manifest["job_id"],
+        row_count=manifest["row_count"],
+        col_count=manifest["col_count"],
+        audit=audit,
+    )
+    with pytest.raises(
+        bll.RequestPermissionDenied, match=r"Cannot update file of type"
+    ):
+        bll.update_file_in_request(release_request, relpath, author)
+
+
+def test_update_file_in_request_not_updated(bll):
+    author = factories.create_user("author", ["workspace"], False)
+
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+    )
+
+    with pytest.raises(bll.RequestPermissionDenied, match=r"not updated"):
+        bll.update_file_in_request(release_request, relpath, author)
+
+
+@pytest.mark.parametrize(
+    "status,reviewed,approved,success,notification_sent",
+    [
+        (RequestStatus.PENDING, False, None, True, False),
+        (RequestStatus.SUBMITTED, False, None, False, False),
+        (RequestStatus.WITHDRAWN, True, False, False, False),
+        (RequestStatus.APPROVED, True, True, False, False),
+        (RequestStatus.REJECTED, True, False, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, True, True, False, False),
+        (RequestStatus.REVIEWED, True, True, False, False),
+        (RequestStatus.RETURNED, True, False, True, True),
+        (RequestStatus.RELEASED, True, True, False, False),
+    ],
+)
+def test_update_file_to_request_states(
+    status, reviewed, approved, success, notification_sent, bll, mock_notifications
+):
+    author = factories.create_user("author", ["workspace"], False)
+    checkers = factories.get_default_output_checkers()
+    workspace = factories.create_workspace("workspace")
+    path = UrlPath("path/file.txt")
+
+    if status == RequestStatus.WITHDRAWN:
+        withdrawn_after = RequestStatus.RETURNED
+    else:
+        withdrawn_after = None
+
+    if reviewed:
+        if approved:
+            workspace_file = factories.request_file(
+                path=path,
+                user=author,
+                approved=True,
+            )
+        else:
+            workspace_file = factories.request_file(
+                path=path,
+                user=author,
+                rejected=True,
+            )
+    else:
+        workspace_file = factories.request_file(
+            path=path,
+            user=author,
+        )
+
+    release_request = factories.create_request_at_status(
+        workspace.name,
+        author=author,
+        status=status,
+        withdrawn_after=withdrawn_after,
+        files=[
+            workspace_file,
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+    if success:
+        assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    factories.write_workspace_file(workspace, path, contents="changed")
+
+    if success:
+        assert (
+            workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+        )
+        bll.update_file_in_request(release_request, path, author, "group")
+    else:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.update_file_in_request(release_request, path, author)
+        return
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_status_for_user(checkers[0]) is None
+    assert rfile.get_status_for_user(checkers[1]) is None
+    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+
+    assert release_request.abspath("group" / path).exists()
+
+    audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_UPDATE,
+        user=author,
+        path=path,
+        group="group",
+        filetype="OUTPUT",
+    )
+    if status == RequestStatus.RETURNED:
+        assert audit_log[1] == AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_FILE_WITHDRAW,
+            user=author,
+            path=path,
+            group="group",
+            filetype="OUTPUT",
+        )
+        assert audit_log[2] == AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_FILE_RESET_REVIEW,
+            user=author,
+            path=path,
+            group="group",
+            filetype="OUTPUT",
+            reviewer="output-checker-1",
+        )
+        assert audit_log[3] == AuditEvent.from_request(
+            release_request,
+            AuditEventType.REQUEST_FILE_RESET_REVIEW,
+            user=author,
+            path=path,
+            group="group",
+            filetype="OUTPUT",
+            reviewer="output-checker-0",
+        )
+
+    if notification_sent:
+        last_notification = get_last_notification(mock_notifications)
+        assert last_notification["updates"][0]["update_type"] == "file updated"
+    else:
+        assert_no_notifications(mock_notifications)
 
 
 def test_withdraw_file_from_request_pending(bll, mock_notifications):
