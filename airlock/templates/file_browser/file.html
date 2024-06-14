@@ -99,7 +99,7 @@
           </span>
         </summary>
         <ul class="more-dropdown__nav">
-          {% if is_output_checker and context == "request" and not is_author %}
+          {% if context == "request" and not is_author %}
             <li class="more-dropdown__item">
               <a href="{{ path_item.download_url }}" class="more-dropdown__link" id="download-button">
                 <img class="more-dropdown__icon" src="/static/icons/cloud_download.svg" alt="">
