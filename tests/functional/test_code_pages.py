@@ -25,19 +25,25 @@ def release_request(researcher_user):
 
 
 def test_code_from_workspace(live_server, page, context):
+    more_button = page.locator("#file-button-more")
     code_button = page.locator("#file-code-button")
 
     # At a directory view, the code button is not displayed
     page.goto(live_server.url + "/workspaces/view/test-dir1/")
+    expect(more_button).not_to_be_visible()
     expect(code_button).not_to_be_visible()
 
     # manifest.json itself doesn't have a manifest entry, so code button not displayed
     page.goto(live_server.url + "/workspaces/view/test-dir1/metadata/manifest.json")
+    page.locator("#file-button-more").click()
+    expect(more_button).to_be_visible()
+    more_button.click()
     expect(code_button).not_to_be_visible()
 
     # output file does display code button
     file_url = "/workspaces/view/test-dir1/foo.txt"
     page.goto(live_server.url + file_url)
+    page.locator("#file-button-more").click()
     expect(code_button).to_be_visible()
 
     with context.expect_page() as new_page_info:
@@ -68,15 +74,18 @@ def test_code_from_workspace(live_server, page, context):
 def test_code_from_request(
     live_server, page, context, release_request, output_checker_user
 ):
+    more_button = page.locator("#file-button-more")
     code_button = page.locator("#file-code-button")
 
     # At a directory view, the code button is not displayed
     page.goto(live_server.url + f"/requests/view/{release_request.id}/group/")
-    expect(code_button).not_to_be_visible()
+    expect(more_button).not_to_be_visible()
 
     # file view displays code button
     file_url = f"/requests/view/{release_request.id}/group/foo.txt"
     page.goto(live_server.url + file_url)
+    expect(more_button).to_be_visible()
+    more_button.click()
     expect(code_button).to_be_visible()
 
     with context.expect_page() as new_page_info:

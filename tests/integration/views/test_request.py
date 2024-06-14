@@ -175,8 +175,8 @@ def test_request_view_with_submitted_file(airlock_client):
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
     assert "Remove this file" not in response.rendered_content
-    assert "Approve File" in response.rendered_content
-    assert "Request Changes" in response.rendered_content
+    assert "Approve file" in response.rendered_content
+    assert "Request changes" in response.rendered_content
 
 
 def test_request_view_with_submitted_supporting_file(airlock_client):
@@ -196,8 +196,8 @@ def test_request_view_with_submitted_supporting_file(airlock_client):
     )
     assert "Remove this file" not in response.rendered_content
     # these buttons currently exist but are both disabled
-    assert "Approve File" in response.rendered_content
-    assert "Request Changes" in response.rendered_content
+    assert "Approve file" not in response.rendered_content
+    assert "Request changes" not in response.rendered_content
 
 
 def test_request_view_with_submitted_file_approved(airlock_client):
@@ -211,8 +211,8 @@ def test_request_view_with_submitted_file_approved(airlock_client):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Approve File" in response.rendered_content
-    assert "Request Changes" in response.rendered_content
+    assert "Approve file" in response.rendered_content
+    assert "Request changes" in response.rendered_content
 
 
 def test_request_view_with_submitted_file_rejected(airlock_client):
@@ -226,8 +226,8 @@ def test_request_view_with_submitted_file_rejected(airlock_client):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Approve File" in response.rendered_content
-    assert "Request Changes" in response.rendered_content
+    assert "Approve file" in response.rendered_content
+    assert "Request changes" in response.rendered_content
 
 
 def test_request_view_with_404(airlock_client):

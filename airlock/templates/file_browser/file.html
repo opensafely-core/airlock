@@ -43,45 +43,91 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
+        <div>
+          {% if not file_reset_review_url %}
+            <span class="file-status file-status--warning">No status</span>
+          {% elif file_approve_url %}
+            <span class="file-status file-status--danger">Changes requested</span>
+          {% elif file_reject_url %}
+            <span class="file-status file-status--success">Approved</span>
+          {% endif %}
+        </div>
 
-        {% if file_approve_url %}
-          <form action="{{ file_approve_url }}" method="POST">
-            {% csrf_token %}
-            {% #button type="submit" variant="success" id="file-approve-button" %}Approve File{% /button %}
-          </form>
-        {% else %}
-          {% #button type="submit" variant="success" disabled=True id="file-approve-button" tooltip="File already approved." %}Approve File{% /button %}
-        {% endif %}
+        <div class="btn-group">
+          {% if file_approve_url %}
+            <form action="{{ file_approve_url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
+                Approve file
+              </button>
+            </form>
+          {% elif file_reset_review_url and file_reject_url %}
+            <form action="{{ file_reset_review_url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-reset-button" type="submit">
+                Approve file
+              </button>
+            </form>
+          {% endif %}
 
-        {% if file_reset_review_url %}
-          <form action="{{ file_reset_review_url }}" method="POST">
-            {% csrf_token %}
-            {% #button type="submit" variant="success" id="file-reset-button" %}Reset Review{% /button %}
-          </form>
-        {% else %}
-          {% #button type="submit" variant="success" disabled=True id="file-reset-button" tooltip="File not yet reviewed." %}Reset Review{% /button %}
-        {% endif %}
-
-        {% if file_reject_url %}
-          <form action="{{ file_reject_url }}" method="POST">
-            {% csrf_token %}
-            {% #button type="submit" variant="danger" href=file_reject_url id="file-reject-button" %}Request Changes{% /button %}
-          </form>
-        {% else %}
-          {% #button type="submit" variant="danger" disabled=True href=file_reject_url id="file-reject-button" tooltip="File changes already requested." %}Request Changes{% /button %}
-        {% endif %}
-        {% #button variant="primary" type="link" href=path_item.download_url id="download-button" %}Download file{% /button %}
+          {% if file_reject_url %}
+            <form action="{{ file_reject_url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reject-button" type="submit">
+                Request changes
+              </button>
+            </form>
+          {% elif file_reset_review_url and file_approve_url %}
+            <form action="{{ file_reset_review_url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" type="submit">
+                Request changes
+              </button>
+            </form>
+          {% endif %}
+        </div>
       {% endif %}
     {% endif %}
-    {% #button variant="primary" type="link" href=path_item.contents_url external=True id="view-button" %}View ↗{% /button %}
-    {% if code_url %}
-      {% #button type="link" variant="primary" id="file-code-button" href=code_url external=True %}View code{% /button %}
-    {% endif %}
-  </div>
 
+    <details-utils close-click-outside close-esc>
+      <details class="more-dropdown">
+        <summary class="more-dropdown__btn" id="file-button-more">
+          More…
+          <span class="opacity-75 ml-1">
+            <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+            <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
+          </span>
+        </summary>
+        <ul class="more-dropdown__nav">
+          {% if context == "request" and not is_author %}
+            <li class="more-dropdown__item">
+              <a href="{{ path_item.download_url }}" class="more-dropdown__link" id="download-button">
+                <img class="more-dropdown__icon" src="/static/icons/cloud_download.svg" alt="">
+                Download file
+              </a>
+            </li>
+          {% endif %}
+          <li class="more-dropdown__item">
+            <a href="{{ path_item.contents_url }}" class="more-dropdown__link" id="view-button" target="_blank" rel="noopener noreferrer">
+              <img class="more-dropdown__icon" src="/static/icons/open_in_new.svg" alt="">
+              Open in new tab
+            </a>
+          </li>
+          {% if code_url %}
+            <li class="more-dropdown__item">
+              <a href="{{ code_url }}" class="more-dropdown__link" id="file-code-button" target="_blank" rel="noopener noreferrer">
+                <img class="more-dropdown__icon" src="/static/icons/code_blocks.svg" alt="">
+                View source code
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </details>
+    </details-utils>
+  </div>
 {% endfragment %}
 
-{% #card title=path_item.name container=True custom_button=buttons %}
+{% #card id="fileCard" title=path_item.name container=True custom_button=buttons %}
   <div class="content">
     <iframe src="{{ path_item.contents_url }}"
             title="{{ path_item.relpath }}"
