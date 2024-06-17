@@ -451,8 +451,10 @@ def test_request_index_user_permitted_requests(airlock_client):
     response = airlock_client.get("/requests/")
     authored_ids = {r.id for r in response.context["authored_requests"]}
     outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    returned_ids = {r.id for r in response.context["returned_requests"]}
     assert authored_ids == {release_request.id}
     assert outstanding_ids == set()
+    assert returned_ids == set()
 
 
 def test_request_index_user_output_checker(airlock_client):
@@ -464,12 +466,18 @@ def test_request_index_user_output_checker(airlock_client):
     r2 = factories.create_release_request(
         "other_workspace", user=other, status=RequestStatus.SUBMITTED
     )
+    r3 = factories.create_release_request(
+        "other_other_workspace", user=other, status=RequestStatus.RETURNED
+    )
     response = airlock_client.get("/requests/")
 
     authored_ids = {r.id for r in response.context["authored_requests"]}
     outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    returned_ids = {r.id for r in response.context["returned_requests"]}
+
     assert authored_ids == {r1.id}
     assert outstanding_ids == {r2.id}
+    assert returned_ids == {r3.id}
 
 
 def test_request_submit_author(airlock_client):

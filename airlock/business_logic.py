@@ -866,6 +866,9 @@ class DataAccessLayerProtocol(Protocol):
     def get_outstanding_requests_for_review(self):
         raise NotImplementedError()
 
+    def get_returned_requests(self):
+        raise NotImplementedError()
+
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         raise NotImplementedError()
 
@@ -1160,6 +1163,19 @@ class BusinessLogicLayer:
         return [
             ReleaseRequest.from_dict(attrs)
             for attrs in self._dal.get_outstanding_requests_for_review()
+            # Do not show output_checker their own requests
+            if attrs["author"] != user.username
+        ]
+
+    def get_returned_requests(self, user: User):
+        """Get all requests that have been returned."""
+        # Only output checkers can see these
+        if not user.output_checker:
+            return []
+
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_returned_requests()
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
