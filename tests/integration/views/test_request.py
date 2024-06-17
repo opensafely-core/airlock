@@ -538,6 +538,50 @@ def test_request_withdraw_not_author(airlock_client):
     assert persisted_request.status == RequestStatus.PENDING
 
 
+def test_request_return_author(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    release_request = factories.create_release_request(
+        "test1", user=airlock_client.user
+    )
+    factories.write_request_file(
+        release_request, "group", "path/test.txt", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "path/test1.txt", rejected=True
+    )
+    factories.bll.set_status(
+        release_request, RequestStatus.SUBMITTED, airlock_client.user
+    )
+
+    response = airlock_client.post(f"/requests/return/{release_request.id}")
+
+    assert response.status_code == 403
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
+    assert persisted_request.status == RequestStatus.SUBMITTED
+
+
+def test_request_return_output_checker(airlock_client):
+    airlock_client.login(workspaces=["test1"], output_checker=True)
+    other_author = factories.create_user("other", [], False)
+    release_request = factories.create_release_request("test1", user=other_author)
+    factories.write_request_file(
+        release_request, "group", "path/test.txt", approved=True
+    )
+    factories.write_request_file(
+        release_request, "group", "path/test1.txt", rejected=True
+    )
+    factories.bll.set_status(release_request, RequestStatus.SUBMITTED, other_author)
+    response = airlock_client.post(f"/requests/return/{release_request.id}")
+
+    assert response.status_code == 302
+    persisted_request = factories.bll.get_release_request(
+        release_request.id, airlock_client.user
+    )
+    assert persisted_request.status == RequestStatus.RETURNED
+
+
 def test_empty_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
 
