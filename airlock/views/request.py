@@ -195,7 +195,7 @@ def request_view(request, request_id: str, path: str = ""):
         existing_review = release_request.get_file_review_for_reviewer(
             path, request.user.username
         )
-        if existing_review:
+        if existing_review and existing_review.status != FileReviewStatus.UNDECIDED:
             if existing_review.status == FileReviewStatus.APPROVED:
                 file_approve_url = None
             elif existing_review.status == FileReviewStatus.REJECTED:
