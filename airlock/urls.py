@@ -124,6 +124,11 @@ urlpatterns = [
         name="request_withdraw",
     ),
     path(
+        "requests/return/<str:request_id>",
+        airlock.views.request_return,
+        name="request_return",
+    ),
+    path(
         "requests/workspace/<str:workspace_name>",
         airlock.views.requests_for_workspace,
         name="requests_for_workspace",

@@ -40,8 +40,10 @@ def request_index(request):
     authored_requests = bll.get_requests_authored_by_user(request.user)
 
     outstanding_requests = []
+    returned_requests = []
     if request.user.output_checker:
         outstanding_requests = bll.get_outstanding_requests_for_review(request.user)
+        returned_requests = bll.get_returned_requests(request.user)
 
     return TemplateResponse(
         request,
@@ -49,6 +51,7 @@ def request_index(request):
         {
             "authored_requests": authored_requests,
             "outstanding_requests": outstanding_requests,
+            "returned_requests": returned_requests,
         },
     )
 
@@ -162,6 +165,10 @@ def request_view(request, request_id: str, path: str = ""):
         "request_reject",
         kwargs={"request_id": request_id},
     )
+    request_return_url = reverse(
+        "request_return",
+        kwargs={"request_id": request_id},
+    )
     release_files_url = reverse(
         "request_release_files",
         kwargs={"request_id": request_id},
@@ -191,7 +198,7 @@ def request_view(request, request_id: str, path: str = ""):
         existing_review = release_request.get_file_review_for_reviewer(
             path, request.user.username
         )
-        if existing_review:
+        if existing_review and existing_review.status != FileReviewStatus.UNDECIDED:
             if existing_review.status == FileReviewStatus.APPROVED:
                 file_approve_url = None
             elif existing_review.status == FileReviewStatus.REJECTED:
@@ -217,6 +224,7 @@ def request_view(request, request_id: str, path: str = ""):
         "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
         "request_reject_url": request_reject_url,
+        "request_return_url": request_return_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
         "activity": activity,
@@ -281,32 +289,34 @@ def request_submit(request, request_id):
     return redirect(release_request.get_url())
 
 
-@instrument(func_attributes={"release_request": "request_id"})
-@require_http_methods(["POST"])
-def request_reject(request, request_id):
+def _action_request(request, request_id, new_status):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        bll.set_status(release_request, RequestStatus.REJECTED, request.user)
+        bll.set_status(release_request, new_status, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
-    messages.error(request, "Request has been rejected")
+    messages.error(request, f"Request has been {new_status.name.lower()}")
     return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_reject(request, request_id):
+    return _action_request(request, request_id, RequestStatus.REJECTED)
 
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_withdraw(request, request_id):
-    release_request = get_release_request_or_raise(request.user, request_id)
+    return _action_request(request, request_id, RequestStatus.WITHDRAWN)
 
-    try:
-        bll.set_status(release_request, RequestStatus.WITHDRAWN, request.user)
-    except bll.RequestPermissionDenied as exc:
-        raise PermissionDenied(str(exc))
 
-    messages.error(request, "Request has been withdrawn")
-    return redirect(release_request.get_url())
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_return(request, request_id):
+    return _action_request(request, request_id, RequestStatus.RETURNED)
 
 
 @instrument(func_attributes={"release_request": "request_id"})

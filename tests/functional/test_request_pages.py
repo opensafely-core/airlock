@@ -104,3 +104,104 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
 
     comments_locator = contents.locator(".comments")
     expect(comments_locator).to_contain_text("test comment")
+
+
+def test_request_return(live_server, context, page, bll):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": ["workspace"],
+            "output_checker": False,
+        },
+    )
+
+    release_request = factories.create_release_request(
+        "workspace",
+        user=author,
+    )
+    factories.write_request_file(
+        release_request,
+        "group",
+        "file1.txt",
+        "file 1 content",
+    )
+    factories.write_request_file(
+        release_request,
+        "group",
+        "file2.txt",
+        "file 2 content",
+    )
+    factories.bll.set_status(release_request, RequestStatus.SUBMITTED, author)
+
+    return_request_button = page.locator("#return-request-button")
+
+    def _review_files(username):
+        # login as first output-checker
+        login_as_user(
+            live_server,
+            context,
+            user_dict={
+                "username": username,
+                "workspaces": [],
+                "output_checker": True,
+            },
+        )
+        page.goto(live_server.url + release_request.get_url())
+        expect(return_request_button).to_be_disabled()
+
+        page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+        page.locator("#file-approve-button").click()
+
+        page.goto(live_server.url + release_request.get_url("group/file2.txt"))
+        page.locator("#file-reject-button").click()
+
+    # First output-checker reviews files
+    _review_files("output-checker-1")
+
+    # Return button is still disabled
+    expect(return_request_button).to_be_disabled()
+
+    # Second output-checker reviews files
+    _review_files("output-checker-2")
+
+    # Return button is now enabled
+    expect(return_request_button).to_be_enabled()
+
+    # Return the request
+    return_request_button.click()
+
+    # login as author again
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": ["workspace"],
+            "output_checker": False,
+        },
+    )
+    page.goto(live_server.url + release_request.get_url())
+    # Can re-submit a returned request
+    page.locator("#submit-for-review-button").click()
+
+    # login as first output-checker
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "output-checker-1",
+            "workspaces": [],
+            "output_checker": True,
+        },
+    )
+
+    status_locator = page.locator(".file-status")
+    # go to previously approved file; still shown as approved
+    page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+    expect(status_locator).to_contain_text("Approved")
+
+    # go to previously rejected file; now shown as no-status
+    page.goto(live_server.url + release_request.get_url("group/file2.txt"))
+    expect(status_locator).to_contain_text("No status")

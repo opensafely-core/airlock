@@ -26,6 +26,16 @@
           {% endfor %}
         {% /list_group %}
       {% /card %}
+
+      {% #card title="Requests returned for changes/questions" %}
+        {% #list_group id="returned-requests" %}
+          {% for request in returned_requests %}
+            {% #list_group_item href=request.get_url %}{{ request.workspace }} by {{ request.author }}{% /list_group_item %}
+          {% empty %}
+            {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
+          {% endfor %}
+        {% /list_group %}
+      {% /card %}
     {% endif %}
   </div>
 {% endblock content %}
