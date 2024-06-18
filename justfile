@@ -106,6 +106,7 @@ check: devenv
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
     check "$BIN/mypy airlock/ local_db/"
+    check "just state-diagram /tmp/airlock-states.md && diff -u /tmp/airlock-states.md docs/request-states.md"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
@@ -120,8 +121,8 @@ mypy *ARGS: devenv
     $BIN/mypy airlock/ local_db/ "$@"
 
 
-# fix formatting and import sort ordering
-fix: devenv
+# fix the things we can automate: linting, formatting, import sorting, diagrams
+fix: devenv && state-diagram
     $BIN/ruff format .
     $BIN/ruff check --fix .
     $BIN/djhtml --tabwidth 2 airlock/
@@ -209,6 +210,9 @@ load-example-data: devenv && manifests
 manifests:
     cat scripts/manifests.py | $BIN/python manage.py shell
 
+# generate the automated state diagrams from code
+state-diagram file="docs/request-states.md":
+    cat scripts/statemachine.py | {{ just_executable() }} manage shell > {{ file }}
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS: devenv
