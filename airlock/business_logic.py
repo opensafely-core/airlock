@@ -437,9 +437,7 @@ class CodeRepo:
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str):
         try:
-            repo = workspace.manifest.get("repo")
-            if repo is None:
-                repo = list(workspace.manifest["outputs"].values())[0]["repo"]
+            repo = list(workspace.manifest["outputs"].values())[0]["repo"]
         except (BusinessLogicLayer.ManifestFileError, IndexError, KeyError) as exc:
             raise cls.RepoNotFound(
                 f"Could not parse manifest.json file: {workspace.manifest_path()}:\n{exc}"

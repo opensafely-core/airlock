@@ -243,7 +243,9 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
 
 
 def test_code_repo_container():
-    repo = factories.create_repo("workspace")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo.txt")
+    repo = factories.create_repo(workspace)
 
     assert repo.get_id() == f"workspace@{repo.commit[:7]}"
     assert (
@@ -2149,9 +2151,8 @@ def test_coderepo_from_workspace_no_repo_in_manifest(bll, manifest):
         CodeRepo.from_workspace(workspace, "commit")
 
 
-def test_coderepo_from_workspace_no_root_repo(bll):
+def test_coderepo_from_workspace(bll):
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file(workspace, "foo.txt")
     factories.create_repo(workspace)
     # No root repo, retrieved from first output in manifest instead
     workspace.manifest["repo"] = None
