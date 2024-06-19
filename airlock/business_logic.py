@@ -27,7 +27,7 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
@@ -238,13 +238,13 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
 
-    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
         """Get request status of file."""
 
-    def get_user_request_state(
+    def get_user_request_status(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
         """Get user's request status of file."""
@@ -315,7 +315,7 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         # defence in depth, we've been given a bad file path
         try:
             self.abspath(relpath)
@@ -328,7 +328,7 @@ class Workspace:
             try:
                 rfile = self.current_request.get_request_file_from_output_path(relpath)
             except BusinessLogicLayer.FileNotFound:
-                return WorkspaceFileState.UNRELEASED
+                return WorkspaceFileStatus.UNRELEASED
 
             metadata = self.get_file_metadata(relpath)
             if metadata is None:  # pragma: no cover
@@ -337,16 +337,16 @@ class Workspace:
                 )
 
             if rfile.file_id == metadata.content_hash:
-                return WorkspaceFileState.UNDER_REVIEW
+                return WorkspaceFileStatus.UNDER_REVIEW
             else:
-                return WorkspaceFileState.CONTENT_UPDATED
+                return WorkspaceFileStatus.CONTENT_UPDATED
 
-        return WorkspaceFileState.UNRELEASED
+        return WorkspaceFileStatus.UNRELEASED
 
-    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
         return None
 
-    def get_user_request_state(
+    def get_user_request_status(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
         return None  # pragma: nocover
@@ -469,7 +469,7 @@ class CodeRepo:
             kwargs=kwargs,
         )
 
-    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get state of path."""
         return None  # pragma: no cover
 
@@ -515,13 +515,13 @@ class CodeRepo:
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
         return None
 
-    def get_user_request_state(
+    def get_user_request_status(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
         return None  # pragma: no cover
@@ -574,7 +574,7 @@ class RequestFile:
             },
         )
 
-    def status(self) -> RequestFileReviewStatus:
+    def get_status(self) -> RequestFileReviewStatus:
         """The status of RequestFile, based on mutliple reviews.
 
         We specificially only require 2 APPROVED votes, rather than all votes
@@ -598,7 +598,7 @@ class RequestFile:
         # only case left is all reviews are REJECTED
         return RequestFileReviewStatus.REJECTED
 
-    def status_for_user(self, user: User) -> UserFileReviewStatus | None:
+    def get_status_for_user(self, user: User) -> UserFileReviewStatus | None:
         if user.username in self.reviews:
             return self.reviews[user.username].status
         else:
@@ -763,16 +763,16 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_state(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).status()
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return self.get_request_file_from_urlpath(relpath).get_status()
 
-    def get_user_request_state(
+    def get_user_request_status(
         self, relpath: UrlPath, user: User
     ) -> UserFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).status_for_user(user)
+        return self.get_request_file_from_urlpath(relpath).get_status_for_user(user)
 
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
@@ -850,7 +850,7 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.status() == RequestFileReviewStatus.APPROVED
+            request_file.get_status() == RequestFileReviewStatus.APPROVED
             for filegroup in self.filegroups.values()
             for request_file in filegroup.output_files
         )

@@ -15,7 +15,7 @@ from airlock.file_browser_api import (
     get_request_tree,
     get_workspace_tree,
 )
-from airlock.types import WorkspaceFileState
+from airlock.types import WorkspaceFileStatus
 from tests import factories
 from tests.conftest import get_trace
 
@@ -85,20 +85,20 @@ def test_get_workspace_tree_general(release_request):
 
     # state
     assert (
-        tree.get_path("some_dir/file_a.txt").workspace_state
-        == WorkspaceFileState.UNDER_REVIEW
+        tree.get_path("some_dir/file_a.txt").workspace_status
+        == WorkspaceFileStatus.UNDER_REVIEW
     )
     assert (
-        tree.get_path("some_dir/file_b.txt").workspace_state
-        == WorkspaceFileState.UNDER_REVIEW
+        tree.get_path("some_dir/file_b.txt").workspace_status
+        == WorkspaceFileStatus.UNDER_REVIEW
     )
     assert (
-        tree.get_path("some_dir/file_c.txt").workspace_state
-        == WorkspaceFileState.CONTENT_UPDATED
+        tree.get_path("some_dir/file_c.txt").workspace_status
+        == WorkspaceFileStatus.CONTENT_UPDATED
     )
     assert (
-        tree.get_path("some_dir/file_d.txt").workspace_state
-        == WorkspaceFileState.UNRELEASED
+        tree.get_path("some_dir/file_d.txt").workspace_status
+        == WorkspaceFileStatus.UNRELEASED
     )
 
     # html classes
@@ -108,8 +108,8 @@ def test_get_workspace_tree_general(release_request):
     assert "workspace_updated" in tree.get_path("some_dir/file_c.txt").html_classes()
     assert "workspace_unreleased" in tree.get_path("some_dir/file_d.txt").html_classes()
 
-    assert tree.get_path("some_dir/file_a.txt").request_state is None
-    assert tree.get_path("some_dir/file_a.txt").user_request_state is None
+    assert tree.get_path("some_dir/file_a.txt").request_status is None
+    assert tree.get_path("some_dir/file_a.txt").user_request_status is None
 
     # selected
     assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
@@ -189,32 +189,32 @@ def test_get_request_tree_status(release_request, bll):
         return tree.get_path(group_path)
 
     item = set_status(None, checker1)
-    assert item.request_state == RequestFileReviewStatus.INCOMPLETE
-    assert item.user_request_state is None
+    assert item.request_status == RequestFileReviewStatus.INCOMPLETE
+    assert item.user_request_status is None
     assert "request_incomplete" in item.html_classes()
     assert "user_incomplete" in item.html_classes()
 
     item = set_status(UserFileReviewStatus.APPROVED, checker1)
-    assert item.request_state == RequestFileReviewStatus.INCOMPLETE
-    assert item.user_request_state == UserFileReviewStatus.APPROVED
+    assert item.request_status == RequestFileReviewStatus.INCOMPLETE
+    assert item.user_request_status == UserFileReviewStatus.APPROVED
     assert "request_incomplete" in item.html_classes()
     assert "user_approved" in item.html_classes()
 
     item = set_status(UserFileReviewStatus.APPROVED, checker2)
-    assert item.request_state == RequestFileReviewStatus.APPROVED
-    assert item.user_request_state == UserFileReviewStatus.APPROVED
+    assert item.request_status == RequestFileReviewStatus.APPROVED
+    assert item.user_request_status == UserFileReviewStatus.APPROVED
     assert "request_approved" in item.html_classes()
     assert "user_approved" in item.html_classes()
 
     item = set_status(UserFileReviewStatus.REJECTED, checker2)
-    assert item.request_state == RequestFileReviewStatus.CONFLICTED
-    assert item.user_request_state == UserFileReviewStatus.REJECTED
+    assert item.request_status == RequestFileReviewStatus.CONFLICTED
+    assert item.user_request_status == UserFileReviewStatus.REJECTED
     assert "request_conflicted" in item.html_classes()
     assert "user_rejected" in item.html_classes()
 
     item = set_status(UserFileReviewStatus.REJECTED, checker1)
-    assert item.request_state == RequestFileReviewStatus.REJECTED
-    assert item.user_request_state == UserFileReviewStatus.REJECTED
+    assert item.request_status == RequestFileReviewStatus.REJECTED
+    assert item.user_request_status == UserFileReviewStatus.REJECTED
     assert "request_rejected" in item.html_classes()
     assert "user_rejected" in item.html_classes()
 

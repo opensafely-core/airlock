@@ -20,7 +20,7 @@ else:
     UrlPath = PurePosixPath
 
 
-class WorkspaceFileState(Enum):
+class WorkspaceFileStatus(Enum):
     """Possible states of a workspace file."""
 
     # Workspace path states

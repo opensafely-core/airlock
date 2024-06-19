@@ -12,7 +12,7 @@ from opentelemetry import trace
 from airlock.business_logic import RequestFileType, bll
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
-from airlock.types import UrlPath, WorkspaceFileState
+from airlock.types import UrlPath, WorkspaceFileStatus
 from airlock.views.helpers import (
     display_form_errors,
     display_multiple_messages,
@@ -73,14 +73,14 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # check file metadata to allow updating a file if the original has
     # changed.
     valid_states_to_add = [
-        WorkspaceFileState.UNRELEASED,
-        # TODO WorkspaceFileState.CONTENT_UPDATED,
+        WorkspaceFileStatus.UNRELEASED,
+        # TODO WorkspaceFileStatus.CONTENT_UPDATED,
     ]
 
     add_file = (
         path_item.is_valid()
         and request.user.can_create_request(workspace_name)
-        and workspace.get_workspace_state(path_item.relpath) in valid_states_to_add
+        and workspace.get_workspace_status(path_item.relpath) in valid_states_to_add
     )
 
     activity = []
@@ -205,8 +205,8 @@ def multiselect_add_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        state = workspace.get_workspace_state(UrlPath(f))
-        if state == WorkspaceFileState.UNRELEASED:
+        state = workspace.get_workspace_status(UrlPath(f))
+        if state == WorkspaceFileStatus.UNRELEASED:
             files_to_add.append(f)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
