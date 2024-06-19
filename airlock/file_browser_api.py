@@ -11,10 +11,13 @@ from airlock.business_logic import (
     AirlockContainer,
     CodeRepo,
     ReleaseRequest,
+    RequestFileReviewStatus,
     RequestFileType,
+    UserFileReviewStatus,
     Workspace,
 )
-from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
+from airlock.users import User
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
 
@@ -51,7 +54,9 @@ class PathItem:
     relpath: UrlPath
 
     type: PathType | None = None
-    workspace_state: WorkspaceFileState | None = None
+    workspace_status: WorkspaceFileStatus | None = None
+    request_status: RequestFileReviewStatus | None = None
+    user_request_status: UserFileReviewStatus | None = None
     children: list[PathItem] = field(default_factory=list)
     parent: PathItem | None = None
 
@@ -98,8 +103,8 @@ class PathItem:
 
     def display_status(self):
         """Status of this path."""
-        if isinstance(self.container, Workspace) and self.workspace_state:
-            return self.workspace_state.formatted()
+        if isinstance(self.container, Workspace) and self.workspace_status:
+            return self.workspace_status.formatted()
         # TODO request states
         return ""
 
@@ -183,17 +188,13 @@ class PathItem:
         return crumbs
 
     def is_output(self):
-        return self.container.request_filetype(self.relpath) == RequestFileType.OUTPUT
+        return self.request_filetype == RequestFileType.OUTPUT
 
     def is_supporting(self):
-        return (
-            self.container.request_filetype(self.relpath) == RequestFileType.SUPPORTING
-        )
+        return self.request_filetype == RequestFileType.SUPPORTING
 
     def is_withdrawn(self):
-        return (
-            self.container.request_filetype(self.relpath) == RequestFileType.WITHDRAWN
-        )
+        return self.request_filetype == RequestFileType.WITHDRAWN
 
     def is_valid(self):
         return is_valid_file_type(Path(self.relpath))
@@ -207,8 +208,16 @@ class PathItem:
         """
         classes = [self.type.value.lower()] if self.type else []
 
-        if self.workspace_state:
-            classes.append(self.workspace_state.value.lower())
+        if self.workspace_status:
+            classes.append(f"workspace_{self.workspace_status.value.lower()}")
+
+        if self.request_status:
+            classes.append(f"request_{self.request_status.value.lower()}")
+
+        if self.user_request_status:
+            classes.append(f"user_{self.user_request_status.value.lower()}")
+        else:
+            classes.append("user_incomplete")
 
         if self.request_filetype:
             classes.append(self.request_filetype.value.lower())
@@ -386,6 +395,7 @@ def get_request_tree(
     release_request: ReleaseRequest,
     selected_path: UrlPath | str = ROOT_PATH,
     selected_only: bool = False,
+    user: User | None = None,
 ):
     """Build a tree recursively for a ReleaseRequest
 
@@ -437,6 +447,7 @@ def get_request_tree(
                 parent=group_node,
                 selected_path=selected_path,
                 expand_all=True,
+                user=user,
             )
 
         root_node.children.append(group_node)
@@ -498,6 +509,7 @@ def get_path_tree(
     selected_path: UrlPath = ROOT_PATH,
     expand_all: bool = False,
     leaf_directories: set[UrlPath] | None = None,
+    user: User | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
@@ -540,7 +552,15 @@ def get_path_tree(
                     node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
-                node.workspace_state = container.get_workspace_state(path)
+                # get_path_tree needs to work with both Workspace and
+                # ReleaseRequest containers, so we have these container specfic
+                # calls
+                node.workspace_status = container.get_workspace_status(path)
+                node.request_status = container.get_request_status(path)
+                if user:
+                    node.user_request_status = container.get_user_request_status(
+                        path, user
+                    )
 
             tree.append(node)
 

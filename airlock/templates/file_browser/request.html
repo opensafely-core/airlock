@@ -4,7 +4,7 @@
       {{ release_request.status.name }}
     {% /description_item %}
     {% #description_item title="Files requested for release" %}
-      {{ release_request.output_files_set|length }}
+      {{ release_request.output_files|length }}
     {% /description_item %}
     {% #description_item title="Supporting files not for release" %}
       {{ release_request.supporting_files_count }}

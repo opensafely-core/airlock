@@ -13,9 +13,9 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     ROOT_PATH,
-    FileReviewStatus,
     RequestFileType,
     RequestStatus,
+    UserFileReviewStatus,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -195,16 +195,16 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "path": path},
         )
 
-        existing_review = release_request.get_file_review_for_reviewer(
-            path, request.user.username
-        )
-        if existing_review and existing_review.status != FileReviewStatus.UNDECIDED:
-            if existing_review.status == FileReviewStatus.APPROVED:
+        request_file = release_request.get_request_file_from_urlpath(relpath)
+        existing_review = request_file.reviews.get(request.user.username)
+
+        if existing_review and existing_review.status != UserFileReviewStatus.UNDECIDED:
+            if existing_review.status == UserFileReviewStatus.APPROVED:
                 file_approve_url = None
-            elif existing_review.status == FileReviewStatus.REJECTED:
+            elif existing_review.status == UserFileReviewStatus.REJECTED:
                 file_reject_url = None
             else:
-                assert False, "Invalid FileReviewStatus value"
+                assert False, "Invalid UserFileReviewStatus value"
         else:
             file_reset_review_url = None
 

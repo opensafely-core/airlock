@@ -27,7 +27,7 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import FileMetadata, UrlPath, WorkspaceFileState
+from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 
@@ -58,12 +58,23 @@ class RequestFileType(Enum):
     CODE = "code"
 
 
-class FileReviewStatus(Enum):
+class UserFileReviewStatus(Enum):
+    """An individual user's vote on a specific file."""
+
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     UNDECIDED = (
         "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
     )
+
+
+class RequestFileReviewStatus(Enum):
+    """The current state of all user reviews on this file."""
+
+    REJECTED = "REJECTED"
+    APPROVED = "APPROVED"
+    CONFLICTED = "CONFLICTED"
+    INCOMPLETE = "INCOMPLETE"
 
 
 class AuditEventType(Enum):
@@ -227,8 +238,16 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
+
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        """Get request status of file."""
+
+    def get_user_request_status(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        """Get user's request status of file."""
 
 
 @dataclass(order=True)
@@ -296,7 +315,7 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         # defence in depth, we've been given a bad file path
         try:
             self.abspath(relpath)
@@ -309,7 +328,7 @@ class Workspace:
             try:
                 rfile = self.current_request.get_request_file_from_output_path(relpath)
             except BusinessLogicLayer.FileNotFound:
-                return WorkspaceFileState.UNRELEASED
+                return WorkspaceFileStatus.UNRELEASED
 
             metadata = self.get_file_metadata(relpath)
             if metadata is None:  # pragma: no cover
@@ -318,11 +337,19 @@ class Workspace:
                 )
 
             if rfile.file_id == metadata.content_hash:
-                return WorkspaceFileState.UNDER_REVIEW
+                return WorkspaceFileStatus.UNDER_REVIEW
             else:
-                return WorkspaceFileState.CONTENT_UPDATED
+                return WorkspaceFileStatus.CONTENT_UPDATED
 
-        return WorkspaceFileState.UNRELEASED
+        return WorkspaceFileStatus.UNRELEASED
+
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return None
+
+    def get_user_request_status(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return None  # pragma: nocover
 
     def get_requests_url(self):
         return reverse(
@@ -442,7 +469,7 @@ class CodeRepo:
             kwargs=kwargs,
         )
 
-    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get state of path."""
         return None  # pragma: no cover
 
@@ -488,8 +515,16 @@ class CodeRepo:
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
+
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return None
+
+    def get_user_request_status(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return None  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -499,7 +534,7 @@ class FileReview:
     """
 
     reviewer: str
-    status: FileReviewStatus
+    status: UserFileReviewStatus
     created_at: datetime
     updated_at: datetime
 
@@ -517,7 +552,7 @@ class RequestFile:
     relpath: UrlPath
     group: str
     file_id: str
-    reviews: list[FileReview]
+    reviews: dict[str, FileReview]
     timestamp: int
     size: int
     job_id: str
@@ -533,29 +568,47 @@ class RequestFile:
     def from_dict(cls, attrs) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k != "reviews"},
-            reviews=[FileReview.from_dict(value) for value in attrs.get("reviews", ())],
+            reviews={
+                value["reviewer"]: FileReview.from_dict(value)
+                for value in attrs.get("reviews", ())
+            },
         )
 
-    def approved_for_release(self):
+    def get_status(self) -> RequestFileReviewStatus:
+        """The status of RequestFile, based on mutliple reviews.
+
+        We specificially only require 2 APPROVED votes, rather than all votes
+        being APPROVED, as this allows a 3rd review to mark a file APPROVED to
+        unblock things if one of the initial reviewers is unavailable.
         """
-        A file is approved for release if it has been approved by two reviewers
-        """
-        return (
-            len(
-                [
-                    review
-                    for review in self.reviews
-                    if review.status == FileReviewStatus.APPROVED
-                ]
-            )
-            >= 2
-        )
+        all_reviews = [v.status for v in self.reviews.values()]
+
+        if len(all_reviews) < 2:
+            # not enough votes yet
+            return RequestFileReviewStatus.INCOMPLETE
+
+        # if we have 2+ APPROVED reviews, we are APPROVED
+        if all_reviews.count(UserFileReviewStatus.APPROVED) >= 2:
+            return RequestFileReviewStatus.APPROVED
+
+        # do the reviews disagree?
+        if len(set(all_reviews)) > 1:
+            return RequestFileReviewStatus.CONFLICTED
+
+        # only case left is all reviews are REJECTED
+        return RequestFileReviewStatus.REJECTED
+
+    def get_status_for_user(self, user: User) -> UserFileReviewStatus | None:
+        if user.username in self.reviews:
+            return self.reviews[user.username].status
+        else:
+            return None
 
     def rejected_reviews(self):
         return [
             review
-            for review in self.reviews
-            if review.status == FileReviewStatus.REJECTED
+            for review in self.reviews.values()
+            if review.status == UserFileReviewStatus.REJECTED
         ]
 
     def reviewed(self):
@@ -566,9 +619,9 @@ class RequestFile:
             len(
                 [
                     review
-                    for review in self.reviews
+                    for review in self.reviews.values()
                     if review.status
-                    in [FileReviewStatus.APPROVED, FileReviewStatus.REJECTED]
+                    in [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
                 ]
             )
             >= 2
@@ -710,10 +763,18 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
-    def get_workspace_state(self, relpath: UrlPath) -> WorkspaceFileState | None:
+    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_file_from_urlpath(self, relpath: UrlPath | str):
+    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
+        return self.get_request_file_from_urlpath(relpath).get_status()
+
+    def get_user_request_status(
+        self, relpath: UrlPath, user: User
+    ) -> UserFileReviewStatus | None:
+        return self.get_request_file_from_urlpath(relpath).get_status_for_user(user)
+
+    def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
         relpath = UrlPath(relpath)
         group = relpath.parts[0]
@@ -752,10 +813,10 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
-    def output_files_set(self) -> set[UrlPath]:
+    def output_files(self) -> dict[UrlPath, RequestFile]:
         """Return the relpaths for output files on the request"""
         return {
-            rfile.relpath
+            rfile.relpath: rfile
             for rfile in self.all_files_by_name.values()
             if rfile.filetype == RequestFileType.OUTPUT
         }
@@ -767,16 +828,6 @@ class ReleaseRequest:
                 for rfile in self.all_files_by_name.values()
                 if rfile.filetype == RequestFileType.SUPPORTING
             ]
-        )
-
-    def get_file_review_for_reviewer(self, urlpath: UrlPath, reviewer: str):
-        return next(
-            (
-                r
-                for r in self.get_request_file_from_urlpath(urlpath).reviews
-                if r.reviewer == reviewer
-            ),
-            None,
         )
 
     def request_filetype(self, urlpath: UrlPath):
@@ -799,7 +850,7 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.approved_for_release()
+            request_file.get_status() == RequestFileReviewStatus.APPROVED
             for filegroup in self.filegroups.values()
             for request_file in filegroup.output_files
         )
@@ -1277,7 +1328,7 @@ class BusinessLogicLayer:
 
             if (
                 to_status == RequestStatus.APPROVED
-                and not release_request.output_files_set()
+                and not release_request.output_files()
             ):
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
@@ -1497,13 +1548,10 @@ class BusinessLogicLayer:
         """
         self.check_status(request, RequestStatus.SUBMITTED, user)
         if request.status == RequestStatus.RETURNED:
-            for filegroup in request.filegroups.values():
-                for request_file in filegroup.output_files:
-                    rejected_reviews = request_file.rejected_reviews()
-                    for review in rejected_reviews:
-                        self.mark_file_undecided(
-                            request, review, request_file.relpath, user
-                        )
+            for rfile in request.output_files().values():
+                for review in rfile.rejected_reviews():
+                    self.mark_file_undecided(request, review, rfile.relpath, user)
+
         self.set_status(request, RequestStatus.SUBMITTED, user)
 
     def _verify_permission_to_review_file(
@@ -1524,7 +1572,7 @@ class BusinessLogicLayer:
                 "only an output checker can approve a file"
             )
 
-        if relpath not in release_request.output_files_set():
+        if relpath not in release_request.output_files():
             raise self.ApprovalPermissionDenied(
                 "file is not an output file on this request"
             )
@@ -1587,12 +1635,12 @@ class BusinessLogicLayer:
         """Change an existing rejected file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
-        if review.status != FileReviewStatus.REJECTED:
+        if review.status != UserFileReviewStatus.REJECTED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review from {review.status.name} to {FileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review from {review.status.name} to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         audit = AuditEvent.from_request(
