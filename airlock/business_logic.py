@@ -724,6 +724,7 @@ class ReleaseRequest:
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
+    completed_reviews: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
