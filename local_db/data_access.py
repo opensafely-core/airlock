@@ -91,20 +91,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
-    def _get_requests_by_status(self, status: RequestStatus):
+    def get_requests_by_status(self, *states: RequestStatus):
         return [
             metadata.to_dict()
-            for metadata in RequestMetadata.objects.filter(status=status)
+            for metadata in RequestMetadata.objects.filter(status__in=states)
         ]
-
-    def get_outstanding_requests_for_review(self):
-        return self._get_requests_by_status(status=RequestStatus.SUBMITTED)
-
-    def get_returned_requests(self):
-        return self._get_requests_by_status(status=RequestStatus.RETURNED)
-
-    def get_approved_requests(self):
-        return self._get_requests_by_status(status=RequestStatus.APPROVED)
 
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         with transaction.atomic():

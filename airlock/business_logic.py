@@ -936,13 +936,7 @@ class DataAccessLayerProtocol(Protocol):
     def get_requests_authored_by_user(self, username: str):
         raise NotImplementedError()
 
-    def get_outstanding_requests_for_review(self):
-        raise NotImplementedError()
-
-    def get_returned_requests(self):
-        raise NotImplementedError()
-
-    def get_approved_requests(self):
+    def get_requests_by_status(self, *states: RequestStatus):
         raise NotImplementedError()
 
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
@@ -1238,7 +1232,7 @@ class BusinessLogicLayer:
 
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_outstanding_requests_for_review()
+            for attrs in self._dal.get_requests_by_status(RequestStatus.SUBMITTED)
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
@@ -1251,7 +1245,7 @@ class BusinessLogicLayer:
 
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_returned_requests()
+            for attrs in self._dal.get_requests_by_status(RequestStatus.RETURNED)
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
@@ -1264,7 +1258,7 @@ class BusinessLogicLayer:
 
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_approved_requests()
+            for attrs in self._dal.get_requests_by_status(RequestStatus.APPROVED)
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
