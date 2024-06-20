@@ -764,6 +764,12 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             bll.set_status(release_request2, future, user=checker)
 
 
+def test_request_status_ownership(bll):
+    """Test every RequestStatus has been assigned an ownership"""
+    missing_states = set(RequestStatus) - BusinessLogicLayer.STATUS_OWNERS.keys()
+    assert missing_states == set()
+
+
 @pytest.mark.parametrize(
     "current,future,user,notification_event_type",
     [

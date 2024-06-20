@@ -51,6 +51,14 @@ class RequestStatus(Enum):
     RELEASED = "RELEASED"
 
 
+class RequestStatusOwner(Enum):
+    """Who can write to a request in this state."""
+
+    AUTHOR = "AUTHOR"
+    REVIEWER = "REVIEWER"
+    SYSTEM = "SYSTEM"
+
+
 class RequestFileType(Enum):
     OUTPUT = "output"
     SUPPORTING = "supporting"
@@ -884,12 +892,14 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         )
 
+    # helpers for using in template logic
+    def status_owner(self) -> RequestStatusOwner:
+        return BusinessLogicLayer.STATUS_OWNERS[self.status]
+
     def is_final(self):
-        return self.status not in [
-            RequestStatus.PENDING,
-            RequestStatus.SUBMITTED,
-            RequestStatus.RETURNED,
-        ]
+        return (
+            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.SYSTEM
+        )
 
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
@@ -1286,6 +1296,22 @@ class BusinessLogicLayer:
         ],
     }
 
+    # The following lists should a) include every status and b) be disjoint
+    # This is validated in tests
+    #
+    STATUS_OWNERS = {
+        # states where only the author can edit this request
+        RequestStatus.PENDING: RequestStatusOwner.AUTHOR,
+        RequestStatus.RETURNED: RequestStatusOwner.AUTHOR,
+        # states where only an output-checker can edit this request
+        RequestStatus.SUBMITTED: RequestStatusOwner.REVIEWER,
+        # states where no user can edit
+        RequestStatus.WITHDRAWN: RequestStatusOwner.SYSTEM,
+        RequestStatus.APPROVED: RequestStatusOwner.SYSTEM,
+        RequestStatus.REJECTED: RequestStatusOwner.SYSTEM,
+        RequestStatus.RELEASED: RequestStatusOwner.SYSTEM,
+    }
+
     STATUS_AUDIT_EVENT = {
         RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
         RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
@@ -1595,7 +1621,7 @@ class BusinessLogicLayer:
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
     ):
-        if release_request.status != RequestStatus.SUBMITTED:
+        if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
             raise self.ApprovalPermissionDenied(
                 f"cannot approve file from request in state {release_request.status.name}"
             )
