@@ -306,6 +306,9 @@ class Workspace:
     def root(self):
         return settings.WORKSPACE_DIR / self.name
 
+    def manifest_path(self):
+        return self.root() / "metadata/manifest.json"
+
     def get_id(self) -> str:
         return self.name
 
@@ -434,10 +437,10 @@ class CodeRepo:
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str):
         try:
-            repo = workspace.manifest["repo"]
-        except (BusinessLogicLayer.ManifestFileError, KeyError):
+            repo = list(workspace.manifest["outputs"].values())[0]["repo"]
+        except (BusinessLogicLayer.ManifestFileError, IndexError, KeyError) as exc:
             raise cls.RepoNotFound(
-                "Could not parse manifest.json file: {manifest_path}:\n{exc}"
+                f"Could not parse manifest.json file: {workspace.manifest_path()}:\n{exc}"
             )
 
         try:

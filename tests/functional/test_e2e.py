@@ -84,7 +84,9 @@ def tree_element_is_selected(page, locator):
     return "selected" in classes
 
 
-def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
+def test_e2e_release_files(
+    page, live_server, context, dev_users, release_files_stubber
+):
     """
     Test full Airlock process to create, submit and release files
 
@@ -320,7 +322,7 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     # The literal request URL in the html includes the root path (".")
     expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/")
 
-    # Log out
+    # Log out with buttons
     find_and_click(page.get_by_test_id("nav-account"))
     find_and_click(page.get_by_test_id("nav-logout"))
 
@@ -395,10 +397,9 @@ def test_e2e_release_files(page, live_server, dev_users, release_files_stubber):
     expect(page.locator("#file-reject-button")).not_to_be_visible()
     expect(page.locator("#file-reset-button")).not_to_be_visible()
 
-    # Logout and log in as second output-checker to do second approval and
-    # release
-    find_and_click(page.get_by_test_id("nav-account"))
-    find_and_click(page.get_by_test_id("nav-logout"))
+    # Logout (by clearing cookies) and log in as second output-checker to do second approval
+    # and release
+    context.clear_cookies()
     login_as(live_server, page, "output_checker_1")
     # Approve the file
     page.goto(live_server.url + release_request.get_url("my-new-group/subdir/file.txt"))

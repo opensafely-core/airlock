@@ -133,12 +133,18 @@ def test_request_return(live_server, context, page, bll):
         "file2.txt",
         "file 2 content",
     )
-    factories.bll.set_status(release_request, RequestStatus.SUBMITTED, author)
+    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
 
     return_request_button = page.locator("#return-request-button")
+    page.goto(live_server.url + release_request.get_url())
+
+    def _logout():
+        # logout by clearing cookies
+        context.clear_cookies()
 
     def _review_files(username):
-        # login as first output-checker
+        # logout current user, login as username
+        _logout()
         login_as_user(
             live_server,
             context,
@@ -172,7 +178,8 @@ def test_request_return(live_server, context, page, bll):
     # Return the request
     return_request_button.click()
 
-    # login as author again
+    # logout, login as author again
+    _logout()
     login_as_user(
         live_server,
         context,
@@ -186,7 +193,8 @@ def test_request_return(live_server, context, page, bll):
     # Can re-submit a returned request
     page.locator("#submit-for-review-button").click()
 
-    # login as first output-checker
+    # logout, login as first output-checker
+    _logout()
     login_as_user(
         live_server,
         context,

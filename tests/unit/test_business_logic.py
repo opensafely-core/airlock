@@ -243,7 +243,9 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
 
 
 def test_code_repo_container():
-    repo = factories.create_repo("workspace")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo.txt")
+    repo = factories.create_repo(workspace)
 
     assert repo.get_id() == f"workspace@{repo.commit[:7]}"
     assert (
@@ -2134,9 +2136,26 @@ def test_group_comment_create_invalid_params(bll):
     assert len(release_request.filegroups["group"].comments) == 1
 
 
-def test_coderepo_from_workspace_bad_json(bll):
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        {},
+        {"repo": None, "outputs": {}},
+        {"repo": None, "outputs": {"file.txt": {"commit": "commit"}}},
+    ],
+)
+def test_coderepo_from_workspace_no_repo_in_manifest(bll, manifest):
     workspace = factories.create_workspace("workspace")
-    workspace.manifest = {}
-
+    workspace.manifest = manifest
     with pytest.raises(CodeRepo.RepoNotFound):
         CodeRepo.from_workspace(workspace, "commit")
+
+
+def test_coderepo_from_workspace(bll):
+    workspace = factories.create_workspace("workspace")
+    factories.create_repo(workspace)
+    # No root repo, retrieved from first output in manifest instead
+    workspace.manifest["repo"] = None
+    CodeRepo.from_workspace(
+        workspace, workspace.manifest["outputs"]["foo.txt"]["commit"]
+    )

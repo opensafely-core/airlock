@@ -214,7 +214,10 @@ def create_repo(workspace, files=None, temporary=True):
 
     commit = response.stdout.strip()
     update_manifest(workspace)
-    workspace.manifest["repo"] = str(repo_dir)
+    if not workspace.manifest["outputs"]:
+        write_workspace_file(workspace, "foo.txt")
+
+    workspace.manifest["repo"] = None  # match job-runner output
     for output in workspace.manifest["outputs"].values():
         output["repo"] = str(repo_dir)
         output["commit"] = str(commit)
