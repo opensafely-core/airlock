@@ -431,7 +431,11 @@ def request_release_files(request, request_id):
 
     try:
         # For now, we just implicitly approve when release files is requested
-        bll.set_status(release_request, RequestStatus.APPROVED, request.user)
+        # If the status is already approved, don't approve again. An error from
+        # job-server when releasing files can result in a request being stuck in
+        # approved status
+        if release_request.status != RequestStatus.APPROVED:
+            bll.set_status(release_request, RequestStatus.APPROVED, request.user)
         bll.release_files(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))

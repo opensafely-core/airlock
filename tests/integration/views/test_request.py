@@ -906,7 +906,8 @@ def test_file_withdraw_file_bad_request(airlock_client):
     assert response.status_code == 404
 
 
-def test_request_release_files_success(airlock_client, release_files_stubber):
+@pytest.mark.parametrize("status", [RequestStatus.SUBMITTED, RequestStatus.APPROVED])
+def test_request_release_files_success(airlock_client, release_files_stubber, status):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
@@ -919,6 +920,10 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     factories.write_request_file(
         release_request, "group", "test/file2.txt", "test2", approved=True
     )
+
+    if status == RequestStatus.APPROVED:
+        release_request = factories.refresh_release_request(release_request)
+        factories.bll.set_status(release_request, status, airlock_client.user)
 
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post("/requests/release/request_id")
@@ -930,7 +935,10 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     assert api_responses.calls[2].request.body.read() == b"test2"
 
 
-def test_request_release_files_success_htmx(airlock_client, release_files_stubber):
+@pytest.mark.parametrize("status", [RequestStatus.SUBMITTED, RequestStatus.APPROVED])
+def test_request_release_files_success_htmx(
+    airlock_client, release_files_stubber, status
+):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
@@ -943,6 +951,9 @@ def test_request_release_files_success_htmx(airlock_client, release_files_stubbe
     factories.write_request_file(
         release_request, "group", "test/file2.txt", "test2", approved=True
     )
+    if status == RequestStatus.APPROVED:
+        release_request = factories.refresh_release_request(release_request)
+        factories.bll.set_status(release_request, status, airlock_client.user)
 
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post(
