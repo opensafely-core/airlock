@@ -13,6 +13,8 @@ from airlock.business_logic import (
     AuditEventType,
     CodeRepo,
     RequestFileType,
+    UrlPath,
+    UserFileReviewStatus,
     Workspace,
     bll,
 )
@@ -272,21 +274,38 @@ def write_request_file(
         request, relpath=path, user=user, group_name=group, filetype=filetype
     )
     if approved:
-        for i in range(2):
+        review_file(request, path, UserFileReviewStatus.APPROVED)
+    elif rejected:
+        review_file(request, path, UserFileReviewStatus.REJECTED)
+
+
+def review_file(request, relpath, status, *users):
+    if users:
+        usernames = [user.username for user in users]
+    else:
+        usernames = ["output-checker-0", "output-checker-1"]
+
+    for username in usernames:
+        if status == UserFileReviewStatus.APPROVED:
             bll._dal.approve_file(
                 request,
-                relpath=UrlPath(path),
-                username=f"output-checker-{i}",
-                audit=create_audit_event(AuditEventType.REQUEST_FILE_APPROVE),
+                relpath=UrlPath(relpath),
+                username=username,
+                audit=create_audit_event(
+                    AuditEventType.REQUEST_FILE_APPROVE, user=username
+                ),
             )
-    elif rejected:
-        for i in range(2):
+        elif status == UserFileReviewStatus.REJECTED:
             bll._dal.reject_file(
                 request,
-                relpath=UrlPath(path),
-                username=f"output-checker-{i}",
-                audit=create_audit_event(AuditEventType.REQUEST_FILE_REJECT),
+                relpath=UrlPath(relpath),
+                username=username,
+                audit=create_audit_event(
+                    AuditEventType.REQUEST_FILE_REJECT, user=username
+                ),
             )
+        else:
+            raise AssertionError(f"unrecognised status; {status}")
 
 
 def create_filegroup(release_request, group_name, filepaths=None):
