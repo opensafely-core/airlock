@@ -103,6 +103,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_returned_requests(self):
         return self._get_requests_by_status(status=RequestStatus.RETURNED)
 
+    def get_approved_requests(self):
+        return self._get_requests_by_status(status=RequestStatus.APPROVED)
+
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         with transaction.atomic():
             # persist state change

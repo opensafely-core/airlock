@@ -550,6 +550,49 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
     assert set(r.id for r in bll.get_returned_requests(user)) == set(expected)
 
 
+@pytest.mark.parametrize(
+    "output_checker, expected",
+    [
+        # A non-output checker never sees outstanding requests
+        (False, []),
+        # An output checker only sees outstanding requests that
+        # they did not author
+        (True, ["r1"]),
+    ],
+)
+def test_provider_get_approved_requests(output_checker, expected, bll):
+    user = factories.create_user("test", ["workspace"], output_checker)
+    other_user = factories.create_user("other", ["workspace"], False)
+    output_checker = factories.create_user("other-checker", ["workspace"], True)
+    # request created by another user, status approved
+    factories.create_release_request(
+        "workspace", other_user, id="r1", status=RequestStatus.APPROVED
+    )
+
+    # requests not visible to output checker
+    # status returned, but authored by output checker
+    factories.create_release_request(
+        "workspace", user, id="r2", status=RequestStatus.APPROVED
+    )
+
+    # requests authored by other users, status other than approved
+    for i, status in enumerate(
+        [
+            RequestStatus.PENDING,
+            RequestStatus.SUBMITTED,
+            RequestStatus.WITHDRAWN,
+            RequestStatus.RETURNED,
+            RequestStatus.REJECTED,
+            RequestStatus.RELEASED,
+        ]
+    ):
+        ws = f"workspace{i}"
+        user_n = factories.create_user(f"test_{i}", [ws])
+        factories.create_release_request(ws, user_n, status=status)
+
+    assert set(r.id for r in bll.get_approved_requests(user)) == set(expected)
+
+
 def test_provider_get_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_user("testuser", ["workspace"], False)
@@ -778,9 +821,7 @@ def test_notification_error(bll, notifications_stubber, caplog):
     )
     # Nothing errors, but we log the notification error message
     assert caplog.records[-1].levelname == "ERROR"
-    assert (
-        caplog.records[-1].message == "something went wrong"
-    )
+    assert caplog.records[-1].message == "something went wrong"
 
 
 @pytest.mark.parametrize("files_approved", (True, False))
@@ -1735,6 +1776,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_outstanding_requests_for_review",
     "get_returned_requests",
     "get_requests_authored_by_user",
+    "get_approved_requests",
     "delete_file_from_request",
 }
 

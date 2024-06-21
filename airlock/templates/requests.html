@@ -36,6 +36,17 @@
           {% endfor %}
         {% /list_group %}
       {% /card %}
+
+      {% #card title="Approved Requests" %}
+        {% #list_group id="returned-requests" %}
+          {% for request in approved_requests %}
+            {% #list_group_item href=request.get_url %}{{ request.workspace }} by {{ request.author }}{% /list_group_item %}
+          {% empty %}
+            {% list_group_empty title="No approved requests" description="There are no approved requests awaiting release" %}
+          {% endfor %}
+        {% /list_group %}
+      {% /card %}
+
     {% endif %}
   </div>
 {% endblock content %}

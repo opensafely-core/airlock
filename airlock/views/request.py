@@ -42,9 +42,11 @@ def request_index(request):
 
     outstanding_requests = []
     returned_requests = []
+    approved_requests = []
     if request.user.output_checker:
         outstanding_requests = bll.get_outstanding_requests_for_review(request.user)
         returned_requests = bll.get_returned_requests(request.user)
+        approved_requests = bll.get_approved_requests(request.user)
 
     return TemplateResponse(
         request,
@@ -53,6 +55,7 @@ def request_index(request):
             "authored_requests": authored_requests,
             "outstanding_requests": outstanding_requests,
             "returned_requests": returned_requests,
+            "approved_requests": approved_requests,
         },
     )
 
