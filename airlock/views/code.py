@@ -88,8 +88,9 @@ def contents(request, workspace_name: str, commit: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
     repo = get_repo_or_raise(workspace, commit)
 
+    plaintext = request.GET.get("plaintext", False)
     try:
-        renderer = repo.get_renderer(UrlPath(path))
+        renderer = repo.get_renderer(UrlPath(path), plaintext=plaintext)
     except bll.FileNotFound:
         raise Http404()
 

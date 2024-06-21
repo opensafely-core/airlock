@@ -65,6 +65,13 @@ def test_workspace_container():
         "/workspaces/content/workspace/foo/bar.html?cache_id="
         in workspace.get_contents_url(UrlPath("foo/bar.html"))
     )
+    plaintext_contents_url = workspace.get_contents_url(
+        UrlPath("foo/bar.html"), plaintext=True
+    )
+    assert (
+        "/workspaces/content/workspace/foo/bar.html?cache_id=" in plaintext_contents_url
+    )
+    assert "&plaintext=true" in plaintext_contents_url
 
     assert workspace.request_filetype("path") is None
 
@@ -187,6 +194,12 @@ def test_request_container(mock_notifications):
         "/requests/content/id/group/bar.html?cache_id="
         in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
+    plaintext_contents_url = release_request.get_contents_url(
+        UrlPath("group/bar.html"), plaintext=True
+    )
+    assert "/requests/content/id/group/bar.html?cache_id=" in plaintext_contents_url
+    assert "&plaintext=true" in plaintext_contents_url
+
     assert_no_notifications(mock_notifications)
 
 
@@ -256,6 +269,15 @@ def test_code_repo_container():
         f"/code/contents/workspace/{repo.commit}/project.yaml?cache_id="
         in repo.get_contents_url(UrlPath("project.yaml"))
     )
+
+    plaintext_contents_url = repo.get_contents_url(
+        UrlPath("project.yaml"), plaintext=True
+    )
+    assert (
+        f"/code/contents/workspace/{repo.commit}/project.yaml?cache_id="
+        in plaintext_contents_url
+    )
+    assert "&plaintext=true" in plaintext_contents_url
 
     assert repo.request_filetype("path") == RequestFileType.CODE
 

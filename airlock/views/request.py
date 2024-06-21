@@ -275,7 +275,8 @@ def request_contents(request, request_id: str, path: str):
         return download_file(abspath, filename=path)
 
     bll.audit_request_file_access(release_request, UrlPath(path), request.user)
-    renderer = release_request.get_renderer(UrlPath(path))
+    plaintext = request.GET.get("plaintext", False)
+    renderer = release_request.get_renderer(UrlPath(path), plaintext=plaintext)
     return serve_file(request, renderer)
 
 
