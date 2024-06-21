@@ -779,7 +779,7 @@ def test_notification_error(bll, notifications_stubber, caplog):
     # Nothing errors, but we log the notification error message
     assert caplog.records[-1].levelname == "ERROR"
     assert (
-        caplog.records[-1].message == "Error sending notification: something went wrong"
+        caplog.records[-1].message == "something went wrong"
     )
 
 

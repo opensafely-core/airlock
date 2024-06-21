@@ -6,6 +6,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
@@ -438,24 +439,32 @@ def request_release_files(request, request_id):
             bll.set_status(release_request, RequestStatus.APPROVED, request.user)
         bll.release_files(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
-        raise PermissionDenied(str(exc))
+        messages.error(request, f"Error releasing files: {str(exc)}")
     except requests.HTTPError as err:
         if settings.DEBUG:
-            return TemplateResponse(
+            response_type = err.response.headers["Content-Type"]
+            if response_type == "application/json":
+                message = err.response.json()
+            else:
+                message = err.response.content
+
+            messages.error(
                 request,
-                "jobserver-error.html",
-                {
-                    "response": err.response,
-                    "type": err.response.headers["Content-Type"],
-                },
-                status=err.response.status_code,
+                mark_safe(
+                    "Error releasing files<br/>"
+                    f"Content:<pre>{message}</pre>"
+                    f"Type: {err.response.headers['Content-Type']}"
+                ),
             )
-
-        if err.response.status_code == 403:
-            raise PermissionDenied() from None
-        raise
-
-    messages.success(request, "Files have been released to jobs.opensafely.org")
+        else:
+            if err.response.status_code == 403:
+                messages.error(request, "Error releasing files: Permission denied")
+            else:
+                messages.error(
+                    request, "Error releasing files; please contact tech-support."
+                )
+    else:
+        messages.success(request, "Files have been released to jobs.opensafely.org")
     if request.htmx:
         return HttpResponse(headers={"HX-Redirect": release_request.get_url()})
     else:

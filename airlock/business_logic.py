@@ -1846,7 +1846,7 @@ class BusinessLogicLayer:
             data["status"],
         )
         if data["status"] == "error":
-            logger.error("Error sending notification: %s", data["message"])
+            logger.error(data["message"])
 
 
 def _get_configured_bll():
