@@ -8,16 +8,20 @@ from tests import factories
 
 
 RENDERER_TESTS = [
-    (".html", "text/html", None),
-    (".png", "image/png", None),
-    (".csv", "text/html", "airlock/templates/file_browser/csv.html"),
-    (".txt", "text/html", "airlock/templates/file_browser/text.html"),
+    (".html", "text/html", False, None),
+    (".png", "image/png", False, None),
+    (".csv", "text/html", False, "airlock/templates/file_browser/csv.html"),
+    (".txt", "text/html", False, "airlock/templates/file_browser/text.html"),
+    (".html", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
+    (".png", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
+    (".csv", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
+    (".txt", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
 ]
 
 
-@pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
+@pytest.mark.parametrize("suffix,mimetype,plaintext,template_path", RENDERER_TESTS)
 def test_renderers_get_renderer_workspace(
-    tmp_path, rf, suffix, mimetype, template_path
+    tmp_path, rf, suffix, mimetype, plaintext, template_path
 ):
     path = tmp_path / ("test" + suffix)
     # use a csv as test data, it works for other types too
@@ -27,7 +31,7 @@ def test_renderers_get_renderer_workspace(
     time = 1709652904  # date this test was written
     os.utime(path, (time, time))
 
-    renderer_class = renderers.get_renderer(path)
+    renderer_class = renderers.get_renderer(path, plaintext=plaintext)
     renderer = renderer_class.from_file(path)
 
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
@@ -50,9 +54,11 @@ def test_renderers_get_renderer_workspace(
     assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
 
 
-@pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
+@pytest.mark.parametrize("suffix,mimetype,plaintext,template_path", RENDERER_TESTS)
 @pytest.mark.django_db
-def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template_path):
+def test_renderers_get_renderer_request(
+    tmp_path, rf, suffix, mimetype, plaintext, template_path
+):
     filepath = UrlPath("test" + suffix)
     grouppath = "group" / filepath
     request = factories.create_release_request("workspace")
@@ -64,7 +70,7 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     os.utime(abspath, (time, time))
     request_file = request.get_request_file_from_urlpath(grouppath)
 
-    renderer_class = renderers.get_renderer(request_file.relpath)
+    renderer_class = renderers.get_renderer(request_file.relpath, plaintext=plaintext)
     renderer = renderer_class.from_file(
         abspath, request_file.relpath, request_file.file_id
     )
@@ -88,11 +94,11 @@ def test_renderers_get_renderer_request(tmp_path, rf, suffix, mimetype, template
     assert response.headers["Cache-Control"] == "max-age=31536000, immutable"
 
 
-@pytest.mark.parametrize("suffix,mimetype,template_path", RENDERER_TESTS)
-def test_code_renderer_from_contents(suffix, mimetype, template_path):
+@pytest.mark.parametrize("suffix,mimetype,plaintext,template_path", RENDERER_TESTS)
+def test_code_renderer_from_contents(suffix, mimetype, plaintext, template_path):
     path = UrlPath("test." + suffix)
 
-    renderer_class = renderers.get_code_renderer(path)
+    renderer_class = renderers.get_code_renderer(path, plaintext=plaintext)
     renderer = renderer_class.from_contents(b"test", path, "cache_id")
     response = renderer.get_response()
 
