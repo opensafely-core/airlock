@@ -1,11 +1,10 @@
 const observer = new MutationObserver((mutations, obs) => {
-  const pageNumberEl = document.querySelector(
-    `[data-table-pagination="page-number"]`
+  const sorterButton = document.querySelector(
+    "button.datatable-sorter"
   );
-  if (pageNumberEl.innerText !== "#") {
+  if (sorterButton) {
     document.querySelector("#csvtable p.spinner").style.display = "none";
     document.querySelector("#csvtable table.datatable").style.display = "table";
-    document.querySelector("#pagination-nav").classList.remove("hidden");
     obs.disconnect();
     return;
   }
