@@ -54,6 +54,8 @@
               {% tooltip class="airlock-tooltip" content="Returning the request is disabled until all files have been reviewed by two reviewers" %}
             {% /button %}
           {% endif %}
+        {% endif %}
+        {% if release_request.status.name in "SUBMITTED,APPROVED" %}
           {% if release_request.all_files_approved %}
             <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
               {% csrf_token %}

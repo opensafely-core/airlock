@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from old_api.schema import FileList, FileMetadata, UrlFileName
 
 
 session = requests.Session()
+
+logger = logging.getLogger(__name__)
 
 
 def create_filelist(paths, release_request):
@@ -47,6 +50,15 @@ def create_release(workspace_name, release_json, username):
             "Authorization": settings.AIRLOCK_API_TOKEN,
         },
     )
+
+    if response.status_code != 201:
+        logger.error(
+            "%s Error creating release - %s - %s",
+            response.status_code,
+            release_json["airlock_id"],
+            response.content.decode(),
+        )
+
     response.raise_for_status()
 
     return response.headers["Release-Id"]
@@ -66,7 +78,17 @@ def upload_file(release_id, relpath, abspath, username):
         },
     )
 
+    if response.status_code != 201:
+        logger.error(
+            "%s Error uploading file - %s - %s - %s",
+            response.status_code,
+            relpath,
+            release_id,
+            response.content.decode(),
+        )
+
     response.raise_for_status()
+
     return response
 
 

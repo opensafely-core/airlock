@@ -452,9 +452,11 @@ def test_request_index_user_permitted_requests(airlock_client):
     authored_ids = {r.id for r in response.context["authored_requests"]}
     outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
     returned_ids = {r.id for r in response.context["returned_requests"]}
+    approved_ids = {r.id for r in response.context["approved_requests"]}
     assert authored_ids == {release_request.id}
     assert outstanding_ids == set()
     assert returned_ids == set()
+    assert approved_ids == set()
 
 
 def test_request_index_user_output_checker(airlock_client):
@@ -469,15 +471,20 @@ def test_request_index_user_output_checker(airlock_client):
     r3 = factories.create_release_request(
         "other_other_workspace", user=other, status=RequestStatus.RETURNED
     )
+    r4 = factories.create_release_request(
+        "other_other1_workspace", user=other, status=RequestStatus.APPROVED
+    )
     response = airlock_client.get("/requests/")
 
     authored_ids = {r.id for r in response.context["authored_requests"]}
     outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
     returned_ids = {r.id for r in response.context["returned_requests"]}
+    approved_ids = {r.id for r in response.context["approved_requests"]}
 
     assert authored_ids == {r1.id}
     assert outstanding_ids == {r2.id}
     assert returned_ids == {r3.id}
+    assert approved_ids == {r4.id}
 
 
 def test_request_submit_author(airlock_client):
@@ -906,7 +913,8 @@ def test_file_withdraw_file_bad_request(airlock_client):
     assert response.status_code == 404
 
 
-def test_request_release_files_success(airlock_client, release_files_stubber):
+@pytest.mark.parametrize("status", [RequestStatus.SUBMITTED, RequestStatus.APPROVED])
+def test_request_release_files_success(airlock_client, release_files_stubber, status):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
@@ -919,6 +927,10 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     factories.write_request_file(
         release_request, "group", "test/file2.txt", "test2", approved=True
     )
+
+    if status == RequestStatus.APPROVED:
+        release_request = factories.refresh_release_request(release_request)
+        factories.bll.set_status(release_request, status, airlock_client.user)
 
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post("/requests/release/request_id")
@@ -930,7 +942,10 @@ def test_request_release_files_success(airlock_client, release_files_stubber):
     assert api_responses.calls[2].request.body.read() == b"test2"
 
 
-def test_request_release_files_success_htmx(airlock_client, release_files_stubber):
+@pytest.mark.parametrize("status", [RequestStatus.SUBMITTED, RequestStatus.APPROVED])
+def test_request_release_files_success_htmx(
+    airlock_client, release_files_stubber, status
+):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
@@ -943,6 +958,9 @@ def test_request_release_files_success_htmx(airlock_client, release_files_stubbe
     factories.write_request_file(
         release_request, "group", "test/file2.txt", "test2", approved=True
     )
+    if status == RequestStatus.APPROVED:
+        release_request = factories.refresh_release_request(release_request)
+        factories.bll.set_status(release_request, status, airlock_client.user)
 
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post(
@@ -982,8 +1000,12 @@ def test_requests_release_author_403(airlock_client):
     factories.write_request_file(
         release_request, "group", "test/file1.txt", "test1", approved=True
     )
-    response = airlock_client.post("/requests/release/request_id")
-    assert response.status_code == 403
+    response = airlock_client.post("/requests/release/request_id", follow=True)
+    assert response.status_code == 200
+    assert (
+        list(response.context["messages"])[0].message
+        == "Error releasing files: Can not set your own request to APPROVED"
+    )
 
 
 def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
@@ -1003,16 +1025,20 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
     release_files_stubber(release_request, body=api403)
 
     # test 403 is handled
-    response = airlock_client.post("/requests/release/request_id")
-
-    assert response.status_code == 403
+    response = airlock_client.post("/requests/release/request_id", follow=True)
+    assert response.status_code == 200
+    assert (
+        list(response.context["messages"])[0].message
+        == "Error releasing files: Permission denied"
+    )
 
 
 @pytest.mark.parametrize(
-    "content_type,content,should_contain_iframe",
+    "content_type,content",
     [
-        ("text/plain", b"An error from job-server", False),
-        ("text/html", b"<p>An error from job-server</p>", True),
+        ("text/plain", b"An error from job-server"),
+        ("text/html", b"<p>An error from job-server</p>"),
+        ("application/json", b'{"detail": "An error from job-server"}'),
     ],
 )
 def test_requests_release_jobserver_403_with_debug(
@@ -1021,7 +1047,6 @@ def test_requests_release_jobserver_403_with_debug(
     settings,
     content_type,
     content,
-    should_contain_iframe,
 ):
     airlock_client.login(output_checker=True)
     settings.DEBUG = True
@@ -1042,15 +1067,15 @@ def test_requests_release_jobserver_403_with_debug(
     release_files_stubber(release_request, body=api403)
 
     # test 403 is handled
-    response = airlock_client.post("/requests/release/request_id")
+    response = airlock_client.post("/requests/release/request_id", follow=True)
     # DEBUG is on, so we return the job-server error
-    assert response.status_code == 403
-    assert "An error from job-server" in response.rendered_content
-    contains_iframe = "<iframe" in response.rendered_content
-    assert contains_iframe == should_contain_iframe
+    assert response.status_code == 200
+    error_message = list(response.context["messages"])[0].message
+    assert "An error from job-server" in error_message
+    assert f"Type: {content_type}" in error_message
 
 
-def test_requests_release_unapproved_files_403(airlock_client):
+def test_requests_release_unapproved_files(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request(
         "workspace",
@@ -1060,8 +1085,12 @@ def test_requests_release_unapproved_files_403(airlock_client):
     factories.write_request_file(
         release_request, "group", "test/file1.txt", "test1", approved=False
     )
-    response = airlock_client.post("/requests/release/request_id")
-    assert response.status_code == 403
+
+    response = airlock_client.post("/requests/release/request_id", follow=True)
+    assert response.status_code == 200
+    assert (
+        "request has unapproved files" in list(response.context["messages"])[0].message
+    )
 
 
 def test_requests_release_files_404(airlock_client, release_files_stubber):
@@ -1075,14 +1104,17 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
         release_request, "group", "test/file.txt", "test", approved=True
     )
 
-    # test 404 results in 500
     response = requests.Response()
     response.status_code = 404
-    api403 = requests.HTTPError(response=response)
-    release_files_stubber(release_request, body=api403)
+    api404 = requests.HTTPError(response=response)
+    release_files_stubber(release_request, body=api404)
 
-    with pytest.raises(requests.HTTPError):
-        airlock_client.post("/requests/release/request_id")
+    response = airlock_client.post("/requests/release/request_id", follow=True)
+    assert response.status_code == 200
+    assert (
+        list(response.context["messages"])[0].message
+        == "Error releasing files; please contact tech-support."
+    )
 
 
 @pytest.mark.parametrize(

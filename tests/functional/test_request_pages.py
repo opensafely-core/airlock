@@ -213,3 +213,43 @@ def test_request_return(live_server, context, page, bll):
     # go to previously rejected file; now shown as no-status
     page.goto(live_server.url + release_request.get_url("group/file2.txt"))
     expect(status_locator).to_contain_text("No status")
+
+
+def test_request_releaseable(live_server, context, page, bll):
+    release_request = factories.create_release_request(
+        "workspace", status=RequestStatus.SUBMITTED
+    )
+    factories.write_request_file(
+        release_request, "group", "file1.txt", "file 1 content", approved=True
+    )
+    release_request = factories.refresh_release_request(release_request)
+    output_checker = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "output_checker",
+            "workspaces": [],
+            "output_checker": True,
+        },
+    )
+
+    page.goto(live_server.url + release_request.get_url())
+
+    release_files_button = page.locator("#release-files-button")
+    return_request_button = page.locator("#reject-request-button")
+    reject_request_button = page.locator("#return-request-button")
+
+    # Request is currently submitted and all files approved twice
+    # output checker can release, return or reject
+    for locator in [release_files_button, return_request_button, reject_request_button]:
+        expect(locator).to_be_visible()
+        expect(locator).to_be_enabled()
+
+    bll.set_status(release_request, RequestStatus.APPROVED, output_checker)
+    page.goto(live_server.url + release_request.get_url())
+
+    # Request is now approved
+    # output checker cannot return or reject
+    expect(release_files_button).to_be_enabled()
+    for locator in [return_request_button, reject_request_button]:
+        expect(locator).not_to_be_visible()

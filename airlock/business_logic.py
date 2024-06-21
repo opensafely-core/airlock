@@ -923,6 +923,9 @@ class DataAccessLayerProtocol(Protocol):
     def get_returned_requests(self):
         raise NotImplementedError()
 
+    def get_approved_requests(self):
+        raise NotImplementedError()
+
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         raise NotImplementedError()
 
@@ -1230,6 +1233,19 @@ class BusinessLogicLayer:
         return [
             ReleaseRequest.from_dict(attrs)
             for attrs in self._dal.get_returned_requests()
+            # Do not show output_checker their own requests
+            if attrs["author"] != user.username
+        ]
+
+    def get_approved_requests(self, user: User):
+        """Get all requests that have been approved but not yet released."""
+        # Only output checkers can see these
+        if not user.output_checker:
+            return []
+
+        return [
+            ReleaseRequest.from_dict(attrs)
+            for attrs in self._dal.get_approved_requests()
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
@@ -1846,7 +1862,7 @@ class BusinessLogicLayer:
             data["status"],
         )
         if data["status"] == "error":
-            logger.error("Error sending notification: %s", data["message"])
+            logger.error(data["message"])
 
 
 def _get_configured_bll():
