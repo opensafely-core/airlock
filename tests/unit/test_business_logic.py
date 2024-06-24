@@ -343,6 +343,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
         factories.write_request_file(
             release_request, "group", relpath, "test", approved=True
         )
+    factories.complete_independent_review(release_request)
 
     release_request = factories.refresh_release_request(release_request)
     bll.set_status(release_request, RequestStatus.APPROVED, checker)
@@ -374,7 +375,9 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "test",
         filetype=RequestFileType.SUPPORTING,
     )
-    bll.set_status(release_request, RequestStatus.APPROVED, checker)
+    factories.complete_independent_review(release_request)
+    release_request = factories.refresh_release_request(release_request)
+    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
 
     abspath = release_request.abspath("group" / relpath)
 
@@ -425,21 +428,21 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
     audit_log = bll.get_audit_log(request=release_request.id)
 
-    assert audit_log[3].type == AuditEventType.REQUEST_APPROVE
-    assert audit_log[3].user == checker.username
-    assert audit_log[3].request == release_request.id
-    assert audit_log[3].workspace == "workspace"
-
-    assert audit_log[4].type == AuditEventType.REQUEST_FILE_RELEASE
-    assert audit_log[4].user == checker.username
-    assert audit_log[4].request == release_request.id
-    assert audit_log[4].workspace == "workspace"
-    assert audit_log[4].path == Path("test/file.txt")
-
-    assert audit_log[5].type == AuditEventType.REQUEST_RELEASE
+    assert audit_log[5].type == AuditEventType.REQUEST_APPROVE
     assert audit_log[5].user == checker.username
     assert audit_log[5].request == release_request.id
     assert audit_log[5].workspace == "workspace"
+
+    assert audit_log[6].type == AuditEventType.REQUEST_FILE_RELEASE
+    assert audit_log[6].user == checker.username
+    assert audit_log[6].request == release_request.id
+    assert audit_log[6].workspace == "workspace"
+    assert audit_log[6].path == Path("test/file.txt")
+
+    assert audit_log[7].type == AuditEventType.REQUEST_RELEASE
+    assert audit_log[7].user == checker.username
+    assert audit_log[7].request == release_request.id
+    assert audit_log[7].workspace == "workspace"
 
 
 def test_provider_get_requests_for_workspace(bll):
@@ -544,14 +547,20 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
     release_request1 = factories.create_release_request(
         "workspace", other_user, id="r1", status=RequestStatus.SUBMITTED
     )
-    bll.set_status(release_request1, RequestStatus.RETURNED, output_checker)
+    factories.write_request_file(release_request1, "group", "file.txt", approved=True)
+    factories.complete_independent_review(release_request1)
+    release_request1 = factories.refresh_release_request(release_request1)
+    factories.bll.set_status(release_request1, RequestStatus.RETURNED, output_checker)
 
     # requests not visible to output checker
     # status returned, but authored by output checker
     release_request2 = factories.create_release_request(
         "workspace", user, id="r2", status=RequestStatus.SUBMITTED
     )
-    bll.set_status(release_request2, RequestStatus.RETURNED, output_checker)
+    factories.write_request_file(release_request2, "group", "file.txt", approved=True)
+    factories.complete_independent_review(release_request2)
+    release_request2 = factories.refresh_release_request(release_request2)
+    factories.bll.set_status(release_request2, RequestStatus.RETURNED, output_checker)
 
     # requests authored by other users, status other than returned
     for i, status in enumerate(
@@ -684,15 +693,33 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     [
         (RequestStatus.PENDING, RequestStatus.SUBMITTED, True, False),
         (RequestStatus.PENDING, RequestStatus.WITHDRAWN, True, False),
+        (RequestStatus.PENDING, RequestStatus.PARTIALLY_REVIEWED, False, False),
+        (RequestStatus.PENDING, RequestStatus.REVIEWED, False, False),
         (RequestStatus.PENDING, RequestStatus.APPROVED, False, False),
         (RequestStatus.PENDING, RequestStatus.REJECTED, False, False),
         (RequestStatus.PENDING, RequestStatus.RELEASED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.APPROVED, False, True),
-        (RequestStatus.SUBMITTED, RequestStatus.REJECTED, False, True),
-        (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, True, False),
-        (RequestStatus.SUBMITTED, RequestStatus.RETURNED, False, True),
-        (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False),
         (RequestStatus.SUBMITTED, RequestStatus.PENDING, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED, False, True),
+        (RequestStatus.SUBMITTED, RequestStatus.REVIEWED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.APPROVED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.REJECTED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.RETURNED, False, False),
+        (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.PENDING, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REVIEWED, False, True),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.APPROVED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REJECTED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.RELEASED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.REVIEWED, RequestStatus.PENDING, False, False),
+        (RequestStatus.REVIEWED, RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.REVIEWED, RequestStatus.PARTIALLY_REVIEWED, False, False),
+        (RequestStatus.REVIEWED, RequestStatus.RETURNED, False, True),
+        (RequestStatus.REVIEWED, RequestStatus.APPROVED, False, True),
+        (RequestStatus.REVIEWED, RequestStatus.REJECTED, False, True),
+        (RequestStatus.REVIEWED, RequestStatus.WITHDRAWN, False, False),
         (RequestStatus.RETURNED, RequestStatus.SUBMITTED, True, False),
         (RequestStatus.RETURNED, RequestStatus.WITHDRAWN, True, False),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, False, True),
@@ -714,11 +741,18 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
     author = factories.create_user("author", ["workspace"], False)
     checker = factories.create_user("checker", [], True)
     audit_type = bll.STATUS_AUDIT_EVENT[future]
-    release_request1 = factories.create_release_request(
-        "workspace1", user=author, status=current
+
+    release_request1 = factories.create_request_at_state(
+        "workspace1",
+        author,
+        current,
+        files=[factories.request_file(approved=True)],
     )
-    release_request2 = factories.create_release_request(
-        "workspace2", user=author, status=current
+    release_request2 = factories.create_request_at_state(
+        "workspace2",
+        author,
+        current,
+        files=[factories.request_file(approved=True)],
     )
 
     if valid_author:
@@ -734,26 +768,8 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             bll.set_status(release_request1, future, user=author)
 
     if valid_checker:
-        if current == RequestStatus.SUBMITTED:
-            factories.write_request_file(
-                release_request2, "group", "test/file.txt", approved=True
-            )
-            release_request2 = factories.refresh_release_request(release_request2)
-
-        if current == RequestStatus.REJECTED:
-            # We cannot add files to a rejected request, so re-create the request
-            release_request2 = factories.create_release_request(
-                "workspace2", user=author, status=RequestStatus.SUBMITTED
-            )
-            factories.write_request_file(
-                release_request2, "group", "test/file.txt", approved=True
-            )
-            bll.set_status(release_request2, current, user=checker)
-            release_request2 = factories.refresh_release_request(release_request2)
-
         bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
-
         audit_log = bll.get_audit_log(request=release_request2.id)
         assert audit_log[0].type == audit_type
         assert audit_log[0].user == checker.username

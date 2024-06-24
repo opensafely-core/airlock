@@ -13,6 +13,7 @@ from airlock.business_logic import (
     AuditEventType,
     CodeRepo,
     RequestFileType,
+    RequestStatus,
     UrlPath,
     UserFileReviewStatus,
     Workspace,
@@ -245,6 +246,96 @@ def create_release_request(workspace, user=None, **kwargs):
     return release_request
 
 
+def create_request_at_state(
+    workspace, author, status, files=[], checker=None, withdrawn_after=None, **kwargs
+):
+    if status == RequestStatus.WITHDRAWN:
+        assert (
+            withdrawn_after is not None
+        ), "pass withdrawn_after to decide when to withdraw"
+
+    if checker is None:
+        checker = get_default_output_checkers()[0]
+
+    request = create_release_request(
+        workspace, author, status=RequestStatus.PENDING, **kwargs
+    )
+
+    # add all files
+    for add_file in files:
+        add_file(request)
+
+    request = refresh_release_request(request)
+    if status == RequestStatus.PENDING:
+        return request
+
+    if status == RequestStatus.WITHDRAWN and withdrawn_after == RequestStatus.PENDING:
+        bll.set_status(request, RequestStatus.WITHDRAWN, author)
+        return refresh_release_request(request)
+
+    bll.submit_request(request, author)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.SUBMITTED:
+        return request
+
+    if status == RequestStatus.WITHDRAWN and withdrawn_after == RequestStatus.SUBMITTED:
+        bll.set_status(request, RequestStatus.WITHDRAWN, author)
+        return refresh_release_request(request)
+
+    if status == RequestStatus.PARTIALLY_REVIEWED:
+        complete_independent_review(request, checker)
+        return refresh_release_request(request)
+
+    # all other state require completed reviews.
+    complete_independent_review(request)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.REVIEWED:
+        return request
+
+    if status in [RequestStatus.RETURNED, RequestStatus.WITHDRAWN]:
+        bll.set_status(request, RequestStatus.RETURNED, checker)
+        request = refresh_release_request(request)
+
+        if (
+            status == RequestStatus.WITHDRAWN
+            and withdrawn_after == RequestStatus.RETURNED
+        ):
+            bll.set_status(request, RequestStatus.WITHDRAWN, author)
+            return refresh_release_request(request)
+        else:
+            return request
+
+    elif status == RequestStatus.REJECTED:
+        bll.set_status(request, RequestStatus.REJECTED, checker)
+        return refresh_release_request(request)
+
+    bll.set_status(request, RequestStatus.APPROVED, checker)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.APPROVED:
+        return request
+
+    elif status == RequestStatus.RELEASED:
+        bll.set_status(request, RequestStatus.RELEASED, checker)
+        return refresh_release_request(request)
+
+    raise Exception(f"invalid state: {status}")
+
+
+def request_file(
+    group="group", path="test/file.txt", approved=False, rejected=False, **kwargs
+):
+    def add_file(request):
+        request = refresh_release_request(request)
+        write_request_file(
+            request, group, path, approved=approved, rejected=rejected, **kwargs
+        )
+
+    return add_file
+
+
 def write_request_file(
     request,
     group,
@@ -279,33 +370,54 @@ def write_request_file(
         review_file(request, path, UserFileReviewStatus.REJECTED)
 
 
-def review_file(request, relpath, status, *users):
-    if users:
-        usernames = [user.username for user in users]
-    else:
-        usernames = ["output-checker-0", "output-checker-1"]
+def get_default_output_checkers():
+    return [
+        create_user("output-checker-0", output_checker=True),
+        create_user("output-checker-1", output_checker=True),
+    ]
 
-    for username in usernames:
+
+def review_file(request, relpath, status, *users):
+    if not users:
+        users = get_default_output_checkers()
+
+    request = refresh_release_request(request)
+
+    relpath = UrlPath(relpath)
+    for user in users:
+        # use the DAL directly means we can add reviews regardless of request
+        # state, which is very useful in test setup.
         if status == UserFileReviewStatus.APPROVED:
             bll._dal.approve_file(
                 request,
-                relpath=UrlPath(relpath),
-                username=username,
+                relpath=relpath,
+                username=user.username,
                 audit=create_audit_event(
-                    AuditEventType.REQUEST_FILE_APPROVE, user=username
+                    AuditEventType.REQUEST_FILE_APPROVE, user=user.username
                 ),
             )
         elif status == UserFileReviewStatus.REJECTED:
             bll._dal.reject_file(
                 request,
-                relpath=UrlPath(relpath),
-                username=username,
+                relpath=relpath,
+                username=user.username,
                 audit=create_audit_event(
-                    AuditEventType.REQUEST_FILE_REJECT, user=username
+                    AuditEventType.REQUEST_FILE_REJECT, user=user.username
                 ),
             )
         else:
             raise AssertionError(f"unrecognised status; {status}")
+
+
+def complete_independent_review(request, *users):
+    if not users:
+        users = get_default_output_checkers()
+
+    request = refresh_release_request(request)
+
+    # caller's job to make sure all files have been voted on
+    for user in users:
+        bll.review_request(request, user)
 
 
 def create_filegroup(release_request, group_name, filepaths=None):
