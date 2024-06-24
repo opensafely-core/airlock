@@ -105,6 +105,19 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.save()
             self._create_audit_log(audit)
 
+    def record_review(self, request_id: str, reviewer: str):
+        with transaction.atomic():
+            # persist reviewer state
+            metadata = self._find_metadata(request_id)
+            metadata.completed_reviews[reviewer] = timezone.now().isoformat()
+            metadata.save()
+
+    def reset_reviews(self, request_id: str):
+        with transaction.atomic():
+            metadata = self._find_metadata(request_id)
+            metadata.completed_reviews = {}
+            metadata.save()
+
     def add_file_to_request(
         self,
         request_id: str,

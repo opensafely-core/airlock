@@ -562,6 +562,7 @@ def get_path_tree(
                 # calls
                 node.workspace_status = container.get_workspace_status(path)
                 node.request_status = container.get_request_status(path)
+
                 if user:
                     node.user_request_status = container.get_user_request_status(
                         path, user

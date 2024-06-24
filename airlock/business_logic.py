@@ -47,6 +47,8 @@ class RequestStatus(Enum):
     # output checker set statuses
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    PARTIALLY_REVIEWED = "PARTIALLY_REVIEWED"
+    REVIEWED = "REVIEWED"
     RETURNED = "RETURNED"
     RELEASED = "RELEASED"
 
@@ -97,6 +99,7 @@ class AuditEventType(Enum):
     REQUEST_CREATE = "REQUEST_CREATE"
     REQUEST_SUBMIT = "REQUEST_SUBMIT"
     REQUEST_WITHDRAW = "REQUEST_WITHDRAW"
+    REQUEST_REVIEW = "REQUEST_REVIEW"
     REQUEST_APPROVE = "REQUEST_APPROVE"
     REQUEST_REJECT = "REQUEST_REJECT"
     REQUEST_RETURN = "REQUEST_RETURN"
@@ -150,6 +153,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_CREATE: "Created request",
     AuditEventType.REQUEST_SUBMIT: "Submitted request",
     AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
+    AuditEventType.REQUEST_REVIEW: "Reviewed request",
     AuditEventType.REQUEST_APPROVE: "Approved request",
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
@@ -886,6 +890,12 @@ class ReleaseRequest:
             for request_file in filegroup.output_files
         )
 
+    def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
+        return all(
+            rfile.get_status_for_user(reviewer) is not None
+            for rfile in self.output_files().values()
+        )
+
     def all_files_reviewed(self):
         return all(
             request_file.reviewed()
@@ -951,6 +961,12 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
+        raise NotImplementedError()
+
+    def record_review(self, request_id: str, reviewer: str):
+        raise NotImplementedError()
+
+    def reset_reviews(self, request_id: str):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -1089,6 +1105,9 @@ class BusinessLogicLayer:
         pass
 
     class RequestPermissionDenied(APIException):
+        pass
+
+    class RequestReviewDenied(APIException):
         pass
 
     class ApprovalPermissionDenied(APIException):
@@ -1243,7 +1262,11 @@ class BusinessLogicLayer:
 
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(RequestStatus.SUBMITTED)
+            for attrs in self._dal.get_requests_by_status(
+                RequestStatus.SUBMITTED,
+                RequestStatus.PARTIALLY_REVIEWED,
+                RequestStatus.REVIEWED,
+            )
             # Do not show output_checker their own requests
             if attrs["author"] != user.username
         ]
@@ -1280,10 +1303,15 @@ class BusinessLogicLayer:
             RequestStatus.WITHDRAWN,
         ],
         RequestStatus.SUBMITTED: [
+            RequestStatus.PARTIALLY_REVIEWED,
+        ],
+        RequestStatus.PARTIALLY_REVIEWED: [
+            RequestStatus.REVIEWED,
+        ],
+        RequestStatus.REVIEWED: [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
             RequestStatus.RETURNED,
-            RequestStatus.WITHDRAWN,
         ],
         RequestStatus.RETURNED: [
             RequestStatus.SUBMITTED,
@@ -1306,6 +1334,8 @@ class BusinessLogicLayer:
         RequestStatus.RETURNED: RequestStatusOwner.AUTHOR,
         # states where only an output-checker can edit this request
         RequestStatus.SUBMITTED: RequestStatusOwner.REVIEWER,
+        RequestStatus.PARTIALLY_REVIEWED: RequestStatusOwner.REVIEWER,
+        RequestStatus.REVIEWED: RequestStatusOwner.REVIEWER,
         # states where no user can edit
         RequestStatus.WITHDRAWN: RequestStatusOwner.SYSTEM,
         RequestStatus.APPROVED: RequestStatusOwner.SYSTEM,
@@ -1316,6 +1346,8 @@ class BusinessLogicLayer:
     STATUS_AUDIT_EVENT = {
         RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
         RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
+        RequestStatus.PARTIALLY_REVIEWED: AuditEventType.REQUEST_REVIEW,
+        RequestStatus.REVIEWED: AuditEventType.REQUEST_REVIEW,
         RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
         RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
         RequestStatus.RETURNED: AuditEventType.REQUEST_RETURN,
@@ -1350,23 +1382,16 @@ class BusinessLogicLayer:
 
         # check permissions
         # author transitions
-        if to_status in [
-            RequestStatus.PENDING,
-            RequestStatus.SUBMITTED,
-            RequestStatus.WITHDRAWN,
-        ]:
-            if user.username != release_request.author:
-                raise self.RequestPermissionDenied(
-                    f"only {release_request.author} can set status to {to_status.name}"
-                )
+        owner = release_request.status_owner()
 
-        # output checker transitions
-        if to_status in [
-            RequestStatus.APPROVED,
-            RequestStatus.REJECTED,
-            RequestStatus.RETURNED,
-            RequestStatus.RELEASED,
-        ]:
+        if (
+            owner == RequestStatusOwner.AUTHOR
+            and user.username != release_request.author
+        ):
+            raise self.RequestPermissionDenied(
+                f"only the request author {release_request.author} can set status from {release_request.status} to {to_status.name}"
+            )
+        elif owner == RequestStatusOwner.REVIEWER:
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
@@ -1400,6 +1425,7 @@ class BusinessLogicLayer:
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request has unreviewed files."
                 )
+        # TODO: enforce system
 
     def set_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
@@ -1612,7 +1638,13 @@ class BusinessLogicLayer:
         RETURNED status, mark any rejected reviews as undecided.
         """
         self.check_status(request, RequestStatus.SUBMITTED, user)
+
+        # reset any previous review data
         if request.status == RequestStatus.RETURNED:
+            # reset completed review tracking
+            self._dal.reset_reviews(request.id)
+
+            # any files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
                 for review in rfile.rejected_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
@@ -1689,6 +1721,35 @@ class BusinessLogicLayer:
         )
 
         self._dal.reset_review_file(release_request.id, relpath, user.username, audit)
+
+    def review_request(self, release_request: ReleaseRequest, user: User):
+        """
+        Complete a review
+
+        Marking the request as either PARTIALLY_REVIEWED or REVIEWED, depending on whether this is the first or second review.
+        """
+        if not release_request.all_files_reviewed_by_reviewer(user):
+            raise self.RequestReviewDenied(
+                "You must review all files to complete your review"
+            )
+
+        if user.username in release_request.completed_reviews:
+            raise self.RequestReviewDenied(
+                "You have already completed your review of this request"
+            )
+
+        self._dal.record_review(release_request.id, user.username)
+
+        release_request = self.get_release_request(release_request.id, user)
+        n_reviews = len(release_request.completed_reviews)
+
+        # this method is called twice, by different users. It advances the
+        # state differently depending on whether its the 1st or 2nd review to
+        # be completed.
+        if n_reviews == 1:
+            self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
+        elif n_reviews == 2:
+            self.set_status(release_request, RequestStatus.REVIEWED, user)
 
     def mark_file_undecided(
         self,

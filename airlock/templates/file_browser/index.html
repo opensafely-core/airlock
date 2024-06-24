@@ -19,7 +19,7 @@
             {% csrf_token %}
             {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
           </form>
-        {% elif release_request.status.name == "SUBMITTED" %}
+        {% elif release_request.status_owner.name == "AUTHOR" %}
           {% #modal id="withdrawRequest" button_text="Withdraw this request" variant="warning" %}
             {% #card container=True title="Withdraw this request" %}
               <form action="{{ request_withdraw_url }}" method="POST">
@@ -38,22 +38,27 @@
           {% /modal %}
         {% endif %}
       {% elif is_output_checker %}
-        {% if release_request.status.name == "SUBMITTED" %}
+        {% if release_request.status_owner.name == "REVIEWER" %}
           <form action="{{ request_reject_url }}" method="POST">
             {% csrf_token %}
             {% #button type="submit" variant="danger" class="action-button btn-sm" id="reject-request-button" %}Reject request{% /button %}
           </form>
-          {% if release_request.all_files_reviewed %}
-            <form action="{{ request_return_url }}" method="POST" hx-post="{{ request_return_url }}" hx-disabled-elt="button">
-              {% csrf_token %}
-              {% #button type="submit" class="btn-sm" tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
-            </form>
-          {% else %}
-            {% #button disabled=True class="relative group btn-sm" variant="secondary" id="return-request-button" %}
-              Return request
-              {% tooltip class="airlock-tooltip" content="Returning the request is disabled until all files have been reviewed by two reviewers" %}
-            {% /button %}
-          {% endif %}
+        {% endif %}
+        {% if release_request.status.name == "REVIEWED" %}
+          <form action="{{ request_return_url }}" method="POST" hx-post="{{ request_return_url }}" hx-disabled-elt="button">
+            {% csrf_token %}
+            {% #button type="submit" class="btn-sm" tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
+          </form>
+        {% elif user_has_completed_review %}
+          {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+            Complete Review
+            {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
+          {% /button %}
+        {% else %}
+          <form action="{{ request_review_url }}" method="POST">
+            {% csrf_token %}
+            {% #button type="submit" class="btn-sm" tooltip="Complete Review" variant="secondary" id="return-request-button" %}Complete Review{% /button %}
+          </form>
         {% endif %}
         {% if release_request.status.name in "SUBMITTED,APPROVED" %}
           {% if release_request.all_files_approved %}
