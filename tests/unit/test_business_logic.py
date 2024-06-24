@@ -797,7 +797,7 @@ def test_set_status(current, future, valid_author, valid_checker, bll):
             RequestStatus.RETURNED,
             RequestStatus.SUBMITTED,
             "author",
-            "request_submitted",
+            "request_resubmitted",
         ),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
     ],
@@ -979,7 +979,7 @@ def test_resubmit_request(bll, mock_notifications):
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.status == RequestStatus.SUBMITTED
-    assert_last_notification(mock_notifications, "request_submitted")
+    assert_last_notification(mock_notifications, "request_resubmitted")
 
     for i in range(2):
         user = factories.create_user(f"output-checker-{i}", output_checker=True)

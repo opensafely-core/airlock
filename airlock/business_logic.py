@@ -116,6 +116,7 @@ class NotificationEventType(Enum):
     REQUEST_RELEASED = "request_released"
     REQUEST_REJECTED = "request_rejected"
     REQUEST_RETURNED = "request_returned"
+    REQUEST_RESUBMITTED = "request_resubmitted"
     REQUEST_UPDATED = "request_updated"
 
 
@@ -1404,10 +1405,16 @@ class BusinessLogicLayer:
             user=user,
         )
         self._dal.set_status(release_request.id, to_status, audit)
+        if (release_request.status, to_status) == (
+            RequestStatus.RETURNED,
+            RequestStatus.SUBMITTED,
+        ):
+            notification_event = NotificationEventType.REQUEST_RESUBMITTED
+        else:
+            notification_event = self.STATUS_EVENT_NOTIFICATION[to_status]
+
         release_request.status = to_status
-        notification_event = self.STATUS_EVENT_NOTIFICATION.get(to_status)
-        if notification_event:  # pragma: no cover
-            self.send_notification(release_request, notification_event, user)
+        self.send_notification(release_request, notification_event, user)
 
     def _validate_editable(self, release_request, user):
         if user.username != release_request.author:

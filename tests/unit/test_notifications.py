@@ -2,6 +2,7 @@ import json
 
 import requests
 
+from airlock.business_logic import BusinessLogicLayer, RequestStatus
 from airlock.notifications import send_notification_event
 
 
@@ -35,3 +36,13 @@ def test_send_notification_error(notifications_stubber):
         "status": "error",
         "message": "Error sending notification: 403 Forbidden",
     }
+
+
+def test_all_expected_status_changes_notify():
+    """
+    For every possible request status that a request can move
+    to (i.e. all except PENDING), assert that there is a corresponding
+    notification event that will be sent.
+    """
+    to_statuses = set(RequestStatus) - {RequestStatus.PENDING}
+    assert set(BusinessLogicLayer.STATUS_EVENT_NOTIFICATION) == to_statuses
