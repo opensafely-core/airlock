@@ -15,35 +15,40 @@
   <body>
 
     <div id="csvtable">
-      <p id="contents-error" style="display: none">Could not load table data. Try opening the file as plain text.</p>
-      <p class="spinner">Loading table data...</p>
-      <table class="datatable" style="display: none" id="customTable">
-        <thead>
-          <tr>
-            {% for header in headers %}
-              <th>
-                <div class="flex flex-row gap-2">
-                  {{ header }}
+      {% if use_datatables %}
+        <p class="spinner">Loading table data...</p>
+        <table class="datatable" style="display: none" id="customTable">
+      {% else %}
+        <table>
+      {% endif %}
+      <thead>
+        <tr>
+          {% for header in headers %}
+            <th>
+              <div class="flex flex-row gap-2">
+                {{ header }}
+                {% if use_datatables %}
                   <span class="sort-icon">{% datatable_sort_icon %}</span>
-                </dir>
-              </th>
+                {% endif %}
+              </dir>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            {% for cell in row %}
+              <td data-order="{{ cell }}">{{ cell }}</td>
             {% endfor %}
           </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-            <tr>
-              {% for cell in row %}
-                <td data-order="{{ cell }}">{{ cell }}</td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        {% endfor %}
+      </tbody>
+    </table>
 
-    </div>
+  </div>
 
-    <script src="{% static 'assets/file_browser/csv.js' %}"></script>
-  </body>
+  <script src="{% static 'assets/file_browser/csv.js' %}"></script>
+</body>
 
 </html>
