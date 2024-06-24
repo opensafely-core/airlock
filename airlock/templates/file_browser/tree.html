@@ -3,8 +3,10 @@
     {% if child.is_directory %}
       <details class="tree__folder group" {% if child.expanded %}open{% endif %}>
         <summary class="tree__folder-name">
-          <img height="16" width="16" class="icon tree__folder-icon tree__folder-icon--open" src="/static/icons/folder_open.svg" alt="" />
-          <img height="16" width="16" class="icon tree__folder-icon tree__folder-icon--closed" src="/static/icons/folder.svg" alt="" />
+          <img height="14" width="14" class="icon tree__folder-arrow tree__folder-arrow--open" src="/static/icons/keyboard_arrow_down.svg" alt="">
+          <img height="14" width="14" class="icon tree__folder-icon tree__folder-icon--open" src="/static/icons/folder_open.svg" alt="" />
+          <img height="14" width="14" class="icon tree__folder-arrow tree__folder-arrow--closed" src="/static/icons/keyboard_arrow_right.svg" alt="">
+          <img height="14" width="14" class="icon tree__folder-icon tree__folder-icon--closed" src="/static/icons/folder.svg" alt="" />
           <a class="{{ child.html_classes }} tree__folder-link" href="{{ child.url }}">{{ child.display }}</a>
         </summary>
         {% if child.children %}
@@ -15,7 +17,7 @@
       </details>
     {% else %}
       <a class="{{ child.html_classes }} tree__file" href="{{ child.url }}">
-        <img height="16" width="16" class="icon tree__file-icon" src="/static/icons/draft.svg" alt="" />
+        <img height="14" width="14" class="icon tree__file-icon" src="/static/icons/draft_outline.svg" alt="" />
         <span class="tree__file-name">{{ child.display }}</span>
       </a>
     {% endif %}
