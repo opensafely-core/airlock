@@ -113,6 +113,12 @@
               Open in new tab
             </a>
           </li>
+          <li class="more-dropdown__item">
+            <a href="{{ path_item.contents_plaintext_url }}" class="more-dropdown__link" id="plain-text-button" target="_blank" rel="noopener noreferrer">
+              <img class="more-dropdown__icon" src="/static/icons/open_in_new.svg" alt="">
+              Open as plain text
+            </a>
+          </li>
           {% if code_url %}
             <li class="more-dropdown__item">
               <a href="{{ code_url }}" class="more-dropdown__link" id="file-code-button" target="_blank" rel="noopener noreferrer">

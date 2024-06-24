@@ -136,6 +136,10 @@ class TextRenderer(Renderer):
         }
 
 
+class PlainTextRenderer(TextRenderer):
+    template = RendererTemplate.from_name("file_browser/plaintext.html")
+
+
 class InvalidFileRenderer(Renderer):
     template = RendererTemplate.from_name("file_browser/text.html")
 
@@ -155,16 +159,18 @@ FILE_RENDERERS = {
 }
 
 
-def get_renderer(relpath: UrlPath) -> type[Renderer]:
+def get_renderer(relpath: UrlPath, plaintext=False) -> type[Renderer]:
     if is_valid_file_type(UrlPath(relpath)):
-        renderer_class = FILE_RENDERERS.get(relpath.suffix, Renderer)
-    else:
-        renderer_class = InvalidFileRenderer
-    return renderer_class
+        if plaintext:
+            return PlainTextRenderer
+        return FILE_RENDERERS.get(relpath.suffix, Renderer)
+    return InvalidFileRenderer
 
 
-def get_code_renderer(relpath: UrlPath) -> type[Renderer]:
+def get_code_renderer(relpath: UrlPath, plaintext=False) -> type[Renderer]:
     """Guess correct renderer for code file."""
+    if plaintext:
+        return PlainTextRenderer
 
     if relpath.suffix in FILE_RENDERERS:
         return FILE_RENDERERS[relpath.suffix]

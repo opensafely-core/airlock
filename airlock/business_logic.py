@@ -226,13 +226,17 @@ class AirlockContainer(Protocol):
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
-    def get_contents_url(self, relpath: UrlPath, download: bool = False) -> str:
+    def get_contents_url(
+        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+    ) -> str:
         """Get the url for the contents of the container object with path"""
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         """What kind of file is this, e.g. output, supporting, etc."""
 
-    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+    def get_renderer(
+        self, relpath: UrlPath, plaintext: bool = False
+    ) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
@@ -360,19 +364,24 @@ class Workspace:
             kwargs={"workspace_name": self.name},
         )
 
-    def get_contents_url(self, relpath: UrlPath, download: bool = False) -> str:
+    def get_contents_url(
+        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+    ) -> str:
         url = reverse(
             "workspace_contents",
             kwargs={"workspace_name": self.name, "path": relpath},
         )
 
-        renderer = self.get_renderer(relpath)
-        url += f"?cache_id={renderer.cache_id}"
+        renderer = self.get_renderer(relpath, plaintext=plaintext)
+        plaintext_param = "&plaintext=true" if plaintext else ""
+        url += f"?cache_id={renderer.cache_id}{plaintext_param}"
 
         return url
 
-    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
-        renderer_class = renderers.get_renderer(relpath)
+    def get_renderer(
+        self, relpath: UrlPath, plaintext: bool = False
+    ) -> renderers.Renderer:
+        renderer_class = renderers.get_renderer(relpath, plaintext=plaintext)
         return renderer_class.from_file(
             self.abspath(relpath),
             relpath=relpath,
@@ -477,7 +486,10 @@ class CodeRepo:
         return None  # pragma: no cover
 
     def get_contents_url(
-        self, relpath: UrlPath = ROOT_PATH, download: bool = False
+        self,
+        relpath: UrlPath = ROOT_PATH,
+        download: bool = False,
+        plaintext: bool = False,
     ) -> str:
         url = reverse(
             "code_contents",
@@ -488,12 +500,13 @@ class CodeRepo:
             },
         )
 
-        renderer = self.get_renderer(relpath)
-        url += f"?cache_id={renderer.cache_id}"
+        renderer = self.get_renderer(relpath, plaintext=plaintext)
+        plaintext_param = "&plaintext=true" if plaintext else ""
+        url += f"?cache_id={renderer.cache_id}{plaintext_param}"
 
         return url
 
-    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+    def get_renderer(self, relpath: UrlPath, plaintext=False) -> renderers.Renderer:
         # we do not care about valid file types here, so we just get the base renderers
 
         try:
@@ -501,7 +514,7 @@ class CodeRepo:
         except GitError as exc:
             raise BusinessLogicLayer.FileNotFound(str(exc))
 
-        renderer_class = renderers.get_code_renderer(relpath)
+        renderer_class = renderers.get_code_renderer(relpath, plaintext=plaintext)
         # note: we don't actually need an explicit cache_id here, as the commit is
         # already in the url. But we want to add the template version to the
         # cache id, so pass an empty string.
@@ -735,7 +748,9 @@ class ReleaseRequest:
             },
         )
 
-    def get_contents_url(self, relpath: UrlPath, download: bool = False):
+    def get_contents_url(
+        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+    ):
         url = reverse(
             "request_contents",
             kwargs={"request_id": self.id, "path": relpath},
@@ -744,14 +759,17 @@ class ReleaseRequest:
             url += "?download"
         else:
             # what renderer would render this file?
-            renderer = self.get_renderer(relpath)
-            url += f"?cache_id={renderer.cache_id}"
+            renderer = self.get_renderer(relpath, plaintext=plaintext)
+            plaintext_param = "&plaintext=true" if plaintext else ""
+            url += f"?cache_id={renderer.cache_id}{plaintext_param}"
 
         return url
 
-    def get_renderer(self, relpath: UrlPath) -> renderers.Renderer:
+    def get_renderer(
+        self, relpath: UrlPath, plaintext: bool = False
+    ) -> renderers.Renderer:
         request_file = self.get_request_file_from_urlpath(relpath)
-        renderer_class = renderers.get_renderer(relpath)
+        renderer_class = renderers.get_renderer(relpath, plaintext=plaintext)
         return renderer_class.from_file(
             self.abspath(relpath),
             relpath=request_file.relpath,

@@ -157,7 +157,8 @@ def workspace_contents(request, workspace_name: str, path: str):
 
     bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)
 
-    renderer = workspace.get_renderer(UrlPath(path))
+    plaintext = request.GET.get("plaintext", False)
+    renderer = workspace.get_renderer(UrlPath(path), plaintext=plaintext)
     return serve_file(request, renderer)
 
 
