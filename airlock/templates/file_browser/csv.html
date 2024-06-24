@@ -15,6 +15,7 @@
   <body>
 
     <div id="csvtable">
+      <p id="contents-error" style="display: none">Could not load table data. Try opening the file as plain text.</p>
       <p class="spinner">Loading table data...</p>
       <table class="datatable" style="display: none" id="customTable">
         <thead>
@@ -23,7 +24,7 @@
               <th>
                 <div class="flex flex-row gap-2">
                   {{ header }}
-                  {% datatable_sort_icon %}
+                  <span class="sort-icon">{% datatable_sort_icon %}</span>
                 </dir>
               </th>
             {% endfor %}
