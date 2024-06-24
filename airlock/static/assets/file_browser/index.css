@@ -168,20 +168,8 @@
   }
 }
 
-.tree__file.supporting {
-  .tree__file-icon {
-    filter: invert(16%) sepia(68%) saturate(5216%) hue-rotate(47deg)
-      brightness(98%) contrast(89%);
-  }
-
-  .tree__file-name {
-    color: var(--color-yellow-800);
-  }
-
-  &::before {
-    --file-bg: var(--color-yellow-50);
-    --file-border: var(--color-yellow-600);
-  }
+.tree__file.supporting .tree__file-name {
+  font-style: italic;
 }
 
 /* File Card */
