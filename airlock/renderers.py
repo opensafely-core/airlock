@@ -122,7 +122,12 @@ class CSVRenderer(Renderer):
     def context(self):
         reader = csv.reader(self.stream)
         headers = next(reader, [])
-        return {"headers": headers, "rows": reader}
+        header_col_count = len(headers)
+        rows = list(reader)
+        ctx = {"headers": headers, "rows": rows, "use_datatables": True}
+        if any(len(row) != header_col_count for row in rows):
+            ctx["use_datatables"] = False
+        return ctx
 
 
 class TextRenderer(Renderer):

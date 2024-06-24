@@ -15,34 +15,40 @@
   <body>
 
     <div id="csvtable">
-      <p class="spinner">Loading table data...</p>
-      <table class="datatable" style="display: none" id="customTable">
-        <thead>
+      {% if use_datatables %}
+        <p class="spinner">Loading table data...</p>
+        <table class="datatable" style="display: none" id="customTable">
+      {% else %}
+        <table>
+      {% endif %}
+      <thead>
+        <tr>
+          {% for header in headers %}
+            <th>
+              <div class="flex flex-row gap-2">
+                {{ header }}
+                {% if use_datatables %}
+                  <span class="sort-icon">{% datatable_sort_icon %}</span>
+                {% endif %}
+              </dir>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
           <tr>
-            {% for header in headers %}
-              <th>
-                <div class="flex flex-row gap-2">
-                  {{ header }}
-                  {% datatable_sort_icon %}
-                </dir>
-              </th>
+            {% for cell in row %}
+              <td data-order="{{ cell }}">{{ cell }}</td>
             {% endfor %}
           </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-            <tr>
-              {% for cell in row %}
-                <td data-order="{{ cell }}">{{ cell }}</td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        {% endfor %}
+      </tbody>
+    </table>
 
-    </div>
+  </div>
 
-    <script src="{% static 'assets/file_browser/csv.js' %}"></script>
-  </body>
+  <script src="{% static 'assets/file_browser/csv.js' %}"></script>
+</body>
 
 </html>

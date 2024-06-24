@@ -117,3 +117,17 @@ def test_csv_renderer_handles_empty_file(tmp_path):
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200
+
+
+def test_csv_renderer_handles_uneven_columns(tmp_path):
+    # CSVs without the equal numbers of columns per row
+    # can be rendered in a plain html table, but not with datatables
+    bad_csv = tmp_path / "empty.csv"
+    bad_csv.write_text("Foo Bar\nfoo,bar")
+    relpath = bad_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(bad_csv, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+    assert response.context_data["use_datatables"] is False
