@@ -75,7 +75,7 @@ def request_view(request, request_id: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_request_tree(release_request, relpath, selected_only)
+    tree = get_request_tree(release_request, relpath, selected_only, user=request.user)
     path_item = get_path_item_from_tree_or_404(tree, relpath)
 
     is_directory_url = path.endswith("/") or relpath == ROOT_PATH
