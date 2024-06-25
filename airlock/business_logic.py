@@ -1385,9 +1385,8 @@ class BusinessLogicLayer:
             )
 
         # check permissions
-        # author transitions
         owner = release_request.status_owner()
-
+        # author transitions
         if (
             owner == RequestStatusOwner.AUTHOR
             and user.username != release_request.author
@@ -1395,7 +1394,13 @@ class BusinessLogicLayer:
             raise self.RequestPermissionDenied(
                 f"only the request author {release_request.author} can set status from {release_request.status} to {to_status.name}"
             )
-        elif owner == RequestStatusOwner.REVIEWER:
+        # reviewer transitions
+        elif owner == RequestStatusOwner.REVIEWER or (
+            # APPROVED and REJECTED cannot be edited by any user, but can be 
+            # moved to valid state transitions by a reviewer
+            owner == RequestStatusOwner.SYSTEM 
+            and release_request.status in [RequestStatus.APPROVED, RequestStatus.REJECTED]
+        ):
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
@@ -1429,7 +1434,10 @@ class BusinessLogicLayer:
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request has unreviewed files."
                 )
-        # TODO: enforce system
+        elif owner == RequestStatusOwner.SYSTEM:
+            raise self.RequestPermissionDenied(
+                f"only the system can set status to {to_status.name}"
+            )
 
     def set_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User

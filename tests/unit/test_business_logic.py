@@ -694,6 +694,8 @@ def test_provider_get_current_request_for_user_output_checker(bll):
 
 @pytest.mark.parametrize(
     "current,future,valid_author,valid_checker",
+    # valid_author: author can set status of their own request
+    # valid_checker: checker can set status of another author's request
     [
         (RequestStatus.PENDING, RequestStatus.SUBMITTED, True, False),
         (RequestStatus.PENDING, RequestStatus.WITHDRAWN, True, False),
