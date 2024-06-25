@@ -1749,6 +1749,19 @@ class BusinessLogicLayer:
 
         Marking the request as either PARTIALLY_REVIEWED or REVIEWED, depending on whether this is the first or second review.
         """
+        if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
+            raise self.RequestPermissionDenied(
+                f"Cannot review request in state {release_request.status.name}"
+            )
+
+        if user.username == release_request.author:
+            raise self.RequestPermissionDenied("You cannot review your own request")
+
+        if not user.output_checker:
+            raise self.RequestPermissionDenied(
+                "Only an output checker can review a request"
+            )
+
         if not release_request.all_files_reviewed_by_reviewer(user):
             raise self.RequestReviewDenied(
                 "You must review all files to complete your review"
