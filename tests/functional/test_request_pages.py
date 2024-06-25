@@ -18,21 +18,14 @@ def test_request_file_withdraw(live_server, context, page, bll):
         },
     )
 
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
-    )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "file1.txt",
-        "file 1 content",
-    )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "file2.txt",
-        "file 2 content",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(group="group", path="file1.txt"),
+            factories.request_file(group="group", path="file2.txt"),
+        ],
     )
 
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
@@ -70,15 +63,11 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
         },
     )
 
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
-    )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "file1.txt",
-        "file 1 content",
+        author=author,
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.SUBMITTED,
     )
 
     page.goto(live_server.url + release_request.get_url("group"))
@@ -123,23 +112,15 @@ def test_request_return(live_server, context, page, bll):
         },
     )
 
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(group="group", path="file1.txt"),
+            factories.request_file(group="group", path="file2.txt"),
+        ],
     )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "file1.txt",
-        "file 1 content",
-    )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "file2.txt",
-        "file 2 content",
-    )
-    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
 
     return_request_button = page.locator("#return-request-button")
     page.goto(live_server.url + release_request.get_url())
@@ -168,6 +149,9 @@ def test_request_return(live_server, context, page, bll):
 
         page.goto(live_server.url + release_request.get_url("group/file2.txt"))
         page.locator("#file-reject-button").click()
+
+        # mark review as completed
+        page.locator("#complete-review-button").click()
 
     # First output-checker reviews files
     _review_files("output-checker-1")
@@ -222,13 +206,13 @@ def test_request_return(live_server, context, page, bll):
 
 
 def test_request_releaseable(live_server, context, page, bll):
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.REVIEWED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+        ],
     )
-    factories.write_request_file(
-        release_request, "group", "file1.txt", "file 1 content", approved=True
-    )
-    release_request = factories.refresh_release_request(release_request)
     output_checker = login_as_user(
         live_server,
         context,
@@ -245,7 +229,7 @@ def test_request_releaseable(live_server, context, page, bll):
     return_request_button = page.locator("#reject-request-button")
     reject_request_button = page.locator("#return-request-button")
 
-    # Request is currently submitted and all files approved twice
+    # Request is currently reviewed twice
     # output checker can release, return or reject
     for locator in [release_files_button, return_request_button, reject_request_button]:
         expect(locator).to_be_visible()
@@ -258,4 +242,4 @@ def test_request_releaseable(live_server, context, page, bll):
     # output checker cannot return or reject
     expect(release_files_button).to_be_enabled()
     for locator in [return_request_button, reject_request_button]:
-        expect(locator).not_to_be_visible()
+        expect(locator).not_to_be_enabled()

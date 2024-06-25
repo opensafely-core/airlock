@@ -146,8 +146,53 @@ def test_request_view_with_submitted_request(airlock_client):
         "workspace", status=RequestStatus.SUBMITTED
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert "Reject request" in response.rendered_content
-    assert "Release files" in response.rendered_content
+    assert "Rejecting a request is disabled" in response.rendered_content
+    assert "Releasing to jobs.opensafely.org is disabled" in response.rendered_content
+    assert "Returning a request is disabled" in response.rendered_content
+    assert "Complete review" in response.rendered_content
+
+
+def test_request_view_with_reviewed_request(airlock_client):
+    # Login as 1st default output-checker
+    airlock_client.login("output-checker-0", output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace", status=RequestStatus.REVIEWED
+    )
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+
+    expected_buttons = [
+        ("Reject request", "Rejecting a request is disabled"),
+        ("Release files", "Releasing to jobs.opensafely.org is disabled"),
+        ("Return request", "Returning a request is disabled"),
+    ]
+
+    for button_text, diabled_tooltip in expected_buttons:
+        assert button_text in response.rendered_content
+        assert diabled_tooltip not in response.rendered_content
+
+    assert "Complete review" in response.rendered_content
+    assert "You have already completed your review" in response.rendered_content
+
+
+def test_request_view_with_withdrawn_request(airlock_client):
+    # Login as 1st default output-checker
+    airlock_client.login("output-checker-0", output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.WITHDRAWN,
+        withdrawn_after=RequestStatus.RETURNED,
+    )
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+
+    expected_buttons = [
+        ("Reject request", "Rejecting a request is disabled"),
+        ("Release files", "Releasing to jobs.opensafely.org is disabled"),
+        ("Return request", "Returning a request is disabled"),
+    ]
+
+    for button_text, diabled_tooltip in expected_buttons:
+        assert button_text in response.rendered_content
+        assert diabled_tooltip in response.rendered_content
 
 
 def test_request_view_with_authored_request_file(airlock_client):
