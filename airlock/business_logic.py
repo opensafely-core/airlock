@@ -123,6 +123,8 @@ class AuditEventType(Enum):
 class NotificationEventType(Enum):
     REQUEST_SUBMITTED = "request_submitted"
     REQUEST_WITHDRAWN = "request_withdrawn"
+    REQUEST_PARTIALLY_REVIEWED = "request_partially_reviewed"
+    REQUEST_REVIEWED = "request_reviewed"
     REQUEST_APPROVED = "request_approved"
     REQUEST_RELEASED = "request_released"
     REQUEST_REJECTED = "request_rejected"
@@ -1357,6 +1359,8 @@ class BusinessLogicLayer:
 
     STATUS_EVENT_NOTIFICATION = {
         RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
+        RequestStatus.PARTIALLY_REVIEWED: NotificationEventType.REQUEST_PARTIALLY_REVIEWED,
+        RequestStatus.REVIEWED: NotificationEventType.REQUEST_REVIEWED,
         RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
         RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
         RequestStatus.RETURNED: NotificationEventType.REQUEST_RETURNED,

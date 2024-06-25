@@ -417,14 +417,18 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     notification_responses = parse_notification_responses(mock_notifications)
     # Notifications expected for:
     # - write file x2
-    # - set status to test_set_status_approved
+    # - set status to partially reviewed
+    # - set status to reviewed
+    # - set status to approved
     # - set status to released
-    assert notification_responses["count"] == 4
+    assert notification_responses["count"] == 6
     request_json = notification_responses["request_json"]
     assert request_json[0]["event_type"] == "request_updated"
     assert request_json[1]["event_type"] == "request_updated"
-    assert request_json[2]["event_type"] == "request_approved"
-    assert request_json[3]["event_type"] == "request_released"
+    assert request_json[2]["event_type"] == "request_partially_reviewed"
+    assert request_json[3]["event_type"] == "request_reviewed"
+    assert request_json[4]["event_type"] == "request_approved"
+    assert request_json[5]["event_type"] == "request_released"
 
     audit_log = bll.get_audit_log(request=release_request.id)
 
