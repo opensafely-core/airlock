@@ -645,22 +645,6 @@ class RequestFile:
             if review.status == UserFileReviewStatus.REJECTED
         ]
 
-    def reviewed(self):
-        """
-        A file is reviewed if it has been approved OR rejected by two reviewers
-        """
-        return (
-            len(
-                [
-                    review
-                    for review in self.reviews.values()
-                    if review.status
-                    in [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
-                ]
-            )
-            >= 2
-        )
-
 
 @dataclass(frozen=True)
 class FileGroup:
@@ -899,13 +883,6 @@ class ReleaseRequest:
         return all(
             rfile.get_status_for_user(reviewer) is not None
             for rfile in self.output_files().values()
-        )
-
-    def all_files_reviewed(self):
-        return all(
-            request_file.reviewed()
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.output_files
         )
 
     # helpers for using in template logic
@@ -1384,7 +1361,7 @@ class BusinessLogicLayer:
 
         if to_status not in valid_transitions:
             raise self.InvalidStateTransition(
-                f"from {release_request.status.name} to {to_status.name}"
+                f"cannot change status from {release_request.status.name} to {to_status.name}"
             )
 
         # check permissions
@@ -1430,18 +1407,6 @@ class BusinessLogicLayer:
                 raise self.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
                 )
-
-            if (
-                to_status == RequestStatus.RETURNED
-                and not release_request.all_files_reviewed()
-            ):
-                raise self.RequestPermissionDenied(
-                    f"Cannot set status to {to_status.name}; request has unreviewed files."
-                )
-        elif owner == RequestStatusOwner.SYSTEM:
-            raise self.RequestPermissionDenied(
-                f"only the system can set status to {to_status.name}"
-            )
 
     def set_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
