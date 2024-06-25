@@ -59,7 +59,7 @@ def test_request_file_withdraw(live_server, context, page, bll):
 
 
 def test_request_group_edit_comment(live_server, context, page, bll, settings):
-    settings.SHOW_C3 = True
+    settings.SHOW_C3 = False  # context and controls visible, comments hidden
     author = login_as_user(
         live_server,
         context,
@@ -97,6 +97,12 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     expect(controls_locator).to_have_value("test controls")
 
     group_comment_locator = contents.get_by_role("form", name="group-comment-form")
+    expect(group_comment_locator).not_to_be_visible()
+
+    settings.SHOW_C3 = True
+    page.reload()
+
+    expect(group_comment_locator).to_be_visible()
     comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
 
     comment_locator.fill("test comment")
