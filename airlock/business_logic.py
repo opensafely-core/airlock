@@ -104,6 +104,7 @@ class AuditEventType(Enum):
     REQUEST_REJECT = "REQUEST_REJECT"
     REQUEST_RETURN = "REQUEST_RETURN"
     REQUEST_RELEASE = "REQUEST_RELEASE"
+    REQUEST_REVIEW_RESET = "REQUEST_REVIEW_RESET"
 
     # request edits
     REQUEST_EDIT = "REQUEST_EDIT"
@@ -145,6 +146,7 @@ READONLY_EVENTS = {
     AuditEventType.WORKSPACE_FILE_VIEW,
     AuditEventType.REQUEST_FILE_VIEW,
     AuditEventType.REQUEST_FILE_UNDECIDED,
+    AuditEventType.REQUEST_REVIEW_RESET,
 }
 
 
@@ -160,6 +162,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
+    AuditEventType.REQUEST_REVIEW_RESET: "Reviews on request reset",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
@@ -968,7 +971,7 @@ class DataAccessLayerProtocol(Protocol):
     def record_review(self, request_id: str, reviewer: str):
         raise NotImplementedError()
 
-    def reset_reviews(self, request_id: str):
+    def reset_reviews(self, request_id: str, audit: AuditEvent):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -1396,10 +1399,11 @@ class BusinessLogicLayer:
             )
         # reviewer transitions
         elif owner == RequestStatusOwner.REVIEWER or (
-            # APPROVED and REJECTED cannot be edited by any user, but can be 
+            # APPROVED and REJECTED cannot be edited by any user, but can be
             # moved to valid state transitions by a reviewer
-            owner == RequestStatusOwner.SYSTEM 
-            and release_request.status in [RequestStatus.APPROVED, RequestStatus.REJECTED]
+            owner == RequestStatusOwner.SYSTEM
+            and release_request.status
+            in [RequestStatus.APPROVED, RequestStatus.REJECTED]
         ):
             if not user.output_checker:
                 raise self.RequestPermissionDenied(
@@ -1653,8 +1657,13 @@ class BusinessLogicLayer:
 
         # reset any previous review data
         if request.status == RequestStatus.RETURNED:
+            audit = AuditEvent(
+                AuditEventType.REQUEST_REVIEW_RESET,
+                user=user.username,
+                request=request.id,
+            )
             # reset completed review tracking
-            self._dal.reset_reviews(request.id)
+            self._dal.reset_reviews(request.id, audit)
 
             # any files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
