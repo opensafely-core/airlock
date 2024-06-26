@@ -20,7 +20,7 @@
             {% csrf_token %}
             {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
           </form>
-          {% #modal id="withdrawRequest" button_text="Withdraw this request" variant="warning" %}
+          {% #modal id="withdrawRequest" button_text="Withdraw this request" button_variant="warning" %}
             {% #card container=True title="Withdraw this request" %}
               <form action="{{ request_withdraw_url }}" method="POST">
                 {% csrf_token %}
