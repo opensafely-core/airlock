@@ -307,8 +307,10 @@ def test_e2e_release_files(
     )
 
     # Submit request
-    submit_button = page.locator("#submit-for-review-button")
+    submit_button = page.locator("button[data-modal=submitRequest]")
     find_and_click(submit_button)
+    confirm_button = page.locator("#submit-for-review-button")
+    find_and_click(confirm_button)
     expect(page.locator("body")).to_contain_text("SUBMITTED")
     # After the request is submitted, the submit button is no longer visible
     expect(submit_button).not_to_be_visible()
