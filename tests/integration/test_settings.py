@@ -1,5 +1,6 @@
 import pytest
-from django.db import ConnectionHandler, connection, transaction
+from django.db import connection, transaction
+from django.db.utils import ConnectionHandler
 from django.test.utils import CaptureQueriesContext
 
 

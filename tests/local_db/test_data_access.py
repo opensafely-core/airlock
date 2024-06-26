@@ -6,6 +6,7 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     RequestStatus,
 )
+from airlock.types import UrlPath
 from local_db import data_access, models
 from tests import factories
 
@@ -92,7 +93,7 @@ def test_delete_file_from_request_bad_state():
     )
 
     with pytest.raises(AssertionError):
-        dal.delete_file_from_request(release_request.id, "foo", audit)
+        dal.delete_file_from_request(release_request.id, UrlPath("foo"), audit)
 
 
 @pytest.mark.parametrize(
@@ -115,7 +116,7 @@ def test_withdraw_file_from_request_bad_state(state):
     with pytest.raises(AssertionError):
         dal.withdraw_file_from_request(
             release_request.id,
-            "foo",
+            UrlPath("foo"),
             AuditEvent.from_request(
                 release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
             ),
@@ -137,7 +138,7 @@ def test_delete_file_from_request_bad_path():
     )
 
     with pytest.raises(BusinessLogicLayer.FileNotFound):
-        dal.delete_file_from_request(release_request.id, "bad_path", audit)
+        dal.delete_file_from_request(release_request.id, UrlPath("bad_path"), audit)
 
 
 def test_group_comment_delete_bad_params():
@@ -159,7 +160,9 @@ def test_group_comment_delete_bad_params():
         group="group",
         comment="author comment",
     )
-    dal.group_comment_create(release_request, "group", "author comment", author, audit)
+    dal.group_comment_create(
+        release_request.id, "group", "author comment", author, audit
+    )
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -169,7 +172,7 @@ def test_group_comment_delete_bad_params():
         comment="author comment",
     )
     with pytest.raises(BusinessLogicLayer.APIException):
-        dal.group_comment_delete(release_request, "badgroup", 1, author, audit)
+        dal.group_comment_delete(release_request.id, "badgroup", "1", author, audit)
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -179,7 +182,7 @@ def test_group_comment_delete_bad_params():
         comment="other comment",
     )
     with pytest.raises(models.FileGroupComment.DoesNotExist):
-        dal.group_comment_delete(release_request, "group", 50, author, audit)
+        dal.group_comment_delete(release_request.id, "group", "50", author, audit)
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -189,4 +192,4 @@ def test_group_comment_delete_bad_params():
         comment="author comment",
     )
     with pytest.raises(BusinessLogicLayer.APIException):
-        dal.group_comment_delete(release_request, "group", 1, other, audit)
+        dal.group_comment_delete(release_request.id, "group", "1", other, audit)

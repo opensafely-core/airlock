@@ -8,7 +8,7 @@ from airlock.notifications import send_notification_event
 
 def test_notification_no_api_endpoint(settings):
     settings.AIRLOCK_API_TOKEN = None
-    assert send_notification_event({}, "") == {"status": "ok"}
+    assert send_notification_event("{}", "") == {"status": "ok"}
 
 
 def test_send_notification(notifications_stubber):

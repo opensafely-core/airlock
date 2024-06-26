@@ -10,12 +10,11 @@ from airlock.business_logic import (
 )
 from airlock.file_browser_api import (
     PathType,
-    UrlPath,
     get_code_tree,
     get_request_tree,
     get_workspace_tree,
 )
-from airlock.types import WorkspaceFileStatus
+from airlock.types import UrlPath, WorkspaceFileStatus
 from tests import factories
 from tests.conftest import get_trace
 
