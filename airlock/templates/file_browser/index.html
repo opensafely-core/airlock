@@ -80,11 +80,16 @@
             Complete review
             {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
           {% /button %}
-        {% else %}
+        {% elif user_has_reviewed_all_files %}
           <form action="{{ request_review_url }}" method="POST">
             {% csrf_token %}
             {% #button type="submit" class="btn-sm" tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
           </form>
+        {% else %}
+          {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+            Complete review
+            {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
+          {% /button %}
         {% endif %}
       {% endif %}
     {% /airlock_header %}

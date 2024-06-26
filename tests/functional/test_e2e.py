@@ -341,6 +341,11 @@ def test_e2e_release_files(
     find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
     expect(page.locator("body")).to_contain_text(request_id)
 
+    complete_review_button = page.locator("#complete-review-button")
+    # output checker hasn't reviewed files yet, complete review button visible but disabled
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_disabled()
+
     # Reuse the locators from the workspace view to click on filegroup and then file
     # Click to open the filegroup tree
     find_and_click(filegroup_link)
@@ -360,12 +365,20 @@ def test_e2e_release_files(
     find_and_click(page.locator("#file-reject-button"))
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
+    # output checker has now reviewed all output files
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_enabled()
+
     # Change our minds & remove the review
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
     find_and_click(page.locator("#file-reset-button"))
     expect(page.locator("#file-reject-button")).to_have_attribute(
         "aria-pressed", "false"
     )
+
+    # complete review button disabled again
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_disabled()
 
     # Think some more & finally approve the file
     expect(page.locator("#file-approve-button")).to_have_attribute(

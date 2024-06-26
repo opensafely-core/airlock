@@ -674,6 +674,11 @@ def test_request_review_output_checker(airlock_client):
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(approved=True, checkers=[airlock_client.user])],
     )
+
+    response = airlock_client.get(release_request.get_url())
+    # Files have been reviewed but review has not been completed yet
+    assert "All files reviewed" in list(response.context["messages"])[0].message
+
     response = airlock_client.post(
         f"/requests/review/{release_request.id}", follow=True
     )
@@ -681,7 +686,14 @@ def test_request_review_output_checker(airlock_client):
     assert response.status_code == 200
     persisted_request = factories.refresh_release_request(release_request)
     assert persisted_request.status == RequestStatus.PARTIALLY_REVIEWED
-    assert "Your review has been completed" in response.rendered_content
+    assert (
+        "Your review has been completed"
+        in list(response.context["messages"])[0].message
+    )
+
+    response = airlock_client.get(release_request.get_url())
+    # Reminder message no longer shown now that review is complete
+    assert list(response.context["messages"]) == []
 
 
 def test_request_review_non_output_checker(airlock_client):
