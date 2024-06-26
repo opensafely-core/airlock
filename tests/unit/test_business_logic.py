@@ -309,10 +309,10 @@ def mock_old_api(monkeypatch):
 
 def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
     author = factories.create_user("author", ["workspace"])
-    checker = factories.create_user("checker", [], output_checker=True)
-    release_request = factories.create_release_request(
+    checker = factories.create_user("checker", output_checker=True)
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
+        author=author,
         id="request_id",
         status=RequestStatus.SUBMITTED,
     )
@@ -320,33 +320,23 @@ def test_provider_request_release_files_request_not_approved(bll, mock_notificat
     with pytest.raises(bll.InvalidStateTransition):
         bll.release_files(release_request, checker)
 
-    # Note factories.create_release_request bypasses bll.set_status, so
-    # doesn't trigger notifications
+    # Notification for submitting request only
     # Failed release attempt does not notify
-    assert_no_notifications(mock_notifications)
+    assert_last_notification(mock_notifications, "request_submitted")
 
 
 def test_provider_request_release_files_invalid_file_type(bll, mock_notifications):
-    author = factories.create_user("author", ["workspace"])
-    checker = factories.create_user("checker", [], output_checker=True)
-    release_request = factories.create_release_request(
-        "workspace",
-        user=author,
-        id="request_id",
-        status=RequestStatus.SUBMITTED,
-    )
-
-    # mock the LEVEL4_FILE_TYPES so that we can add this invalid file to the
-    # request
-    relpath = Path("test/file.foo")
+    # mock the LEVEL4_FILE_TYPES so that we can create this request with an
+    # invalid file
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
-        factories.write_request_file(
-            release_request, "group", relpath, "test", approved=True
+        release_request = factories.create_request_at_state(
+            "workspace",
+            id="request_id",
+            status=RequestStatus.APPROVED,
+            files=[factories.request_file(path="test/file.foo", approved=True)],
         )
-    factories.complete_independent_review(release_request)
 
-    release_request = factories.refresh_release_request(release_request)
-    bll.set_status(release_request, RequestStatus.APPROVED, checker)
+    checker = factories.create_user("checker", [], output_checker=True)
     with pytest.raises(bll.RequestPermissionDenied):
         bll.release_files(release_request, checker)
     assert_last_notification(mock_notifications, "request_approved")
@@ -354,39 +344,43 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
     old_api.create_release.return_value = "jobserver_id"
-    author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", [], output_checker=True)
-    release_request = factories.create_release_request(
+    checker1 = factories.create_user("checker1", [], output_checker=True)
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
         id="request_id",
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.APPROVED,
+        checker=checker,
+        files=[
+            factories.request_file(
+                group="group",
+                path="test/file.txt",
+                contents="test",
+                approved=True,
+                checkers=[checker, checker1],
+            ),
+            # a supporting file, which should NOT be released
+            factories.request_file(
+                group="group",
+                path="test/supporting_file.txt",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+            # An approved but withdrawn file, which should NOT be released
+            factories.request_file(
+                group="group",
+                path="test/withdrawn_file.txt",
+                filetype=RequestFileType.WITHDRAWN,
+                approved=True,
+            ),
+        ],
     )
-    relpath = UrlPath("test/file.txt")
-    factories.write_request_file(
-        release_request, "group", relpath, "test", approved=True
-    )
-    # Add a supporting file, which should NOT be released
-    supporting_relpath = Path("test/supporting_file.txt")
-    factories.write_request_file(
-        release_request,
-        "group",
-        supporting_relpath,
-        "test",
-        filetype=RequestFileType.SUPPORTING,
-    )
-    factories.complete_independent_review(release_request)
-    release_request = factories.refresh_release_request(release_request)
-    factories.bll.set_status(release_request, RequestStatus.APPROVED, checker)
-
+    relpath = Path("test/file.txt")
     abspath = release_request.abspath("group" / relpath)
 
     freezer.move_to("2022-01-01T12:34:56")
     bll.release_files(release_request, checker)
 
-    # TODO: when we do this, it reverses the order of the audit log in the data struct??
     release_request = factories.refresh_release_request(release_request)
-
     request_file = release_request.filegroups["group"].files[relpath]
     assert request_file.released_by == checker.username
     assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
@@ -416,37 +410,75 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
     notification_responses = parse_notification_responses(mock_notifications)
     # Notifications expected for:
-    # - write file x2
+    # - set status to submitted
     # - set status to partially reviewed
     # - set status to reviewed
     # - set status to approved
     # - set status to released
-    assert notification_responses["count"] == 6
+    # (Note: files are added to the request when it is in pending status, so no notifications sent.)
+    assert notification_responses["count"] == 5
     request_json = notification_responses["request_json"]
-    assert request_json[0]["event_type"] == "request_updated"
-    assert request_json[1]["event_type"] == "request_updated"
-    assert request_json[2]["event_type"] == "request_partially_reviewed"
-    assert request_json[3]["event_type"] == "request_reviewed"
-    assert request_json[4]["event_type"] == "request_approved"
-    assert request_json[5]["event_type"] == "request_released"
+    expected_notifications = [
+        "request_submitted",
+        "request_partially_reviewed",
+        "request_reviewed",
+        "request_approved",
+        "request_released",
+    ]
+    assert [event["event_type"] for event in request_json] == expected_notifications
 
     audit_log = bll.get_audit_log(request=release_request.id)
+    expected_audit_logs = [
+        # create request
+        AuditEventType.REQUEST_CREATE,
+        # add 3 files
+        AuditEventType.REQUEST_FILE_ADD,
+        AuditEventType.REQUEST_FILE_ADD,
+        AuditEventType.REQUEST_FILE_ADD,
+        # submit request
+        AuditEventType.REQUEST_SUBMIT,
+        # checker reviews
+        AuditEventType.REQUEST_REVIEW,
+        # checker1 reviews
+        AuditEventType.REQUEST_REVIEW,
+        # appprove, release 1 output file, change request to released
+        AuditEventType.REQUEST_APPROVE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_RELEASE,
+    ]
+    assert [log.type for log in audit_log] == expected_audit_logs
 
-    assert audit_log[5].type == AuditEventType.REQUEST_APPROVE
-    assert audit_log[5].user == checker.username
-    assert audit_log[5].request == release_request.id
-    assert audit_log[5].workspace == "workspace"
+    checker_review_log = audit_log[5]
+    checker1_review_log = audit_log[6]
+    approve_log = audit_log[7]
+    release_file_log = audit_log[8]
+    release_log = audit_log[9]
 
-    assert audit_log[6].type == AuditEventType.REQUEST_FILE_RELEASE
-    assert audit_log[6].user == checker.username
-    assert audit_log[6].request == release_request.id
-    assert audit_log[6].workspace == "workspace"
-    assert audit_log[6].path == Path("test/file.txt")
+    assert checker_review_log.type == AuditEventType.REQUEST_REVIEW
+    assert checker_review_log.user == checker.username
+    assert checker_review_log.request == release_request.id
+    assert checker_review_log.workspace == "workspace"
 
-    assert audit_log[7].type == AuditEventType.REQUEST_RELEASE
-    assert audit_log[7].user == checker.username
-    assert audit_log[7].request == release_request.id
-    assert audit_log[7].workspace == "workspace"
+    assert checker1_review_log.type == AuditEventType.REQUEST_REVIEW
+    assert checker1_review_log.user == checker1.username
+    assert checker1_review_log.request == release_request.id
+    assert checker1_review_log.workspace == "workspace"
+
+    assert approve_log.type == AuditEventType.REQUEST_APPROVE
+    assert approve_log.user == checker.username
+    assert approve_log.request == release_request.id
+    assert approve_log.workspace == "workspace"
+
+    assert release_file_log.type == AuditEventType.REQUEST_FILE_RELEASE
+    assert release_file_log.user == checker.username
+    assert release_file_log.request == release_request.id
+    assert release_file_log.workspace == "workspace"
+    assert release_file_log.path == Path("test/file.txt")
+
+    assert release_log.type == AuditEventType.REQUEST_RELEASE
+    assert release_log.user == checker.username
+    assert release_log.request == release_request.id
+    assert release_log.workspace == "workspace"
 
 
 def test_provider_get_requests_for_workspace(bll):
@@ -505,14 +537,14 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
-    factories.create_release_request(
-        "workspace", other_user, id="r1", status=RequestStatus.SUBMITTED
+    factories.create_request_at_state(
+        "workspace", author=other_user, id="r1", status=RequestStatus.SUBMITTED
     )
 
     # requests not visible to output checker
     # status submitted, but authored by output checker
-    factories.create_release_request(
-        "workspace", user, id="r2", status=RequestStatus.SUBMITTED
+    factories.create_request_at_state(
+        "workspace", author=user, id="r2", status=RequestStatus.SUBMITTED
     )
     # requests authored by other users, status other than pending
     for i, status in enumerate(
@@ -526,7 +558,13 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
     ):
         ws = f"workspace{i}"
         user_n = factories.create_user(f"test_{i}", [ws])
-        factories.create_release_request(ws, user_n, status=status)
+        factories.create_request_at_state(
+            ws,
+            author=user_n,
+            status=status,
+            files=[factories.request_file(approved=status != RequestStatus.PENDING)],
+            withdrawn_after=RequestStatus.PENDING,
+        )
 
     assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
         expected
@@ -548,23 +586,23 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
     other_user = factories.create_user("other", ["workspace"], False)
     output_checker = factories.create_user("other-checker", ["workspace"], True)
     # request created by another user, status returned
-    release_request1 = factories.create_release_request(
-        "workspace", other_user, id="r1", status=RequestStatus.SUBMITTED
+    factories.create_request_at_state(
+        "workspace",
+        author=other_user,
+        id="r1",
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path="file.txt", approved=True)],
     )
-    factories.write_request_file(release_request1, "group", "file.txt", approved=True)
-    factories.complete_independent_review(release_request1)
-    release_request1 = factories.refresh_release_request(release_request1)
-    factories.bll.set_status(release_request1, RequestStatus.RETURNED, output_checker)
 
     # requests not visible to output checker
     # status returned, but authored by output checker
-    release_request2 = factories.create_release_request(
-        "workspace", user, id="r2", status=RequestStatus.SUBMITTED
+    factories.create_request_at_state(
+        "workspace",
+        author=user,
+        id="r2",
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path="file.txt", approved=True)],
     )
-    factories.write_request_file(release_request2, "group", "file.txt", approved=True)
-    factories.complete_independent_review(release_request2)
-    release_request2 = factories.refresh_release_request(release_request2)
-    factories.bll.set_status(release_request2, RequestStatus.RETURNED, output_checker)
 
     # requests authored by other users, status other than returned
     for i, status in enumerate(
@@ -579,7 +617,13 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
     ):
         ws = f"workspace{i}"
         user_n = factories.create_user(f"test_{i}", [ws])
-        factories.create_release_request(ws, user_n, status=status)
+        factories.create_request_at_state(
+            ws,
+            author=user_n,
+            status=status,
+            withdrawn_after=RequestStatus.PENDING,
+            files=[factories.request_file(approved=True)],
+        )
 
     assert set(r.id for r in bll.get_returned_requests(user)) == set(expected)
 
@@ -598,15 +642,24 @@ def test_provider_get_approved_requests(output_checker, expected, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
     output_checker = factories.create_user("other-checker", ["workspace"], True)
+
     # request created by another user, status approved
-    factories.create_release_request(
-        "workspace", other_user, id="r1", status=RequestStatus.APPROVED
+    factories.create_request_at_state(
+        "workspace",
+        author=other_user,
+        id="r1",
+        status=RequestStatus.APPROVED,
+        files=[factories.request_file(path="file.txt", approved=True)],
     )
 
     # requests not visible to output checker
-    # status returned, but authored by output checker
-    factories.create_release_request(
-        "workspace", user, id="r2", status=RequestStatus.APPROVED
+    # status approved, but authored by output checker
+    factories.create_request_at_state(
+        "workspace",
+        author=user,
+        id="r2",
+        status=RequestStatus.APPROVED,
+        files=[factories.request_file(path="file.txt", approved=True)],
     )
 
     # requests authored by other users, status other than approved
@@ -622,8 +675,13 @@ def test_provider_get_approved_requests(output_checker, expected, bll):
     ):
         ws = f"workspace{i}"
         user_n = factories.create_user(f"test_{i}", [ws])
-        factories.create_release_request(ws, user_n, status=status)
-
+        factories.create_request_at_state(
+            ws,
+            author=user_n,
+            status=status,
+            withdrawn_after=RequestStatus.PENDING,
+            files=[factories.request_file(approved=True)],
+        )
     assert set(r.id for r in bll.get_approved_requests(user)) == set(expected)
 
 
@@ -693,72 +751,187 @@ def test_provider_get_current_request_for_user_output_checker(bll):
 
 
 @pytest.mark.parametrize(
-    "current,future,valid_author,valid_checker",
+    "current,future,valid_author,valid_checker,withdrawn_after",
     # valid_author: author can set status of their own request
     # valid_checker: checker can set status of another author's request
     [
-        (RequestStatus.PENDING, RequestStatus.SUBMITTED, True, False),
-        (RequestStatus.PENDING, RequestStatus.WITHDRAWN, True, False),
-        (RequestStatus.PENDING, RequestStatus.PARTIALLY_REVIEWED, False, False),
-        (RequestStatus.PENDING, RequestStatus.REVIEWED, False, False),
-        (RequestStatus.PENDING, RequestStatus.APPROVED, False, False),
-        (RequestStatus.PENDING, RequestStatus.REJECTED, False, False),
-        (RequestStatus.PENDING, RequestStatus.RELEASED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.PENDING, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED, False, True),
-        (RequestStatus.SUBMITTED, RequestStatus.REVIEWED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.APPROVED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.REJECTED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.RETURNED, False, False),
-        (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.PENDING, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.SUBMITTED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REVIEWED, False, True),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.APPROVED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REJECTED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.RELEASED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.WITHDRAWN, False, False),
-        (RequestStatus.REVIEWED, RequestStatus.PENDING, False, False),
-        (RequestStatus.REVIEWED, RequestStatus.SUBMITTED, False, False),
-        (RequestStatus.REVIEWED, RequestStatus.PARTIALLY_REVIEWED, False, False),
-        (RequestStatus.REVIEWED, RequestStatus.RETURNED, False, True),
-        (RequestStatus.REVIEWED, RequestStatus.APPROVED, False, True),
-        (RequestStatus.REVIEWED, RequestStatus.REJECTED, False, True),
-        (RequestStatus.REVIEWED, RequestStatus.WITHDRAWN, False, False),
-        (RequestStatus.RETURNED, RequestStatus.SUBMITTED, True, False),
-        (RequestStatus.RETURNED, RequestStatus.WITHDRAWN, True, False),
-        (RequestStatus.APPROVED, RequestStatus.RELEASED, False, True),
-        (RequestStatus.APPROVED, RequestStatus.REJECTED, False, False),
-        (RequestStatus.APPROVED, RequestStatus.WITHDRAWN, False, False),
-        (RequestStatus.REJECTED, RequestStatus.PENDING, False, False),
-        (RequestStatus.REJECTED, RequestStatus.SUBMITTED, False, False),
-        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, True),
-        (RequestStatus.REJECTED, RequestStatus.WITHDRAWN, False, False),
-        (RequestStatus.RELEASED, RequestStatus.REJECTED, False, False),
-        (RequestStatus.RELEASED, RequestStatus.PENDING, False, False),
-        (RequestStatus.RELEASED, RequestStatus.SUBMITTED, False, False),
-        (RequestStatus.RELEASED, RequestStatus.APPROVED, False, False),
-        (RequestStatus.RELEASED, RequestStatus.REJECTED, False, False),
-        (RequestStatus.RELEASED, RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.PENDING, RequestStatus.SUBMITTED, True, False, None),
+        (RequestStatus.PENDING, RequestStatus.WITHDRAWN, True, False, None),
+        (RequestStatus.PENDING, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.PENDING, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.PENDING, RequestStatus.APPROVED, False, False, None),
+        (RequestStatus.PENDING, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.PENDING, RequestStatus.RELEASED, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED, False, True, None),
+        (RequestStatus.SUBMITTED, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.APPROVED, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.WITHDRAWN, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.RETURNED, False, False, None),
+        (RequestStatus.SUBMITTED, RequestStatus.RELEASED, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.SUBMITTED, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REVIEWED, False, True, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.APPROVED, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.RELEASED, False, False, None),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestStatus.WITHDRAWN, False, False, None),
+        (RequestStatus.REVIEWED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.REVIEWED, RequestStatus.SUBMITTED, False, False, None),
+        (RequestStatus.REVIEWED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.REVIEWED, RequestStatus.RETURNED, False, True, None),
+        (RequestStatus.REVIEWED, RequestStatus.APPROVED, False, True, None),
+        (RequestStatus.REVIEWED, RequestStatus.REJECTED, False, True, None),
+        (RequestStatus.REVIEWED, RequestStatus.WITHDRAWN, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.SUBMITTED, True, False, None),
+        (RequestStatus.RETURNED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.APPROVED, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.RETURNED, RequestStatus.WITHDRAWN, True, False, None),
+        (RequestStatus.APPROVED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.APPROVED, RequestStatus.SUBMITTED, False, False, None),
+        (RequestStatus.APPROVED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.APPROVED, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.APPROVED, RequestStatus.RELEASED, False, True, None),
+        (RequestStatus.APPROVED, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.APPROVED, RequestStatus.WITHDRAWN, False, False, None),
+        (RequestStatus.REJECTED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.REJECTED, RequestStatus.SUBMITTED, False, False, None),
+        (RequestStatus.REJECTED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.REJECTED, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, True, None),
+        (RequestStatus.REJECTED, RequestStatus.WITHDRAWN, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.PENDING, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.SUBMITTED, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.REVIEWED, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.APPROVED, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.REJECTED, False, False, None),
+        (RequestStatus.RELEASED, RequestStatus.WITHDRAWN, False, False, None),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.PENDING,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.SUBMITTED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.PARTIALLY_REVIEWED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.REVIEWED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.APPROVED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.REJECTED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.RETURNED,
+            False,
+            False,
+            RequestStatus.PENDING,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.PENDING,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.SUBMITTED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.PARTIALLY_REVIEWED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.REVIEWED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.APPROVED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.REJECTED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
+        (
+            RequestStatus.WITHDRAWN,
+            RequestStatus.RETURNED,
+            False,
+            False,
+            RequestStatus.RETURNED,
+        ),
     ],
 )
-def test_set_status(current, future, valid_author, valid_checker, bll):
+def test_set_status(current, future, valid_author, valid_checker, withdrawn_after, bll):
     author = factories.create_user("author", ["workspace"], False)
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_user(output_checker=True)
+    file_reviewers = [checker, factories.create_user("checker1", [], True)]
     audit_type = bll.STATUS_AUDIT_EVENT[future]
 
     release_request1 = factories.create_request_at_state(
         "workspace1",
-        author,
-        current,
-        files=[factories.request_file(approved=True)],
+        status=current,
+        author=author,
+        checker=checker,
+        withdrawn_after=withdrawn_after,
+        files=[factories.request_file(approved=True, checkers=file_reviewers)],
     )
     release_request2 = factories.create_request_at_state(
         "workspace2",
-        author,
-        current,
-        files=[factories.request_file(approved=True)],
+        status=current,
+        author=author,
+        checker=checker,
+        withdrawn_after=withdrawn_after,
+        files=[factories.request_file(approved=True, checkers=file_reviewers)],
     )
 
     if valid_author:
@@ -796,26 +969,33 @@ def test_request_status_ownership(bll):
     "current,future,user,notification_event_type",
     [
         (RequestStatus.PENDING, RequestStatus.SUBMITTED, "author", "request_submitted"),
+        (RequestStatus.PENDING, RequestStatus.WITHDRAWN, "author", "request_withdrawn"),
         (
             RequestStatus.SUBMITTED,
-            RequestStatus.APPROVED,
+            RequestStatus.PARTIALLY_REVIEWED,
             "checker",
-            "request_approved",
+            "request_partially_reviewed",
         ),
         (
-            RequestStatus.SUBMITTED,
+            RequestStatus.PARTIALLY_REVIEWED,
+            RequestStatus.REVIEWED,
+            "checker",
+            "request_reviewed",
+        ),
+        (
+            RequestStatus.REVIEWED,
             RequestStatus.REJECTED,
             "checker",
             "request_rejected",
         ),
         (
-            RequestStatus.SUBMITTED,
-            RequestStatus.WITHDRAWN,
-            "author",
-            "request_withdrawn",
+            RequestStatus.REVIEWED,
+            RequestStatus.APPROVED,
+            "checker",
+            "request_approved",
         ),
         (
-            RequestStatus.SUBMITTED,
+            RequestStatus.REVIEWED,
             RequestStatus.RETURNED,
             "checker",
             "request_returned",
@@ -826,7 +1006,14 @@ def test_request_status_ownership(bll):
             "author",
             "request_resubmitted",
         ),
+        (
+            RequestStatus.RETURNED,
+            RequestStatus.WITHDRAWN,
+            "author",
+            "request_withdrawn",
+        ),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
+        (RequestStatus.REJECTED, RequestStatus.APPROVED, "checker", "request_approved"),
     ],
 )
 def test_set_status_notifications(
@@ -834,21 +1021,14 @@ def test_set_status_notifications(
 ):
     users = {
         "author": factories.create_user("author", ["workspace"], False),
-        "checker": factories.create_user("checker", [], True),
+        "checker": factories.create_user(output_checker=True),
     }
-    release_request = factories.create_release_request(
-        "workspace", user=users["author"], status=RequestStatus.PENDING
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=current,
+        files=[factories.request_file(approved=True)],
+        author=users["author"],
     )
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=True
-    )
-    release_request = factories.refresh_release_request(release_request)
-
-    if current != RequestStatus.PENDING:
-        bll.set_status(release_request, RequestStatus.SUBMITTED, user=users["author"])
-    if current in [RequestStatus.APPROVED, RequestStatus.RETURNED]:
-        bll.set_status(release_request, current, user=users["checker"])
-
     bll.set_status(release_request, future, users[user])
     assert_last_notification(mock_notifications, notification_event_type)
 
@@ -873,43 +1053,45 @@ def test_notification_error(bll, notifications_stubber, caplog):
     assert caplog.records[-1].message == "something went wrong"
 
 
-@pytest.mark.parametrize("files_approved", (True, False))
-def test_set_status_approved(files_approved, bll, mock_notifications):
+@pytest.mark.parametrize("all_files_approved", (True, False))
+def test_set_status_approved(all_files_approved, bll, mock_notifications):
     author = factories.create_user("author", ["workspace"], False)
-    checker = factories.create_user("checker", [], True)
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=RequestStatus.SUBMITTED
+    checker = factories.create_user(output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.REVIEWED,
+        files=[
+            factories.request_file(
+                approved=all_files_approved, rejected=not all_files_approved
+            )
+        ],
     )
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=files_approved
-    )
-    release_request = factories.refresh_release_request(release_request)
 
-    if files_approved:
+    if all_files_approved:
         bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
         assert release_request.status == RequestStatus.APPROVED
         assert_last_notification(mock_notifications, "request_approved")
     else:
-        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+        with pytest.raises(bll.RequestPermissionDenied):
             bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
-        assert_last_notification(mock_notifications, "request_updated")
+        assert_last_notification(mock_notifications, "request_reviewed")
 
 
 def test_set_status_cannot_action_own_request(bll):
-    user = factories.create_user("checker", [], True)
-    release_request1 = factories.create_release_request(
-        "workspace", user=user, status=RequestStatus.SUBMITTED
+    user = factories.create_user(output_checker=True)
+    release_request1 = factories.create_request_at_state(
+        "workspace", author=user, status=RequestStatus.SUBMITTED
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request1, RequestStatus.APPROVED, user=user)
-    with pytest.raises(bll.RequestPermissionDenied):
-        bll.set_status(release_request1, RequestStatus.REJECTED, user=user)
+        bll.set_status(release_request1, RequestStatus.PARTIALLY_REVIEWED, user=user)
 
-    release_request2 = factories.create_release_request(
-        "workspace",
-        user=user,
+    release_request2 = factories.create_request_at_state(
+        "workspace1",
+        author=user,
         status=RequestStatus.APPROVED,
+        files=[factories.request_file(approved=True)],
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
@@ -917,9 +1099,9 @@ def test_set_status_cannot_action_own_request(bll):
 
 
 def test_set_status_approved_no_files_denied(bll):
-    user = factories.create_user("checker", [], True)
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED
+    user = factories.create_user(output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace", status=RequestStatus.REVIEWED
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
@@ -927,14 +1109,12 @@ def test_set_status_approved_no_files_denied(bll):
 
 
 def test_set_status_approved_only_supporting_file_denied(bll):
-    user = factories.create_user("checker", [], True)
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED
+    user = factories.create_user(output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.REVIEWED,
+        files=[factories.request_file(filetype=RequestFileType.SUPPORTING)],
     )
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", filetype=RequestFileType.SUPPORTING
-    )
-    release_request = factories.refresh_release_request(release_request)
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.set_status(release_request, RequestStatus.APPROVED, user=user)
@@ -954,73 +1134,45 @@ def test_submit_request(bll, mock_notifications):
     assert_last_notification(mock_notifications, "request_submitted")
 
 
-def test_return_request_files_not_reviewed(bll, mock_notifications):
-    author = factories.create_user("author", ["workspace"], False)
-    checker = factories.create_user("checker", ["workspace"], True)
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=RequestStatus.SUBMITTED
-    )
-    # file approved twice
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=True
-    )
-    # file rejected twice
-    factories.write_request_file(
-        release_request, "group", "test/file1.txt", rejected=True
-    )
-    # file with one approval
-    factories.write_request_file(release_request, "group", "test/file2.txt")
-    release_request = factories.refresh_release_request(release_request)
-    bll.approve_file(release_request, UrlPath("test/file2.txt"), user=checker)
-    release_request = factories.refresh_release_request(release_request)
-
-    with pytest.raises(
-        BusinessLogicLayer.RequestPermissionDenied, match="request has unreviewed files"
-    ):
-        bll.set_status(release_request, RequestStatus.RETURNED, checker)
-
-
 def test_resubmit_request(bll, mock_notifications):
     """
     From returned
     Files with rejected status are moved to undecided
     """
     author = factories.create_user("author", ["workspace"], False)
-    checker = factories.create_user("checker", [], True)
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=RequestStatus.SUBMITTED
+    # Returned request with two files, one is approved by both reviewers, one is rejected
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="test", path="file.txt", approved=True),
+            factories.request_file(group="test", path="file1.txt", rejected=True),
+        ],
     )
-    # One file is approved by both, one is rejected
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=True
-    )
-    factories.write_request_file(
-        release_request, "group", "test/file1.txt", rejected=True
-    )
-    release_request = factories.refresh_release_request(release_request)
-
-    # checker returns request
-    bll.set_status(release_request, RequestStatus.RETURNED, checker)
+    assert len(release_request.completed_reviews) == 2
 
     # author re-submits with no changes to files
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.status == RequestStatus.SUBMITTED
     assert_last_notification(mock_notifications, "request_resubmitted")
-
     for i in range(2):
         user = factories.create_user(f"output-checker-{i}", output_checker=True)
         # approved file review is still approved
         approved_file = release_request.get_request_file_from_output_path(
-            UrlPath("test/file.txt")
+            UrlPath("file.txt")
         )
         assert approved_file.get_status_for_user(user) == UserFileReviewStatus.APPROVED
 
         # rejected file review is now undecided approved
         rejected_file = release_request.get_request_file_from_output_path(
-            UrlPath("test/file1.txt")
+            UrlPath("file1.txt")
         )
         assert rejected_file.get_status_for_user(user) == UserFileReviewStatus.UNDECIDED
+
+        # completed reviews have been reset
+        assert release_request.completed_reviews == {}
 
 
 def test_add_file_to_request_not_author(bll):
@@ -1046,7 +1198,7 @@ def test_add_file_to_request_invalid_file_type(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
-        "workspace",
+        workspace,
         user=author,
     )
 
@@ -1073,10 +1225,15 @@ def test_add_file_to_request_states(
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
-    release_request = factories.create_release_request(
-        "workspace",
-        user=author,
+
+    release_request = factories.create_request_at_state(
+        workspace,
+        author=author,
         status=status,
+        files=[factories.request_file(path="file.txt", approved=True)],
+        withdrawn_after=RequestStatus.PENDING
+        if status == RequestStatus.WITHDRAWN
+        else None,
     )
 
     if success:
@@ -1109,7 +1266,7 @@ def test_add_file_to_request_default_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
-        "workspace",
+        workspace,
         user=author,
     )
     bll.add_file_to_request(release_request, path, author)
@@ -1131,7 +1288,7 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
-        "workspace",
+        workspace,
         user=author,
     )
 
@@ -1146,21 +1303,21 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
 
 def test_withdraw_file_from_request_pending(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
+    path1 = Path("path/file1.txt")
+    path2 = Path("path/file2.txt")
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
+        author=author,
         status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                group="group", path=path1, contents="1", user=author
+            ),
+            factories.request_file(
+                group="group", path=path2, contents="2", user=author
+            ),
+        ],
     )
-    path1 = UrlPath("path/file1.txt")
-    path2 = UrlPath("path/file2.txt")
-    factories.write_request_file(
-        release_request, "group", path1, contents="1", user=author
-    )
-    factories.write_request_file(
-        release_request, "group", path2, contents="2", user=author
-    )
-    release_request = factories.refresh_release_request(release_request)
-
     assert release_request.filegroups["group"].files.keys() == {path1, path2}
 
     bll.withdraw_file_from_request(release_request, "group" / path1, user=author)
@@ -1193,20 +1350,22 @@ def test_withdraw_file_from_request_pending(bll, mock_notifications):
 
 def test_withdraw_file_from_request_submitted(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
+    path1 = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
+        author=author,
         status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                group="group", path=path1, contents="1", user=author
+            ),
+        ],
     )
-    path1 = UrlPath("path/file1.txt")
-    factories.write_request_file(release_request, "group", path1, user=author)
-    release_request = factories.refresh_release_request(release_request)
-
     assert [f.filetype for f in release_request.filegroups["group"].files.values()] == [
         RequestFileType.OUTPUT,
     ]
-
     bll.withdraw_file_from_request(release_request, "group" / path1, user=author)
+    release_request = factories.refresh_release_request(release_request)
 
     assert [f.filetype for f in release_request.filegroups["group"].files.values()] == [
         RequestFileType.WITHDRAWN,
@@ -1225,7 +1384,7 @@ def test_withdraw_file_from_request_submitted(bll, mock_notifications):
 
 
 @pytest.mark.parametrize(
-    "state",
+    "status",
     [
         RequestStatus.APPROVED,
         RequestStatus.REJECTED,
@@ -1233,12 +1392,20 @@ def test_withdraw_file_from_request_submitted(bll, mock_notifications):
         RequestStatus.RELEASED,
     ],
 )
-def test_withdraw_file_from_request_not_editable_state(bll, state):
+def test_withdraw_file_from_request_not_editable_state(bll, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
-        status=state,
+        author=author,
+        status=status,
+        files=[
+            factories.request_file(
+                group="group", path="foo.txt", user=author, approved=True
+            ),
+        ],
+        withdrawn_after=RequestStatus.PENDING
+        if status == RequestStatus.WITHDRAWN
+        else None,
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
@@ -1247,11 +1414,18 @@ def test_withdraw_file_from_request_not_editable_state(bll, state):
         )
 
 
-@pytest.mark.parametrize("state", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
-def test_withdraw_file_from_request_bad_file(bll, state):
+@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+def test_withdraw_file_from_request_bad_file(bll, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
-        "workspace", status=state, user=author
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=status,
+        files=[
+            factories.request_file(
+                group="group", path="foo.txt", user=author, approved=True
+            ),
+        ],
     )
 
     with pytest.raises(bll.FileNotFound):
@@ -1260,38 +1434,47 @@ def test_withdraw_file_from_request_bad_file(bll, state):
         )
 
 
-@pytest.mark.parametrize("state", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
-def test_withdraw_file_from_request_not_author(bll, state):
+@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+def test_withdraw_file_from_request_not_author(bll, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
-        "workspace", status=state, user=author
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=status,
+        files=[
+            factories.request_file(
+                group="group", path="foo.txt", user=author, approved=True
+            ),
+        ],
     )
 
     other = factories.create_user(username="other", workspaces=["workspace"])
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.withdraw_file_from_request(release_request, UrlPath("bad/path"), user=other)
+        bll.withdraw_file_from_request(
+            release_request, UrlPath("group/foo.txt"), user=other
+        )
 
 
 def test_request_all_files_by_name(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file.txt")
-    supporting_path = UrlPath("path/supporting_file.txt")
-    workspace = factories.create_workspace("workspace")
-    for fp in [path, supporting_path]:
-        factories.write_workspace_file(workspace, fp)
-    release_request = factories.create_release_request(
+    path = Path("path/file.txt")
+    supporting_path = Path("path/supporting_file.txt")
+
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
-    )
-    bll.add_file_to_request(
-        release_request, path, author, filetype=RequestFileType.OUTPUT
-    )
-    bll.add_file_to_request(
-        release_request, supporting_path, author, filetype=RequestFileType.SUPPORTING
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                group="default",
+                path=supporting_path,
+                filetype=RequestFileType.SUPPORTING,
+            ),
+            factories.request_file(group="default", path=path),
+        ],
     )
 
-    release_request = factories.refresh_release_request(release_request)
     # all_files_by_name consists of output files and supporting files
     assert release_request.all_files_by_name.keys() == {path, supporting_path}
 
@@ -1304,10 +1487,19 @@ def test_request_all_files_by_name(bll):
 def test_request_release_get_request_file_from_urlpath(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
-    release_request = factories.create_release_request("id")
-    factories.write_request_file(release_request, "default", path)
-    factories.write_request_file(
-        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.PENDING,
+        id="id",
+        files=[
+            factories.request_file(
+                group="default",
+                path=supporting_path,
+                filetype=RequestFileType.SUPPORTING,
+            ),
+            factories.request_file(group="default", path=path),
+        ],
     )
 
     with pytest.raises(bll.FileNotFound):
@@ -1323,10 +1515,18 @@ def test_request_release_get_request_file_from_urlpath(bll):
 def test_request_release_abspath(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
-    release_request = factories.create_release_request("id")
-    factories.write_request_file(release_request, "default", path)
-    factories.write_request_file(
-        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.PENDING,
+        id="id",
+        files=[
+            factories.request_file(
+                group="default",
+                path=supporting_path,
+                filetype=RequestFileType.SUPPORTING,
+            ),
+            factories.request_file(group="default", path=path),
+        ],
     )
 
     assert release_request.abspath("default" / path).exists()
@@ -1336,10 +1536,18 @@ def test_request_release_abspath(bll):
 def test_request_release_request_filetype(bll):
     path = UrlPath("foo/bar.txt")
     supporting_path = UrlPath("foo/bar1.txt")
-    release_request = factories.create_release_request("id")
-    factories.write_request_file(release_request, "default", path)
-    factories.write_request_file(
-        release_request, "default", supporting_path, filetype=RequestFileType.SUPPORTING
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.PENDING,
+        id="id",
+        files=[
+            factories.request_file(
+                group="default",
+                path=supporting_path,
+                filetype=RequestFileType.SUPPORTING,
+            ),
+            factories.request_file(group="default", path=path),
+        ],
     )
 
     assert release_request.request_filetype("default" / path) == RequestFileType.OUTPUT
@@ -1436,25 +1644,23 @@ def test_release_request_add_same_file(bll):
     assert len(release_request.filegroups["default"].files) == 1
 
 
-def _get_request_file(bll, release_request, path):
+def _get_request_file(release_request, path):
     """Syntactic sugar to make the tests a little more readable"""
     # refresh
-    release_request = bll.get_release_request(
-        release_request.id, factories.create_user(output_checker=True)
-    )
+    release_request = factories.refresh_release_request(release_request)
     return release_request.get_request_file_from_output_path(path)
 
 
 def test_approve_file_not_submitted(bll):
     release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_user(output_checker=True)
 
     bll.add_file_to_request(release_request, path, author)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1470,7 +1676,7 @@ def test_approve_file_not_your_own(bll):
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, author)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(author) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1487,63 +1693,61 @@ def test_approve_file_not_checker(bll):
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, author2)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(author) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
 
 def test_approve_file_not_part_of_request(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
-
-    bad_path = UrlPath("path/file2.txt")
+    checker = factories.create_user(output_checker=True)
+    bad_path = Path("path/file2.txt")
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, bad_path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
 
 def test_approve_supporting_file(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path, filetype=RequestFileType.SUPPORTING)],
+    )
+    checker = factories.create_user(output_checker=True)
 
-    bll.add_file_to_request(
-        release_request, path, author, filetype=RequestFileType.SUPPORTING
-    )
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
-    )
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
 
 def test_approve_file(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
+    checker = factories.create_user(output_checker=True)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     bll.approve_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1557,43 +1761,43 @@ def test_approve_file(bll):
 
 
 def test_approve_file_requires_two_plus(bll):
-    release_request, path, author = setup_empty_release_request()
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
+    )
     checker1 = factories.create_user("checker1", [], True)
     checker2 = factories.create_user("checker2", [], True)
     checker3 = factories.create_user("checker3", [], True)
 
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
-    )
-
     bll.approve_file(release_request, path, checker1)
     bll.reject_file(release_request, path, checker2)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status() == RequestFileReviewStatus.CONFLICTED
 
     bll.approve_file(release_request, path, checker3)
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status() == RequestFileReviewStatus.APPROVED
 
 
 def test_reject_file(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
+    checker = factories.create_user(output_checker=True)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     bll.reject_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1607,27 +1811,27 @@ def test_reject_file(bll):
 
 
 def test_approve_then_reject_file(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
+    checker = factories.create_user(output_checker=True)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     bll.approve_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     bll.reject_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1636,15 +1840,15 @@ def test_approve_then_reject_file(bll):
     "review", [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
 )
 def test_reviewreset_then_reset_review_file(bll, review):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
+    checker = factories.create_user(output_checker=True)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1655,34 +1859,34 @@ def test_reviewreset_then_reset_review_file(bll, review):
     else:
         assert False
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == review
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     bll.reset_review_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
 
 def test_reset_review_file_no_reviews(bll):
-    release_request, path, author = setup_empty_release_request()
-    checker = factories.create_user("checker", [], True)
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
+    checker = factories.create_user(output_checker=True)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     with pytest.raises(bll.FileReviewNotFound):
         bll.reset_review_file(release_request, path, checker)
 
-    rfile = _get_request_file(bll, release_request, path)
+    rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
@@ -1696,11 +1900,11 @@ def test_reset_review_file_no_reviews(bll):
     ],
 )
 def test_request_file_status_approved(bll, reviews, final_review):
-    release_request, path, author = setup_empty_release_request()
-
-    bll.add_file_to_request(release_request, path, author)
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
     )
 
     for i, review in enumerate(reviews):
@@ -1711,7 +1915,7 @@ def test_request_file_status_approved(bll, reviews, final_review):
         else:
             bll.reject_file(release_request, path, checker)
 
-        rfile = _get_request_file(bll, release_request, path)
+        rfile = _get_request_file(release_request, path)
         assert rfile.get_status_for_user(checker) == UserFileReviewStatus[review]
 
         if i == 0:
@@ -1722,98 +1926,160 @@ def test_request_file_status_approved(bll, reviews, final_review):
 
 def test_mark_file_undecided(bll):
     # Set up submitted request
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path="file.txt", rejected=True)],
     )
 
-    # Write a request file that already has 2 rejected reviewsso that we can
-    # set the request to RETURNED
-    path = Path("path/file.txt")
-    factories.write_request_file(
-        release_request,
-        "default",
-        path,
-        rejected=True,
-    )
-
-    # setup the initial file status for our test checker
-    checker = factories.create_user("checker", [], True)
-    bll.reject_file(release_request, path, checker)
-    release_request = factories.refresh_release_request(release_request)
-
-    # set the request to returned
-    bll.set_status(
-        release_request=release_request, to_status=RequestStatus.RETURNED, user=checker
-    )
+    # first default output-checker
+    checker = factories.create_user("output-checker-0")
 
     # mark file review as undecided
-    review = release_request.get_request_file_from_output_path(path).reviews[
+    review = release_request.get_request_file_from_output_path("file.txt").reviews[
         checker.username
     ]
-    bll.mark_file_undecided(release_request, review, path, checker)
+    bll.mark_file_undecided(release_request, review, "file.txt", user=checker)
     release_request = factories.refresh_release_request(release_request)
-    review = release_request.get_request_file_from_output_path(path).reviews[
+    review = release_request.get_request_file_from_output_path("file.txt").reviews[
         checker.username
     ]
     assert review.status == UserFileReviewStatus.UNDECIDED
 
 
 @pytest.mark.parametrize(
-    "request_status,file_status",
+    "request_status,file_status,allowed",
     [
         # can only mark undecided for a rejected file on a returned request
-        (RequestStatus.SUBMITTED, UserFileReviewStatus.REJECTED),
-        (RequestStatus.APPROVED, UserFileReviewStatus.REJECTED),
-        (RequestStatus.RELEASED, UserFileReviewStatus.REJECTED),
-        (RequestStatus.RETURNED, UserFileReviewStatus.APPROVED),
+        (RequestStatus.SUBMITTED, UserFileReviewStatus.REJECTED, False),
+        (RequestStatus.RETURNED, UserFileReviewStatus.APPROVED, False),
+        (RequestStatus.RETURNED, UserFileReviewStatus.REJECTED, True),
     ],
 )
-def test_mark_file_undecided_permission_errors(bll, request_status, file_status):
-    # Set up submitted request
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED
-    )
-
-    # Write a request file that already has 2 reviews; these are both rejected for
+def test_mark_file_undecided_permission_errors(
+    bll, request_status, file_status, allowed
+):
+    # Set up that already has 2 reviews; these are both rejected for
     # requests that we want to be in RETURNED status, and approved
     # for SUBMITTED/APPROVED/RELEASED, so we can set the request status
-    path = Path("path/file.txt")
-    factories.write_request_file(
-        release_request,
-        "default",
-        path,
-        rejected=file_status == RequestStatus.RETURNED,
-        approved=file_status != RequestStatus.RETURNED,
+    path = "path/file.txt"
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=request_status,
+        files=[
+            factories.request_file(
+                path=path,
+                rejected=file_status == UserFileReviewStatus.REJECTED,
+                approved=file_status == UserFileReviewStatus.APPROVED,
+                checkers=checkers,
+            )
+        ],
     )
 
-    # setup the initial file status for our test checker
-    checker = factories.create_user("checker", [], True)
-    if file_status == UserFileReviewStatus.APPROVED:
-        bll.approve_file(release_request, path, checker)
-    else:
-        bll.reject_file(release_request, path, checker)
-    release_request = factories.refresh_release_request(release_request)
-
-    # set the request status
-    # For released, first move the initially submitted request to approved
-    if request_status == RequestStatus.RELEASED:
-        bll.set_status(
-            release_request=release_request,
-            to_status=RequestStatus.APPROVED,
-            user=checker,
-        )
-    # If necessary, move the initally submitted request to the final state for testing
-    if request_status != RequestStatus.SUBMITTED:
-        bll.set_status(
-            release_request=release_request, to_status=request_status, user=checker
-        )
-
     review = release_request.get_request_file_from_output_path(path).reviews[
-        checker.username
+        checkers[0].username
     ]
     assert review.status == file_status
-    with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.mark_file_undecided(release_request, review, path, checker)
+    if allowed:
+        bll.mark_file_undecided(release_request, review, path, checkers[0])
+    else:
+        with pytest.raises(bll.ApprovalPermissionDenied):
+            bll.mark_file_undecided(release_request, review, path, checkers[0])
+
+
+def test_review_request(bll):
+    checker = factories.create_user("checker", output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="test.txt", rejected=True, checkers=[checker]),
+            factories.request_file(path="test1.txt"),
+        ],
+    )
+    # first file is already rejected, second file is not reviewed
+    with pytest.raises(
+        bll.RequestReviewDenied,
+        match="You must review all files to complete your review",
+    ):
+        bll.review_request(release_request, checker)
+    assert "checker" not in release_request.completed_reviews
+    assert release_request.status == RequestStatus.SUBMITTED
+
+    # approved second file
+    factories.review_file(
+        release_request, "test1.txt", UserFileReviewStatus.APPROVED, checker
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.review_request(release_request, checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert "checker" in release_request.completed_reviews
+    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
+
+    # re-review
+    with pytest.raises(
+        bll.RequestReviewDenied, match="You have already completed your review"
+    ):
+        bll.review_request(release_request, checker)
+
+
+def test_review_request_non_submitted_status(bll):
+    checker = factories.create_user(output_checker=True)
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.WITHDRAWN,
+        withdrawn_after=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                path="test.txt",
+                checkers=[checker, factories.create_user(output_checker=True)],
+                approved=True,
+            ),
+        ],
+    )
+    with pytest.raises(
+        bll.RequestPermissionDenied, match="Cannot review request in state WITHDRAWN"
+    ):
+        bll.review_request(release_request, checker)
+
+
+def test_review_request_non_output_checker(bll):
+    user = factories.create_user("non-output-checker")
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="test.txt", approved=True),
+        ],
+    )
+    with pytest.raises(
+        bll.RequestPermissionDenied, match="Only an output checker can review a request"
+    ):
+        bll.review_request(release_request, user)
+
+
+def test_review_request_more_than_2_checkers(bll):
+    checkers = [factories.create_user(f"checker_{i}", [], True) for i in range(3)]
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="test.txt", approved=True, checkers=checkers),
+        ],
+    )
+    bll.review_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
+
+    bll.review_request(release_request, checkers[1])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+
+    bll.review_request(release_request, checkers[2])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+    assert len(release_request.completed_reviews) == 3
 
 
 # add DAL method names to this if they do not require auditing
@@ -1826,6 +2092,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_requests_authored_by_user",
     "get_approved_requests",
     "delete_file_from_request",
+    "record_review",
 }
 
 
@@ -1913,14 +2180,12 @@ def test_group_edit_notifications(
     # Set the output checking org and repo to override any local settings
     settings.AIRLOCK_OUTPUT_CHECKING_ORG = settings.AIRLOCK_OUTPUT_CHECKING_REPO = None
     author = factories.create_user("author", ["workspace"], False)
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    release_request = factories.refresh_release_request(release_request)
-    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
 
     # group is always created with no context/controls initially
     assert release_request.filegroups["group"].context == ""
@@ -1957,14 +2222,12 @@ def test_notifications_org_repo(
     settings.AIRLOCK_OUTPUT_CHECKING_ORG = org
     settings.AIRLOCK_OUTPUT_CHECKING_REPO = repo
     author = factories.create_user("author", ["workspace"], False)
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    release_request = factories.refresh_release_request(release_request)
-    bll.set_status(release_request, RequestStatus.SUBMITTED, author)
 
     # notifications endpoint called when request submitted
     notification_responses = parse_notification_responses(mock_notifications)
@@ -1986,11 +2249,11 @@ def test_notifications_org_repo(
 def test_group_edit_not_author(bll):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], False)
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
@@ -1998,12 +2261,16 @@ def test_group_edit_not_author(bll):
 
 
 @pytest.mark.parametrize(
-    "state", [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.WITHDRAWN]
+    "status", [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.WITHDRAWN]
 )
-def test_group_edit_not_editable(bll, state):
+def test_group_edit_not_editable(bll, status):
     author = factories.create_user("author", ["workspace"], False)
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=state
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=status,
+        files=[factories.request_file(approved=True)],
+        withdrawn_after=RequestStatus.PENDING,
     )
 
     with pytest.raises(bll.RequestPermissionDenied):
@@ -2012,11 +2279,11 @@ def test_group_edit_not_editable(bll, state):
 
 def test_group_edit_bad_group(bll):
     author = factories.create_user("author", ["workspace"], False)
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
 
     with pytest.raises(bll.FileNotFound):
@@ -2028,7 +2295,7 @@ def test_group_edit_bad_group(bll):
     [
         (RequestStatus.PENDING, 0),
         # Currently no notifications are sent for comments. The only notification
-        # sent in this test is for adding a file to the submitted request
+        # sent in this test is for summitting request
         (RequestStatus.SUBMITTED, 1),
     ],
 )
@@ -2037,29 +2304,26 @@ def test_group_comment_create_success(
 ):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], False)
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=status
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=status,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
-    )
-    release_request = factories.refresh_release_request(release_request)
 
     assert release_request.filegroups["group"].comments == []
 
     bll.group_comment_create(release_request, "group", "question?", other)
     bll.group_comment_create(release_request, "group", "answer!", author)
+    release_request = factories.refresh_release_request(release_request)
 
     notification_responses = parse_notification_responses(mock_notifications)
     assert notification_responses["count"] == notification_count
     if notification_count > 0:
-        file_added = notification_responses["request_json"][0]
-        assert file_added["event_type"] == "request_updated"
-        assert file_added["updates"][0]["update_type"] == "file added"
-
-    release_request = factories.refresh_release_request(release_request)
+        assert (
+            notification_responses["request_json"][0]["event_type"]
+            == "request_submitted"
+        )
 
     assert release_request.filegroups["group"].comments[0].comment == "question?"
     assert release_request.filegroups["group"].comments[0].author == "other"
@@ -2082,17 +2346,16 @@ def test_group_comment_create_success(
 
 def test_group_comment_create_permissions(bll):
     author = factories.create_user("author", ["workspace"], False)
-    collaborator = factories.create_user("collaboratorr", ["workspace"], False)
+    collaborator = factories.create_user("collaborator", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
     checker = factories.create_user("checker", ["other"], True)
 
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 0
 
@@ -2113,16 +2376,12 @@ def test_group_comment_create_permissions(bll):
 def test_group_comment_delete_success(bll):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["workspace"], False)
-    status = RequestStatus.SUBMITTED
-    release_request = factories.create_release_request(
-        "workspace", user=author, status=status
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
-    )
-    release_request = factories.refresh_release_request(release_request)
 
     assert release_request.filegroups["group"].comments == []
 
@@ -2172,13 +2431,12 @@ def test_group_comment_delete_permissions(bll):
     collaborator = factories.create_user("collaborator", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
 
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    release_request = factories.refresh_release_request(release_request)
 
     bll.group_comment_create(release_request, "group", "author comment", author)
     release_request = factories.refresh_release_request(release_request)
@@ -2201,13 +2459,12 @@ def test_group_comment_create_invalid_params(bll):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
 
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
     )
-    release_request = factories.refresh_release_request(release_request)
 
     with pytest.raises(bll.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)

@@ -14,7 +14,6 @@ from airlock.business_logic import (
     CodeRepo,
     RequestFileType,
     RequestStatus,
-    UrlPath,
     UserFileReviewStatus,
     Workspace,
     bll,
@@ -233,6 +232,9 @@ def create_repo(workspace, files=None, temporary=True):
 
 
 def create_release_request(workspace, user=None, **kwargs):
+    assert (
+        kwargs.get("status", RequestStatus.PENDING) == RequestStatus.PENDING
+    ), "Use create_request_at_state to create a release request with a state other than PENDING"
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace

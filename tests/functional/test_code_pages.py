@@ -12,8 +12,8 @@ def release_request(researcher_user):
     workspace = factories.create_workspace("test-dir1")
     factories.write_workspace_file(workspace, "foo.txt", "")
     factories.create_repo(workspace)
-    release_request = factories.create_release_request(
-        workspace, user=researcher_user, status=RequestStatus.SUBMITTED
+    release_request = factories.create_request_at_state(
+        workspace, author=researcher_user, status=RequestStatus.SUBMITTED
     )
     # Ensure the request file is written using the workspace previously
     # created (so it's assigned the correct commit from the manifest.json associated

@@ -83,8 +83,8 @@ def test_get_audit_log(test_audits, kwargs, expected_audits):
 
 def test_delete_file_from_request_bad_state():
     author = factories.create_user()
-    release_request = factories.create_release_request(
-        "workspace", status=RequestStatus.SUBMITTED, user=author
+    release_request = factories.create_request_at_state(
+        "workspace", status=RequestStatus.SUBMITTED, author=author
     )
     audit = AuditEvent.from_request(
         release_request,
@@ -97,7 +97,7 @@ def test_delete_file_from_request_bad_state():
 
 
 @pytest.mark.parametrize(
-    "state",
+    "status",
     [
         RequestStatus.PENDING,
         RequestStatus.WITHDRAWN,
@@ -105,12 +105,14 @@ def test_delete_file_from_request_bad_state():
         RequestStatus.APPROVED,
     ],
 )
-def test_withdraw_file_from_request_bad_state(state):
+def test_withdraw_file_from_request_bad_state(status):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_state(
         "workspace",
-        user=author,
-        status=state,
+        author=author,
+        status=status,
+        files=[factories.request_file(approved=status != RequestStatus.PENDING)],
+        withdrawn_after=RequestStatus.PENDING,
     )
 
     with pytest.raises(AssertionError):
@@ -145,13 +147,12 @@ def test_group_comment_delete_bad_params():
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["other-workspace"], False)
 
-    release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request,
-        "group",
-        "test/file.txt",
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[factories.request_file()],
     )
-    release_request = factories.refresh_release_request(release_request)
 
     audit = AuditEvent.from_request(
         request=release_request,
