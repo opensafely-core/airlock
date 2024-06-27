@@ -91,7 +91,6 @@
   z-index: -2;
 }
 
-
 .tree__file {
   --file-name: var(--color-slate-800);
   --icon-filter: invert(31%) sepia(1%) saturate(0%) hue-rotate(9deg)
@@ -120,17 +119,18 @@
   width: 14px;
 }
 
-[data-workspace] .workspace_under_review {
-  --file-bg: var(--color-cyan-50);
-  --file-border: var(--color-cyan-500);
-  --file-name: var(--color-cyan-900);
-  --icon-filter: invert(25%) sepia(27%) saturate(1303%) hue-rotate(151deg)
-    brightness(91%) contrast(89%);
-  --icon-url: url("/static/icons/add_circle_outline.svg");
+[data-workspace] {
+  .workspace_under_review {
+    --file-bg: var(--color-cyan-50);
+    --file-border: var(--color-cyan-500);
+    --file-name: var(--color-cyan-900);
+    --icon-filter: invert(25%) sepia(27%) saturate(1303%) hue-rotate(151deg)
+      brightness(91%) contrast(89%);
+    --icon-url: url("/static/icons/add_circle_outline.svg");
+  }
 }
 
-[data-author][data-request],
-[data-output-checker][data-request] {
+[data-request] {
   .tree__file.withdrawn {
     --file-bg: var(--color-orange-50) !important;
     --file-border: var(--color-orange-700) !important;
