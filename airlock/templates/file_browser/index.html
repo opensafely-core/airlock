@@ -45,7 +45,7 @@
               {% csrf_token %}
               {% #button type="submit" variant="danger" class="action-button btn-sm" id="reject-request-button" %}Reject request{% /button %}
             </form>
-            <form action="{{ request_return_url }}" method="POST" hx-post="{{ request_return_url }}" hx-disabled-elt="button">
+            <form action="{{ request_return_url }}" method="POST">
               {% csrf_token %}
               {% #button type="submit" class="btn-sm" tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
             </form>
