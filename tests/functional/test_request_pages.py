@@ -1,5 +1,6 @@
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 from airlock.business_logic import RequestStatus
@@ -101,100 +102,107 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     expect(comments_locator).to_contain_text("test comment")
 
 
-def test_request_return(live_server, context, page, bll):
-    author = login_as_user(
-        live_server,
-        context,
-        user_dict={
-            "username": "author",
-            "workspaces": ["workspace"],
-            "output_checker": False,
-        },
-    )
-
+@pytest.mark.parametrize(
+    "login_as,status,checkers, can_return",
+    [
+        ("author", RequestStatus.SUBMITTED, None, False),
+        ("checker1", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False),
+        ("checker2", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False),
+        ("checker1", RequestStatus.REVIEWED, ["checker1", "checker2"], True),
+    ],
+)
+def test_request_returnable(
+    live_server, context, page, bll, login_as, status, checkers, can_return
+):
+    user_data = {
+        "author": dict(
+            username="author", workspaces=["workspace"], output_checker=False
+        ),
+        "checker1": dict(
+            username="checker1", workspaces=["workspace"], output_checker=True
+        ),
+        "checker2": dict(
+            username="checker2", workspaces=["workspace"], output_checker=True
+        ),
+    }
+    author = factories.create_user(**user_data["author"])
+    if checkers is not None:
+        checkers = [factories.create_user(**user_data[user]) for user in checkers]
     release_request = factories.create_request_at_state(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=status,
         files=[
-            factories.request_file(group="group", path="file1.txt"),
-            factories.request_file(group="group", path="file2.txt"),
+            factories.request_file(
+                group="group",
+                path="file1.txt",
+                checkers=checkers,
+                approved=checkers is not None,
+            ),
+            factories.request_file(
+                group="group",
+                path="file2.txt",
+                checkers=checkers,
+                rejected=checkers is not None,
+            ),
         ],
     )
 
+    login_as_user(live_server, context, user_data[login_as])
     return_request_button = page.locator("#return-request-button")
     page.goto(live_server.url + release_request.get_url())
 
-    def _logout():
-        # logout by clearing cookies
-        context.clear_cookies()
-
-    def _review_files(username):
-        # logout current user, login as username
-        _logout()
-        login_as_user(
-            live_server,
-            context,
-            user_dict={
-                "username": username,
-                "workspaces": [],
-                "output_checker": True,
-            },
-        )
-        page.goto(live_server.url + release_request.get_url())
+    if can_return:
+        expect(return_request_button).to_be_enabled()
+        return_request_button.click()
+        expect(return_request_button).to_be_disabled()
+    elif login_as == "author":
+        expect(return_request_button).not_to_be_visible()
+    else:
         expect(return_request_button).to_be_disabled()
 
-        page.goto(live_server.url + release_request.get_url("group/file1.txt"))
-        page.locator("#file-approve-button").click()
 
-        page.goto(live_server.url + release_request.get_url("group/file2.txt"))
-        page.locator("#file-reject-button").click()
-
-        # mark review as completed
-        page.locator("#complete-review-button").click()
-
-    # First output-checker reviews files
-    _review_files("output-checker-1")
-
-    # Return button is still disabled
-    expect(return_request_button).to_be_disabled()
-
-    # Second output-checker reviews files
-    _review_files("output-checker-2")
-
-    # Return button is now enabled
-    expect(return_request_button).to_be_enabled()
-
-    # Return the request
-    return_request_button.click()
-
-    # logout, login as author again
-    _logout()
-    login_as_user(
-        live_server,
-        context,
-        user_dict={
-            "username": "author",
-            "workspaces": ["workspace"],
-            "output_checker": False,
-        },
+def test_returned_request(live_server, context, page, bll):
+    user_data = {
+        "author": dict(
+            username="author", workspaces=["workspace"], output_checker=False
+        ),
+        "checker1": dict(
+            username="checker1", workspaces=["workspace"], output_checker=True
+        ),
+        "checker2": dict(
+            username="checker2", workspaces=["workspace"], output_checker=True
+        ),
+    }
+    author = factories.create_user(**user_data["author"])
+    checkers = [
+        factories.create_user(**user_data[user]) for user in ["checker1", "checker2"]
+    ]
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group", path="file1.txt", checkers=checkers, approved=True
+            ),
+            factories.request_file(
+                group="group", path="file2.txt", checkers=checkers, rejected=True
+            ),
+        ],
     )
+
+    # author resubmits
+    login_as_user(live_server, context, user_data["author"])
     page.goto(live_server.url + release_request.get_url())
     # Can re-submit a returned request
     page.locator("#submit-for-review-button").click()
 
-    # logout, login as first output-checker
-    _logout()
-    login_as_user(
-        live_server,
-        context,
-        user_dict={
-            "username": "output-checker-1",
-            "workspaces": [],
-            "output_checker": True,
-        },
-    )
+    # logout by clearing cookies
+    context.clear_cookies()
 
+    # checker looks at previously rejected/approved files
+    login_as_user(live_server, context, user_data["checker1"])
     status_locator = page.locator(".file-status")
     # go to previously approved file; still shown as approved
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
