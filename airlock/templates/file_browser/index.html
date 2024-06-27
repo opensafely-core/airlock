@@ -106,13 +106,21 @@
     <div class="browser__files">
       <ul
         class="tree root tree__root"
-        {% if is_author %}data-author="true"{% endif %}
         {% if is_output_checker %}data-output-checker="true"{% endif %}
-        {% if context == "request" %}data-request="true"{% endif %}
-        {% if release_request.status.name %}data-request-status="{{ release_request.status.name }}"{% endif %}
+        {% if context == "request" %}
+          data-request="true"
+          {% if is_author %}data-author="true"{% endif %}
+          {% if release_request.status.name %}
+            data-request-status="{{ release_request.status.name }}"
+          {% endif %}
+          {% if release_request.all_files_reviewed %}
+            data-all-files-reviewed="true"
+          {% endif %}
+          {% if release_request.all_files_approved %}
+            data-all-files-approved="true"
+          {% endif %}
+        {% endif %}
         {% if context != "request" %}data-workspace="true"{% endif %}
-        {% if release_request.all_files_reviewed %}data-all-files-reviewed="true"{% endif %}
-        {% if release_request.all_files_approved %}data-all-files-approved="true"{% endif %}
         hx-boost="true"
         hx-on:htmx:after-request="setTreeSelection(this, event)"
         hx-push-url="true"
