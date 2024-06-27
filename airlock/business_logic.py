@@ -889,6 +889,12 @@ class ReleaseRequest:
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
 
+    def can_be_released(self) -> bool:
+        return (
+            self.status in [RequestStatus.REVIEWED, RequestStatus.APPROVED]
+            and self.all_files_approved()
+        )
+
     def is_final(self):
         return (
             BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.SYSTEM

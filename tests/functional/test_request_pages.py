@@ -103,6 +103,78 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
 
 
 @pytest.mark.parametrize(
+    "author,login_as,status,reviewer_buttons_visible,release_button_visible",
+    [
+        ("researcher", "researcher", RequestStatus.SUBMITTED, False, False),
+        ("researcher", "checker", RequestStatus.SUBMITTED, True, True),
+        ("checker", "checker", RequestStatus.SUBMITTED, False, False),
+        ("researcher", "checker", RequestStatus.PARTIALLY_REVIEWED, True, True),
+        ("checker", "checker", RequestStatus.PARTIALLY_REVIEWED, False, False),
+        ("researcher", "checker", RequestStatus.REVIEWED, True, True),
+        # APPROVED status - can be released, but other review buttons are hidden
+        ("researcher", "checker", RequestStatus.APPROVED, False, True),
+        ("researcher", "checker", RequestStatus.RELEASED, False, False),
+        ("researcher", "checker", RequestStatus.REJECTED, False, False),
+        ("researcher", "checker", RequestStatus.WITHDRAWN, False, False),
+    ],
+)
+def test_request_buttons(
+    live_server,
+    context,
+    page,
+    bll,
+    author,
+    login_as,
+    status,
+    reviewer_buttons_visible,
+    release_button_visible,
+):
+    user_data = {
+        "researcher": dict(
+            username="researcher", workspaces=["workspace"], output_checker=False
+        ),
+        "checker": dict(
+            username="checker", workspaces=["workspace"], output_checker=True
+        ),
+    }
+
+    release_request = factories.create_request_at_state(
+        "workspace",
+        author=factories.create_user(**user_data[author]),
+        status=status,
+        withdrawn_after=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                group="group",
+                path="file1.txt",
+                approved=True,
+            ),
+        ],
+    )
+
+    login_as_user(live_server, context, user_data[login_as])
+    page.goto(live_server.url + release_request.get_url())
+
+    reviewer_buttons = [
+        "#return-request-button",
+        "#reject-request-button",
+        "#complete-review-button",
+    ]
+
+    if reviewer_buttons_visible:
+        for button_id in reviewer_buttons:
+            expect(page.locator(button_id)).to_be_visible()
+    else:
+        for button_id in reviewer_buttons:
+            expect(page.locator(button_id)).not_to_be_visible()
+
+    if release_button_visible:
+        expect(page.locator("#release-files-button")).to_be_visible()
+    else:
+        expect(page.locator("#release-files-button")).not_to_be_visible()
+
+
+@pytest.mark.parametrize(
     "login_as,status,checkers, can_return",
     [
         ("author", RequestStatus.SUBMITTED, None, False),
@@ -250,4 +322,4 @@ def test_request_releaseable(live_server, context, page, bll):
     # output checker cannot return or reject
     expect(release_files_button).to_be_enabled()
     for locator in [return_request_button, reject_request_button]:
-        expect(locator).not_to_be_enabled()
+        expect(locator).not_to_be_visible()
