@@ -1639,7 +1639,7 @@ class BusinessLogicLayer:
             # reset completed review tracking
             self._dal.reset_reviews(request.id, audit)
 
-            # any files that have not been updated are set to UNDECIDED
+            # any unapproved files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
                 for review in rfile.rejected_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
