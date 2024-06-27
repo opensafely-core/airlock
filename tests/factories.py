@@ -349,16 +349,15 @@ def create_request_at_state(
         bll.set_status(request, RequestStatus.RETURNED, checker)
         request = refresh_release_request(request)
 
-        if (
+        if not (
             status == RequestStatus.WITHDRAWN
             and withdrawn_after == RequestStatus.RETURNED
         ):
-            bll.set_status(request, RequestStatus.WITHDRAWN, author)
-            return refresh_release_request(request)
-        else:
             return request
+        bll.set_status(request, RequestStatus.WITHDRAWN, author)
+        return refresh_release_request(request)
 
-    elif status == RequestStatus.REJECTED:
+    if status == RequestStatus.REJECTED:
         bll.set_status(request, RequestStatus.REJECTED, checker)
         return refresh_release_request(request)
 
@@ -368,7 +367,7 @@ def create_request_at_state(
     if status == RequestStatus.APPROVED:
         return request
 
-    elif status == RequestStatus.RELEASED:
+    if status == RequestStatus.RELEASED:
         bll.set_status(request, RequestStatus.RELEASED, checker)
         return refresh_release_request(request)
 
