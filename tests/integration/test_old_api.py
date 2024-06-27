@@ -20,7 +20,7 @@ def test_old_api_create_release(responses):
 
     assert (
         old_api.create_release(
-            "workspace_name", {"airlock_id": "jobserver-id"}, "testuser"
+            "workspace_name", "jobserver-id", {"airlock_id": "jobserver-id"}, "testuser"
         )
         == "jobserver-id"
     )
@@ -39,7 +39,7 @@ def test_old_api_create_release_with_error(responses, caplog):
     )
     with pytest.raises(requests.exceptions.HTTPError):
         old_api.create_release(
-            "workspace_name", {"airlock_id": "jobserver-id"}, "testuser"
+            "workspace_name", "jobserver-id", {"airlock_id": "jobserver-id"}, "testuser"
         )
     assert len(caplog.messages) == 1
     log = caplog.messages[0]

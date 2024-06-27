@@ -402,7 +402,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     }
 
     old_api.create_release.assert_called_once_with(
-        "workspace", json.dumps(expected_json), checker.username
+        "workspace", "request_id", json.dumps(expected_json), checker.username
     )
     old_api.upload_file.assert_called_once_with(
         "jobserver_id", relpath, abspath, checker.username

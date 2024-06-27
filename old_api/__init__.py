@@ -38,7 +38,7 @@ def create_filelist(paths, release_request):
     )
 
 
-def create_release(workspace_name, release_json, username):
+def create_release(workspace_name, release_request_id, release_json, username):
     """API call to job server to create a release."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{workspace_name}",
@@ -55,7 +55,7 @@ def create_release(workspace_name, release_json, username):
         logger.error(
             "%s Error creating release - %s - %s",
             response.status_code,
-            release_json["airlock_id"],
+            release_request_id,
             response.content.decode(),
         )
 
