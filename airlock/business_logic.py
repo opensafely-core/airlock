@@ -885,6 +885,9 @@ class ReleaseRequest:
             for rfile in self.output_files().values()
         )
 
+    def completed_reviews_count(self):
+        return len(self.completed_reviews)
+
     # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
@@ -1746,15 +1749,34 @@ class BusinessLogicLayer:
         self._dal.record_review(release_request.id, user.username)
 
         release_request = self.get_release_request(release_request.id, user)
-        n_reviews = len(release_request.completed_reviews)
+        n_reviews = release_request.completed_reviews_count()
 
         # this method is called twice, by different users. It advances the
         # state differently depending on whether its the 1st or 2nd review to
         # be completed.
-        if n_reviews == 1:
-            self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
-        elif n_reviews == 2:
-            self.set_status(release_request, RequestStatus.REVIEWED, user)
+        try:
+            if n_reviews == 1:
+                self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
+            elif n_reviews == 2:
+                self.set_status(release_request, RequestStatus.REVIEWED, user)
+        except self.InvalidStateTransition:
+            # There is a potential race condition where two reviewers hit the Complete Review
+            # button at the same time, and both attempt to transition from SUBMITTED to
+            # PARTIALLY_REVIEWED, or from PARTIALLY_REVIEWED to REVIEWED
+            # Assuming that the request status is now either PARTIALLY_REVIEWED or REVIEWED,
+            # we can verify the status by refreshing the request, getting the number of reviews
+            # again, and advance it if necessary
+            if release_request.status not in [
+                RequestStatus.PARTIALLY_REVIEWED,
+                RequestStatus.REVIEWED,
+            ]:
+                raise
+            release_request = self.get_release_request(release_request.id, user)
+            if (
+                release_request.completed_reviews_count() > 1
+                and release_request.status == RequestStatus.PARTIALLY_REVIEWED
+            ):
+                self.set_status(release_request, RequestStatus.REVIEWED, user)
 
     def mark_file_undecided(
         self,

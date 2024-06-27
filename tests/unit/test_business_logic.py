@@ -2082,6 +2082,64 @@ def test_review_request_more_than_2_checkers(bll):
     assert len(release_request.completed_reviews) == 3
 
 
+def test_review_request_race_condition(bll):
+    """
+    In a potential race condition, a
+    """
+    checkers = [
+        factories.create_user("checker", output_checker=True),
+        factories.create_user("checker1", output_checker=True),
+        factories.create_user("checker2", output_checker=True),
+        factories.create_user("checker3", output_checker=True),
+    ]
+    release_request = factories.create_request_at_state(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="test.txt", approved=True, checkers=checkers),
+            factories.request_file(path="test1.txt", rejected=True, checkers=checkers),
+        ],
+    )
+    # first checker completes review
+    bll.review_request(release_request, checkers[0])
+
+    # mock race condition by patching the number of completed reviews to return 1 initially
+    # This is called AFTER recording the review. If it's a first review, we expect there to
+    # be 1 completed reivew, if it's a second review we expect there to be 2.
+    # However in a race condition, this could be review 2, but the count is incorrectly
+    # retrieved as 1
+    with patch(
+        "airlock.business_logic.ReleaseRequest.completed_reviews_count"
+    ) as completed_reviews:
+        completed_reviews.side_effect = [1, 2]
+        bll.review_request(release_request, checkers[1])
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+
+    # Similarly, there could be a race between reviewer 2 and 3. For reviewer 2, we want to move the
+    # status to REVIEWED, for review 3 we should do nothing
+    with patch(
+        "airlock.business_logic.ReleaseRequest.completed_reviews_count"
+    ) as completed_reviews:
+        completed_reviews.side_effect = [2, 3]
+        bll.review_request(release_request, checkers[2])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+
+    # The request must be in a reviewed state (part or fully)
+    # Set status to submitted (mock check status to allow the invalid transition)
+    with patch("airlock.business_logic.BusinessLogicLayer.check_status"):
+        bll.set_status(release_request, RequestStatus.SUBMITTED, checkers[0])
+
+    with pytest.raises(bll.InvalidStateTransition):
+        with patch(
+            "airlock.business_logic.ReleaseRequest.completed_reviews_count"
+        ) as completed_reviews:
+            completed_reviews.side_effect = [2, 4]
+            bll.review_request(release_request, checkers[3])
+
+
 # add DAL method names to this if they do not require auditing
 DAL_AUDIT_EXCLUDED = {
     "get_release_request",
