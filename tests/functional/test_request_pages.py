@@ -19,7 +19,7 @@ def test_request_file_withdraw(live_server, context, page, bll):
         },
     )
 
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.PENDING,
@@ -64,7 +64,7 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
         },
     )
 
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         files=[factories.request_file(group="group")],
@@ -138,7 +138,7 @@ def test_request_buttons(
         ),
     }
 
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=factories.create_user(**user_data[author]),
         status=status,
@@ -200,7 +200,7 @@ def test_request_returnable(
     author = factories.create_user(**user_data["author"])
     if checkers is not None:
         checkers = [factories.create_user(**user_data[user]) for user in checkers]
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=status,
@@ -250,7 +250,7 @@ def test_returned_request(live_server, context, page, bll):
     checkers = [
         factories.create_user(**user_data[user]) for user in ["checker1", "checker2"]
     ]
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
@@ -286,7 +286,7 @@ def test_returned_request(live_server, context, page, bll):
 
 
 def test_request_releaseable(live_server, context, page, bll):
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.REVIEWED,
         files=[

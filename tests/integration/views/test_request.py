@@ -47,7 +47,7 @@ def test_request_id_does_not_exist(airlock_client):
 def test_request_view_root_summary(airlock_client):
     airlock_client.login(output_checker=True)
     audit_user = factories.create_user("audit_user")
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
         status=RequestStatus.PENDING,
@@ -80,7 +80,7 @@ def test_request_view_root_summary(airlock_client):
 def test_request_view_root_group(airlock_client):
     airlock_client.login(output_checker=True)
     audit_user = factories.create_user("audit_user")
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
         status=RequestStatus.PENDING,
@@ -149,7 +149,7 @@ def test_request_view_with_file_htmx(airlock_client):
 
 def test_request_view_with_submitted_request(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace", status=RequestStatus.SUBMITTED
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
@@ -162,7 +162,7 @@ def test_request_view_with_submitted_request(airlock_client):
 def test_request_view_with_reviewed_request(airlock_client):
     # Login as 1st default output-checker
     airlock_client.login("output-checker-0", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace", status=RequestStatus.REVIEWED
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
@@ -183,7 +183,7 @@ def test_request_view_with_reviewed_request(airlock_client):
 
 def test_request_view_with_authored_request_file(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
@@ -199,7 +199,7 @@ def test_request_view_with_authored_request_file(airlock_client):
 
 def test_request_view_with_submitted_file(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
@@ -216,7 +216,7 @@ def test_request_view_with_submitted_file(airlock_client):
 
 def test_request_view_with_submitted_supporting_file(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
@@ -236,7 +236,7 @@ def test_request_view_with_submitted_supporting_file(airlock_client):
 
 def test_request_view_with_submitted_file_approved(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
@@ -253,7 +253,7 @@ def test_request_view_with_submitted_file_approved(airlock_client):
 
 def test_request_view_with_submitted_file_rejected(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
@@ -280,7 +280,7 @@ def test_request_view_with_404(airlock_client):
 def test_request_view_404_with_files(airlock_client):
     airlock_client.login(output_checker=True)
     # write a file and a supporting file to the group
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
         files=[
@@ -502,19 +502,19 @@ def test_request_index_user_permitted_requests(airlock_client):
 def test_request_index_user_output_checker(airlock_client):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
     other = factories.create_user("other")
-    r1 = factories.create_request_at_state(
+    r1 = factories.create_request_at_status(
         "test_workspace", author=airlock_client.user, status=RequestStatus.SUBMITTED
     )
-    r2 = factories.create_request_at_state(
+    r2 = factories.create_request_at_status(
         "other_workspace", author=other, status=RequestStatus.SUBMITTED
     )
-    r3 = factories.create_request_at_state(
+    r3 = factories.create_request_at_status(
         "other_other_workspace",
         author=other,
         status=RequestStatus.RETURNED,
         files=[factories.request_file(rejected=True)],
     )
-    r4 = factories.create_request_at_state(
+    r4 = factories.create_request_at_status(
         "other_other1_workspace",
         author=other,
         status=RequestStatus.APPROVED,
@@ -593,7 +593,7 @@ def test_request_withdraw_not_author(airlock_client):
 
 def test_request_return_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.REVIEWED,
@@ -615,7 +615,7 @@ def test_request_return_author(airlock_client):
 def test_request_return_output_checker(airlock_client):
     airlock_client.login(workspaces=["test1"], output_checker=True)
     other_author = factories.create_user("other", [], False)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=other_author,
         status=RequestStatus.REVIEWED,
@@ -633,7 +633,7 @@ def test_request_return_output_checker(airlock_client):
 
 def test_request_review_author(airlock_client):
     airlock_client.login(workspaces=["test1"], output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
@@ -648,7 +648,7 @@ def test_request_review_author(airlock_client):
 
 def test_request_review_output_checker(airlock_client):
     airlock_client.login("checker", workspaces=["test1"], output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(approved=True, checkers=[airlock_client.user])],
@@ -677,7 +677,7 @@ def test_request_review_output_checker(airlock_client):
 
 def test_request_review_non_output_checker(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(approved=True)],
@@ -691,7 +691,7 @@ def test_request_review_non_output_checker(airlock_client):
 
 def test_request_review_not_all_files_reviewed(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         status=RequestStatus.SUBMITTED,
         files=[
@@ -752,7 +752,7 @@ def test_file_review_bad_user(airlock_client, review):
     airlock_client.login(workspaces=[workspace], output_checker=False)
     author = factories.create_user("author", [workspace], False)
     path = "path/test.txt"
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.SUBMITTED,
@@ -782,7 +782,7 @@ def test_file_review_bad_file(airlock_client, review):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.SUBMITTED,
@@ -812,7 +812,7 @@ def test_file_approve(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.SUBMITTED,
@@ -839,7 +839,7 @@ def test_file_reject(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.SUBMITTED,
@@ -866,7 +866,7 @@ def test_file_reset_review(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.SUBMITTED,
@@ -907,7 +907,7 @@ def test_file_reset_review(airlock_client):
 def test_request_reject_output_checker(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=author,
         status=RequestStatus.REVIEWED,
@@ -923,7 +923,7 @@ def test_request_reject_output_checker(airlock_client):
 
 
 def test_request_reject_not_output_checker(airlock_client):
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=factories.create_user("author1", workspaces=["test1"]),
         status=RequestStatus.REVIEWED,
@@ -943,7 +943,7 @@ def test_request_reject_not_output_checker(airlock_client):
 
 def test_file_withdraw_file_pending(airlock_client):
     airlock_client.login("author", ["test1"], False)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.PENDING,
@@ -969,7 +969,7 @@ def test_file_withdraw_file_pending(airlock_client):
 
 def test_file_withdraw_file_submitted(airlock_client):
     airlock_client.login("author", ["test1"], False)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
@@ -1034,7 +1034,7 @@ def test_file_withdraw_file_bad_request(airlock_client):
 @pytest.mark.parametrize("status", [RequestStatus.REVIEWED, RequestStatus.APPROVED])
 def test_request_release_files_success(airlock_client, release_files_stubber, status):
     airlock_client.login(username="checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=status,
@@ -1058,7 +1058,7 @@ def test_request_release_files_success_htmx(
     airlock_client, release_files_stubber, status
 ):
     airlock_client.login(username="checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=status,
@@ -1082,7 +1082,7 @@ def test_request_release_files_success_htmx(
 
 def test_requests_release_workspace_403(airlock_client):
     airlock_client.login("checker", output_checker=False)
-    factories.create_request_at_state(
+    factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=RequestStatus.SUBMITTED,
@@ -1097,7 +1097,7 @@ def test_requests_release_workspace_403(airlock_client):
 
 def test_requests_release_author_403(airlock_client):
     airlock_client.login(output_checker=True)
-    factories.create_request_at_state(
+    factories.create_request_at_status(
         "workspace",
         id="request_id",
         author=airlock_client.user,
@@ -1114,7 +1114,7 @@ def test_requests_release_author_403(airlock_client):
 
 def test_requests_release_invalid_state_transition_403(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    factories.create_request_at_state(
+    factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=RequestStatus.RETURNED,
@@ -1130,7 +1130,7 @@ def test_requests_release_invalid_state_transition_403(airlock_client):
 
 def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=RequestStatus.REVIEWED,
@@ -1168,7 +1168,7 @@ def test_requests_release_jobserver_403_with_debug(
 ):
     airlock_client.login("checker", output_checker=True)
     settings.DEBUG = True
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=RequestStatus.REVIEWED,
@@ -1193,7 +1193,7 @@ def test_requests_release_jobserver_403_with_debug(
 
 def test_requests_release_files_404(airlock_client, release_files_stubber):
     airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
         status=RequestStatus.REVIEWED,
@@ -1261,7 +1261,7 @@ def test_request_view_tracing_with_request_attribute(
     checker = factories.create_user("output_checker", output_checker=True)
     airlock_client.login(username=login_as, output_checker=True)
 
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test-workspace",
         status=status,
         author=author,

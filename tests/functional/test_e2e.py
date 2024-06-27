@@ -449,7 +449,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
     Test output-checker rejects a release request
     """
     # set up a reviewed request
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test-workspace",
         author=factories.create_user("author", workspaces=["test-workspace"]),
         status=RequestStatus.REVIEWED,
@@ -477,7 +477,7 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     """
     # set up a submitted request
     user = factories.create_user("researcher", ["test-workspace"], False)
-    release_request = factories.create_request_at_state(
+    release_request = factories.create_request_at_status(
         "test-workspace",
         author=user,
         status=RequestStatus.RETURNED,

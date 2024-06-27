@@ -234,7 +234,7 @@ def create_repo(workspace, files=None, temporary=True):
 def create_release_request(workspace, user=None, **kwargs):
     assert (
         kwargs.get("status", RequestStatus.PENDING) == RequestStatus.PENDING
-    ), "Use create_request_at_state to create a release request with a state other than PENDING"
+    ), "Use create_request_at_status to create a release request with a state other than PENDING"
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace
@@ -248,7 +248,7 @@ def create_release_request(workspace, user=None, **kwargs):
     return release_request
 
 
-def create_request_at_state(
+def create_request_at_status(
     workspace,
     status,
     author=None,
@@ -265,7 +265,7 @@ def create_request_at_state(
 
     Files are provided using a factory method for creating them. e.g.
 
-    create_request_at_state(
+    create_request_at_status(
         "workspace",
         RequestStatus.RELEASED,
         files=[
