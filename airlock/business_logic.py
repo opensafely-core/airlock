@@ -875,13 +875,13 @@ class ReleaseRequest:
     def all_files_approved(self):
         return all(
             request_file.get_status() == RequestFileReviewStatus.APPROVED
-            for filegroup in self.filegroups.values()
-            for request_file in filegroup.output_files
+            for request_file in self.output_files().values()
         )
 
     def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
         return all(
-            rfile.get_status_for_user(reviewer) is not None
+            rfile.get_status_for_user(reviewer)
+            not in [None, UserFileReviewStatus.UNDECIDED]
             for rfile in self.output_files().values()
         )
 

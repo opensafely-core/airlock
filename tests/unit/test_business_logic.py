@@ -1150,7 +1150,7 @@ def test_resubmit_request(bll, mock_notifications):
             factories.request_file(group="test", path="file1.txt", rejected=True),
         ],
     )
-    assert len(release_request.completed_reviews) == 2
+    assert release_request.completed_reviews_count() == 2
 
     # author re-submits with no changes to files
     bll.submit_request(release_request, author)
@@ -1165,12 +1165,12 @@ def test_resubmit_request(bll, mock_notifications):
         )
         assert approved_file.get_status_for_user(user) == UserFileReviewStatus.APPROVED
 
-        # rejected file review is now undecided approved
+        # rejected file review is now undecided
         rejected_file = release_request.get_request_file_from_output_path(
             UrlPath("file1.txt")
         )
         assert rejected_file.get_status_for_user(user) == UserFileReviewStatus.UNDECIDED
-
+        assert not release_request.all_files_reviewed_by_reviewer(user)
         # completed reviews have been reset
         assert release_request.completed_reviews == {}
 
