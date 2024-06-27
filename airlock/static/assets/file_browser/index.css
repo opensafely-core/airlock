@@ -52,8 +52,8 @@
 }
 
 .file-status--danger {
-  --status-color: var(--color-red-800);
-  --status-bg: var(--color-red-100);
+  --status-color: var(--color-fuchsia-800);
+  --status-bg: var(--color-fuchsia-100);
 }
 
 .file-status--warning {
