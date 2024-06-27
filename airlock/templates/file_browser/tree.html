@@ -3,11 +3,9 @@
     {% if child.is_directory %}
       <details class="tree__folder group" {% if child.expanded %}open{% endif %}>
         <summary class="tree__folder-name">
-          <img height="14" width="14" class="icon tree__folder-arrow tree__folder-arrow--open" src="/static/icons/keyboard_arrow_down.svg" alt="">
-          <img height="14" width="14" class="icon tree__folder-icon tree__folder-icon--open" src="/static/icons/folder_open.svg" alt="" />
-          <img height="14" width="14" class="icon tree__folder-arrow tree__folder-arrow--closed" src="/static/icons/keyboard_arrow_right.svg" alt="">
-          <img height="14" width="14" class="icon tree__folder-icon tree__folder-icon--closed" src="/static/icons/folder.svg" alt="" />
-          <a class="{{ child.html_classes }} tree__folder-link" href="{{ child.url }}">{{ child.display }}</a>
+          <span class="tree__folder-arrows"></span>
+          <span class="tree__folder-icons"></span>
+          <a class="tree__folder-link {{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
         </summary>
         {% if child.children %}
           <ul class="tree tree__child-list">
@@ -16,8 +14,8 @@
         {% endif %}
       </details>
     {% else %}
-      <a class="{{ child.html_classes }} tree__file" href="{{ child.url }}">
-        <img height="14" width="14" class="icon tree__file-icon" src="/static/icons/draft_outline.svg" alt="" />
+      <a class="tree__file {{ child.html_classes }}" href="{{ child.url }}">
+        <span class="tree__file-icon"></span>
         <span class="tree__file-name">{{ child.display }}</span>
       </a>
     {% endif %}

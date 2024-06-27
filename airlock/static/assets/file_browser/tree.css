@@ -1,0 +1,180 @@
+.tree__root {
+  --tree-font-size: 14px;
+  --tree-line-height: 22px;
+
+  font-size: var(--tree-font-size);
+  line-height: var(--tree-line-height);
+  list-style: none;
+}
+
+.tree__root > .tree__item:first-child {
+  min-width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.tree__item {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.tree__folder {
+  --arrows-url: url("/static/icons/keyboard_arrow_right.svg");
+  --folders-url: url("/static/icons/folder.svg");
+
+  &[open] {
+    --arrows-url: url("/static/icons/keyboard_arrow_down.svg");
+    --folders-url: url("/static/icons/folder_open.svg");
+  }
+}
+
+.tree__folder-name {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+}
+
+.tree__folder-name::marker,
+.tree__folder-name::-webkit-details-marker {
+  display: none;
+}
+
+.tree__folder-arrows {
+  background-image: var(--arrows-url);
+  background-size: 100%;
+  height: 14px;
+  width: 14px;
+}
+
+.tree__folder-icons {
+  background-image: var(--folders-url);
+  background-size: 100%;
+  filter: invert(43%) sepia(53%) saturate(2387%) hue-rotate(201deg)
+    brightness(97%) contrast(100%);
+  height: 14px;
+  margin-inline: 0.1rem 0.25rem;
+  width: 14px;
+}
+
+.tree__child-list {
+  border-left: 1px dotted grey;
+  display: flex;
+  flex-direction: column;
+  margin-left: 6px;
+  padding-left: 5px;
+}
+
+.tree__file {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+.tree__folder-link,
+.tree__file {
+  --file-bg: white;
+  --file-border: white;
+}
+
+.tree__folder-link::before,
+.tree__file::before {
+  background-color: var(--file-bg);
+  border-left: 0.25rem solid var(--file-border);
+  content: "";
+  height: calc(var(--tree-line-height) + 1px);
+  left: 0;
+  position: absolute;
+  width: calc(100% + 1rem);
+  z-index: -2;
+}
+
+
+.tree__file {
+  --file-name: var(--color-slate-800);
+  --icon-filter: invert(31%) sepia(1%) saturate(0%) hue-rotate(9deg)
+    brightness(97%) contrast(86%);
+  --icon-url: url("/static/icons/draft_outline.svg");
+}
+
+.tree__file-name {
+  color: var(--file-name);
+  padding-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.selected.tree__folder-link,
+.selected.tree__file {
+  --file-bg: var(--color-blue-50);
+  --file-border: var(--color-blue-50);
+}
+
+.tree__file-icon {
+  background-image: var(--icon-url);
+  background-size: 100%;
+  filter: var(--icon-filter);
+  height: 14px;
+  margin-left: 0.25rem;
+  width: 14px;
+}
+
+[data-workspace] .workspace_under_review {
+  --file-bg: var(--color-cyan-50);
+  --file-border: var(--color-cyan-500);
+  --file-name: var(--color-cyan-900);
+  --icon-filter: invert(25%) sepia(27%) saturate(1303%) hue-rotate(151deg)
+    brightness(91%) contrast(89%);
+  --icon-url: url("/static/icons/add_circle_outline.svg");
+}
+
+[data-author][data-request],
+[data-output-checker][data-request] {
+  .tree__file.withdrawn {
+    --file-bg: var(--color-orange-50) !important;
+    --file-border: var(--color-orange-700) !important;
+    --file-name: var(--color-orange-800) !important;
+    --icon-filter: invert(25%) sepia(6%) saturate(7490%) hue-rotate(333deg)
+      brightness(115%) contrast(111%) !important;
+    --icon-url: url("/static/icons/cancel_circle_outline.svg") !important;
+  }
+
+  .tree__file.supporting {
+    --file-bg: var(--color-slate-50);
+    --file-border: var(--color-slate-50);
+    --file-name: var(--color-slate-800);
+    --icon-filter: invert(10%) sepia(9%) saturate(3595%) hue-rotate(178deg)
+      brightness(93%) contrast(85%);
+    --icon-url: url("/static/icons/attach_file.svg");
+  }
+}
+
+[data-output-checker][data-request]:not([data-author]) {
+  .tree__file.output {
+    --file-bg: var(--color-yellow-50);
+    --file-border: var(--color-yellow-500);
+    --file-name: var(--color-yellow-800);
+    --icon-filter: invert(30%) sepia(79%) saturate(491%) hue-rotate(351deg)
+      brightness(95%) contrast(99%);
+    --icon-url: url("/static/icons/unknown.svg");
+  }
+
+  .tree__file.user_approved {
+    --file-bg: var(--color-emerald-50);
+    --file-border: var(--color-emerald-500);
+    --file-name: var(--color-emerald-800);
+    --icon-filter: invert(18%) sepia(77%) saturate(1712%) hue-rotate(142deg)
+      brightness(102%) contrast(95%);
+    --icon-url: url("/static/icons/check_circle_outline.svg");
+  }
+
+  .tree__file.user_rejected {
+    --file-bg: var(--color-fuchsia-50);
+    --file-border: var(--color-fuchsia-500);
+    --file-name: var(--color-fuchsia-800);
+    --icon-filter: invert(17%) sepia(40%) saturate(5736%) hue-rotate(284deg)
+      brightness(89%) contrast(98%);
+    --icon-url: url("/static/icons/help_circle_outline.svg");
+  }
+}
