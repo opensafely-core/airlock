@@ -91,26 +91,31 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
-    def _get_requests_by_status(self, status: RequestStatus):
+    def get_requests_by_status(self, *states: RequestStatus):
         return [
             metadata.to_dict()
-            for metadata in RequestMetadata.objects.filter(status=status)
+            for metadata in RequestMetadata.objects.filter(status__in=states)
         ]
-
-    def get_outstanding_requests_for_review(self):
-        return self._get_requests_by_status(status=RequestStatus.SUBMITTED)
-
-    def get_returned_requests(self):
-        return self._get_requests_by_status(status=RequestStatus.RETURNED)
-
-    def get_approved_requests(self):
-        return self._get_requests_by_status(status=RequestStatus.APPROVED)
 
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         with transaction.atomic():
             # persist state change
             metadata = self._find_metadata(request_id)
             metadata.status = status
+            metadata.save()
+            self._create_audit_log(audit)
+
+    def record_review(self, request_id: str, reviewer: str):
+        with transaction.atomic():
+            # persist reviewer state
+            metadata = self._find_metadata(request_id)
+            metadata.completed_reviews[reviewer] = timezone.now().isoformat()
+            metadata.save()
+
+    def reset_reviews(self, request_id: str, audit: AuditEvent):
+        with transaction.atomic():
+            metadata = self._find_metadata(request_id)
+            metadata.completed_reviews = {}
             metadata.save()
             self._create_audit_log(audit)
 

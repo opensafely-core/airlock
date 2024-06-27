@@ -114,6 +114,11 @@ urlpatterns = [
         name="request_submit",
     ),
     path(
+        "requests/review/<str:request_id>",
+        airlock.views.request_review,
+        name="request_review",
+    ),
+    path(
         "requests/reject/<str:request_id>",
         airlock.views.request_reject,
         name="request_reject",

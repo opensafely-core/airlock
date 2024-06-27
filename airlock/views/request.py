@@ -157,8 +157,24 @@ def request_view(request, request_id: str, path: str = ""):
             request=release_request.id, group=group, exclude_readonly=True, size=20
         )
 
+    user_has_completed_review = (
+        request.user.username in release_request.completed_reviews
+    )
+    user_has_reviewed_all_files = release_request.all_files_reviewed_by_reviewer(
+        request.user
+    )
+
+    if user_has_reviewed_all_files and not user_has_completed_review:
+        messages.success(
+            request, "All files reviewed. Your review can now be completed."
+        )
+
     request_submit_url = reverse(
         "request_submit",
+        kwargs={"request_id": request_id},
+    )
+    request_review_url = reverse(
+        "request_review",
         kwargs={"request_id": request_id},
     )
     request_withdraw_url = reverse(
@@ -227,10 +243,13 @@ def request_view(request, request_id: str, path: str = ""):
         "file_reset_review_url": file_reset_review_url,
         "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
+        "request_review_url": request_review_url,
         "request_reject_url": request_reject_url,
         "request_return_url": request_return_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
+        "user_has_completed_review": user_has_completed_review,
+        "user_has_reviewed_all_files": user_has_reviewed_all_files,
         "activity": activity,
         "group_edit_form": group_edit_form,
         "group_edit_url": group_edit_url,
@@ -291,6 +310,23 @@ def request_submit(request, request_id):
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
+    return redirect(release_request.get_url())
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_review(request, request_id):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    try:
+        bll.review_request(release_request, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+    except bll.RequestReviewDenied as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Your review has been completed")
+
     return redirect(release_request.get_url())
 
 
@@ -444,6 +480,8 @@ def request_release_files(request, request_id):
         bll.release_files(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
         messages.error(request, f"Error releasing files: {str(exc)}")
+    except bll.InvalidStateTransition as exc:
+        messages.error(request, f"Error releasing files: {str(exc)}")
     except requests.HTTPError as err:
         if settings.DEBUG:
             response_type = err.response.headers["Content-Type"]
@@ -469,6 +507,7 @@ def request_release_files(request, request_id):
                 )
     else:
         messages.success(request, "Files have been released to jobs.opensafely.org")
+
     if request.htmx:
         return HttpResponse(headers={"HX-Redirect": release_request.get_url()})
     else:

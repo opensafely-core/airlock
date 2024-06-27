@@ -1,6 +1,5 @@
 import json
 import re
-import time
 
 import pytest
 from playwright.sync_api import expect
@@ -121,10 +120,12 @@ def test_e2e_release_files(
     - View supporting file
     - Reject output file
     - Approve output file
+    - Complete review
     - Logout
 
     3) Log in as second output checker
     - Approve output file
+    - Complete review
     - Release files
     - View requests list again and confirm released request is not shown
     """
@@ -340,6 +341,11 @@ def test_e2e_release_files(
     find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
     expect(page.locator("body")).to_contain_text(request_id)
 
+    complete_review_button = page.locator("#complete-review-button")
+    # output checker hasn't reviewed files yet, complete review button visible but disabled
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_disabled()
+
     # Reuse the locators from the workspace view to click on filegroup and then file
     # Click to open the filegroup tree
     find_and_click(filegroup_link)
@@ -359,12 +365,20 @@ def test_e2e_release_files(
     find_and_click(page.locator("#file-reject-button"))
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
+    # output checker has now reviewed all output files
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_enabled()
+
     # Change our minds & remove the review
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
     find_and_click(page.locator("#file-reset-button"))
     expect(page.locator("#file-reject-button")).to_have_attribute(
         "aria-pressed", "false"
     )
+
+    # complete review button disabled again
+    expect(complete_review_button).to_be_visible()
+    expect(complete_review_button).to_be_disabled()
 
     # Think some more & finally approve the file
     expect(page.locator("#file-approve-button")).to_have_attribute(
@@ -397,6 +411,8 @@ def test_e2e_release_files(
     expect(page.locator("#file-reject-button")).not_to_be_visible()
     expect(page.locator("#file-reset-button")).not_to_be_visible()
 
+    # complete review for this output-checker
+    find_and_click(page.locator("#complete-review-button"))
     # Logout (by clearing cookies) and log in as second output-checker to do second approval
     # and release
     context.clear_cookies()
@@ -404,7 +420,13 @@ def test_e2e_release_files(
     # Approve the file
     page.goto(live_server.url + release_request.get_url("my-new-group/subdir/file.txt"))
     find_and_click(page.locator("#file-approve-button"))
-    # Now the file has 2 approvals, the release files button is enabled
+
+    # The file has 2 approvals, but the release files button is not yet enabled until this
+    # reviewer completes their review
+    expect(release_button).to_be_disabled()
+
+    # complete review
+    find_and_click(page.locator("#complete-review-button"))
     expect(release_button).to_be_enabled()
 
     # Mock the responses from job-server
@@ -426,24 +448,19 @@ def test_e2e_reject_request(page, live_server, dev_users):
     """
     Test output-checker rejects a release request
     """
-    # set up a submitted file
-    factories.write_workspace_file("test-workspace", "file.txt")
-    release_request = factories.create_release_request(
+    # set up a reviewed request
+    release_request = factories.create_request_at_status(
         "test-workspace",
-        status=RequestStatus.SUBMITTED,
-    )
-    factories.create_filegroup(
-        release_request, group_name="default", filepaths=["file.txt"]
+        author=factories.create_user("author", workspaces=["test-workspace"]),
+        status=RequestStatus.REVIEWED,
+        files=[factories.request_file(rejected=True)],
     )
 
     # Log in as output checker
     login_as(live_server, page, "output_checker")
 
-    # View requests
-    find_and_click(page.get_by_test_id("nav-requests"))
-
     # View submitted request
-    find_and_click(page.get_by_role("link", name="test-workspace by author"))
+    page.goto(live_server.url + release_request.get_url())
 
     # Reject request
     find_and_click(page.locator("#reject-request-button"))
@@ -459,27 +476,19 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     Request author withdraws their request
     """
     # set up a submitted request
-    factories.write_workspace_file("test-workspace", "file.txt")
     user = factories.create_user("researcher", ["test-workspace"], False)
-    release_request = factories.create_release_request(
+    release_request = factories.create_request_at_status(
         "test-workspace",
-        user,
-        status=RequestStatus.SUBMITTED,
-    )
-    factories.create_filegroup(
-        release_request, group_name="default", filepaths=["file.txt"]
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(rejected=True)],
     )
 
     # Log in as a researcher
     login_as(live_server, page, user.username)
 
-    # View requests
-    find_and_click(page.get_by_test_id("nav-requests"))
-
-    page.get_by_role("link", name="test-workspace: SUBMITTED").click()
-
-    # give the js time to set up the dialog
-    time.sleep(0.1)
+    # View submitted request
+    page.goto(live_server.url + release_request.get_url())
 
     find_and_click(page.locator("[data-modal=withdrawRequest]"))
     find_and_click(page.locator("#withdraw-request-confirm"))

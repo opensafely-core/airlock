@@ -13,6 +13,8 @@ from airlock.business_logic import (
     AuditEventType,
     CodeRepo,
     RequestFileType,
+    RequestStatus,
+    UserFileReviewStatus,
     Workspace,
     bll,
 )
@@ -230,6 +232,9 @@ def create_repo(workspace, files=None, temporary=True):
 
 
 def create_release_request(workspace, user=None, **kwargs):
+    assert (
+        kwargs.get("status", RequestStatus.PENDING) == RequestStatus.PENDING
+    ), "Use create_request_at_status to create a release request with a state other than PENDING"
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace
@@ -243,6 +248,144 @@ def create_release_request(workspace, user=None, **kwargs):
     return release_request
 
 
+def create_request_at_status(
+    workspace,
+    status,
+    author=None,
+    files=[],
+    checker=None,
+    withdrawn_after=None,
+    **kwargs,
+):
+    """
+    Create a valid request at the given status.
+
+    Files must be provided for any status that needs them, in the appropriate reviewed
+    state (e.g. an approved/released status requires at least one fully approved output file).
+
+    Files are provided using a factory method for creating them. e.g.
+
+    create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        files=[
+            request_file(approved=True),
+            request_file(approved=True, filetype=RequestFileType.SUPPORTING),
+        ]
+    )
+
+    `checker` is the user who will do any status changes or actions that require an
+    output-checker. If not provided, a default output checker is used.
+
+    Optionally, `request_file` can be given `checkers`, a list of users who will
+    review (approve/reject) the file. If not provided, default output checkers
+    will be used.
+    """
+    author = author or create_user(
+        "author",
+        workspaces=[workspace if isinstance(workspace, str) else workspace.name],
+    )
+    if status == RequestStatus.WITHDRAWN:
+        assert (
+            withdrawn_after is not None
+        ), "pass withdrawn_after to decide when to withdraw"
+
+    # Get a default checker if one was not provided
+    # This is the checker who does the state transitions (approved/released/returned/rejected)
+    # It is not necessarily the same checker who reviews files.
+    # `request_file()` can be called with an optional list of checkers; if it is
+    # None, the same default checkers will be used for reviewing files (and the first one will
+    # be the one that does the other state transitions.)
+    if checker:
+        file_reviewers = [checker, get_default_output_checkers()[1]]
+    else:
+        file_reviewers = get_default_output_checkers()
+        checker = file_reviewers[0]
+
+    request = create_release_request(
+        workspace, author, status=RequestStatus.PENDING, **kwargs
+    )
+
+    # add all files
+    for add_file in files:
+        add_file(request)
+
+    request = refresh_release_request(request)
+    if status == RequestStatus.PENDING:
+        return request
+
+    if status == RequestStatus.WITHDRAWN and withdrawn_after == RequestStatus.PENDING:
+        bll.set_status(request, RequestStatus.WITHDRAWN, author)
+        return refresh_release_request(request)
+
+    bll.submit_request(request, author)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.SUBMITTED:
+        return request
+
+    # If there are output files, get the usernames of all file reviewers
+    # so we can complete reviews with the correct checkers.
+    # Note that it is possible to review a request with no output files
+    # (potentially before returning it to the reviewer so they can add some).
+    # Approving or releasing requests with no output files is not allowed.
+    if request.output_files():
+        file_reviewers = [
+            User(username, output_checker=True)
+            for username in list(request.output_files().values())[0].reviews.keys()
+        ]
+
+    if status == RequestStatus.PARTIALLY_REVIEWED:
+        complete_independent_review(request, file_reviewers[0])
+        return refresh_release_request(request)
+    # all other state require completed reviews.
+    complete_independent_review(request, *file_reviewers)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.REVIEWED:
+        return request
+
+    if status in [RequestStatus.RETURNED, RequestStatus.WITHDRAWN]:
+        bll.set_status(request, RequestStatus.RETURNED, checker)
+        request = refresh_release_request(request)
+
+        if not (
+            status == RequestStatus.WITHDRAWN
+            and withdrawn_after == RequestStatus.RETURNED
+        ):
+            return request
+        bll.set_status(request, RequestStatus.WITHDRAWN, author)
+        return refresh_release_request(request)
+
+    if status == RequestStatus.REJECTED:
+        bll.set_status(request, RequestStatus.REJECTED, checker)
+        return refresh_release_request(request)
+
+    bll.set_status(request, RequestStatus.APPROVED, checker)
+    request = refresh_release_request(request)
+
+    if status == RequestStatus.APPROVED:
+        return request
+
+    if status == RequestStatus.RELEASED:
+        bll.set_status(request, RequestStatus.RELEASED, checker)
+        return refresh_release_request(request)
+
+    raise Exception(f"invalid state: {status}")  # pragma: no cover
+
+
+def request_file(
+    group="group", path="test/file.txt", approved=False, rejected=False, **kwargs
+):
+    def add_file(request):
+        request = refresh_release_request(request)
+        write_request_file(
+            request, group, path, approved=approved, rejected=rejected, **kwargs
+        )
+
+    return add_file
+
+
 def write_request_file(
     request,
     group,
@@ -253,6 +396,7 @@ def write_request_file(
     approved=False,
     workspace=None,
     rejected=False,
+    checkers=None,
 ):
     # if ensure_workspace is passed a string, it will always create a
     # new workspace. Optionally pass a workspace instance, which will
@@ -268,25 +412,64 @@ def write_request_file(
     if user is None:  # pragma: nocover
         user = create_user(request.author, workspaces=[workspace.name])
 
+    checkers = checkers or get_default_output_checkers()
+
     bll.add_file_to_request(
         request, relpath=path, user=user, group_name=group, filetype=filetype
     )
     if approved:
-        for i in range(2):
+        review_file(request, path, UserFileReviewStatus.APPROVED, *checkers)
+    elif rejected:
+        review_file(request, path, UserFileReviewStatus.REJECTED, *checkers)
+
+
+def get_default_output_checkers():
+    return [
+        create_user("output-checker-0", output_checker=True),
+        create_user("output-checker-1", output_checker=True),
+    ]
+
+
+def review_file(request, relpath, status, *users):
+    if not users:  # pragma: no cover
+        users = get_default_output_checkers()
+
+    request = refresh_release_request(request)
+
+    relpath = UrlPath(relpath)
+    for user in users:
+        # use the DAL directly means we can add reviews regardless of request
+        # state, which is very useful in test setup.
+        if status == UserFileReviewStatus.APPROVED:
             bll._dal.approve_file(
                 request,
-                relpath=UrlPath(path),
-                username=f"output-checker-{i}",
-                audit=create_audit_event(AuditEventType.REQUEST_FILE_APPROVE),
+                relpath=relpath,
+                username=user.username,
+                audit=create_audit_event(
+                    AuditEventType.REQUEST_FILE_APPROVE, user=user.username
+                ),
             )
-    elif rejected:
-        for i in range(2):
+        elif status == UserFileReviewStatus.REJECTED:
             bll._dal.reject_file(
                 request,
-                relpath=UrlPath(path),
-                username=f"output-checker-{i}",
-                audit=create_audit_event(AuditEventType.REQUEST_FILE_REJECT),
+                relpath=relpath,
+                username=user.username,
+                audit=create_audit_event(
+                    AuditEventType.REQUEST_FILE_REJECT, user=user.username
+                ),
             )
+        else:
+            raise AssertionError(f"unrecognised status; {status}")  # pragma: no cover
+
+
+def complete_independent_review(request, *users):
+    users = users or get_default_output_checkers()
+
+    request = refresh_release_request(request)
+
+    # caller's job to make sure all files have been voted on
+    for user in users:
+        bll.review_request(request, user)
 
 
 def create_filegroup(release_request, group_name, filepaths=None):

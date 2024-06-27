@@ -89,6 +89,7 @@ class RequestMetadata(models.Model):
     status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
+    completed_reviews = models.JSONField(default=dict)
 
     def get_filegroups_to_dict(self):
         return {
@@ -105,6 +106,7 @@ class RequestMetadata(models.Model):
             author=self.author,
             created_at=self.created_at,
             filegroups=self.get_filegroups_to_dict(),
+            completed_reviews=self.completed_reviews,
         )
 
 
