@@ -7,6 +7,7 @@ from airlock.business_logic import (
     AuditEventType,
     RequestFileType,
     RequestStatus,
+    RequestStatusOwner,
     UserFileReviewStatus,
     bll,
 )
@@ -228,20 +229,27 @@ def test_request_view_with_reviewed_request(airlock_client):
     assert "You have already completed your review" in response.rendered_content
 
 
-def test_request_view_with_authored_request_file(airlock_client):
+@pytest.mark.parametrize("status", list(RequestStatus))
+def test_request_view_with_authored_request_file(airlock_client, status):
     airlock_client.login(output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         author=airlock_client.user,
-        status=RequestStatus.SUBMITTED,
+        status=status,
         files=[
-            factories.request_file("group", "file.txt", contents="foobar"),
+            factories.request_file(
+                "group", "file.txt", contents="foobar", approved=True
+            ),
         ],
+        withdrawn_after=RequestStatus.RETURNED
+        if status == RequestStatus.WITHDRAWN
+        else None,
     )
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Withdraw this file" in response.rendered_content
+    can_withdraw = bll.STATUS_OWNERS[status] == RequestStatusOwner.AUTHOR
+    assert ("Withdraw this file" in response.rendered_content) == can_withdraw
 
 
 def test_request_view_with_submitted_file(airlock_client):

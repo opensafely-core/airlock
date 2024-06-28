@@ -16,6 +16,7 @@ from airlock.business_logic import (
     ROOT_PATH,
     RequestFileType,
     RequestStatus,
+    RequestStatusOwner,
     UserFileReviewStatus,
     bll,
 )
@@ -88,14 +89,21 @@ def request_view(request, request_id: str, path: str = ""):
     if "is_author" in request.GET:  # pragma: nocover
         is_author = request.GET["is_author"].lower() == "true"
 
-    if is_directory_url or release_request.status == RequestStatus.WITHDRAWN:
-        file_withdraw_url = None
-        code_url = None
-    else:
+    file_withdraw_url = None
+    code_url = None
+
+    if (
+        release_request.status_owner() == RequestStatusOwner.AUTHOR
+        and not is_directory_url
+    ):
+        # A file can only be withdrawn from a request that is currently
+        # editable by the author
         file_withdraw_url = reverse(
             "file_withdraw",
             kwargs={"request_id": request_id, "path": path},
         )
+
+    if not is_directory_url:
         code_url = (
             reverse(
                 "code_view",
