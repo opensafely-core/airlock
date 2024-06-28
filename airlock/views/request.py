@@ -157,12 +157,17 @@ def request_view(request, request_id: str, path: str = ""):
             request=release_request.id, group=group, exclude_readonly=True, size=20
         )
 
-    user_has_completed_review = (
-        request.user.username in release_request.completed_reviews
-    )
-    user_has_reviewed_all_files = release_request.all_files_reviewed_by_reviewer(
-        request.user
-    )
+    if not is_author:
+        user_has_completed_review = (
+            request.user.username in release_request.completed_reviews
+        )
+        user_has_reviewed_all_files = (
+            release_request.output_files()
+            and release_request.all_files_reviewed_by_reviewer(request.user)
+        )
+    else:
+        user_has_completed_review = False
+        user_has_reviewed_all_files = False
 
     if user_has_reviewed_all_files and not user_has_completed_review:
         messages.success(
