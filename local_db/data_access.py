@@ -9,6 +9,7 @@ from airlock.business_logic import (
     NotificationUpdateType,
     RequestFileType,
     RequestStatus,
+    RequestStatusOwner,
     UserFileReviewStatus,
 )
 from airlock.types import UrlPath
@@ -66,12 +67,19 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return self._find_metadata(request_id).to_dict()
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+        # Requests in these statuses are still editable by either an
+        # author or a reviewer, and are considered active
+        editable_status = [
+            status
+            for status, owner in BusinessLogicLayer.STATUS_OWNERS.items()
+            if owner != RequestStatusOwner.SYSTEM
+        ]
         return [
             request.to_dict()
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
                 author=username,
-                status__in=[RequestStatus.PENDING, RequestStatus.SUBMITTED],
+                status__in=editable_status,
             )
         ]
 
@@ -210,9 +218,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         audit: AuditEvent,
     ):
         with transaction.atomic():
-            # defense in depth, we can only withdraw from active submitted requests
+            # defense in depth, we can only withdraw from active returned requests
             request = self._find_metadata(request_id)
-            assert request.status == RequestStatus.SUBMITTED
+            assert request.status == RequestStatus.RETURNED
 
             try:
                 request_file = RequestFileMetadata.objects.get(

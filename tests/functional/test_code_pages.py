@@ -13,13 +13,15 @@ def release_request(researcher_user):
     factories.write_workspace_file(workspace, "foo.txt", "")
     factories.create_repo(workspace)
     release_request = factories.create_request_at_status(
-        workspace, author=researcher_user, status=RequestStatus.SUBMITTED
-    )
-    # Ensure the request file is written using the workspace previously
-    # created (so it's assigned the correct commit from the manifest.json associated
-    # with that workspace)
-    factories.write_request_file(
-        release_request, "group", "foo.txt", workspace=workspace
+        workspace,
+        author=researcher_user,
+        status=RequestStatus.SUBMITTED,
+        # Ensure the request file is written using the workspace previously
+        # created (so it's assigned the correct commit from the manifest.json associated
+        # with that workspace)
+        files=[
+            factories.request_file(group="group", path="foo.txt", workspace=workspace)
+        ],
     )
     yield release_request
 

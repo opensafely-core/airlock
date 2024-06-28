@@ -685,7 +685,44 @@ def test_provider_get_approved_requests(output_checker, expected, bll):
     assert set(r.id for r in bll.get_approved_requests(user)) == set(expected)
 
 
-def test_provider_get_current_request_for_user(bll):
+@pytest.mark.parametrize(
+    "status,is_current",
+    [
+        # Until released, rejected or withdrawn, all of these
+        # statuses are considered active and should be the current
+        # request. They are either editable by the author, or can be
+        # returned to an editable status
+        (RequestStatus.PENDING, True),
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, True),
+        (RequestStatus.REVIEWED, True),
+        (RequestStatus.RETURNED, True),
+        # Requests in these statuses cannot move back into an editable
+        # state
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.RELEASED, False),
+        (RequestStatus.REJECTED, False),
+        (RequestStatus.WITHDRAWN, False),
+    ],
+)
+def test_provider_get_current_request_for_user(bll, status, is_current):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=user,
+        status=status,
+        files=[factories.request_file(approved=True)],
+        withdrawn_after=RequestStatus.PENDING
+        if status == RequestStatus.WITHDRAWN
+        else None,
+    )
+
+    current_request = bll.get_current_request("workspace", user)
+
+    assert (current_request == release_request) == is_current
+
+
+def test_provider_get_or_create_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_user("testuser", ["workspace"], False)
     other_user = factories.create_user("otheruser", ["workspace"], False)
@@ -802,7 +839,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
         (RequestStatus.REJECTED, RequestStatus.SUBMITTED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.REVIEWED, False, False, None),
-        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, True, None),
+        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.WITHDRAWN, False, False, None),
         (RequestStatus.RELEASED, RequestStatus.PENDING, False, False, None),
         (RequestStatus.RELEASED, RequestStatus.SUBMITTED, False, False, None),
@@ -1013,7 +1050,6 @@ def test_request_status_ownership(bll):
             "request_withdrawn",
         ),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
-        (RequestStatus.REJECTED, RequestStatus.APPROVED, "checker", "request_approved"),
     ],
 )
 def test_set_status_notifications(
@@ -1210,7 +1246,10 @@ def test_add_file_to_request_invalid_file_type(bll):
     "status,success,notification_sent",
     [
         (RequestStatus.PENDING, True, False),
-        (RequestStatus.SUBMITTED, True, True),
+        (RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, False, False),
+        (RequestStatus.REVIEWED, False, False),
+        (RequestStatus.RETURNED, True, True),
         (RequestStatus.APPROVED, False, False),
         (RequestStatus.REJECTED, False, False),
         (RequestStatus.RELEASED, False, False),
@@ -1348,16 +1387,16 @@ def test_withdraw_file_from_request_pending(bll, mock_notifications):
     assert_no_notifications(mock_notifications)
 
 
-def test_withdraw_file_from_request_submitted(bll, mock_notifications):
+def test_withdraw_file_from_request_returned(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path1 = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
-                group="group", path=path1, contents="1", user=author
+                group="group", path=path1, contents="1", user=author, rejected=True
             ),
         ],
     )
@@ -1386,6 +1425,9 @@ def test_withdraw_file_from_request_submitted(bll, mock_notifications):
 @pytest.mark.parametrize(
     "status",
     [
+        RequestStatus.SUBMITTED,
+        RequestStatus.PARTIALLY_REVIEWED,
+        RequestStatus.REVIEWED,
         RequestStatus.APPROVED,
         RequestStatus.REJECTED,
         RequestStatus.WITHDRAWN,
@@ -1414,7 +1456,7 @@ def test_withdraw_file_from_request_not_editable_state(bll, status):
         )
 
 
-@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.RETURNED])
 def test_withdraw_file_from_request_bad_file(bll, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(

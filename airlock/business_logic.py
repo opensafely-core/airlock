@@ -1311,9 +1311,6 @@ class BusinessLogicLayer:
         RequestStatus.APPROVED: [
             RequestStatus.RELEASED,
         ],
-        RequestStatus.REJECTED: [
-            RequestStatus.APPROVED,  # allow mind changed
-        ],
     }
 
     # The following lists should a) include every status and b) be disjoint
@@ -1459,11 +1456,7 @@ class BusinessLogicLayer:
                 f"only author {release_request.author} can modify the files in this request"
             )
 
-        if release_request.status not in [
-            RequestStatus.PENDING,
-            RequestStatus.SUBMITTED,
-            RequestStatus.RETURNED,
-        ]:
+        if release_request.status_owner() != RequestStatusOwner.AUTHOR:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
@@ -1571,8 +1564,8 @@ class BusinessLogicLayer:
                 relpath=relpath,
                 audit=audit,
             )
-        elif release_request.status == RequestStatus.SUBMITTED:
-            # the request has been submitted, set the file type to WITHDRAWN
+        elif release_request.status == RequestStatus.RETURNED:
+            # the request has been returned, set the file type to WITHDRAWN
             filegroup_data = self._dal.withdraw_file_from_request(
                 request_id=release_request.id,
                 relpath=relpath,

@@ -1,5 +1,3 @@
-import re
-
 import pytest
 from playwright.sync_api import expect
 
@@ -44,12 +42,7 @@ def test_request_file_withdraw(live_server, context, page, bll):
 
     file2_locator = page.locator("#tree").get_by_role("link", name="file2.txt")
     file2_locator.click()
-
-    expect(file2_locator).not_to_have_class("withdrawn")
-
-    page.locator("#withdraw-file-button").click()
-
-    expect(file2_locator).to_have_class(re.compile("withdrawn"))
+    expect(page.locator("#withdraw-file-button")).not_to_be_visible()
 
 
 def test_request_group_edit_comment(live_server, context, page, bll, settings):

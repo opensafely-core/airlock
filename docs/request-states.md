@@ -16,6 +16,5 @@ stateDiagram-v2
     RETURNED --> SUBMITTED
     RETURNED --> WITHDRAWN
     APPROVED --> RELEASED
-    REJECTED --> APPROVED
 ```
 

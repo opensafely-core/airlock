@@ -7,6 +7,7 @@ from airlock.business_logic import (
     AuditEventType,
     RequestFileType,
     RequestStatus,
+    RequestStatusOwner,
     UserFileReviewStatus,
     bll,
 )
@@ -228,20 +229,27 @@ def test_request_view_with_reviewed_request(airlock_client):
     assert "You have already completed your review" in response.rendered_content
 
 
-def test_request_view_with_authored_request_file(airlock_client):
+@pytest.mark.parametrize("status", list(RequestStatus))
+def test_request_view_with_authored_request_file(airlock_client, status):
     airlock_client.login(output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         author=airlock_client.user,
-        status=RequestStatus.SUBMITTED,
+        status=status,
         files=[
-            factories.request_file("group", "file.txt", contents="foobar"),
+            factories.request_file(
+                "group", "file.txt", contents="foobar", approved=True
+            ),
         ],
+        withdrawn_after=RequestStatus.RETURNED
+        if status == RequestStatus.WITHDRAWN
+        else None,
     )
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Withdraw this file" in response.rendered_content
+    can_withdraw = bll.STATUS_OWNERS[status] == RequestStatusOwner.AUTHOR
+    assert ("Withdraw this file" in response.rendered_content) == can_withdraw
 
 
 def test_request_view_with_submitted_file(airlock_client):
@@ -1020,6 +1028,26 @@ def test_file_withdraw_file_submitted(airlock_client):
         "test1",
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", "path/test.txt", rejected=True),
+        ],
+    )
+    # ensure it does exist
+    release_request.get_request_file_from_urlpath("group/path/test.txt")
+
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}/group/path/test.txt",
+        follow=True,
+    )
+    assert response.status_code == 403
+
+
+def test_file_withdraw_file_returned(airlock_client):
+    airlock_client.login("author", ["test1"], False)
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.RETURNED,
         files=[
             factories.request_file("group", "path/test.txt", rejected=True),
         ],
