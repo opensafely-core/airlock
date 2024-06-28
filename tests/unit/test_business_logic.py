@@ -685,7 +685,44 @@ def test_provider_get_approved_requests(output_checker, expected, bll):
     assert set(r.id for r in bll.get_approved_requests(user)) == set(expected)
 
 
-def test_provider_get_current_request_for_user(bll):
+@pytest.mark.parametrize(
+    "status,is_current",
+    [
+        # Until released, rejected or withdrawn, all of these
+        # statuses are considered active and should be the current
+        # request. They are either editable by the author, or can be
+        # returned to an editable status
+        (RequestStatus.PENDING, True),
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, True),
+        (RequestStatus.REVIEWED, True),
+        (RequestStatus.RETURNED, True),
+        # Requests in these statuses cannot move back into an editable
+        # state
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.RELEASED, False),
+        (RequestStatus.REJECTED, False),
+        (RequestStatus.WITHDRAWN, False),
+    ],
+)
+def test_provider_get_current_request_for_user(bll, status, is_current):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=user,
+        status=status,
+        files=[factories.request_file(approved=True)],
+        withdrawn_after=RequestStatus.PENDING
+        if status == RequestStatus.WITHDRAWN
+        else None,
+    )
+
+    current_request = bll.get_current_request("workspace", user)
+
+    assert (current_request == release_request) == is_current
+
+
+def test_provider_get_or_create_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_user("testuser", ["workspace"], False)
     other_user = factories.create_user("otheruser", ["workspace"], False)
