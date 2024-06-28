@@ -1607,7 +1607,10 @@ class BusinessLogicLayer:
 
         filelist = old_api.create_filelist(file_paths, release_request)
         jobserver_release_id = old_api.create_release(
-            release_request.workspace, filelist.json(), user.username
+            release_request.workspace,
+            release_request.id,
+            filelist.json(),
+            user.username,
         )
 
         for relpath, abspath in file_paths:
