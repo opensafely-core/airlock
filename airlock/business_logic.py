@@ -1311,9 +1311,6 @@ class BusinessLogicLayer:
         RequestStatus.APPROVED: [
             RequestStatus.RELEASED,
         ],
-        RequestStatus.REJECTED: [
-            RequestStatus.APPROVED,  # allow mind changed
-        ],
     }
 
     # The following lists should a) include every status and b) be disjoint

@@ -839,7 +839,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
         (RequestStatus.REJECTED, RequestStatus.SUBMITTED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.PARTIALLY_REVIEWED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.REVIEWED, False, False, None),
-        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, True, None),
+        (RequestStatus.REJECTED, RequestStatus.APPROVED, False, False, None),
         (RequestStatus.REJECTED, RequestStatus.WITHDRAWN, False, False, None),
         (RequestStatus.RELEASED, RequestStatus.PENDING, False, False, None),
         (RequestStatus.RELEASED, RequestStatus.SUBMITTED, False, False, None),
@@ -1050,7 +1050,6 @@ def test_request_status_ownership(bll):
             "request_withdrawn",
         ),
         (RequestStatus.APPROVED, RequestStatus.RELEASED, "checker", "request_released"),
-        (RequestStatus.REJECTED, RequestStatus.APPROVED, "checker", "request_approved"),
     ],
 )
 def test_set_status_notifications(
