@@ -1039,6 +1039,26 @@ def test_file_withdraw_file_submitted(airlock_client):
         f"/requests/withdraw/{release_request.id}/group/path/test.txt",
         follow=True,
     )
+    assert response.status_code == 403
+
+
+def test_file_withdraw_file_returned(airlock_client):
+    airlock_client.login("author", ["test1"], False)
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file("group", "path/test.txt", rejected=True),
+        ],
+    )
+    # ensure it does exist
+    release_request.get_request_file_from_urlpath("group/path/test.txt")
+
+    response = airlock_client.post(
+        f"/requests/withdraw/{release_request.id}/group/path/test.txt",
+        follow=True,
+    )
     # ensure template is rendered to force template coverage
     response.render()
     assert response.status_code == 200

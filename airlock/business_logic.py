@@ -1459,11 +1459,7 @@ class BusinessLogicLayer:
                 f"only author {release_request.author} can modify the files in this request"
             )
 
-        if release_request.status not in [
-            RequestStatus.PENDING,
-            RequestStatus.SUBMITTED,
-            RequestStatus.RETURNED,
-        ]:
+        if release_request.status_owner() != RequestStatusOwner.AUTHOR:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
