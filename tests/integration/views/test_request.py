@@ -159,6 +159,53 @@ def test_request_view_with_submitted_request(airlock_client):
     assert "Complete review" in response.rendered_content
 
 
+@pytest.mark.parametrize(
+    "files,has_message",
+    [
+        ([], False),
+        ([factories.request_file()], False),
+        ([factories.request_file(filetype=RequestFileType.SUPPORTING)], False),
+        (
+            [
+                factories.request_file(approved=True),
+                factories.request_file(path="unapproved.txt"),
+            ],
+            False,
+        ),
+        ([factories.request_file(rejected=True)], True),
+        (
+            [
+                factories.request_file(approved=True),
+                factories.request_file(
+                    path="supporting.txt", filetype=RequestFileType.SUPPORTING
+                ),
+            ],
+            True,
+        ),
+    ],
+)
+def test_request_view_complete_review_message(airlock_client, files, has_message):
+    checker = factories.get_default_output_checkers()[0]
+    airlock_client.login(checker.username, output_checker=True)
+    release_request = factories.create_request_at_status(
+        "workspace", status=RequestStatus.SUBMITTED, files=files
+    )
+
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+
+    # The all-files-reviewed reminder message is only shown if the request has
+    # output files and all have been reviewed
+    if has_message:
+        assert "All files reviewed" in list(response.context["messages"])[0].message
+    else:
+        assert not list(response.context["messages"])
+
+    # The all-files-reviewed reminder message is never shown to an author
+    airlock_client.login(release_request.author, workspaces=["workspace"])
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+    assert not list(response.context["messages"])
+
+
 def test_request_view_with_reviewed_request(airlock_client):
     # Login as 1st default output-checker
     airlock_client.login("output-checker-0", output_checker=True)
