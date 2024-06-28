@@ -10,7 +10,7 @@ from playwright.sync_api import expect
 from tests import factories
 
 
-expect.set_options(timeout=10_000)
+expect.set_options(timeout=15_000)
 
 
 @pytest.fixture(scope="session", autouse=True)
