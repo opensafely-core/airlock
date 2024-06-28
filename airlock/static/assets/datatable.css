@@ -8,17 +8,19 @@
 #customTable.datatable-table th:first-child,
 #customTable.datatable-table td:first-child {
   padding-inline-start: 1.25rem;
+}
 
-  button {
-    padding-inline-start: 0;
-  }
+#customTable.datatable-table th:first-child button,
+#customTable.datatable-table td:first-child button {
+  padding-inline-start: 0;
 }
 
 #customTable.datatable-table th:last-child,
 #customTable.datatable-table td:last-child {
   padding-inline-end: 1.25rem;
+}
 
-  button {
-    padding-inline-end: 0;
-  }
+#customTable.datatable-table th:last-child button,
+#customTable.datatable-table td:last-child button {
+  padding-inline-end: 0;
 }
