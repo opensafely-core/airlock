@@ -1247,7 +1247,10 @@ def test_add_file_to_request_invalid_file_type(bll):
     "status,success,notification_sent",
     [
         (RequestStatus.PENDING, True, False),
-        (RequestStatus.SUBMITTED, True, True),
+        (RequestStatus.SUBMITTED, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, False, False),
+        (RequestStatus.REVIEWED, False, False),
+        (RequestStatus.RETURNED, True, True),
         (RequestStatus.APPROVED, False, False),
         (RequestStatus.REJECTED, False, False),
         (RequestStatus.RELEASED, False, False),
@@ -1385,16 +1388,16 @@ def test_withdraw_file_from_request_pending(bll, mock_notifications):
     assert_no_notifications(mock_notifications)
 
 
-def test_withdraw_file_from_request_submitted(bll, mock_notifications):
+def test_withdraw_file_from_request_returned(bll, mock_notifications):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path1 = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
-                group="group", path=path1, contents="1", user=author
+                group="group", path=path1, contents="1", user=author, rejected=True
             ),
         ],
     )
@@ -1423,6 +1426,9 @@ def test_withdraw_file_from_request_submitted(bll, mock_notifications):
 @pytest.mark.parametrize(
     "status",
     [
+        RequestStatus.SUBMITTED,
+        RequestStatus.PARTIALLY_REVIEWED,
+        RequestStatus.REVIEWED,
         RequestStatus.APPROVED,
         RequestStatus.REJECTED,
         RequestStatus.WITHDRAWN,
@@ -1451,7 +1457,7 @@ def test_withdraw_file_from_request_not_editable_state(bll, status):
         )
 
 
-@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.SUBMITTED])
+@pytest.mark.parametrize("status", [RequestStatus.PENDING, RequestStatus.RETURNED])
 def test_withdraw_file_from_request_bad_file(bll, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(

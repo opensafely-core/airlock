@@ -1567,8 +1567,8 @@ class BusinessLogicLayer:
                 relpath=relpath,
                 audit=audit,
             )
-        elif release_request.status == RequestStatus.SUBMITTED:
-            # the request has been submitted, set the file type to WITHDRAWN
+        elif release_request.status == RequestStatus.RETURNED:
+            # the request has been returned, set the file type to WITHDRAWN
             filegroup_data = self._dal.withdraw_file_from_request(
                 request_id=release_request.id,
                 relpath=relpath,

@@ -218,9 +218,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         audit: AuditEvent,
     ):
         with transaction.atomic():
-            # defense in depth, we can only withdraw from active submitted requests
+            # defense in depth, we can only withdraw from active returned requests
             request = self._find_metadata(request_id)
-            assert request.status == RequestStatus.SUBMITTED
+            assert request.status == RequestStatus.RETURNED
 
             try:
                 request_file = RequestFileMetadata.objects.get(
