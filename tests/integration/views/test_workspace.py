@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.messages.api import get_messages
 from django.urls import reverse
 
-from airlock.business_logic import AuditEventType, RequestFileType, bll
+from airlock.business_logic import AuditEventType, RequestFileType, RequestStatus, bll
 from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
@@ -206,6 +206,96 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
     airlock_client.login_with_user(user)
     factories.write_workspace_file("workspace", "file.txt")
     response = airlock_client.get("/workspaces/view/workspace/file.txt")
+    assert response.context["add_file"] == can_see_form
+
+
+@pytest.mark.parametrize(
+    "status,is_current,files,can_see_form",
+    [
+        # author-editable
+        (RequestStatus.PENDING, True, [], True),
+        (RequestStatus.PENDING, True, [factories.request_file(path="file.txt")], False),
+        (RequestStatus.RETURNED, True, [], True),
+        (
+            RequestStatus.RETURNED,
+            True,
+            [factories.request_file(path="file.txt", rejected=True)],
+            False,
+        ),
+        # reviewer-editable
+        (RequestStatus.SUBMITTED, True, [], False),
+        (
+            RequestStatus.SUBMITTED,
+            True,
+            [factories.request_file(path="file.txt")],
+            False,
+        ),
+        (RequestStatus.PARTIALLY_REVIEWED, True, [], False),
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            True,
+            [factories.request_file(path="file.txt", rejected=True)],
+            False,
+        ),
+        (RequestStatus.REVIEWED, True, [], False),
+        (
+            RequestStatus.REVIEWED,
+            True,
+            [factories.request_file(path="file.txt", rejected=True)],
+            False,
+        ),
+        # non-editable, can see form because there is no current request
+        (RequestStatus.WITHDRAWN, False, [], True),
+        (
+            RequestStatus.WITHDRAWN,
+            False,
+            [factories.request_file(path="file.txt")],
+            True,
+        ),
+        (RequestStatus.REJECTED, False, [], True),
+        (
+            RequestStatus.REJECTED,
+            False,
+            [factories.request_file(path="file.txt", rejected=True)],
+            True,
+        ),
+        (RequestStatus.APPROVED, False, [], True),
+        (
+            RequestStatus.APPROVED,
+            False,
+            [factories.request_file(path="file.txt", approved=True)],
+            True,
+        ),
+        (RequestStatus.RELEASED, False, [], True),
+        (
+            RequestStatus.RELEASED,
+            False,
+            [factories.request_file(path="file.txt", approved=True)],
+            True,
+        ),
+    ],
+)
+def test_workspace_view_file_add_to_current_request(
+    airlock_client, status, is_current, files, can_see_form
+):
+    user = factories.create_user(workspaces=["workspace"])
+    airlock_client.login_with_user(user)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file("workspace", "file.txt", "foo")
+    release_request = factories.create_request_at_status(
+        workspace,
+        status,
+        author=user,
+        files=[factories.request_file(path="other_file.txt", approved=True), *files],
+        withdrawn_after=RequestStatus.PENDING
+        if status == RequestStatus.WITHDRAWN
+        else None,
+    )
+    response = airlock_client.get("/workspaces/view/workspace/file.txt")
+    if is_current:
+        assert response.context["current_request"] == release_request
+    else:
+        assert response.context["current_request"] is None
     assert response.context["add_file"] == can_see_form
 
 

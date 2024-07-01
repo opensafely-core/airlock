@@ -9,7 +9,11 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock.business_logic import RequestFileType, bll
+from airlock.business_logic import (
+    RequestFileType,
+    RequestStatusOwner,
+    bll,
+)
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath, WorkspaceFileStatus
@@ -76,11 +80,14 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         WorkspaceFileStatus.UNRELEASED,
         # TODO WorkspaceFileStatus.CONTENT_UPDATED,
     ]
-
     add_file = (
         path_item.is_valid()
         and request.user.can_create_request(workspace_name)
         and workspace.get_workspace_status(path_item.relpath) in valid_states_to_add
+        and (
+            workspace.current_request is None
+            or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
+        )
     )
 
     activity = []

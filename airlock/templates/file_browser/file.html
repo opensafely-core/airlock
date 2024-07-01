@@ -22,6 +22,10 @@
         {% #button type="button" disabled=True tooltip="This file type cannot be added to a request" id="add-file-modal-button-disabled" %}
           Add File to Request
         {% /button %}
+      {% elif current_request and current_request.status_owner != "AUTHOR" %}
+        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
+          Add File to Request
+        {% /button %}
       {% else %}
         {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
           Add File to Request
