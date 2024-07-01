@@ -85,9 +85,6 @@ def request_view(request, request_id: str, path: str = ""):
         return redirect(path_item.url())
 
     is_author = release_request.author == request.user.username
-    # hack for testing w/o having to switch users
-    if "is_author" in request.GET:  # pragma: nocover
-        is_author = request.GET["is_author"].lower() == "true"
 
     file_withdraw_url = None
     code_url = None
