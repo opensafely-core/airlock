@@ -67,27 +67,33 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    # Only show the add form button this pathitem is a file that can be added
-    # to a request - i.e. it is a file and it's not already on the curent
-    # request for the user, and the user is allowed to add it to a request (if
-    # they are an output-checker they are allowed to view all workspaces, but
-    # not necessarily create requests for them.)
+    # Add file / add files buttons
+    #
+    # Only show the add files multiselect button if the user is allowed to
+    # create a request (if they are an output-checker they are allowed to
+    # view all workspaces, but not necessarily create requests for them)
+    # If there already is a current request, only show the multiselect add
+    # if the request is in an author-editable state (pending/returned)
+    #
+    # Only show the add file form button if the above is true, and also
+    # this pathitem is a file that can be added to a request - i.e. it is a
+    # file and it's not already on the curent request for the user
     # Currently we can just rely on checking the relpath against
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
+    multiselect_add = request.user.can_create_request(workspace_name) and (
+        workspace.current_request is None
+        or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
+    )
     valid_states_to_add = [
         WorkspaceFileStatus.UNRELEASED,
         # TODO WorkspaceFileStatus.CONTENT_UPDATED,
     ]
     add_file = (
-        path_item.is_valid()
-        and request.user.can_create_request(workspace_name)
+        multiselect_add
+        and path_item.is_valid()
         and workspace.get_workspace_status(path_item.relpath) in valid_states_to_add
-        and (
-            workspace.current_request is None
-            or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
-        )
     )
 
     activity = []
@@ -132,6 +138,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "current_request": workspace.current_request,
             # for add file buttons
             "add_file": add_file,
+            "multiselect_add": multiselect_add,
             "multiselect_url": reverse(
                 "workspace_multiselect",
                 kwargs={"workspace_name": workspace_name},

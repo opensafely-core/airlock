@@ -66,6 +66,54 @@ def test_workspace_view_with_directory(airlock_client):
     assert "subdir" in response.rendered_content
 
 
+@pytest.mark.parametrize(
+    "login_as,status,can_multiselect_add",
+    [
+        # The request is pending, only author can add
+        ("author", RequestStatus.PENDING, True),
+        ("checker", RequestStatus.PENDING, False),
+        # The request is under reivew, no-one can add
+        ("author", RequestStatus.SUBMITTED, False),
+        ("checker", RequestStatus.SUBMITTED, False),
+        ("author", RequestStatus.PARTIALLY_REVIEWED, False),
+        ("checker", RequestStatus.PARTIALLY_REVIEWED, False),
+        ("author", RequestStatus.REVIEWED, False),
+        ("checker", RequestStatus.REVIEWED, False),
+        # The request is pending, only author can add
+        ("author", RequestStatus.RETURNED, True),
+        ("checker", RequestStatus.RETURNED, False),
+        # The request is not current, only author can add
+        ("author", RequestStatus.APPROVED, True),
+        ("checker", RequestStatus.APPROVED, False),
+        ("author", RequestStatus.RELEASED, True),
+        ("checker", RequestStatus.RELEASED, False),
+        ("author", RequestStatus.REJECTED, True),
+        ("checker", RequestStatus.REJECTED, False),
+        ("author", RequestStatus.WITHDRAWN, True),
+        ("checker", RequestStatus.WITHDRAWN, False),
+    ],
+)
+def test_workspace_directory_and_request_can_multiselect_add(
+    airlock_client, bll, login_as, status, can_multiselect_add
+):
+    users = {
+        "author": factories.create_user("author", workspaces=["workspace"]),
+        "checker": factories.create_user("checker", output_checker=True),
+    }
+    airlock_client.login_with_user(users[login_as])
+    factories.create_request_at_status(
+        "workspace",
+        status,
+        author=users["author"],
+        files=[factories.request_file(path="test/file.txt", approved=True)],
+        withdrawn_after=(
+            RequestStatus.PENDING if status == RequestStatus.WITHDRAWN else None
+        ),
+    )
+    response = airlock_client.get("/workspaces/view/workspace/test/")
+    assert response.context["multiselect_add"] == can_multiselect_add
+
+
 def test_workspace_view_with_empty_directory(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
