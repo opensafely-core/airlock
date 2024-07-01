@@ -75,12 +75,18 @@ def login_as(live_server, page, username):
     expect(page.locator("body")).to_contain_text(f"Logged in as: {username}")
 
 
-def tree_element_is_selected(page, locator):
+def assert_tree_element_is_not_selected(page, locator):
     # We need to wait for a tiny amount to ensure the js that swaps the
-    # selected classes around has run. An arbitrary 20ms seems to be enough.
+    # selected classes around has had time to run before we assert that the
+    # class isn't present. An arbitrary 20ms seems to be enough.
     page.wait_for_timeout(20)
-    classes = locator.get_attribute("class")
-    return "selected" in classes
+    expect(locator).not_to_have_class(re.compile("selected"))
+
+
+def assert_tree_element_is_selected(locator):
+    # expect waits for the default timeout period, so we don't need
+    # to rely on an explicit timeout
+    expect(locator).to_have_class(re.compile("selected"))
 
 
 def test_e2e_release_files(
@@ -273,17 +279,18 @@ def test_e2e_release_files(
 
     # Click on the output directory to ensure that renders correctly.
     subdir_link = page.get_by_role("link").locator(".directory:scope")
-    assert not tree_element_is_selected(page, subdir_link)
+
+    assert_tree_element_is_not_selected(page, subdir_link)
     find_and_click(subdir_link)
     # subdir link is shown as selected
-    assert tree_element_is_selected(page, subdir_link)
+    assert_tree_element_is_selected(subdir_link)
     expect(page.locator("#selected-contents")).to_contain_text("file.txt")
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
     # File is selected, subdir is now unselected
-    assert tree_element_is_selected(page, file_link)
-    assert not tree_element_is_selected(page, subdir_link)
+    assert_tree_element_is_selected(file_link)
+    assert_tree_element_is_not_selected(page, subdir_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
@@ -291,8 +298,8 @@ def test_e2e_release_files(
     # Click on the supporting file link.
     supporting_file_link = page.get_by_role("link").locator(".supporting.file:scope")
     find_and_click(supporting_file_link)
-    assert tree_element_is_selected(page, supporting_file_link)
-    assert not tree_element_is_selected(page, file_link)
+    assert_tree_element_is_selected(supporting_file_link)
+    assert_tree_element_is_not_selected(page, file_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src",
         release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
@@ -300,8 +307,8 @@ def test_e2e_release_files(
 
     # Click back to the output file link and ensure the selected classes are correctly applied
     find_and_click(file_link)
-    assert tree_element_is_selected(page, file_link)
-    assert not tree_element_is_selected(page, supporting_file_link)
+    assert_tree_element_is_selected(file_link)
+    assert_tree_element_is_not_selected(page, supporting_file_link)
     expect(page.locator("iframe")).to_have_attribute(
         "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
