@@ -43,15 +43,26 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
-        <div>
-          {% if not file_reset_review_url %}
-            <span class="file-status file-status--warning">No status</span>
-          {% elif file_approve_url %}
-            <span class="file-status file-status--danger">Changes requested</span>
-          {% elif file_reject_url %}
-            <span class="file-status file-status--success">Approved</span>
-          {% endif %}
-        </div>
+        {% if not path_item.is_supporting and not path_item.is_withdrawn %}
+          <div>
+            {% if not file_reset_review_url %}
+              <span class="file-status file-status--unknown">
+                <span class="file-status__icon"></span>
+                No status
+              </span>
+            {% elif file_approve_url %}
+              <span class="file-status file-status--rejected">
+                <span class="file-status__icon"></span>
+                Changes requested
+              </span>
+            {% elif file_reject_url %}
+              <span class="file-status file-status--approved">
+                <span class="file-status__icon"></span>
+                Approved
+              </span>
+            {% endif %}
+          </div>
+        {% endif %}
 
         <div class="btn-group">
           {% if file_approve_url %}
