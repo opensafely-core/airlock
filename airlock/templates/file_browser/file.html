@@ -51,7 +51,7 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
-        {% if not path_item.is_supporting and not path_item.is_withdrawn %}
+        {% if path_item.is_output %}
           <div>
             {% if not file_reset_review_url %}
               <span class="file-status file-status--unknown">
