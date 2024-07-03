@@ -33,17 +33,19 @@ tracer = trace.get_tracer_provider().get_tracer("airlock")
 def grouped_workspaces(workspaces):
     workspaces_by_project = defaultdict(list)
     for workspace in workspaces:
-        workspaces_by_project[workspace.project().get("name")].append(workspace)
-
-    for project, workspaces in sorted(workspaces_by_project.items()):
-        yield project, list(sorted(workspaces))
+        workspaces_by_project[workspace.project()].append(workspace)
+    # sort projects by ongoing status, then name
+    for project, workspaces in sorted(
+        workspaces_by_project.items(), key=lambda x: (not x[0].is_ongoing, x[0].name)
+    ):
+        # for each project, sort workspaces by archived status, then name
+        yield project, list(sorted(workspaces, key=lambda x: (x.is_archived(), x.name)))
 
 
 @instrument
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
-
     return TemplateResponse(request, "workspaces.html", {"projects": projects})
 
 
@@ -98,7 +100,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
     activity = []
-    project = workspace.project().get("name", "Unknown project")
+    project = workspace.project()
 
     # we are viewing the root, so load workspace audit log
     if path == "":
@@ -129,7 +131,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "path_item": path_item,
             "is_supporting_file": False,
             "context": "workspace",
-            "title": f"Files for workspace {workspace_name}",
+            "title": f"Files for workspace {workspace.display_name()}",
             "request_file_url": reverse(
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},

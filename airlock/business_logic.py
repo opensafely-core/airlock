@@ -272,6 +272,18 @@ class AirlockContainer(Protocol):
         """Get user's request status of file."""
 
 
+@dataclass(frozen=True)
+class Project:
+    name: str
+    is_ongoing: bool
+
+    def display_name(self):
+        # helper for templates
+        if not self.is_ongoing:
+            return f"{self.name} (INACTIVE)"
+        return self.name
+
+
 @dataclass(order=True)
 class Workspace:
     """Simple wrapper around a workspace directory on disk.
@@ -322,11 +334,21 @@ class Workspace:
     def __str__(self):
         return self.get_id()
 
-    def project(self):
-        return self.metadata.get("project_details", {})
+    def project(self) -> Project:
+        details = self.metadata.get("project_details", {})
+        return Project(
+            name=details.get("name", "Unknown project"),
+            is_ongoing=details.get("ongoing", True),
+        )
 
     def is_archived(self):
         return self.metadata.get("archived")
+
+    def display_name(self):
+        # helper for templates
+        if self.is_archived():
+            return f"{self.name} (ARCHIVED)"
+        return self.name
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
