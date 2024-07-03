@@ -124,6 +124,7 @@ class AuditEventType(Enum):
     REQUEST_EDIT = "REQUEST_EDIT"
     REQUEST_COMMENT = "REQUEST_COMMENT"
     REQUEST_COMMENT_DELETE = "REQUEST_COMMENT_DELETE"
+    REQUEST_UNBLIND = "REQUEST_UNBLIND"
 
     # request file status
     REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
@@ -182,6 +183,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
+    AuditEventType.REQUEST_UNBLIND: "Comments unblinded",
     AuditEventType.REQUEST_FILE_ADD: "Added file",
     AuditEventType.REQUEST_FILE_UPDATE: "Updated file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
@@ -1153,6 +1155,9 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def unblind_comments(self, request_id, audit: AuditEvent):
+        raise NotImplementedError()
+
     def group_comment_delete(
         self,
         request_id: str,
@@ -1986,6 +1991,7 @@ class BusinessLogicLayer:
                 self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
             elif n_reviews == 2:
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
+                self.unblind_review(release_request, user)
         except self.InvalidStateTransition:
             # There is a potential race condition where two reviewers hit the Complete Review
             # button at the same time, and both attempt to transition from SUBMITTED to
@@ -2004,6 +2010,21 @@ class BusinessLogicLayer:
                 and release_request.status == RequestStatus.PARTIALLY_REVIEWED
             ):
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
+                self.unblind_review(release_request, user)
+
+    def unblind_review(self, release_request: ReleaseRequest, user: User):
+        """Unblind all votes and comments that were made during the independant review phase.
+
+        This allows other output checkers to see them, but not users.
+        """
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_UNBLIND,
+            user=user,
+        )
+
+        self._dal.unblind_comments(release_request.id, audit)
+
 
     def mark_file_undecided(
         self,

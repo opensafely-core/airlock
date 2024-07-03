@@ -433,6 +433,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
 
+    def unblind_comments(self, request_id: str, audit: AuditEvent):
+        with transaction.atomic():
+            FileGroupComment.objects.filter(
+                filegroup__request=request_id, visibility=Visibility.BLINDED
+            ).update(visibility=Visibility.PRIVATE)
+            self._create_audit_log(audit)
+
     def group_comment_delete(
         self,
         request_id: str,

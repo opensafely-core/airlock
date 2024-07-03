@@ -610,6 +610,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_REVIEW,
         # checker1 reviews
         AuditEventType.REQUEST_REVIEW,
+        AuditEventType.REQUEST_UNBLIND,
         # appprove, release 1 output file, change request to released
         AuditEventType.REQUEST_APPROVE,
         AuditEventType.REQUEST_FILE_RELEASE,
@@ -619,9 +620,9 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
     checker_review_log = audit_log[5]
     checker1_review_log = audit_log[6]
-    approve_log = audit_log[7]
-    release_file_log = audit_log[8]
-    release_log = audit_log[9]
+    approve_log = audit_log[8]
+    release_file_log = audit_log[9]
+    release_log = audit_log[10]
 
     assert checker_review_log.type == AuditEventType.REQUEST_REVIEW
     assert checker_review_log.user == checker.username
@@ -2606,6 +2607,38 @@ def test_review_request(bll):
         bll.RequestReviewDenied, match="You have already completed your review"
     ):
         bll.review_request(release_request, checker)
+
+
+def test_review_request_two_checkers_unblinds(bll):
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="test.txt", approved=True, checkers=checkers),
+        ],
+    )
+    bll.group_comment_create(
+        release_request,
+        group="group",
+        comment="comment",
+        visibility=Visibility.BLINDED,
+        user=checkers[0],
+    )
+
+    bll.review_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
+    assert (
+        release_request.filegroups["group"].comments[0].visibility == Visibility.BLINDED
+    )
+
+    bll.review_request(release_request, checkers[1])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+    assert (
+        release_request.filegroups["group"].comments[0].visibility == Visibility.PRIVATE
+    )
 
 
 def test_review_request_non_submitted_status(bll):
