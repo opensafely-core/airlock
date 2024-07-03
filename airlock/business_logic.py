@@ -87,6 +87,20 @@ class RequestFileReviewStatus(Enum):
     INCOMPLETE = "INCOMPLETE"
 
 
+class Visibility(Enum):
+    """The visibility of various bits of state.
+
+    Specifically, the FileReview and Comments of an ongoing request.
+    """
+
+    # only visible to author of comment/review
+    BLINDED = "BLINDED"
+    # only visible to output-checkers
+    PRIVATE = "PRIVATE"
+    # visible to all
+    PUBLIC = "PUBLIC"
+
+
 class AuditEventType(Enum):
     """Audit log events."""
 
@@ -721,6 +735,7 @@ class Comment:
     comment: str
     author: str
     created_at: datetime
+    visibility: Visibility
 
     @classmethod
     def from_dict(cls, attrs):
