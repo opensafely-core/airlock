@@ -1095,6 +1095,7 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment: str,
+        visibility: Visibility,
         username: str,
         audit: AuditEvent,
     ):
@@ -2022,7 +2023,12 @@ class BusinessLogicLayer:
             )
 
     def group_comment_create(
-        self, release_request: ReleaseRequest, group: str, comment: str, user: User
+        self,
+        release_request: ReleaseRequest,
+        group: str,
+        comment: str,
+        visibility: Visibility,
+        user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
             raise self.RequestPermissionDenied(
@@ -2038,7 +2044,7 @@ class BusinessLogicLayer:
         )
 
         self._dal.group_comment_create(
-            release_request.id, group, comment, user.username, audit
+            release_request.id, group, comment, visibility, user.username, audit
         )
 
     def group_comment_delete(

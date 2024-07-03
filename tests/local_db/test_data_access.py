@@ -5,6 +5,7 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     RequestStatus,
+    Visibility,
 )
 from airlock.types import UrlPath
 from local_db import data_access, models
@@ -162,7 +163,7 @@ def test_group_comment_delete_bad_params():
         comment="author comment",
     )
     dal.group_comment_create(
-        release_request.id, "group", "author comment", author, audit
+        release_request.id, "group", "author comment", Visibility.PUBLIC, author, audit
     )
 
     audit = AuditEvent.from_request(

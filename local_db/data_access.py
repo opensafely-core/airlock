@@ -11,6 +11,7 @@ from airlock.business_logic import (
     RequestStatus,
     RequestStatusOwner,
     UserFileReviewStatus,
+    Visibility,
 )
 from airlock.types import UrlPath
 from local_db.models import (
@@ -416,6 +417,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment: str,
+        visibility: Visibility,
         username: str,
         audit: AuditEvent,
     ):
@@ -426,6 +428,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 filegroup=filegroup,
                 comment=comment,
                 author=username,
+                visibility=visibility,
             )
 
             self._create_audit_log(audit)

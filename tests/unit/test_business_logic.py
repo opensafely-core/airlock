@@ -21,6 +21,7 @@ from airlock.business_logic import (
     RequestFileType,
     RequestStatus,
     UserFileReviewStatus,
+    Visibility,
     Workspace,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
@@ -2815,7 +2816,7 @@ def test_group_comment_create_success(
     bll, mock_notifications, status, notification_count
 ):
     author = factories.create_user("author", ["workspace"], False)
-    other = factories.create_user("other", ["workspace"], False)
+    checker = factories.create_user("checker", ["workspace"], True)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2825,8 +2826,16 @@ def test_group_comment_create_success(
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment_create(release_request, "group", "question?", other)
-    bll.group_comment_create(release_request, "group", "answer!", author)
+    # check all visibilities
+    bll.group_comment_create(
+        release_request, "group", "blinded", Visibility.BLINDED, checker
+    )
+    bll.group_comment_create(
+        release_request, "group", "private", Visibility.PRIVATE, checker
+    )
+    bll.group_comment_create(
+        release_request, "group", "public", Visibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     notification_responses = parse_notification_responses(mock_notifications)
@@ -2837,23 +2846,36 @@ def test_group_comment_create_success(
             == "request_submitted"
         )
 
-    assert release_request.filegroups["group"].comments[0].comment == "question?"
-    assert release_request.filegroups["group"].comments[0].author == "other"
-    assert release_request.filegroups["group"].comments[1].comment == "answer!"
-    assert release_request.filegroups["group"].comments[1].author == "author"
+    comments = release_request.filegroups["group"].comments
+    assert comments[0].visibility == Visibility.BLINDED
+    assert comments[0].author == "checker"
+
+    assert comments[1].comment == "private"
+    assert comments[1].visibility == Visibility.PRIVATE
+    assert comments[1].author == "checker"
+
+    assert comments[2].comment == "public"
+    assert comments[2].visibility == Visibility.PUBLIC
+    assert comments[2].author == "author"
 
     audit_log = bll.get_audit_log(request=release_request.id)
+    assert audit_log[2].request == release_request.id
+    assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[2].user == checker.username
+    assert audit_log[2].extra["group"] == "group"
+    assert audit_log[2].extra["comment"] == "blinded"
+
     assert audit_log[1].request == release_request.id
     assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[1].user == other.username
+    assert audit_log[1].user == checker.username
     assert audit_log[1].extra["group"] == "group"
-    assert audit_log[1].extra["comment"] == "question?"
+    assert audit_log[1].extra["comment"] == "private"
 
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_COMMENT
     assert audit_log[0].user == author.username
     assert audit_log[0].extra["group"] == "group"
-    assert audit_log[0].extra["comment"] == "answer!"
+    assert audit_log[0].extra["comment"] == "public"
 
 
 def test_group_comment_create_permissions(bll):
@@ -2872,14 +2894,20 @@ def test_group_comment_create_permissions(bll):
     assert len(release_request.filegroups["group"].comments) == 0
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.group_comment_create(release_request, "group", "question?", other)
+        bll.group_comment_create(
+            release_request, "group", "question?", Visibility.PUBLIC, other
+        )
 
-    bll.group_comment_create(release_request, "group", "collaborator", collaborator)
+    bll.group_comment_create(
+        release_request, "group", "collaborator", Visibility.PUBLIC, collaborator
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
-    bll.group_comment_create(release_request, "group", "checker", checker)
+    bll.group_comment_create(
+        release_request, "group", "checker", Visibility.PUBLIC, checker
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 2
@@ -2897,8 +2925,12 @@ def test_group_comment_delete_success(bll):
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment_create(release_request, "group", "typo comment", other)
-    bll.group_comment_create(release_request, "group", "not-a-typo comment", other)
+    bll.group_comment_create(
+        release_request, "group", "typo comment", Visibility.PUBLIC, other
+    )
+    bll.group_comment_create(
+        release_request, "group", "not-a-typo comment", Visibility.PUBLIC, other
+    )
 
     release_request = factories.refresh_release_request(release_request)
 
@@ -2950,7 +2982,9 @@ def test_group_comment_delete_permissions(bll):
         files=[factories.request_file("group", "test/file.txt")],
     )
 
-    bll.group_comment_create(release_request, "group", "author comment", author)
+    bll.group_comment_create(
+        release_request, "group", "author comment", Visibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
@@ -2981,7 +3015,9 @@ def test_group_comment_create_invalid_params(bll):
     with pytest.raises(bll.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)
 
-    bll.group_comment_create(release_request, "group", "author comment", author)
+    bll.group_comment_create(
+        release_request, "group", "author comment", Visibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1

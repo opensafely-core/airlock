@@ -18,6 +18,7 @@ from airlock.business_logic import (
     RequestStatus,
     RequestStatusOwner,
     UserFileReviewStatus,
+    Visibility,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -578,6 +579,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
+                visibility=Visibility.PUBLIC,
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover
