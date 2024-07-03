@@ -32,10 +32,18 @@
         {% /button %}
       {% endif %}
     {% else %}{# request #}
-      {% if path_item.is_supporting  %}
-        {% #description_item title="Supporting file" %}This is a supporting file and will not be released.{% /description_item%}
+      {% if path_item.is_supporting %}
+        <span class="file-status file-status--supporting relative group cursor-pointer">
+          <span class="file-status__icon"></span>
+          Supporting
+          {% tooltip content="This is a supporting file and will not be released." %}
+        </span>
       {% elif path_item.is_withdrawn %}
-        {% #description_item title="Withdrawn file" %}This file has been withdrawn and will not be released.{% /description_item%}
+        <span class="file-status file-status--withdrawn relative group cursor-pointer">
+          <span class="file-status__icon"></span>
+          Withdrawn
+          {% tooltip content="This file has been withdrawn and will not be released." %}
+        </span>
       {% endif %}
 
       {% if is_author %}
@@ -47,15 +55,26 @@
           </form>
         {% endif %}
       {% elif is_output_checker %}
-        <div>
-          {% if not file_reset_review_url %}
-            <span class="file-status file-status--warning">No status</span>
-          {% elif file_approve_url %}
-            <span class="file-status file-status--danger">Changes requested</span>
-          {% elif file_reject_url %}
-            <span class="file-status file-status--success">Approved</span>
-          {% endif %}
-        </div>
+        {% if path_item.is_output %}
+          <div>
+            {% if not file_reset_review_url %}
+              <span class="file-status file-status--unknown">
+                <span class="file-status__icon"></span>
+                No status
+              </span>
+            {% elif file_approve_url %}
+              <span class="file-status file-status--rejected">
+                <span class="file-status__icon"></span>
+                Changes requested
+              </span>
+            {% elif file_reject_url %}
+              <span class="file-status file-status--approved">
+                <span class="file-status__icon"></span>
+                Approved
+              </span>
+            {% endif %}
+          </div>
+        {% endif %}
 
         <div class="btn-group">
           {% if file_approve_url %}

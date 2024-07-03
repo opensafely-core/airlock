@@ -46,19 +46,53 @@
   padding: 0.25rem 0.75rem;
 }
 
-.file-status--success {
+.file-status__icon {
+  background-image: var(--icon-url);
+  background-size: 100%;
+  filter: var(--icon-filter);
+  height: 14px;
+  margin-right: 0.25rem;
+  width: 14px;
+}
+
+.file-status--approved {
   --status-color: var(--color-green-800);
   --status-bg: var(--color-green-100);
+  --icon-filter: invert(18%) sepia(77%) saturate(1712%) hue-rotate(142deg)
+    brightness(102%) contrast(95%);
+  --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-.file-status--danger {
+.file-status--rejected {
   --status-color: var(--color-fuchsia-800);
   --status-bg: var(--color-fuchsia-100);
+  --icon-filter: invert(17%) sepia(40%) saturate(5736%) hue-rotate(284deg)
+    brightness(89%) contrast(98%);
+  --icon-url: url("/static/icons/help_circle_outline.svg");
 }
 
-.file-status--warning {
+.file-status--unknown {
   --status-color: var(--color-yellow-800);
   --status-bg: var(--color-yellow-100);
+  --icon-filter: invert(30%) sepia(79%) saturate(491%) hue-rotate(351deg)
+    brightness(95%) contrast(99%);
+  --icon-url: url("/static/icons/unknown.svg");
+}
+
+.file-status--withdrawn {
+  --status-color: var(--color-orange-800);
+  --status-bg: var(--color-orange-50);
+  --icon-filter: invert(25%) sepia(6%) saturate(7490%) hue-rotate(333deg)
+    brightness(115%) contrast(111%);
+  --icon-url: url("/static/icons/cancel_circle_outline.svg");
+}
+
+.file-status--supporting {
+  --status-color: var(--color-slate-800);
+  --status-bg: var(--color-slate-50);
+  --icon-filter: invert(10%) sepia(9%) saturate(3595%) hue-rotate(178deg)
+    brightness(93%) contrast(85%);
+  --icon-url: url("/static/icons/attach_file.svg");
 }
 
 /* More dropdown */
