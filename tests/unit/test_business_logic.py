@@ -235,6 +235,107 @@ def test_workspace_get_workspace_status(bll):
     assert workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
 
 
+def test_request_returned_get_workspace_space(bll):
+    user = factories.create_user(workspaces=["workspace"])
+    path = "file1.txt"
+    workspace_file = factories.request_file(
+        group="group",
+        contents="1",
+        approved=True,
+        path=path,
+    )
+    factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.RETURNED,
+        files=[
+            workspace_file,
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+
+
+def test_request_pending_not_author_get_workspace_space(bll):
+    user = factories.create_user(workspaces=["workspace"])
+    path = "file1.txt"
+    workspace_file = factories.request_file(
+        group="group",
+        contents="1",
+        path=path,
+    )
+    factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.PENDING,
+        files=[
+            workspace_file,
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+
+
+def test_request_pending_author_get_workspace_space(bll):
+    status = RequestStatus.PENDING
+
+    author = factories.create_user("author", ["workspace"], False)
+    workspace = factories.create_workspace("workspace")
+    path = UrlPath("path/file.txt")
+
+    workspace_file = factories.request_file(
+        group="group",
+        path=path,
+        contents="1",
+        user=author,
+        rejected=True,
+    )
+
+    factories.create_request_at_status(
+        workspace.name,
+        author=author,
+        status=status,
+        files=[
+            workspace_file,
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+
+def test_request_returned_author_get_workspace_space(bll):
+    status = RequestStatus.RETURNED
+
+    author = factories.create_user("author", ["workspace"], False)
+    workspace = factories.create_workspace("workspace")
+    path = UrlPath("path/file.txt")
+
+    workspace_file = factories.request_file(
+        group="group",
+        path=path,
+        contents="1",
+        user=author,
+        rejected=True,
+    )
+
+    factories.create_request_at_status(
+        workspace.name,
+        author=author,
+        status=status,
+        files=[
+            workspace_file,
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+
 def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
     factories.write_request_file(release_request, "group", "bar.html")
