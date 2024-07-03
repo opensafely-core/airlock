@@ -2004,6 +2004,44 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
+def test_get_comment_visibilities_for_user_submitted_request():
+    request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(approved=True)],
+    )
+
+    checker1, checker2 = factories.get_default_output_checkers()
+
+    # author can only create public
+    assert request.get_comment_visibilities_for_user(
+        factories.create_user(request.author, output_checker=True)
+    ) == [Visibility.PUBLIC]
+
+    # author can only create public, even if output checker
+    assert request.get_comment_visibilities_for_user(
+        factories.create_user(request.author, output_checker=True)
+    ) == [Visibility.PUBLIC]
+
+    # random 3rd party non output checker can only create public
+    assert request.get_comment_visibilities_for_user(
+        factories.create_user("other", output_checker=False)
+    ) == [Visibility.PUBLIC]
+
+    # checkers can only create blinded at this stage
+    assert request.get_comment_visibilities_for_user(checker1) == [Visibility.BLINDED]
+    assert request.get_comment_visibilities_for_user(checker2) == [Visibility.BLINDED]
+
+    factories.complete_independent_review(request)
+    request = factories.refresh_release_request(request)
+
+    # now checkers can only create private/public once review completed
+    assert request.get_comment_visibilities_for_user(checker1) == [
+        Visibility.PUBLIC,
+        Visibility.PRIVATE,
+    ]
+
+
 def test_release_request_filegroups_with_no_files(bll):
     release_request, _, _ = setup_empty_release_request()
     assert release_request.filegroups == {}

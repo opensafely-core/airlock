@@ -36,6 +36,7 @@
           <form action="{{ group_comment_create_url }}" method="POST" aria-label="group-comment-form">
             {% csrf_token %}
             {% form_textarea field=group_comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=True %}
+            {% form_radios field=group_comment_form.visibility choices=group_comment_form.visibility.field.choices class="w-full max-w-lg" %}
             <div class="mt-2">
               {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
             </div>

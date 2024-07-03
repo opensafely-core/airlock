@@ -1475,7 +1475,7 @@ def test_group_comment_create_success(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "opinion"},
+        data={"comment": "opinion", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1500,7 +1500,7 @@ def test_group_comment_create_bad_user(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment"},
+        data={"comment": "comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1523,7 +1523,8 @@ def test_group_comment_create_bad_form(airlock_client):
 
     assert response.status_code == 200
     messages = list(response.context.get("messages", []))
-    assert messages[0].message == "comment: This field is required."
+    assert "comment: This field is required" in messages[0].message
+    assert "visibility: This field is required" in messages[0].message
 
 
 def test_group_comment_create_bad_group(airlock_client):
@@ -1536,7 +1537,7 @@ def test_group_comment_create_bad_group(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/badgroup",
-        data={"comment": "comment"},
+        data={"comment": "comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1552,13 +1553,13 @@ def test_group_comment_delete(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "typo comment"},
+        data={"comment": "typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "not-a-typo comment"},
+        data={"comment": "not-a-typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1588,7 +1589,7 @@ def test_group_comment_delete_bad_form(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "typo comment"},
+        data={"comment": "typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1620,7 +1621,10 @@ def test_group_comment_delete_bad_group(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment A"},
+        data={
+            "comment": "comment A",
+            "visibility": "PUBLIC",
+        },
         follow=True,
     )
 
@@ -1630,7 +1634,7 @@ def test_group_comment_delete_bad_group(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/delete/{release_request.id}/badgroup",
-        data={"comment_id": comment.id},
+        data={"comment_id": comment.id, "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1649,7 +1653,10 @@ def test_group_comment_delete_missing_comment(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment A"},
+        data={
+            "comment": "comment A",
+            "visibility": "PUBLIC",
+        },
         follow=True,
     )
 

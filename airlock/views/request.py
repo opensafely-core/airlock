@@ -148,8 +148,9 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
-        comments = filegroup.comments
-        group_comment_form = GroupCommentForm()
+        visibilities = release_request.get_comment_visibilities_for_user(request.user)
+        group_comment_form = GroupCommentForm(visibilities=visibilities)
+
         group_comment_create_url = reverse(
             "group_comment_create",
             kwargs={"request_id": request_id, "group": group},
@@ -264,10 +265,10 @@ def request_view(request, request_id: str, path: str = ""):
         "activity": activity,
         "group_edit_form": group_edit_form,
         "group_edit_url": group_edit_url,
-        "group_comment_form": group_comment_form,
-        "group_readonly": group_readonly,
         "group_comments": comments,
+        "group_comment_form": group_comment_form,
         "group_comment_create_url": group_comment_create_url,
+        "group_readonly": group_readonly,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors
@@ -571,7 +572,8 @@ def group_edit(request, request_id, group):
 def group_comment_create(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    form = GroupCommentForm(request.POST)
+    visibilities = release_request.get_comment_visibilities_for_user(request.user)
+    form = GroupCommentForm(visibilities, request.POST)
 
     if form.is_valid():
         try:
@@ -579,7 +581,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
-                visibility=Visibility.PUBLIC,
+                visibility=Visibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover

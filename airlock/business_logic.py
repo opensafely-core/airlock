@@ -867,6 +867,30 @@ class ReleaseRequest:
 
         raise BusinessLogicLayer.FileNotFound(relpath)
 
+    def get_comment_visibilities_for_user(self, user: User):
+        """What comment visibilities should this user be able to write for this request?"""
+        is_author = user.username == self.author
+
+        # author can only ever create public
+        if is_author:
+            return [Visibility.PUBLIC]
+
+        # non-author non-output-checker, who knows what they want to say? But its public
+        if not user.output_checker:
+            return [Visibility.PUBLIC]
+
+        # we know know the user is an output-checker.
+        #
+        # currently in independant review stage, so they can only write blinded comments
+        if self.status in [
+            RequestStatus.SUBMITTED,
+            RequestStatus.PARTIALLY_REVIEWED,
+        ]:
+            return [Visibility.BLINDED]
+
+        # normal - the output-checker can choose to write public or private
+        return [Visibility.PUBLIC, Visibility.PRIVATE]
+
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
 
