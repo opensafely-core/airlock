@@ -726,6 +726,24 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
+    def filter_comments(self, user: User, request_author: str) -> list[Comment]:
+        comments = []
+        for comment in self.comments:
+            match comment.visibility:
+                case Visibility.BLINDED:
+                    # only the comment author is allowed to see blinded comments
+                    if comment.author == user.username:
+                        comments.append(comment)
+                case Visibility.PRIVATE:
+                    # only output checkers that are not the request author
+                    if user.output_checker and user.username != request_author:
+                        comments.append(comment)
+                case Visibility.PUBLIC:
+                    comments.append(comment)
+                case _:  # pragma: nocover
+                    assert False
+        return comments
+
 
 @dataclass(frozen=True)
 class Comment:
@@ -746,6 +764,16 @@ class Comment:
             **{k: v for k, v in attrs.items() if k not in ["id"]},
             id=str(attrs["id"]),
         )
+
+    def html_class(self):
+        if self.visibility == Visibility.PUBLIC:
+            return "comment_public"
+        elif self.visibility == Visibility.PRIVATE:
+            return "comment_private"
+        elif self.visibility == Visibility.BLINDED:
+            return "comment_blinded"
+
+        assert False
 
 
 @dataclass

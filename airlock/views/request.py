@@ -149,6 +149,7 @@ def request_view(request, request_id: str, path: str = ""):
         )
 
         visibilities = release_request.get_comment_visibilities_for_user(request.user)
+        comments = filegroup.filter_comments(request.user, release_request.author)
         group_comment_form = GroupCommentForm(visibilities=visibilities)
 
         group_comment_create_url = reverse(

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import old_api
@@ -16,7 +17,9 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     CodeRepo,
+    Comment,
     DataAccessLayerProtocol,
+    FileGroup,
     RequestFileReviewStatus,
     RequestFileType,
     RequestStatus,
@@ -2002,6 +2005,94 @@ def setup_empty_release_request():
         user=author,
     )
     return release_request, path, author
+
+
+@pytest.mark.parametrize(
+    "visibility, html_class",
+    [
+        (Visibility.PUBLIC, "comment_public"),
+        (Visibility.PRIVATE, "comment_private"),
+        (Visibility.BLINDED, "comment_blinded"),
+    ],
+)
+def test_comment_html_classes(visibility, html_class):
+    comment = Comment(
+        id="id",
+        comment="comment",
+        author="author",
+        created_at=timezone.now(),
+        visibility=visibility,
+    )
+    assert comment.html_class() == html_class
+
+
+def test_filegroup_filter_comments():
+    reviewer1 = factories.create_user("reviewer1", output_checker=True)
+    reviewer2 = factories.create_user("reviewer2", output_checker=True)
+    reviewer3 = factories.create_user("reviewer3", output_checker=True)
+    author = factories.create_user("author1")
+
+    filegroup = FileGroup(
+        name="group",
+        files={},
+        comments=[
+            Comment(
+                id="1",
+                comment="blinded1",
+                author=reviewer1.username,
+                visibility=Visibility.BLINDED,
+                created_at=timezone.now(),
+            ),
+            Comment(
+                id="2",
+                comment="blinded2",
+                author=reviewer2.username,
+                visibility=Visibility.BLINDED,
+                created_at=timezone.now(),
+            ),
+            Comment(
+                id="2",
+                comment="private",
+                author=reviewer2.username,
+                visibility=Visibility.PRIVATE,
+                created_at=timezone.now(),
+            ),
+            Comment(
+                id="3",
+                comment="public",
+                author=author.username,
+                visibility=Visibility.PUBLIC,
+                created_at=timezone.now(),
+            ),
+        ],
+    )
+
+    def get(comments):
+        return [c.comment for c in comments]
+
+    # only comment author can see blinded comments
+    assert get(
+        filegroup.filter_comments(reviewer1, request_author=author.username)
+    ) == ["blinded1", "private", "public"]
+
+    assert get(
+        filegroup.filter_comments(reviewer2, request_author=author.username)
+    ) == ["blinded2", "private", "public"]
+
+    # 3rd reviewer can't see blinded comments, but can see private
+    assert get(
+        filegroup.filter_comments(reviewer3, request_author=author.username)
+    ) == ["private", "public"]
+
+    # output-checker author cannot see private comments on their own request
+    assert get(
+        filegroup.filter_comments(reviewer3, request_author=reviewer3.username)
+    ) == ["public"]
+
+    # author can only see public
+    assert get(filegroup.filter_comments(author, request_author=author.username)) == [
+        "public"
+    ]
 
 
 def test_get_comment_visibilities_for_user_submitted_request():
