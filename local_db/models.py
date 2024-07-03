@@ -14,6 +14,7 @@ from airlock.business_logic import (
     RequestFileType,
     RequestStatus,
     UserFileReviewStatus,
+    Visibility,
 )
 
 
@@ -149,6 +150,7 @@ class FileGroupComment(models.Model):
 
     comment = models.TextField()
     author = models.TextField()  # just username, as we have no User model
+    visibility = EnumField(enum=Visibility)
     created_at = models.DateTimeField(default=timezone.now)
 
     def to_dict(self):
@@ -157,6 +159,7 @@ class FileGroupComment(models.Model):
             "comment": self.comment,
             "author": self.author,
             "created_at": self.created_at,
+            "visibility": self.visibility,
         }
 
 
