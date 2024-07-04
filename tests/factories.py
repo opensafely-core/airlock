@@ -289,6 +289,10 @@ def create_request_at_status(
         assert (
             withdrawn_after is not None
         ), "pass withdrawn_after to decide when to withdraw"
+        assert withdrawn_after in [
+            RequestStatus.PENDING,
+            RequestStatus.RETURNED,
+        ], f"Invalid state transition with withdrawn_after {withdrawn_after}"
 
     # Get a default checker if one was not provided
     # This is the checker who does the state transitions (approved/released/returned/rejected)
