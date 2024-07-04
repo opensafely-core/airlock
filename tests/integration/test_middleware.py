@@ -21,7 +21,9 @@ def test_middleware_expired_user(airlock_client, responses):
     session.save()
 
     new_workspaces = user.workspaces.copy()
-    new_workspaces["new_workspace"] = {"project": "other_project"}
+    new_workspaces["new_workspace"] = {
+        "project_details": {"name": "other_project", "ongoing": True}
+    }
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",

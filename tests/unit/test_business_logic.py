@@ -287,9 +287,18 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
     workspaces = {
-        "foo": {"project": "project 1"},
-        "bar": {"project": "project 2"},
-        "not-exists": {"project": "project 3"},
+        "foo": {
+            "project_details": {"name": "project 1", "ongoing": True},
+            "archived": False,
+        },
+        "bar": {
+            "project_details": {"name": "project 2", "ongoing": True},
+            "archived": True,
+        },
+        "not-exists": {
+            "project_details": {"name": "project 2", "ongoing": True},
+            "archived": False,
+        },
     }
     user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
 

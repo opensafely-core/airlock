@@ -37,7 +37,11 @@ def create_user(
         workspaces_dict = workspaces
     else:
         workspaces_dict = {
-            workspace: {"project": "project"} for workspace in workspaces
+            workspace: {
+                "project_details": {"name": "project", "ongoing": True},
+                "archived": False,
+            }
+            for workspace in workspaces
         }
 
     if last_refresh is None:

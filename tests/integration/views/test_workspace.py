@@ -20,7 +20,11 @@ def test_home_redirects(airlock_client):
 
 
 def test_workspace_view_summary(airlock_client):
-    airlock_client.login(workspaces={"workspace": {"project": "TESTPROJECT"}})
+    airlock_client.login(
+        workspaces={
+            "workspace": {"project_details": {"name": "TESTPROJECT", "ongoing": True}}
+        }
+    )
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt")
     # create audit event to appear on activity
@@ -412,9 +416,9 @@ def test_workspaces_index_no_user(airlock_client):
 def test_workspaces_index_user_permitted_workspaces(airlock_client):
     airlock_client.login(
         workspaces={
-            "test1a": {"project": "Project 1"},
-            "test1b": {"project": "Project 1"},
-            "test2": {"project": "Project 2"},
+            "test1a": {"project_details": {"name": "Project 1", "ongoing": True}},
+            "test1b": {"project_details": {"name": "Project 1", "ongoing": True}},
+            "test2": {"project_details": {"name": "Project 2", "ongoing": True}},
         }
     )
     factories.create_workspace("test1a")

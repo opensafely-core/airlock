@@ -45,7 +45,15 @@ def dev_users(tmp_path, settings):
                         "fullname": "Researcher",
                         "output_checker": False,
                         "staff": False,
-                        "workspaces": {"test-workspace": {"project": "Project 1"}},
+                        "workspaces": {
+                            "test-workspace": {
+                                "project_details": {
+                                    "name": "Project 1",
+                                    "ongoing": True,
+                                },
+                                "archived": False,
+                            }
+                        },
                     },
                 },
             }

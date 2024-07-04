@@ -32,7 +32,10 @@ def test_login(requests_post, client, settings):
         "username": "test_user",
         "output_checker": False,
         "workspaces": {
-            "workspace": {"project": "project1"},
+            "workspace": {
+                "project_details": {"name": "project1", "ongoing": True},
+                "archived": False,
+            },
         },
     }
 
@@ -52,7 +55,10 @@ def test_login(requests_post, client, settings):
     assert client.session["user"]["username"] == "test_user"
     assert client.session["user"]["output_checker"] is False
     assert client.session["user"]["workspaces"] == {
-        "workspace": {"project": "project1"},
+        "workspace": {
+            "project_details": {"name": "project1", "ongoing": True},
+            "archived": False,
+        },
     }
 
     assert response.url == "/workspaces/"

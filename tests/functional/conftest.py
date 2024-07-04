@@ -67,7 +67,12 @@ def output_checker_user(live_server, context):
         context,
         {
             "username": "test_output_checker",
-            "workspaces": {"test-dir2": {"project": "Project 2"}},
+            "workspaces": {
+                "test-dir2": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                }
+            },
             "output_checker": True,
         },
     )
@@ -80,7 +85,12 @@ def researcher_user(live_server, context):
         context,
         {
             "username": "test_researcher",
-            "workspaces": {"test-dir1": {"project": "Project 1"}},
+            "workspaces": {
+                "test-dir1": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                }
+            },
             "output_checker": False,
         },
     )
