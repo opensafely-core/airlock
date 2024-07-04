@@ -323,7 +323,7 @@ class Workspace:
         return self.get_id()
 
     def project(self):
-        return self.metadata.get("project", None)
+        return self.metadata.get("project_details", {})
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name

@@ -33,7 +33,7 @@ tracer = trace.get_tracer_provider().get_tracer("airlock")
 def grouped_workspaces(workspaces):
     workspaces_by_project = defaultdict(list)
     for workspace in workspaces:
-        workspaces_by_project[workspace.project()].append(workspace)
+        workspaces_by_project[workspace.project().get("name")].append(workspace)
 
     for project, workspaces in sorted(workspaces_by_project.items()):
         yield project, list(sorted(workspaces))
@@ -97,9 +97,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
     activity = []
-    project = request.user.workspaces.get(workspace_name, {}).get(
-        "project", "Unknown project"
-    )
+    project = workspace.project().get("name", "Unknown project")
 
     # we are viewing the root, so load workspace audit log
     if path == "":
