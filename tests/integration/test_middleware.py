@@ -22,7 +22,8 @@ def test_middleware_expired_user(airlock_client, responses):
 
     new_workspaces = user.workspaces.copy()
     new_workspaces["new_workspace"] = {
-        "project_details": {"name": "other_project", "ongoing": True}
+        "project_details": {"name": "other_project", "ongoing": True},
+        "archived": False,
     }
 
     responses.post(

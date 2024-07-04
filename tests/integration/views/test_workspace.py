@@ -22,7 +22,10 @@ def test_home_redirects(airlock_client):
 def test_workspace_view_summary(airlock_client):
     airlock_client.login(
         workspaces={
-            "workspace": {"project_details": {"name": "TESTPROJECT", "ongoing": True}}
+            "workspace": {
+                "project_details": {"name": "TESTPROJECT", "ongoing": True},
+                "archived": False,
+            }
         }
     )
     workspace = factories.create_workspace("workspace")

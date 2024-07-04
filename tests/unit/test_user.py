@@ -80,17 +80,57 @@ def test_session_user_has_permission(output_checker, workspaces, has_permission)
     assert user.has_permission("test") == has_permission
 
 
+def _details(archived=False, ongoing=True):
+    return {
+        "project_details": {"name": "Project", "ongoing": ongoing},
+        "archived": archived,
+    }
+
+
 @pytest.mark.parametrize(
-    "output_checker,workspaces,can_create_request",
+    "output_checker,workspaces,can_action_request,expected_reason",
     [
-        (True, {}, False),
-        (True, {"other": {}, "other1": {}}, False),
-        (False, {"test": {}, "other": {}, "other1": {}}, True),
-        (False, {"other": {}, "other1": {}}, False),
+        (True, {}, False, User.ActionDeniedReason.NO_PERMISSION),
+        (
+            True,
+            {"other": _details(), "other1": _details()},
+            False,
+            User.ActionDeniedReason.NO_PERMISSION,
+        ),
+        (
+            False,
+            {"test": _details(), "other": _details(), "other1": _details()},
+            True,
+            None,
+        ),
+        (
+            False,
+            {"other": _details(), "other1": _details()},
+            False,
+            User.ActionDeniedReason.NO_PERMISSION,
+        ),
+        (
+            False,
+            {"test": _details(archived=True)},
+            False,
+            User.ActionDeniedReason.WORKSPACE_ARCHIVED,
+        ),
+        (
+            False,
+            {"test": _details(ongoing=False)},
+            False,
+            User.ActionDeniedReason.PROJECT_INACTIVE,
+        ),
+        (
+            False,
+            {"test": _details(archived=True, ongoing=False)},
+            False,
+            User.ActionDeniedReason.WORKSPACE_ARCHIVED,
+        ),
     ],
 )
-def test_session_user_can_create_request(
-    output_checker, workspaces, can_create_request
+def test_session_user_can_action_request(
+    output_checker, workspaces, can_action_request, expected_reason
 ):
     mock_session = {
         "user": {
@@ -101,4 +141,6 @@ def test_session_user_can_create_request(
         }
     }
     user = User.from_session(mock_session)
-    assert user.can_create_request("test") == can_create_request
+    can_action, reason = user.can_action_request("test")
+    assert can_action == can_action_request
+    assert reason == expected_reason

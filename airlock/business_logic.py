@@ -1229,15 +1229,32 @@ class BusinessLogicLayer:
         Get the current request for a workspace/user, or create a new one if there is
         none.
         """
+        # get_current_request will raise exception if user has no permission
+        # and is not an output-cheker
         request = self.get_current_request(workspace, user)
+
+        # requests for output-checkers, and for archived workspaces and inactive
+        # projects are still viewable, check if user has permission to create one
+        can_create_request, reason = user.can_action_request(workspace)
+        if not can_create_request:
+            match reason:
+                case user.ActionDeniedReason.NO_PERMISSION:
+                    raise self.RequestPermissionDenied(
+                        f"You do not have permission to create a request for {workspace}"
+                    )
+                case user.ActionDeniedReason.WORKSPACE_ARCHIVED:
+                    raise self.RequestPermissionDenied(
+                        "cannot create a request for an archived workspace"
+                    )
+                case user.ActionDeniedReason.PROJECT_INACTIVE:
+                    raise self.RequestPermissionDenied(
+                        "cannot create a request for workspace whose project is not ongoing"
+                    )
+                case _:  # pragma: no cover
+                    assert False
+
         if request is not None:
             return request
-
-        if not user.can_create_request(workspace):
-            raise self.RequestPermissionDenied(
-                f"you do not have permission to create a request for {workspace}"
-            )
-
         return self._create_release_request(workspace, user)
 
     def get_requests_for_workspace(
@@ -1477,6 +1494,24 @@ class BusinessLogicLayer:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
+
+        can_edit, reason = user.can_action_request(release_request.workspace)
+        if not can_edit:
+            match reason:
+                case user.ActionDeniedReason.NO_PERMISSION:
+                    raise self.RequestPermissionDenied(
+                        "you do not have permission to modify a request for this workspace"
+                    )
+                case user.ActionDeniedReason.WORKSPACE_ARCHIVED:
+                    raise self.RequestPermissionDenied(
+                        "cannot modify a request for an archived workspace"
+                    )
+                case user.ActionDeniedReason.PROJECT_INACTIVE:
+                    raise self.RequestPermissionDenied(
+                        "cannot modify a request for workspace whose project is not ongoing"
+                    )
+                case _:  # pragma: no cover
+                    assert False
 
     def validate_file_types(self, file_paths):
         """

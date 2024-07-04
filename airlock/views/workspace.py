@@ -82,7 +82,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
-    multiselect_add = request.user.can_create_request(workspace_name) and (
+    can_action_request, _ = request.user.can_action_request(workspace_name)
+    multiselect_add = can_action_request and (
         workspace.current_request is None
         or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
     )
