@@ -136,6 +136,15 @@
   --icon-url: url("/static/icons/add_circle_outline.svg");
 }
 
+[data-workspace] .workspace_updated {
+  --file-bg: var(--color-violet-50);
+  --file-border: var(--color-violet-500);
+  --file-name: var(--color-violet-900);
+  --icon-filter: invert(10%) sepia(51%) saturate(6855%) hue-rotate(263deg)
+    brightness(94%) contrast(94%);
+  --icon-url: url("/static/icons/update.svg");
+}
+
 [data-request] .tree__file.withdrawn {
   --file-bg: var(--color-orange-50) !important;
   --file-border: var(--color-orange-700) !important;
