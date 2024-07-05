@@ -78,13 +78,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # If there already is a current request, only show the multiselect add
     # if the request is in an author-editable state (pending/returned)
     #
-    # Only show the add file form button if the above is true, and also
-    # this pathitem is a file that can be added to a request - i.e. it is a
-    # file and it's not already on the curent request for the user
-    # Currently we can just rely on checking the relpath against
-    # the files on the request. In future we'll likely also need to
-    # check file metadata to allow updating a file if the original has
-    # changed.
     try:
         request.user.verify_can_action_request(workspace_name)
         can_action_request = True
@@ -95,10 +88,15 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         workspace.current_request is None
         or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
     )
+
     valid_states_to_add = [
         WorkspaceFileStatus.UNRELEASED,
         WorkspaceFileStatus.CONTENT_UPDATED,
     ]
+
+    # Only show the add file form button if the multiselect_add condition is true,
+    # and also this pathitem is a file that can be added to a request - i.e. it is a
+    # file and it's not already on the current request for the user
     add_file = (
         multiselect_add
         and path_item.is_valid()
