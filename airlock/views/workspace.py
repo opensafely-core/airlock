@@ -97,7 +97,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
     valid_states_to_add = [
         WorkspaceFileStatus.UNRELEASED,
-        # TODO WorkspaceFileStatus.CONTENT_UPDATED,
+        WorkspaceFileStatus.CONTENT_UPDATED,
     ]
     add_file = (
         multiselect_add
