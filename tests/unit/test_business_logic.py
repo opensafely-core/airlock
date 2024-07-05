@@ -215,31 +215,33 @@ def test_workspace_get_workspace_archived_ongoing(bll):
         assert "INACTIVE" not in workspace.project().display_name()
 
 
-def test_workspace_get_workspace_status(bll):
+def test_workspace_get_workspace_file_status(bll):
     path = UrlPath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
     user = factories.create_user(workspaces=["workspace"])
 
-    assert workspace.get_workspace_status(path) is None
+    assert workspace.get_workspace_file_status(path) is None
 
     factories.write_workspace_file(workspace, path, contents="foo")
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
     release_request = factories.create_release_request(workspace, user=user)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
     factories.write_request_file(release_request, "group", path)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
     factories.write_workspace_file(workspace, path, contents="changed")
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+    assert (
+        workspace.get_workspace_file_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+    )
 
 
-def test_request_returned_get_workspace_space(bll):
+def test_request_returned_get_workspace_file_status(bll):
     user = factories.create_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
@@ -258,10 +260,10 @@ def test_request_returned_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
 
-def test_request_pending_not_author_get_workspace_space(bll):
+def test_request_pending_not_author_get_workspace_file_status(bll):
     user = factories.create_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
@@ -279,10 +281,10 @@ def test_request_pending_not_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
 
-def test_request_pending_author_get_workspace_space(bll):
+def test_request_pending_author_get_workspace_file_status(bll):
     status = RequestStatus.PENDING
 
     author = factories.create_user("author", ["workspace"], False)
@@ -308,10 +310,10 @@ def test_request_pending_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
 
-def test_request_returned_author_get_workspace_space(bll):
+def test_request_returned_author_get_workspace_file_status(bll):
     status = RequestStatus.RETURNED
 
     author = factories.create_user("author", ["workspace"], False)
@@ -337,7 +339,7 @@ def test_request_returned_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
 
 def test_request_container(mock_notifications):
@@ -1667,13 +1669,17 @@ def test_update_file_to_request_states(
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
     if success:
-        assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+        assert (
+            workspace.get_workspace_file_status(path)
+            == WorkspaceFileStatus.UNDER_REVIEW
+        )
 
     factories.write_workspace_file(workspace, path, contents="changed")
 
     if success:
         assert (
-            workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+            workspace.get_workspace_file_status(path)
+            == WorkspaceFileStatus.CONTENT_UPDATED
         )
         bll.update_file_in_request(release_request, path, author, "group")
     else:
@@ -1683,7 +1689,7 @@ def test_update_file_to_request_states(
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checkers[0]) is None

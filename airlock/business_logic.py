@@ -87,6 +87,13 @@ class RequestFileReviewStatus(Enum):
     INCOMPLETE = "INCOMPLETE"
 
 
+@dataclass
+class RequestFileStatus:
+    user: User
+    file_status: RequestFileReviewStatus
+    user_status: UserFileReviewStatus | None
+
+
 class Visibility(Enum):
     """The visibility of various bits of state.
 
@@ -279,16 +286,13 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        """Get request status of file."""
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        """Get user's request status of file."""
+    ) -> RequestFileStatus | None:
+        """Get request status of file."""
 
 
 @dataclass(frozen=True)
@@ -388,7 +392,7 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         # defence in depth, we've been given a bad file path
         try:
             self.abspath(relpath)
@@ -416,12 +420,9 @@ class Workspace:
 
         return WorkspaceFileStatus.UNRELEASED
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None  # pragma: nocover
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
+    ) -> RequestFileStatus | None:
         return None  # pragma: nocover
 
     def get_requests_url(self):
@@ -597,16 +598,13 @@ class CodeRepo:
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None  # pragma: nocover
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        return None  # pragma: no cover
+    ) -> RequestFileStatus | None:
+        return None  # pragma: nocover
 
 
 @dataclass(frozen=True)
@@ -864,16 +862,35 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).get_status()
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).get_status_for_user(user)
+    ) -> RequestFileStatus | None:
+        rfile = self.get_request_file_from_urlpath(relpath)
+        visibility = self.get_current_request_visibility()
+        request_status = RequestFileReviewStatus.INCOMPLETE
+
+        match visibility:
+            case Visibility.BLINDED:
+                # already set - no one knows the current status
+                pass
+            case Visibility.PRIVATE:
+                # only output-checkers know the current status
+                if user.output_checker:
+                    request_status = rfile.get_status()
+            case Visibility.PUBLIC:
+                # everyone knows the current status
+                request_status = rfile.get_status()
+            case _:  # pragma: nocover
+                assert False
+
+        return RequestFileStatus(
+            user=user,
+            file_status=request_status,
+            user_status=rfile.get_status_for_user(user),
+        )
 
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
@@ -897,15 +914,24 @@ class ReleaseRequest:
 
         raise BusinessLogicLayer.FileNotFound(relpath)
 
+    def get_current_request_visibility(self):
+        if self.status in [RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED]:
+            return Visibility.BLINDED
+
+        if self.status in [RequestStatus.REVIEWED]:
+            return Visibility.PRIVATE
+
+        return Visibility.PUBLIC
+
     def get_comment_visibilities_for_user(self, user: User):
         """What comment visibilities should this user be able to write for this request?"""
         is_author = user.username == self.author
 
-        # author can only ever create public
+        # author can only ever create public comments
         if is_author:
             return [Visibility.PUBLIC]
 
-        # non-author non-output-checker, who knows what they want to say? But its public
+        # non-author non-output-checker, also only public
         if not user.output_checker:
             return [Visibility.PUBLIC]
 
@@ -1685,7 +1711,7 @@ class BusinessLogicLayer:
 
         workspace = self.get_workspace(release_request.workspace, user)
         if (
-            workspace.get_workspace_status(UrlPath(relpath))
+            workspace.get_workspace_file_status(UrlPath(relpath))
             != WorkspaceFileStatus.CONTENT_UPDATED
         ):
             raise self.RequestPermissionDenied(
@@ -2024,7 +2050,6 @@ class BusinessLogicLayer:
         )
 
         self._dal.unblind_comments(release_request.id, audit)
-
 
     def mark_file_undecided(
         self,
