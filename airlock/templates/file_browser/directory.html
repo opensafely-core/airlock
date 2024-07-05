@@ -90,7 +90,11 @@
               {% endif %}
               <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
               <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-              <td>{% form_checkbox name="selected" value=path.relpath custom_field=True %}</td>
+              <td>
+                {% if not path.is_directory %}
+                  {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>
