@@ -77,6 +77,11 @@ class UserFileReviewStatus(Enum):
         "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
     )
 
+    def description(self):
+        if self == UserFileReviewStatus.REJECTED:
+            return "Changes Requested"
+        return self.name.title()
+
 
 class RequestFileReviewStatus(Enum):
     """The current state of all user reviews on this file."""
@@ -85,6 +90,11 @@ class RequestFileReviewStatus(Enum):
     APPROVED = "APPROVED"
     CONFLICTED = "CONFLICTED"
     INCOMPLETE = "INCOMPLETE"
+
+    def description(self):
+        if self == RequestFileReviewStatus.REJECTED:
+            return "Changes Requested"
+        return self.name.title()
 
 
 @dataclass

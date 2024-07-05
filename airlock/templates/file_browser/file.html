@@ -46,6 +46,16 @@
         </span>
       {% endif %}
 
+      {% with file_status=path_item.request_status.file_status %}
+        <div class="request-file-status">
+          <span>Decision:
+            <span class="file-status file-status--{{ file_status.name.lower }}">
+              {{ file_status.description }}
+            </span>
+          </span>
+        </div>
+      {% endwith %}
+
       {% if is_author %}
         {% if workspace.is_active %}
           {% if path_item.is_output and file_withdraw_url %}
@@ -59,22 +69,15 @@
       {% elif is_output_checker %}
         {% if path_item.is_output %}
           <div>
-            {% if not file_reset_review_url %}
-              <span class="file-status file-status--unknown">
-                <span class="file-status__icon"></span>
-                No status
-              </span>
-            {% elif file_approve_url %}
-              <span class="file-status file-status--rejected">
-                <span class="file-status__icon"></span>
-                Changes requested
-              </span>
-            {% elif file_reject_url %}
-              <span class="file-status file-status--approved">
-                <span class="file-status__icon"></span>
-                Approved
-              </span>
-            {% endif %}
+            {% with user_status=path_item.request_status.user_status %}
+              {% if user_status %}
+                <span>Your review:
+                  <span class="file-status file-status--{{ user_status.name.lower }}">
+                    {{ user_status.description }}
+                  </span>
+                </span>
+              {% endif %}
+            {% endwith %}
           </div>
         {% endif %}
 
