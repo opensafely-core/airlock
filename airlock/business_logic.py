@@ -344,6 +344,10 @@ class Workspace:
     def is_archived(self):
         return self.metadata.get("archived")
 
+    # helpers for templates
+    def is_active(self):
+        return self.project().is_ongoing and not self.is_archived()
+
     def display_name(self):
         # helper for templates
         if self.is_archived():

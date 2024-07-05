@@ -187,16 +187,19 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     inactive_project = bll.get_workspace("not_ongoing", user)
     assert not active_workspace.is_archived()
     assert active_workspace.project().is_ongoing
+    assert active_workspace.is_active()
     assert active_workspace.display_name() == "workspace"
     assert active_workspace.project().display_name() == "project-1"
 
     assert archived_workspace.is_archived()
     assert archived_workspace.project().is_ongoing
+    assert not archived_workspace.is_active()
     assert archived_workspace.display_name() == "archived_workspace (ARCHIVED)"
     assert archived_workspace.project().display_name() == "project-1"
 
     assert not inactive_project.is_archived()
     assert not inactive_project.project().is_ongoing
+    assert not inactive_project.is_active()
     assert inactive_project.display_name() == "not_ongoing"
     assert inactive_project.project().display_name() == "project-2 (INACTIVE)"
 

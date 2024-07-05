@@ -1,6 +1,6 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
-    {% if context == "workspace" %}
+    {% if context == "workspace" and workspace.is_active %}
       {% if add_file %}
         <form
           method="POST"
@@ -31,7 +31,7 @@
           Add File to Request
         {% /button %}
       {% endif %}
-    {% else %}{# request #}
+    {% elif context == "request" %}
       {% if path_item.is_supporting %}
         <span class="file-status file-status--supporting relative group cursor-pointer">
           <span class="file-status__icon"></span>
@@ -47,12 +47,14 @@
       {% endif %}
 
       {% if is_author %}
-        {% if path_item.is_output and file_withdraw_url %}
-          <form action="{{ file_withdraw_url }}" method="POST">
-            {% csrf_token %}
-            <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-            {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
-          </form>
+        {% if workspace.is_active %}
+          {% if path_item.is_output and file_withdraw_url %}
+            <form action="{{ file_withdraw_url }}" method="POST">
+              {% csrf_token %}
+              <input type=hidden name="path" value="{{ path_item.relpath }}"/>
+              {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
+            </form>
+          {% endif %}
         {% endif %}
       {% elif is_output_checker %}
         {% if path_item.is_output %}
