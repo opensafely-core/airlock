@@ -428,8 +428,11 @@ def file_approve(request, request_id, path: str):
     except bll.FileNotFound:
         raise Http404()
 
+    urlpath = UrlPath(path)
+    group_name = urlpath.parts[0]
+
     try:
-        bll.approve_file(release_request, relpath, request.user)
+        bll.approve_file(release_request, relpath, request.user, group_name)
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
@@ -447,8 +450,11 @@ def file_reject(request, request_id, path: str):
     except bll.FileNotFound:
         raise Http404()
 
+    urlpath = UrlPath(path)
+    group_name = urlpath.parts[0]
+
     try:
-        bll.reject_file(release_request, relpath, request.user)
+        bll.reject_file(release_request, relpath, request.user, group_name)
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 

@@ -1813,7 +1813,11 @@ class BusinessLogicLayer:
             )
 
     def approve_file(
-        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str = "default",
     ):
         """ "Approve a file"""
 
@@ -1824,12 +1828,17 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_APPROVE,
             user=user,
             path=relpath,
+            group=group_name,
         )
 
         self._dal.approve_file(release_request.id, relpath, user.username, audit)
 
     def reject_file(
-        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str = "default",
     ):
         """Reject a file"""
 
@@ -1840,6 +1849,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_REJECT,
             user=user,
             path=relpath,
+            group=group_name,
         )
 
         self._dal.reject_file(release_request.id, relpath, user.username, audit)
