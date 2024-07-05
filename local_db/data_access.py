@@ -243,7 +243,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
         with transaction.atomic():
-            # nb. the business logic layer approve_file() should confirm that this path
+            # nb. the business logic layer release_file() should confirm that this path
             # is part of the request before calling this method
             request_file = RequestFileMetadata.objects.get(
                 request_id=request_id, relpath=relpath
