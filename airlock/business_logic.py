@@ -282,7 +282,7 @@ class Workspace:
 
     name: str
     manifest: dict[str, Any]
-    metadata: dict[str, str]
+    metadata: dict[str, Any]
     current_request: ReleaseRequest | None
 
     @classmethod
@@ -324,6 +324,9 @@ class Workspace:
 
     def project(self):
         return self.metadata.get("project_details", {})
+
+    def is_archived(self):
+        return self.metadata.get("archived")
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
@@ -1118,6 +1121,20 @@ class BusinessLogicLayer:
         # empty metadata instance.
         # Currently, the only place this metadata is used is in the workspace
         # index, to group by project, so its mostly fine that its not here.
+        #
+        # Metadata also contains information about whether the workspace is
+        # archived, and whether the project is ongoing (note that a project
+        # could be completed/closed and a workspace not archived, so we need
+        # to check for both of these states);
+        # The metadata is extracted as an attribute on the workspace. It is
+        # used in the workspace index, to show/group
+        # workspaces by project and project ongoing status, and within that,
+        # by archived status. It is also used to prevent release
+        # requests being created for archived workspaces or for not-ongoing projects.
+        #
+        # It will be None for output checkers who don't have explicit access to
+        # the workspace; this is OK as they also won't be able to create requests
+        # for the workspace, and they only have access to browse the files.
         metadata = user.workspaces.get(name, {})
 
         return Workspace.from_directory(

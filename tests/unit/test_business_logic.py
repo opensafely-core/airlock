@@ -156,6 +156,43 @@ def test_get_file_metadata():
     )
 
 
+def test_workspace_get_workspace_archived_ongoing(bll):
+    factories.create_workspace("workspace")
+    factories.create_workspace("archived_workspace")
+    factories.create_workspace("not_ongoing")
+    user = factories.create_user(
+        "user",
+        workspaces={
+            "workspace": {
+                "project": "project-1",
+                "project_details": {"name": "project-1", "ongoing": True},
+                "archived": False,
+            },
+            "archived_workspace": {
+                "project": "project-1",
+                "project_details": {"name": "project-1", "ongoing": True},
+                "archived": True,
+            },
+            "not_ongoing": {
+                "project": "project-2",
+                "project_details": {"name": "project-2", "ongoing": False},
+                "archived": False,
+            },
+        },
+    )
+    checker = factories.create_user("checker", output_checker=True)
+
+    assert not bll.get_workspace("workspace", user).is_archived()
+    assert bll.get_workspace("workspace", user).project().get("ongoing")
+    assert bll.get_workspace("archived_workspace", user).is_archived()
+    assert bll.get_workspace("archived_workspace", user).project().get("ongoing")
+    assert not bll.get_workspace("not_ongoing", user).is_archived()
+    assert not bll.get_workspace("not_ongoing", user).project().get("ongoing")
+    for workspace in ["workspace", "archived_workspace", "not_ongoing"]:
+        assert bll.get_workspace(workspace, checker).is_archived() is None
+        assert bll.get_workspace(workspace, checker).project().get("ongoing") is None
+
+
 def test_workspace_get_workspace_status(bll):
     path = UrlPath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
