@@ -9,6 +9,7 @@ from airlock.business_logic import (
     RequestStatus,
     RequestStatusOwner,
     UserFileReviewStatus,
+    Visibility,
     bll,
 )
 from airlock.types import UrlPath
@@ -78,13 +79,14 @@ def test_request_view_root_summary(airlock_client):
     assert "Created request" in response.rendered_content
 
 
-def test_request_view_root_group(airlock_client):
+def test_request_view_root_group(airlock_client, settings):
+    settings.SHOW_C3 = True
     airlock_client.login(output_checker=True)
     audit_user = factories.create_user("audit_user")
     release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
-        status=RequestStatus.PENDING,
+        status=RequestStatus.SUBMITTED,
         files=[
             factories.request_file("group1", "some_dir/file1.txt"),
             factories.request_file(
@@ -95,11 +97,20 @@ def test_request_view_root_group(airlock_client):
         ],
     )
 
+    bll.group_comment_create(
+        release_request,
+        group="group1",
+        comment="private comment",
+        visibility=Visibility.PRIVATE,
+        user=airlock_client.user,
+    )
+
     response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
     assert response.status_code == 200
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Added file" in response.rendered_content
+    assert "private comment" in response.rendered_content
 
 
 def test_request_view_with_directory(airlock_client):
@@ -1478,6 +1489,8 @@ def test_group_comment_create_success(airlock_client):
         data={"comment": "opinion", "visibility": "PUBLIC"},
         follow=True,
     )
+    # ensure templates covered
+    assert response.rendered_content
 
     assert response.status_code == 200
     messages = list(response.context.get("messages", []))
@@ -1487,6 +1500,77 @@ def test_group_comment_create_success(airlock_client):
 
     assert release_request.filegroups["group"].comments[0].comment == "opinion"
     assert release_request.filegroups["group"].comments[0].author == "author"
+
+
+@pytest.mark.parametrize("visibility", [Visibility.BLINDED, Visibility.PRIVATE])
+def test_group_comment_author_bad_visibility(airlock_client, visibility):
+    author = factories.create_user("author", ["workspace"], False)
+
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.write_request_file(release_request, "group", "file.txt")
+
+    airlock_client.login_with_user(author)
+
+    response = airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "opinion", "visibility": visibility.name},
+        follow=True,
+    )
+    assert response.rendered_content
+
+    messages = list(response.context.get("messages", []))
+    assert (
+        f"visibility: Select a valid choice. {visibility.name} is not one of the available choices."
+        in messages[0].message
+    )
+
+
+def test_group_comment_checker_bad_no_private_when_blinded(airlock_client):
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        status=RequestStatus.PARTIALLY_REVIEWED,
+        files=[factories.request_file(approved=True)],
+    )
+
+    airlock_client.login_with_user(checkers[0])
+
+    response = airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "opinion", "visibility": "PRIVATE"},
+        follow=True,
+    )
+    assert response.rendered_content
+
+    messages = list(response.context.get("messages", []))
+    assert (
+        "visibility: Select a valid choice. PRIVATE is not one of the available choices."
+        in messages[0].message
+    )
+
+
+def test_group_comment_checker_bad_no_blinded_when_not_blinded(airlock_client):
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        status=RequestStatus.REVIEWED,
+        files=[factories.request_file(approved=True)],
+    )
+
+    airlock_client.login_with_user(checkers[0])
+
+    response = airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={"comment": "opinion", "visibility": "BLINDED"},
+        follow=True,
+    )
+    assert response.rendered_content
+
+    messages = list(response.context.get("messages", []))
+    assert (
+        "visibility: Select a valid choice. BLINDED is not one of the available choices."
+        in messages[0].message
+    )
 
 
 def test_group_comment_create_bad_user(airlock_client):

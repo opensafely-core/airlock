@@ -1,3 +1,12 @@
+<style>
+  .comments .comment_private {
+    background-color: lightgrey;
+  }
+
+  .comments .comment_blinded {
+    background-color: darkgrey;
+  }
+</style>
 {% #card title=path_item.name container=True %}
   <form action="{{ group_edit_url }}" method="POST" aria-label="group-edit-form">
     {% csrf_token %}
@@ -19,7 +28,15 @@
     <div class="comments" style="margin-top: 1rem;">
       {% #list_group %}
         {% for comment in group_comments %}
-          {% #list_group_rich_item status_text=comment.created_at|date:"Y-m-d H:i" class=comment.html_class title=comment.author %}
+          {% fragment as comment_status %}
+            <span>
+              {% if request.user.output_checker %}
+                {% pill variant="info" text=comment.visibility.name.title %}
+              {% endif %}
+              {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+            </span>
+          {% endfragment %}
+          {% #list_group_rich_item custom_status=comment_status class=comment.html_class title=comment.author %}
             {{ comment.comment }}
             {% if request.user.username == comment.author %}
               <div>
