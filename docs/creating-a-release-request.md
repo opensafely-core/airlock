@@ -25,7 +25,7 @@ File groups allow the researcher to group the various files in a release request
 into logical groups, in order to help the output checker understand the request.
 Supporting files should be placed in the same file group as the Output file they support. 
 
-<!-- ## Adding context and controls
+## Adding context and controls
 
 Context and controls should be added to each file group. These allow researchers to
 provide information about the files requested for release. Files should be organised
@@ -37,7 +37,7 @@ needs to be provided once per group of files.
 
 To add context and controls to a group, the researcher should navigate to the current
 release request and click on the name of the relevant group. This will open a page with
-options to enter context and control information. -->
+options to enter context and control information.
 
 ## Withdrawing files
 
