@@ -148,7 +148,9 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
-        visibilities = release_request.get_comment_visibilities_for_user(request.user)
+        visibilities = release_request.get_writable_comment_visibilities_for_user(
+            request.user
+        )
         comments = filegroup.filter_comments(request.user, release_request.author)
         group_comment_form = GroupCommentForm(visibilities=visibilities)
 
@@ -573,7 +575,9 @@ def group_edit(request, request_id, group):
 def group_comment_create(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    visibilities = release_request.get_comment_visibilities_for_user(request.user)
+    visibilities = release_request.get_writable_comment_visibilities_for_user(
+        request.user
+    )
     form = GroupCommentForm(visibilities, request.POST)
 
     if form.is_valid():

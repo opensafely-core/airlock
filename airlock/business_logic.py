@@ -933,7 +933,7 @@ class ReleaseRequest:
 
         return Visibility.PUBLIC
 
-    def get_comment_visibilities_for_user(self, user: User):
+    def get_writable_comment_visibilities_for_user(self, user: User):
         """What comment visibilities should this user be able to write for this request?"""
         is_author = user.username == self.author
 
@@ -947,14 +947,11 @@ class ReleaseRequest:
 
         # we know know the user is an output-checker.
         #
-        # currently in independant review stage, so they can only write blinded comments
-        if self.status in [
-            RequestStatus.SUBMITTED,
-            RequestStatus.PARTIALLY_REVIEWED,
-        ]:
+        # currently in independent review stage, so they can only write blinded comments
+        if self.get_current_request_visibility() == Visibility.BLINDED:
             return [Visibility.BLINDED]
 
-        # normal - the output-checker can choose to write public or private
+        # all other cases - the output-checker can choose to write public or private comments
         return [Visibility.PUBLIC, Visibility.PRIVATE]
 
     def abspath(self, relpath):
