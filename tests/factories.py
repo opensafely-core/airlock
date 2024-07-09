@@ -14,8 +14,8 @@ from airlock.business_logic import (
     CodeRepo,
     RequestFile,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
-    UserFileReviewStatus,
     Workspace,
     bll,
 )
@@ -432,9 +432,9 @@ def write_request_file(
         request, relpath=path, user=user, group_name=group, filetype=filetype
     )
     if approved:
-        review_file(request, path, UserFileReviewStatus.APPROVED, *checkers)
+        review_file(request, path, RequestFileVote.APPROVED, *checkers)
     elif rejected:
-        review_file(request, path, UserFileReviewStatus.REJECTED, *checkers)
+        review_file(request, path, RequestFileVote.REJECTED, *checkers)
 
 
 def create_request_file_bad_path(request_file, bad_path):
@@ -470,7 +470,7 @@ def review_file(request, relpath, status, *users):
     for user in users:
         # use the DAL directly means we can add reviews regardless of request
         # state, which is very useful in test setup.
-        if status == UserFileReviewStatus.APPROVED:
+        if status == RequestFileVote.APPROVED:
             bll._dal.approve_file(
                 request,
                 relpath=relpath,
@@ -479,7 +479,7 @@ def review_file(request, relpath, status, *users):
                     AuditEventType.REQUEST_FILE_APPROVE, user=user.username
                 ),
             )
-        elif status == UserFileReviewStatus.REJECTED:
+        elif status == RequestFileVote.REJECTED:
             bll._dal.reject_file(
                 request,
                 relpath=relpath,

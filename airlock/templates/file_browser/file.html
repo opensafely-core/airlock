@@ -46,11 +46,11 @@
         </span>
       {% endif %}
 
-      {% with file_status=path_item.request_status.file_status %}
+      {% with decision=path_item.request_status.decision %}
         <div class="request-file-status">
           <span>Decision:
-            <span class="file-status file-status--{{ file_status.name.lower }}">
-              {{ file_status.description }}
+            <span class="file-status file-status--{{ decision.name.lower }}">
+              {{ decision.description }}
             </span>
           </span>
         </div>
@@ -69,11 +69,11 @@
       {% elif is_output_checker %}
         {% if path_item.is_output %}
           <div>
-            {% with user_status=path_item.request_status.user_status %}
-              {% if user_status %}
+            {% with vote=path_item.request_status.vote %}
+              {% if vote %}
                 <span>Your review:
-                  <span class="file-status file-status--{{ user_status.name.lower }}">
-                    {{ user_status.description }}
+                  <span class="file-status file-status--{{ vote.name.lower }}">
+                    {{ vote.description }}
                   </span>
                 </span>
               {% endif %}

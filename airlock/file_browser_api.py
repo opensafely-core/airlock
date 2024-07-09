@@ -214,10 +214,10 @@ class PathItem:
         if self.workspace_status:
             classes.append(f"workspace_{self.workspace_status.value.lower()}")
         elif self.is_output() and self.request_status:
-            classes.append(f"request_{self.request_status.file_status.value.lower()}")
+            classes.append(f"request_{self.request_status.decision.value.lower()}")
 
-            if self.request_status.user_status:
-                classes.append(f"user_{self.request_status.user_status.value.lower()}")
+            if self.request_status.vote:
+                classes.append(f"user_{self.request_status.vote.value.lower()}")
             else:
                 classes.append("user_incomplete")
 

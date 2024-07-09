@@ -4,9 +4,9 @@ import pytest
 from django.template.loader import render_to_string
 
 from airlock.business_logic import (
-    RequestFileReviewStatus,
+    RequestFileDecision,
+    RequestFileVote,
     RequestStatus,
-    UserFileReviewStatus,
 )
 from airlock.file_browser_api import (
     PathType,
@@ -178,19 +178,19 @@ def test_get_request_tree_status(bll):
         files=[factories.request_file(path=path)],
     )
 
-    def assert_status(user, file_status, user_status):
+    def assert_status(user, decision, vote):
         nonlocal release_request
         release_request = factories.refresh_release_request(release_request)
         tree = get_request_tree(release_request, user)
         item = tree.get_path("group" / path)
-        assert item.request_status.file_status == file_status
-        assert item.request_status.user_status == user_status
+        assert item.request_status.decision == decision
+        assert item.request_status.vote == vote
 
     # SUBMITTED, so reviews are blinded, checkers can only see your own votes,
     # author can see nothing.
-    assert_status(author, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(checker1, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(checker2, RequestFileReviewStatus.INCOMPLETE, None)
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
     bll.approve_file(
         release_request,
@@ -198,20 +198,16 @@ def test_get_request_tree_status(bll):
         checker1,
     )
 
-    assert_status(author, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(
-        checker1, RequestFileReviewStatus.INCOMPLETE, UserFileReviewStatus.APPROVED
-    )
-    assert_status(checker2, RequestFileReviewStatus.INCOMPLETE, None)
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
     # move to PARTIALLY_REVIEWED, but still blinded
     factories.complete_independent_review(release_request, checker1)
 
-    assert_status(author, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(
-        checker1, RequestFileReviewStatus.INCOMPLETE, UserFileReviewStatus.APPROVED
-    )
-    assert_status(checker2, RequestFileReviewStatus.INCOMPLETE, None)
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
     bll.approve_file(
         release_request,
@@ -219,35 +215,23 @@ def test_get_request_tree_status(bll):
         checker2,
     )
 
-    assert_status(author, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(
-        checker1, RequestFileReviewStatus.INCOMPLETE, UserFileReviewStatus.APPROVED
-    )
-    assert_status(
-        checker2, RequestFileReviewStatus.INCOMPLETE, UserFileReviewStatus.APPROVED
-    )
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
 
     # move to REVIEWED, now unblinded, but author still cannot see anything
     factories.complete_independent_review(release_request, checker2)
 
-    assert_status(author, RequestFileReviewStatus.INCOMPLETE, None)
-    assert_status(
-        checker1, RequestFileReviewStatus.APPROVED, UserFileReviewStatus.APPROVED
-    )
-    assert_status(
-        checker2, RequestFileReviewStatus.APPROVED, UserFileReviewStatus.APPROVED
-    )
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
 
     # move to RETURNED, votes are all public now
     bll.set_status(release_request, RequestStatus.RETURNED, checker1)
 
-    assert_status(author, RequestFileReviewStatus.APPROVED, None)
-    assert_status(
-        checker1, RequestFileReviewStatus.APPROVED, UserFileReviewStatus.APPROVED
-    )
-    assert_status(
-        checker2, RequestFileReviewStatus.APPROVED, UserFileReviewStatus.APPROVED
-    )
+    assert_status(author, RequestFileDecision.APPROVED, None)
+    assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
 
 
 def test_get_workspace_tree_selected_only_file(workspace):

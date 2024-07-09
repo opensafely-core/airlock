@@ -68,8 +68,8 @@ class RequestFileType(Enum):
     CODE = "code"
 
 
-class UserFileReviewStatus(Enum):
-    """An individual user's vote on a specific file."""
+class RequestFileVote(Enum):
+    """An individual output checker's vote on a specific file."""
 
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -78,12 +78,12 @@ class UserFileReviewStatus(Enum):
     )
 
     def description(self):
-        if self == UserFileReviewStatus.REJECTED:
+        if self == RequestFileVote.REJECTED:
             return "Changes Requested"
         return self.name.title()
 
 
-class RequestFileReviewStatus(Enum):
+class RequestFileDecision(Enum):
     """The current state of all user reviews on this file."""
 
     REJECTED = "REJECTED"
@@ -92,16 +92,18 @@ class RequestFileReviewStatus(Enum):
     INCOMPLETE = "INCOMPLETE"
 
     def description(self):
-        if self == RequestFileReviewStatus.REJECTED:
+        if self == RequestFileDecision.REJECTED:
             return "Changes Requested"
         return self.name.title()
 
 
 @dataclass
 class RequestFileStatus:
+    """The current visible decision and inidividual vote for a specific user."""
+
     user: User
-    file_status: RequestFileReviewStatus
-    user_status: UserFileReviewStatus | None
+    decision: RequestFileDecision
+    vote: RequestFileVote | None
 
 
 class Visibility(Enum):
@@ -624,7 +626,7 @@ class FileReview:
     """
 
     reviewer: str
-    status: UserFileReviewStatus
+    status: RequestFileVote
     created_at: datetime
     updated_at: datetime
 
@@ -664,7 +666,7 @@ class RequestFile:
             },
         )
 
-    def get_status(self) -> RequestFileReviewStatus:
+    def get_decision(self) -> RequestFileDecision:
         """The status of RequestFile, based on mutliple reviews.
 
         We specificially only require 2 APPROVED votes, rather than all votes
@@ -675,20 +677,20 @@ class RequestFile:
 
         if len(all_reviews) < 2:
             # not enough votes yet
-            return RequestFileReviewStatus.INCOMPLETE
+            return RequestFileDecision.INCOMPLETE
 
         # if we have 2+ APPROVED reviews, we are APPROVED
-        if all_reviews.count(UserFileReviewStatus.APPROVED) >= 2:
-            return RequestFileReviewStatus.APPROVED
+        if all_reviews.count(RequestFileVote.APPROVED) >= 2:
+            return RequestFileDecision.APPROVED
 
         # do the reviews disagree?
         if len(set(all_reviews)) > 1:
-            return RequestFileReviewStatus.CONFLICTED
+            return RequestFileDecision.CONFLICTED
 
         # only case left is all reviews are REJECTED
-        return RequestFileReviewStatus.REJECTED
+        return RequestFileDecision.REJECTED
 
-    def get_status_for_user(self, user: User) -> UserFileReviewStatus | None:
+    def get_file_vote_for_user(self, user: User) -> RequestFileVote | None:
         if user.username in self.reviews:
             return self.reviews[user.username].status
         else:
@@ -698,7 +700,7 @@ class RequestFile:
         return [
             review
             for review in self.reviews.values()
-            if review.status == UserFileReviewStatus.REJECTED
+            if review.status == RequestFileVote.REJECTED
         ]
 
 
@@ -880,7 +882,7 @@ class ReleaseRequest:
     ) -> RequestFileStatus | None:
         rfile = self.get_request_file_from_urlpath(relpath)
         visibility = self.get_current_request_visibility()
-        request_status = RequestFileReviewStatus.INCOMPLETE
+        decision = RequestFileDecision.INCOMPLETE
 
         match visibility:
             case Visibility.BLINDED:
@@ -889,17 +891,17 @@ class ReleaseRequest:
             case Visibility.PRIVATE:
                 # only output-checkers know the current status
                 if user.output_checker:
-                    request_status = rfile.get_status()
+                    decision = rfile.get_decision()
             case Visibility.PUBLIC:
                 # everyone knows the current status
-                request_status = rfile.get_status()
+                decision = rfile.get_decision()
             case _:  # pragma: nocover
                 assert False
 
         return RequestFileStatus(
             user=user,
-            file_status=request_status,
-            user_status=rfile.get_status_for_user(user),
+            decision=decision,
+            vote=rfile.get_file_vote_for_user(user),
         )
 
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
@@ -1008,14 +1010,14 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.get_status() == RequestFileReviewStatus.APPROVED
+            request_file.get_decision() == RequestFileDecision.APPROVED
             for request_file in self.output_files().values()
         )
 
     def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
         return all(
-            rfile.get_status_for_user(reviewer)
-            not in [None, UserFileReviewStatus.UNDECIDED]
+            rfile.get_file_vote_for_user(reviewer)
+            not in [None, RequestFileVote.UNDECIDED]
             for rfile in self.output_files().values()
         )
 
@@ -2068,12 +2070,12 @@ class BusinessLogicLayer:
         """Change an existing rejected file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
-        if review.status != UserFileReviewStatus.REJECTED:
+        if review.status != RequestFileVote.REJECTED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review from {review.status.name} to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         audit = AuditEvent.from_request(
