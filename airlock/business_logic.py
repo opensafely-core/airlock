@@ -28,7 +28,7 @@ from airlock.lib.git import (
 )
 from airlock.notifications import send_notification_event
 from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
-from airlock.users import User
+from airlock.users import ActionDenied, User
 from airlock.utils import is_valid_file_type
 
 
@@ -1261,23 +1261,10 @@ class BusinessLogicLayer:
 
         # requests for output-checkers, and for archived workspaces and inactive
         # projects are still viewable, check if user has permission to create one
-        can_create_request, reason = user.can_action_request(workspace)
-        if not can_create_request:
-            match reason:
-                case user.ActionDeniedReason.NO_PERMISSION:
-                    raise self.RequestPermissionDenied(
-                        f"You do not have permission to create a request for {workspace}"
-                    )
-                case user.ActionDeniedReason.WORKSPACE_ARCHIVED:
-                    raise self.RequestPermissionDenied(
-                        "cannot create a request for an archived workspace"
-                    )
-                case user.ActionDeniedReason.PROJECT_INACTIVE:
-                    raise self.RequestPermissionDenied(
-                        "cannot create a request for workspace whose project is not ongoing"
-                    )
-                case _:  # pragma: no cover
-                    assert False
+        try:
+            user.verify_can_action_request(workspace)
+        except ActionDenied as exc:
+            raise self.RequestPermissionDenied(exc)
 
         if request is not None:
             return request
@@ -1521,23 +1508,10 @@ class BusinessLogicLayer:
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
 
-        can_edit, reason = user.can_action_request(release_request.workspace)
-        if not can_edit:
-            match reason:
-                case user.ActionDeniedReason.NO_PERMISSION:
-                    raise self.RequestPermissionDenied(
-                        "you do not have permission to modify a request for this workspace"
-                    )
-                case user.ActionDeniedReason.WORKSPACE_ARCHIVED:
-                    raise self.RequestPermissionDenied(
-                        "cannot modify a request for an archived workspace"
-                    )
-                case user.ActionDeniedReason.PROJECT_INACTIVE:
-                    raise self.RequestPermissionDenied(
-                        "cannot modify a request for workspace whose project is not ongoing"
-                    )
-                case _:  # pragma: no cover
-                    assert False
+        try:
+            user.verify_can_action_request(release_request.workspace)
+        except ActionDenied as exc:
+            raise self.RequestPermissionDenied(exc)
 
     def validate_file_types(self, file_paths):
         """

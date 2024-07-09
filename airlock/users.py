@@ -1,7 +1,9 @@
 import dataclasses
 import time
-from enum import Enum
 from typing import Any
+
+
+class ActionDenied(Exception): ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -16,11 +18,6 @@ class User:
     workspaces: dict[str, Any] = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
     last_refresh: float = dataclasses.field(default_factory=time.time)
-
-    class ActionDeniedReason(Enum):
-        NO_PERMISSION = "NO_PERMISSION"
-        WORKSPACE_ARCHIVED = "WORKSPACE_ARCHIVED"
-        PROJECT_INACTIVE = "PROJECT_INACTIVE"
 
     def __post_init__(self):
         assert isinstance(self.workspaces, dict)
@@ -51,19 +48,17 @@ class User:
             self.output_checker or workspace_name in self.workspaces
         )
 
-    def can_action_request(self, workspace_name):
+    def verify_can_action_request(self, workspace_name):
         # Only users with explict access to the workspace can create/modify release
         # requests.
         if workspace_name not in self.workspaces:
-            return False, self.ActionDeniedReason.NO_PERMISSION
+            raise ActionDenied(f"you do not have permission for {workspace_name}")
         # Requests for archived workspaces cannot be created/modified
         if self.workspaces[workspace_name]["archived"]:
-            return False, self.ActionDeniedReason.WORKSPACE_ARCHIVED
+            raise ActionDenied(f"{workspace_name} has been archived")
         # Requests for workspaces in not-ongoing projects cannot be created/modified
         if not self.workspaces[workspace_name]["project_details"]["ongoing"]:
-            return False, self.ActionDeniedReason.PROJECT_INACTIVE
-
-        return True, None
+            raise ActionDenied(f"{workspace_name} is part of an inactive project")
 
     def is_authenticated(self):
         return True

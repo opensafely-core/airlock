@@ -17,6 +17,7 @@ from airlock.business_logic import (
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.users import ActionDenied
 from airlock.views.helpers import (
     display_form_errors,
     display_multiple_messages,
@@ -84,7 +85,12 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
-    can_action_request, _ = request.user.can_action_request(workspace_name)
+    try:
+        request.user.verify_can_action_request(workspace_name)
+        can_action_request = True
+    except ActionDenied:
+        can_action_request = False
+
     multiselect_add = can_action_request and (
         workspace.current_request is None
         or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR

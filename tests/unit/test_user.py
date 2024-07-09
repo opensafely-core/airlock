@@ -1,6 +1,6 @@
 import pytest
 
-from airlock.users import User
+from airlock.users import ActionDenied, User
 
 
 def test_session_user_from_session():
@@ -90,12 +90,12 @@ def _details(archived=False, ongoing=True):
 @pytest.mark.parametrize(
     "output_checker,workspaces,can_action_request,expected_reason",
     [
-        (True, {}, False, User.ActionDeniedReason.NO_PERMISSION),
+        (True, {}, False, "do not have permission"),
         (
             True,
             {"other": _details(), "other1": _details()},
             False,
-            User.ActionDeniedReason.NO_PERMISSION,
+            "do not have permission",
         ),
         (
             False,
@@ -107,25 +107,25 @@ def _details(archived=False, ongoing=True):
             False,
             {"other": _details(), "other1": _details()},
             False,
-            User.ActionDeniedReason.NO_PERMISSION,
+            "do not have permission",
         ),
         (
             False,
             {"test": _details(archived=True)},
             False,
-            User.ActionDeniedReason.WORKSPACE_ARCHIVED,
+            "archived",
         ),
         (
             False,
             {"test": _details(ongoing=False)},
             False,
-            User.ActionDeniedReason.PROJECT_INACTIVE,
+            "inactive project",
         ),
         (
             False,
             {"test": _details(archived=True, ongoing=False)},
             False,
-            User.ActionDeniedReason.WORKSPACE_ARCHIVED,
+            "archived",
         ),
     ],
 )
@@ -141,6 +141,8 @@ def test_session_user_can_action_request(
         }
     }
     user = User.from_session(mock_session)
-    can_action, reason = user.can_action_request("test")
-    assert can_action == can_action_request
-    assert reason == expected_reason
+    if can_action_request:
+        assert user.verify_can_action_request("test") is None
+    else:
+        with pytest.raises(ActionDenied, match=expected_reason):
+            user.verify_can_action_request("test")
