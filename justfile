@@ -206,9 +206,10 @@ load-example-data: devenv && manifests
     # Configure user details for local login
     cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
 
-# generate manifests and git repos for local test workspaces
+# generate or update manifests and git repos for local test workspaces
 manifests:
     cat scripts/manifests.py | $BIN/python manage.py shell
+
 
 # generate the automated state diagrams from code
 state-diagram file="docs/request-states.md":
