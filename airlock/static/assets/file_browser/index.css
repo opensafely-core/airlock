@@ -31,7 +31,7 @@
   line-height: 1.1;
 }
 
-.file-status {
+.file-status, .file-type {
   --status-color: var(--color-slate-900);
   --status-bg: var(--color-slate-200);
 
@@ -46,7 +46,7 @@
   padding: 0.25rem 0.75rem;
 }
 
-.file-status__icon {
+.file-status__icon, .file-type__icon {
   background-image: var(--icon-url);
   background-size: 100%;
   filter: var(--icon-filter);
@@ -79,7 +79,7 @@
   --icon-url: url("/static/icons/unknown.svg");
 }
 
-.file-status--withdrawn {
+.file-type--withdrawn {
   --status-color: var(--color-orange-800);
   --status-bg: var(--color-orange-50);
   --icon-filter: invert(25%) sepia(6%) saturate(7490%) hue-rotate(333deg)
@@ -87,7 +87,7 @@
   --icon-url: url("/static/icons/cancel_circle_outline.svg");
 }
 
-.file-status--supporting {
+.file-type--supporting {
   --status-color: var(--color-slate-800);
   --status-bg: var(--color-slate-50);
   --icon-filter: invert(10%) sepia(9%) saturate(3595%) hue-rotate(178deg)
