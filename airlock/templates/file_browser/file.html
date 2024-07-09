@@ -33,14 +33,14 @@
       {% endif %}
     {% else %}{# request #}
       {% if path_item.is_supporting %}
-        <span class="file-status file-status--supporting relative group cursor-pointer">
-          <span class="file-status__icon"></span>
+        <span class="file-type file-type--supporting relative group cursor-pointer">
+          <span class="file-type__icon"></span>
           Supporting
           {% tooltip content="This is a supporting file and will not be released." %}
         </span>
       {% elif path_item.is_withdrawn %}
-        <span class="file-status file-status--withdrawn relative group cursor-pointer">
-          <span class="file-status__icon"></span>
+        <span class="file-type file-type--withdrawn relative group cursor-pointer">
+          <span class="file-type__icon"></span>
           Withdrawn
           {% tooltip content="This file has been withdrawn and will not be released." %}
         </span>
