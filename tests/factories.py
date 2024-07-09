@@ -107,11 +107,16 @@ def update_manifest(workspace: Workspace | str, files=None):
     skip_paths = [root / "metadata"]
 
     repo = "http://example.com/org/repo"
+    commit = "abcdefgh" * 5  # 40 characters
 
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         manifest["workspace"] = name
-        repo = manifest["repo"] or repo
+        if manifest["outputs"]:
+            first_output = list(manifest["outputs"].values())[0]
+            repo = first_output["repo"]
+            if repo.startswith("https://github.com"):  # pragma: no cover
+                commit = first_output["commit"]
         manifest.setdefault("outputs", {})
     else:
         manifest = {"workspace": name, "repo": repo, "outputs": {}}
@@ -132,7 +137,7 @@ def update_manifest(workspace: Workspace | str, files=None):
             job_id=f"job_{i}",
             job_request=f"job_request_{i}",
             action=f"action_{i}",
-            commit="abcdefgh" * 5,  # 40 characters,
+            commit=commit,
             repo=repo,
             excluded=False,
         )
