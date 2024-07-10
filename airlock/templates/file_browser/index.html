@@ -148,6 +148,9 @@
           {% if release_request.status.name %}
             data-request-status="{{ release_request.status.name }}"
           {% endif %}
+          {% if release_request.status.name == "SUBMITTED" or release_request.status.name == "PARTIALLY_REVIEWED"%}
+            data-request-independent="true"
+          {% endif %}
           {% if user_has_reviewed_all_files %}
             data-all-files-reviewed="true"
           {% endif %}

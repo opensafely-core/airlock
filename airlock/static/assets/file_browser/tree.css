@@ -163,7 +163,9 @@
   --icon-url: url("/static/icons/attach_file.svg");
 }
 
-[data-output-checker][data-request]:not([data-author]) .tree__file.output {
+[data-request][data-request-independent] .tree__file.user_incomplete,
+[data-request][data-request-independent] .tree__file.user_undecided,
+[data-request] .tree__file.output {
   --file-bg: var(--color-yellow-50);
   --file-border: var(--color-yellow-500);
   --file-name: var(--color-yellow-800);
@@ -172,8 +174,8 @@
   --icon-url: url("/static/icons/unknown.svg");
 }
 
-[data-output-checker][data-request]:not([data-author])
-  .tree__file.user_approved {
+[data-request][data-request-independent] .tree__file.user_approved,
+[data-request] .tree__file.request_approved {
   --file-bg: var(--color-emerald-50);
   --file-border: var(--color-emerald-500);
   --file-name: var(--color-emerald-800);
@@ -182,12 +184,21 @@
   --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-[data-output-checker][data-request]:not([data-author])
-  .tree__file.user_rejected {
+[data-request][data-request-independent] .tree__file.user_rejected, 
+[data-request] .tree__file.request_rejected {
   --file-bg: var(--color-fuchsia-50);
   --file-border: var(--color-fuchsia-500);
   --file-name: var(--color-fuchsia-800);
   --icon-filter: invert(17%) sepia(40%) saturate(5736%) hue-rotate(284deg)
     brightness(89%) contrast(98%);
   --icon-url: url("/static/icons/help_circle_outline.svg");
+}
+
+[data-request] .tree__file.request_conflicted {
+  --file-bg: var(--color-violet-50);
+  --file-border: var(--color-violet-500);
+  --file-name: var(--color-violet-900);
+  --icon-filter: invert(10%) sepia(51%) saturate(6855%) hue-rotate(263deg)
+    brightness(94%) contrast(94%);
+  --icon-url: url("/static/icons/unknown.svg");
 }
