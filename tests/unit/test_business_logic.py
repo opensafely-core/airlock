@@ -22,7 +22,6 @@ from airlock.business_logic import (
     RequestStatus,
     UserFileReviewStatus,
     Workspace,
-    store_file,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
 from tests import factories
@@ -1586,45 +1585,14 @@ def test_update_file_in_request_invalid_file_type(bll):
     relpath = UrlPath("path/file.foo")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
-    release_request = factories.create_release_request(
-        "workspace",
-        user=author,
-    )
+    with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
+        release_request = factories.create_request_at_status(
+            "workspace",
+            author=author,
+            files=[factories.request_file(path=relpath)],
+            status=RequestStatus.PENDING,
+        )
 
-    # This code reproduces bll.add_file_to_request() - except without the
-    # safeguards - in order that we can give update_file_in_request()
-    # the correct context to hit this test
-
-    workspace = bll.get_workspace(release_request.workspace, author)
-    src = workspace.abspath(relpath)
-    file_id = store_file(release_request, src)
-    manifest = workspace.get_manifest_for_file(relpath)
-    group_name = "default"
-
-    audit = AuditEvent.from_request(
-        request=release_request,
-        type=AuditEventType.REQUEST_FILE_ADD,
-        user=author,
-        path=relpath,
-        group=group_name,
-        filetype=RequestFileType.OUTPUT.name,
-    )
-
-    bll._dal.add_file_to_request(
-        request_id=release_request.id,
-        group_name=group_name,
-        relpath=relpath,
-        file_id=file_id,
-        filetype=RequestFileType.OUTPUT,
-        timestamp=manifest["timestamp"],
-        commit=manifest["commit"],
-        repo=manifest["repo"],
-        size=manifest["size"],
-        job_id=manifest["job_id"],
-        row_count=manifest["row_count"],
-        col_count=manifest["col_count"],
-        audit=audit,
-    )
     with pytest.raises(
         bll.RequestPermissionDenied, match=r"Cannot update file of type"
     ):
