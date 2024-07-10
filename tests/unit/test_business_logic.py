@@ -1648,21 +1648,21 @@ def test_update_file_in_request_not_updated(bll):
 
 
 @pytest.mark.parametrize(
-    "status,reviewed,approved,success,notification_sent",
+    "status,approved,rejected,success,notification_sent",
     [
-        (RequestStatus.PENDING, False, None, True, False),
-        (RequestStatus.SUBMITTED, False, None, False, False),
-        (RequestStatus.WITHDRAWN, True, False, False, False),
-        (RequestStatus.APPROVED, True, True, False, False),
-        (RequestStatus.REJECTED, True, False, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, True, True, False, False),
-        (RequestStatus.REVIEWED, True, True, False, False),
-        (RequestStatus.RETURNED, True, False, True, True),
-        (RequestStatus.RELEASED, True, True, False, False),
+        (RequestStatus.PENDING, False, False, True, False),
+        (RequestStatus.SUBMITTED, False, False, False, False),
+        (RequestStatus.WITHDRAWN, False, True, False, False),
+        (RequestStatus.APPROVED, True, False, False, False),
+        (RequestStatus.REJECTED, False, True, False, False),
+        (RequestStatus.PARTIALLY_REVIEWED, True, False, False, False),
+        (RequestStatus.REVIEWED, True, False, False, False),
+        (RequestStatus.RETURNED, False, True, True, True),
+        (RequestStatus.RELEASED, True, False, False, False),
     ],
 )
 def test_update_file_to_request_states(
-    status, reviewed, approved, success, notification_sent, bll, mock_notifications
+    status, approved, rejected, success, notification_sent, bll, mock_notifications
 ):
     author = factories.create_user("author", ["workspace"], False)
     checkers = factories.get_default_output_checkers()
@@ -1674,24 +1674,12 @@ def test_update_file_to_request_states(
     else:
         withdrawn_after = None
 
-    if reviewed:
-        if approved:
-            workspace_file = factories.request_file(
-                path=path,
-                user=author,
-                approved=True,
-            )
-        else:
-            workspace_file = factories.request_file(
-                path=path,
-                user=author,
-                rejected=True,
-            )
-    else:
-        workspace_file = factories.request_file(
-            path=path,
-            user=author,
-        )
+    workspace_file = factories.request_file(
+        path=path,
+        user=author,
+        approved=approved,
+        rejected=rejected,
+    )
 
     release_request = factories.create_request_at_status(
         workspace.name,
