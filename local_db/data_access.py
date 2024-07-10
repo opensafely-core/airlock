@@ -196,8 +196,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             request = self._find_metadata(request_id)
 
             assert (
-                request.status == RequestStatus.PENDING
-                or request.status == RequestStatus.RETURNED
+                BusinessLogicLayer.STATUS_OWNERS[request.status]
+                == RequestStatusOwner.AUTHOR
             )
 
             try:
