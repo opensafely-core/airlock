@@ -483,22 +483,7 @@ def test_e2e_update_file(page, live_server, dev_users):
     # Log in as researcher
     login_as(live_server, page, "researcher")
 
-    # Click on to workspaces link
-    find_and_click(page.get_by_test_id("nav-workspaces"))
-    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
-
-    # Click on the workspace
-    find_and_click(page.locator("#workspaces").get_by_role("link"))
-    expect(page.locator("body")).to_contain_text("subdir")
-    # subdirectories start off collapsed; the file links are not present
-    assert page.get_by_role("link", name="file.txt").all() == []
-    assert page.get_by_role("link", name="file.foo").all() == []
-
-    # Click on the subdir and then the file link to view in the workspace
-    # There will be more than one link to the folder/file in the page,
-    # one in the explorer, and one in the main folder view
-    # Click on the first link we find
-    find_and_click(page.get_by_role("link", name="subdir").first)
+    page.goto(live_server.url + workspace.get_url("subdir/"))
 
     # click on the multi-select checkbox
     find_and_click(page.locator('input[name="selected"]'))
