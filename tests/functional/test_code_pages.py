@@ -45,7 +45,7 @@ def test_code_from_workspace(live_server, page, context):
     # output file does display code button
     file_url = "/workspaces/view/test-dir1/foo.txt"
     page.goto(live_server.url + file_url)
-    page.locator("#file-button-more").click()
+    more_button.click()
     expect(code_button).to_be_visible()
 
     with context.expect_page() as new_page_info:

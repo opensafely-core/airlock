@@ -12,7 +12,12 @@ def test_request_file_withdraw(live_server, context, page, bll):
         context,
         user_dict={
             "username": "author",
-            "workspaces": ["workspace"],
+            "workspaces": {
+                "workspace": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                }
+            },
             "output_checker": False,
         },
     )
@@ -52,7 +57,12 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
         context,
         user_dict={
             "username": "author",
-            "workspaces": ["workspace"],
+            "workspaces": {
+                "workspace": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                }
+            },
             "output_checker": False,
         },
     )
@@ -95,6 +105,15 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     expect(comments_locator).to_contain_text("test comment")
 
 
+def _workspace_dict():
+    return {
+        "workspace": {
+            "project_details": {"name": "Project 2", "ongoing": True},
+            "archived": False,
+        }
+    }
+
+
 @pytest.mark.parametrize(
     "author,login_as,status,reviewer_buttons_visible,release_button_visible",
     [
@@ -124,10 +143,10 @@ def test_request_buttons(
 ):
     user_data = {
         "researcher": dict(
-            username="researcher", workspaces=["workspace"], output_checker=False
+            username="researcher", workspaces=_workspace_dict(), output_checker=False
         ),
         "checker": dict(
-            username="checker", workspaces=["workspace"], output_checker=True
+            username="checker", workspaces=_workspace_dict(), output_checker=True
         ),
     }
 
@@ -181,13 +200,13 @@ def test_request_returnable(
 ):
     user_data = {
         "author": dict(
-            username="author", workspaces=["workspace"], output_checker=False
+            username="author", workspaces=_workspace_dict(), output_checker=False
         ),
         "checker1": dict(
-            username="checker1", workspaces=["workspace"], output_checker=True
+            username="checker1", workspaces=_workspace_dict(), output_checker=True
         ),
         "checker2": dict(
-            username="checker2", workspaces=["workspace"], output_checker=True
+            username="checker2", workspaces=_workspace_dict(), output_checker=True
         ),
     }
     author = factories.create_user(**user_data["author"])
@@ -230,13 +249,13 @@ def test_request_returnable(
 def test_returned_request(live_server, context, page, bll):
     user_data = {
         "author": dict(
-            username="author", workspaces=["workspace"], output_checker=False
+            username="author", workspaces=_workspace_dict(), output_checker=False
         ),
         "checker1": dict(
-            username="checker1", workspaces=["workspace"], output_checker=True
+            username="checker1", workspaces=_workspace_dict(), output_checker=True
         ),
         "checker2": dict(
-            username="checker2", workspaces=["workspace"], output_checker=True
+            username="checker2", workspaces=_workspace_dict(), output_checker=True
         ),
     }
     author = factories.create_user(**user_data["author"])
@@ -291,7 +310,7 @@ def test_request_releaseable(live_server, context, page, bll):
         context,
         user_dict={
             "username": "output_checker",
-            "workspaces": [],
+            "workspaces": {},
             "output_checker": True,
         },
     )

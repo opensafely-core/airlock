@@ -156,6 +156,61 @@ def test_get_file_metadata():
     )
 
 
+def test_workspace_get_workspace_archived_ongoing(bll):
+    factories.create_workspace("workspace")
+    factories.create_workspace("archived_workspace")
+    factories.create_workspace("not_ongoing")
+    user = factories.create_user(
+        "user",
+        workspaces={
+            "workspace": {
+                "project": "project-1",
+                "project_details": {"name": "project-1", "ongoing": True},
+                "archived": False,
+            },
+            "archived_workspace": {
+                "project": "project-1",
+                "project_details": {"name": "project-1", "ongoing": True},
+                "archived": True,
+            },
+            "not_ongoing": {
+                "project": "project-2",
+                "project_details": {"name": "project-2", "ongoing": False},
+                "archived": False,
+            },
+        },
+    )
+    checker = factories.create_user("checker", output_checker=True)
+
+    active_workspace = bll.get_workspace("workspace", user)
+    archived_workspace = bll.get_workspace("archived_workspace", user)
+    inactive_project = bll.get_workspace("not_ongoing", user)
+    assert not active_workspace.is_archived()
+    assert active_workspace.project().is_ongoing
+    assert active_workspace.is_active()
+    assert active_workspace.display_name() == "workspace"
+    assert active_workspace.project().display_name() == "project-1"
+
+    assert archived_workspace.is_archived()
+    assert archived_workspace.project().is_ongoing
+    assert not archived_workspace.is_active()
+    assert archived_workspace.display_name() == "archived_workspace (ARCHIVED)"
+    assert archived_workspace.project().display_name() == "project-1"
+
+    assert not inactive_project.is_archived()
+    assert not inactive_project.project().is_ongoing
+    assert not inactive_project.is_active()
+    assert inactive_project.display_name() == "not_ongoing"
+    assert inactive_project.project().display_name() == "project-2 (INACTIVE)"
+
+    for workspace_name in ["workspace", "archived_workspace", "not_ongoing"]:
+        workspace = bll.get_workspace(workspace_name, checker)
+        assert workspace.is_archived() is None
+        assert bll.get_workspace(workspace_name, checker).project().is_ongoing
+        assert workspace.display_name() == workspace_name
+        assert "INACTIVE" not in workspace.project().display_name()
+
+
 def test_workspace_get_workspace_status(bll):
     path = UrlPath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
@@ -287,9 +342,18 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
     workspaces = {
-        "foo": {"project": "project 1"},
-        "bar": {"project": "project 2"},
-        "not-exists": {"project": "project 3"},
+        "foo": {
+            "project_details": {"name": "project 1", "ongoing": True},
+            "archived": False,
+        },
+        "bar": {
+            "project_details": {"name": "project 2", "ongoing": True},
+            "archived": True,
+        },
+        "not-exists": {
+            "project_details": {"name": "project 2", "ongoing": True},
+            "archived": False,
+        },
     }
     user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
 
@@ -750,6 +814,42 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", user)
+
+
+@pytest.mark.parametrize(
+    "workspaces",
+    [
+        # no access
+        {},
+        # workspace archived
+        {
+            "workspace": {
+                "project_details": {"name": "p1", "ongoing": True},
+                "archived": True,
+            }
+        },
+        # project inactive
+        {
+            "workspace": {
+                "project_details": {"name": "p1", "ongoing": False},
+                "archived": False,
+            }
+        },
+    ],
+)
+def test_provider_get_or_create_current_request_for_user_no_permissions(
+    bll, workspaces
+):
+    workspace = factories.create_workspace("workspace")
+    # create the request with a user who has permission
+    factories.create_release_request(
+        workspace, factories.create_user("testuser", ["workspace"])
+    )
+
+    # Duplicate user who has the test permissions/workspace status
+    user = factories.create_user("testuser", workspaces, False)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.get_or_create_current_request("workspace", user)
 
 
 def test_provider_get_current_request_for_former_user(bll):
@@ -1225,6 +1325,44 @@ def test_add_file_to_request_not_author(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.add_file_to_request(release_request, path, other)
+
+
+@pytest.mark.parametrize(
+    "workspaces",
+    [
+        # no access; possible if a user has been removed from a
+        # project/workspace on job-server, or has had their roles
+        # updated since a release was created
+        {},
+        # workspace archived
+        {
+            "workspace": {
+                "project_details": {"name": "p1", "ongoing": True},
+                "archived": True,
+            }
+        },
+        # project inactive
+        {
+            "workspace": {
+                "project_details": {"name": "p1", "ongoing": False},
+                "archived": False,
+            }
+        },
+    ],
+)
+def test_add_file_to_request_no_permission(bll, workspaces):
+    path = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        "workspace",
+        user=factories.create_user("author", ["workspace"], False),
+    )
+
+    # create duplicate user with test workspaces
+    author = factories.create_user("author", workspaces, False)
+    with pytest.raises(bll.RequestPermissionDenied):
+        bll.add_file_to_request(release_request, path, author)
 
 
 def test_add_file_to_request_invalid_file_type(bll):

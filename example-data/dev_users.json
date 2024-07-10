@@ -7,7 +7,18 @@
       "output_checker": true,
       "staff": true,
       "workspaces": {
-        "example-workspace": {"project": "Project 1"}
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_1": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_2": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": true
+        }
       }
     }
   },
@@ -19,7 +30,18 @@
       "output_checker": false,
       "staff": false,
       "workspaces": {
-        "example-workspace": {"project": "Project 1"}
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_1": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_2": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": true
+        }
       }
     }
   }

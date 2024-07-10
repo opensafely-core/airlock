@@ -3,7 +3,13 @@ from django.contrib import messages
 from django.contrib.messages.api import get_messages
 from django.urls import reverse
 
-from airlock.business_logic import AuditEventType, RequestFileType, RequestStatus, bll
+from airlock.business_logic import (
+    AuditEventType,
+    Project,
+    RequestFileType,
+    RequestStatus,
+    bll,
+)
 from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
@@ -20,7 +26,14 @@ def test_home_redirects(airlock_client):
 
 
 def test_workspace_view_summary(airlock_client):
-    airlock_client.login(workspaces={"workspace": {"project": "TESTPROJECT"}})
+    airlock_client.login(
+        workspaces={
+            "workspace": {
+                "project_details": {"name": "TESTPROJECT", "ongoing": True},
+                "archived": False,
+            }
+        }
+    )
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt")
     # create audit event to appear on activity
@@ -35,6 +48,23 @@ def test_workspace_view_summary(airlock_client):
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Created request" in response.rendered_content
+
+
+def test_workspace_view_archived_inactive(airlock_client):
+    airlock_client.login(
+        workspaces={
+            "workspace-abc": {
+                "project_details": {"name": "TESTPROJECT", "ongoing": False},
+                "archived": True,
+            }
+        }
+    )
+    workspace = factories.create_workspace("workspace-abc")
+    factories.write_workspace_file(workspace, "file.txt")
+
+    response = airlock_client.get("/workspaces/view/workspace-abc/")
+    assert "workspace-abc (ARCHIVED)" in response.rendered_content
+    assert "TESTPROJECT (INACTIVE)" in response.rendered_content
 
 
 def test_workspace_view_with_existing_request_for_user(airlock_client):
@@ -412,22 +442,61 @@ def test_workspaces_index_no_user(airlock_client):
 def test_workspaces_index_user_permitted_workspaces(airlock_client):
     airlock_client.login(
         workspaces={
-            "test1a": {"project": "Project 1"},
-            "test1b": {"project": "Project 1"},
-            "test2": {"project": "Project 2"},
+            "test1a": {
+                "project_details": {"name": "Project 1", "ongoing": True},
+                "archived": True,
+            },
+            "test1b": {
+                "project_details": {"name": "Project 1", "ongoing": True},
+                "archived": False,
+            },
+            "test1c": {
+                "project_details": {"name": "Project 1", "ongoing": True},
+                "archived": False,
+            },
+            "test2b": {
+                "project_details": {"name": "Project 2", "ongoing": False},
+                "archived": False,
+            },
+            "test2a": {
+                "project_details": {"name": "Project 2", "ongoing": False},
+                "archived": False,
+            },
+            "test3": {
+                "project_details": {"name": "Project 3", "ongoing": True},
+                "archived": False,
+            },
         }
     )
     factories.create_workspace("test1a")
     factories.create_workspace("test1b")
-    factories.create_workspace("test2")
+    factories.create_workspace("test1c")
+    factories.create_workspace("test2b")
+    factories.create_workspace("test2a")
+    factories.create_workspace("test3")
     factories.create_workspace("not-allowed")
     response = airlock_client.get("/workspaces/")
 
     projects = response.context["projects"]
-    assert projects["Project 1"][0].name == "test1a"
-    assert projects["Project 1"][1].name == "test1b"
-    assert projects["Project 2"][0].name == "test2"
-    assert "not-allowed" not in response.rendered_content
+    ongoing_project1 = Project(name="Project 1", is_ongoing=True)
+    inactive_project1 = Project(name="Project 2", is_ongoing=False)
+    ongoing_project2 = Project(name="Project 3", is_ongoing=True)
+
+    # projects are ordered by ongoing first, then by name
+    assert list(projects.keys()) == [
+        ongoing_project1,
+        ongoing_project2,
+        inactive_project1,
+    ]
+
+    # within a project, workspaces are ordered by unarchived first and then by name
+    assert [ws.name for ws in projects[ongoing_project1]] == [
+        "test1b",
+        "test1c",
+        "test1a",
+    ]
+    assert [ws.name for ws in projects[ongoing_project2]] == ["test3"]
+    assert [ws.name for ws in projects[inactive_project1]] == ["test2a", "test2b"]
 
 
 def test_workspace_multiselect_add_files_all_valid(airlock_client, bll):

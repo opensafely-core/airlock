@@ -22,7 +22,7 @@
 
 
 {% fragment as buttons %}
-  {% if context == "workspace" %}
+  {% if context == "workspace" and workspace.is_active %}
     {% if path_item.children %}
       {% if multiselect_add %}
         <div class="div flex flex-col items-start gap-4">
@@ -76,9 +76,11 @@
             <th>
               <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
             </th>
-            <th data-searchable="false" data-sortable="false">
-              <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
-            </th>
+            {% if context == "workspace" and workspace.is_active %}
+              <th data-searchable="false" data-sortable="false">
+                <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
+              </th>
+            {% endif %}
           </tr>
         {% /table_head %}
         <tbody>
@@ -90,11 +92,13 @@
               {% endif %}
               <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
               <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-              <td>
-                {% if not path.is_directory %}
-                  {% form_checkbox name="selected" value=path.relpath custom_field=True %}
-                {% endif %}
-              </td>
+              {% if context == "workspace" and workspace.is_active %}
+                <td>
+                  {% if not path.is_directory %}
+                    {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                  {% endif %}
+                </td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>

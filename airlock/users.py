@@ -1,5 +1,9 @@
 import dataclasses
 import time
+from typing import Any
+
+
+class ActionDenied(Exception): ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -11,7 +15,7 @@ class User:
     """
 
     username: str
-    workspaces: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
+    workspaces: dict[str, Any] = dataclasses.field(default_factory=dict)
     output_checker: bool = dataclasses.field(default=False)
     last_refresh: float = dataclasses.field(default_factory=time.time)
 
@@ -39,13 +43,22 @@ class User:
     def has_permission(self, workspace_name):
         return (
             # Output checkers can view all workspaces
-            self.output_checker or self.can_create_request(workspace_name)
+            # Authors can view all workspaces they have access to (regardless
+            # of archive or project ongoing status)
+            self.output_checker or workspace_name in self.workspaces
         )
 
-    def can_create_request(self, workspace_name):
-        # Only users with explict access to the workspace can create release
+    def verify_can_action_request(self, workspace_name):
+        # Only users with explict access to the workspace can create/modify release
         # requests.
-        return workspace_name in self.workspaces
+        if workspace_name not in self.workspaces:
+            raise ActionDenied(f"you do not have permission for {workspace_name}")
+        # Requests for archived workspaces cannot be created/modified
+        if self.workspaces[workspace_name]["archived"]:
+            raise ActionDenied(f"{workspace_name} has been archived")
+        # Requests for workspaces in not-ongoing projects cannot be created/modified
+        if not self.workspaces[workspace_name]["project_details"]["ongoing"]:
+            raise ActionDenied(f"{workspace_name} is part of an inactive project")
 
     def is_authenticated(self):
         return True

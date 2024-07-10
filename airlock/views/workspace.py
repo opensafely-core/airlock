@@ -17,6 +17,7 @@ from airlock.business_logic import (
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.users import ActionDenied
 from airlock.views.helpers import (
     display_form_errors,
     display_multiple_messages,
@@ -34,16 +35,18 @@ def grouped_workspaces(workspaces):
     workspaces_by_project = defaultdict(list)
     for workspace in workspaces:
         workspaces_by_project[workspace.project()].append(workspace)
-
-    for project, workspaces in sorted(workspaces_by_project.items()):
-        yield project, list(sorted(workspaces))
+    # sort projects by ongoing status, then name
+    for project, workspaces in sorted(
+        workspaces_by_project.items(), key=lambda x: (not x[0].is_ongoing, x[0].name)
+    ):
+        # for each project, sort workspaces by archived status, then name
+        yield project, list(sorted(workspaces, key=lambda x: (x.is_archived(), x.name)))
 
 
 @instrument
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
-
     return TemplateResponse(request, "workspaces.html", {"projects": projects})
 
 
@@ -82,7 +85,13 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # the files on the request. In future we'll likely also need to
     # check file metadata to allow updating a file if the original has
     # changed.
-    multiselect_add = request.user.can_create_request(workspace_name) and (
+    try:
+        request.user.verify_can_action_request(workspace_name)
+        can_action_request = True
+    except ActionDenied:
+        can_action_request = False
+
+    multiselect_add = can_action_request and (
         workspace.current_request is None
         or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
     )
@@ -97,9 +106,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
 
     activity = []
-    project = request.user.workspaces.get(workspace_name, {}).get(
-        "project", "Unknown project"
-    )
+    project = workspace.project()
 
     # we are viewing the root, so load workspace audit log
     if path == "":
@@ -130,7 +137,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "path_item": path_item,
             "is_supporting_file": False,
             "context": "workspace",
-            "title": f"Files for workspace {workspace_name}",
+            "title": f"Files for workspace {workspace.display_name()}",
             "request_file_url": reverse(
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace_name},

@@ -1,7 +1,7 @@
-{% #card title=workspace.name %}
+{% #card title=workspace.display_name %}
   {% #description_list %}
     {% #description_item title="Project" %}
-      {{ project }}
+      {{ project.display_name }}
     {% /description_item %}
   {% /description_list %}
 {% /card %}

@@ -28,7 +28,7 @@ from airlock.lib.git import (
 )
 from airlock.notifications import send_notification_event
 from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
-from airlock.users import User
+from airlock.users import ActionDenied, User
 from airlock.utils import is_valid_file_type
 
 
@@ -272,6 +272,18 @@ class AirlockContainer(Protocol):
         """Get user's request status of file."""
 
 
+@dataclass(frozen=True)
+class Project:
+    name: str
+    is_ongoing: bool
+
+    def display_name(self):
+        # helper for templates
+        if not self.is_ongoing:
+            return f"{self.name} (INACTIVE)"
+        return self.name
+
+
 @dataclass(order=True)
 class Workspace:
     """Simple wrapper around a workspace directory on disk.
@@ -282,7 +294,7 @@ class Workspace:
 
     name: str
     manifest: dict[str, Any]
-    metadata: dict[str, str]
+    metadata: dict[str, Any]
     current_request: ReleaseRequest | None
 
     @classmethod
@@ -322,8 +334,25 @@ class Workspace:
     def __str__(self):
         return self.get_id()
 
-    def project(self):
-        return self.metadata.get("project", None)
+    def project(self) -> Project:
+        details = self.metadata.get("project_details", {})
+        return Project(
+            name=details.get("name", "Unknown project"),
+            is_ongoing=details.get("ongoing", True),
+        )
+
+    def is_archived(self):
+        return self.metadata.get("archived")
+
+    # helpers for templates
+    def is_active(self):
+        return self.project().is_ongoing and not self.is_archived()
+
+    def display_name(self):
+        # helper for templates
+        if self.is_archived():
+            return f"{self.name} (ARCHIVED)"
+        return self.name
 
     def root(self):
         return settings.WORKSPACE_DIR / self.name
@@ -1118,6 +1147,20 @@ class BusinessLogicLayer:
         # empty metadata instance.
         # Currently, the only place this metadata is used is in the workspace
         # index, to group by project, so its mostly fine that its not here.
+        #
+        # Metadata also contains information about whether the workspace is
+        # archived, and whether the project is ongoing (note that a project
+        # could be completed/closed and a workspace not archived, so we need
+        # to check for both of these states);
+        # The metadata is extracted as an attribute on the workspace. It is
+        # used in the workspace index, to show/group
+        # workspaces by project and project ongoing status, and within that,
+        # by archived status. It is also used to prevent release
+        # requests being created for archived workspaces or for not-ongoing projects.
+        #
+        # It will be None for output checkers who don't have explicit access to
+        # the workspace; this is OK as they also won't be able to create requests
+        # for the workspace, and they only have access to browse the files.
         metadata = user.workspaces.get(name, {})
 
         return Workspace.from_directory(
@@ -1212,15 +1255,19 @@ class BusinessLogicLayer:
         Get the current request for a workspace/user, or create a new one if there is
         none.
         """
+        # get_current_request will raise exception if user has no permission
+        # and is not an output-cheker
         request = self.get_current_request(workspace, user)
+
+        # requests for output-checkers, and for archived workspaces and inactive
+        # projects are still viewable, check if user has permission to create one
+        try:
+            user.verify_can_action_request(workspace)
+        except ActionDenied as exc:
+            raise self.RequestPermissionDenied(exc)
+
         if request is not None:
             return request
-
-        if not user.can_create_request(workspace):
-            raise self.RequestPermissionDenied(
-                f"you do not have permission to create a request for {workspace}"
-            )
-
         return self._create_release_request(workspace, user)
 
     def get_requests_for_workspace(
@@ -1460,6 +1507,11 @@ class BusinessLogicLayer:
             raise self.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
+
+        try:
+            user.verify_can_action_request(release_request.workspace)
+        except ActionDenied as exc:
+            raise self.RequestPermissionDenied(exc)
 
     def validate_file_types(self, file_paths):
         """

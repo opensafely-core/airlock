@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import json
 import logging
 import os
 import warnings
@@ -303,6 +304,24 @@ if AIRLOCK_API_TOKEN:  # pragma: no cover
     AIRLOCK_DEV_USERS_FILE = None
 elif dev_user_file := os.environ.get("AIRLOCK_DEV_USERS_FILE"):  # pragma: nocover
     AIRLOCK_DEV_USERS_FILE = WORK_DIR / dev_user_file
+    if AIRLOCK_DEV_USERS_FILE.exists():
+        dev_users = json.loads(AIRLOCK_DEV_USERS_FILE.read_text())
+        for dev_user in dev_users.values():
+            workspace_keys = set(
+                sum(
+                    (
+                        list(ws.keys())
+                        for ws in dev_user["details"]["workspaces"].values()
+                    ),
+                    [],
+                )
+            )
+            expected_keys = {"project_details", "archived"}
+            if workspace_keys and workspace_keys != expected_keys:
+                raise RuntimeError(
+                    f"Incorrect workspace keys in {AIRLOCK_DEV_USERS_FILE}; "
+                    f"expected {expected_keys}, got {workspace_keys}"
+                )
 else:  # pragma: no cover
     raise RuntimeError(
         f"One of AIRLOCK_API_TOKEN or AIRLOCK_DEV_USERS_FILE environment "
