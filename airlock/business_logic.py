@@ -1684,16 +1684,6 @@ class BusinessLogicLayer:
         )
         release_request.set_filegroups_from_dict(filegroup_data)
 
-        if release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.FILE_UPDATED, group_name, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
-
         return release_request
 
     def withdraw_file_from_request(

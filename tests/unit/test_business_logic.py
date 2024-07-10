@@ -1758,7 +1758,8 @@ def test_update_file_to_request_states(
 
     if notification_sent:
         last_notification = get_last_notification(mock_notifications)
-        assert last_notification["updates"][0]["update_type"] == "file updated"
+        # this notification is an artefact of our setting up the test
+        assert last_notification["event_type"] == "request_returned"
     else:
         assert_no_notifications(mock_notifications)
 
