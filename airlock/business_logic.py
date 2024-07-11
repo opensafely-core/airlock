@@ -188,15 +188,6 @@ class NotificationEventType(Enum):
     REQUEST_RESUBMITTED = "request_resubmitted"
 
 
-class NotificationUpdateType(Enum):
-    FILE_ADDED = "file added"
-    FILE_UPDATED = "file updated"
-    FILE_WITHDRAWN = "file withdrawn"
-    CONTEXT_EDITIED = "context edited"
-    CONTROLS_EDITED = "controls edited"
-    COMMENT_ADDED = "comment added"
-
-
 READONLY_EVENTS = {
     AuditEventType.WORKSPACE_FILE_VIEW,
     AuditEventType.REQUEST_FILE_VIEW,
@@ -1218,7 +1209,7 @@ class DataAccessLayerProtocol(Protocol):
         context: str,
         controls: str,
         audit: AuditEvent,
-    ) -> list[NotificationUpdateType]:
+    ):
         raise NotImplementedError()
 
     def group_comment_create(
@@ -2241,15 +2232,6 @@ class BusinessLogicLayer:
             group=path.parts[0],
         )
         self._dal.audit_event(audit)
-
-    def _get_notification_update_dict(
-        self, update_type: NotificationUpdateType, group_name: str, user: User
-    ):
-        return {
-            "update_type": update_type.value,
-            "group": group_name,
-            "user": user.username,
-        }
 
     def send_notification(
         self,
