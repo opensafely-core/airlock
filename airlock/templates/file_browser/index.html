@@ -73,6 +73,23 @@
           {% endif %}
         {% elif is_output_checker %}
           {% if release_request.status_owner.name == "REVIEWER" %}
+            {% comment %} User can complete review if they haven't already {% endcomment %}
+            {% if user_has_completed_review %}
+              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+                Complete review
+                {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
+              {% /button %}
+            {% elif user_has_reviewed_all_files %}
+              <form action="{{ request_review_url }}" method="POST">
+                {% csrf_token %}
+                {% #button type="submit" class="btn-sm" tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
+              </form>
+            {% else %}
+              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+                Complete review
+                {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
+              {% /button %}
+            {% endif %}
             {% comment %} A fully reviewed request can be returned or rejected {% endcomment %}
             {% if release_request.status.name == "REVIEWED" %}
               <form action="{{ request_reject_url }}" method="POST">
@@ -91,23 +108,6 @@
               {% #button disabled=True class="relative group btn-sm" variant="secondary" id="return-request-button" %}
                 Return request
                 {% tooltip class="airlock-tooltip" content="Returning a request is disabled until review has been completed by two reviewers" %}
-              {% /button %}
-            {% endif %}
-            {% comment %} User can complete review if they haven't already {% endcomment %}
-            {% if user_has_completed_review %}
-              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
-                Complete review
-                {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
-              {% /button %}
-            {% elif user_has_reviewed_all_files %}
-              <form action="{{ request_review_url }}" method="POST">
-                {% csrf_token %}
-                {% #button type="submit" class="btn-sm" tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
-              </form>
-            {% else %}
-              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
-                Complete review
-                {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
               {% /button %}
             {% endif %}
           {% endif %}
