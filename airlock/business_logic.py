@@ -186,7 +186,6 @@ class NotificationEventType(Enum):
     REQUEST_REJECTED = "request_rejected"
     REQUEST_RETURNED = "request_returned"
     REQUEST_RESUBMITTED = "request_resubmitted"
-    REQUEST_UPDATED = "request_updated"
 
 
 class NotificationUpdateType(Enum):
@@ -1731,16 +1730,6 @@ class BusinessLogicLayer:
         )
         release_request.set_filegroups_from_dict(filegroup_data)
 
-        if release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.FILE_ADDED, group_name, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
-
         return release_request
 
     def update_file_in_request(
@@ -1866,14 +1855,6 @@ class BusinessLogicLayer:
                 request_id=release_request.id,
                 relpath=relpath,
                 audit=audit,
-            )
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.FILE_WITHDRAWN, group_name, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
             )
         else:
             assert False, f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
@@ -2138,19 +2119,7 @@ class BusinessLogicLayer:
             controls=controls,
         )
 
-        change_notifications = self._dal.group_edit(
-            release_request.id, group, context, controls, audit
-        )
-
-        if change_notifications and release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(change_notification, group, user)
-                for change_notification in change_notifications
-            ]
-
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
+        self._dal.group_edit(release_request.id, group, context, controls, audit)
 
     def group_comment_create(
         self,
