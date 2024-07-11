@@ -1559,6 +1559,16 @@ class BusinessLogicLayer:
                 f"cannot change status from {release_request.status.name} to {to_status.name}"
             )
 
+        if to_status == RequestStatus.SUBMITTED:
+            for filegroup in release_request.filegroups:
+                if (
+                    release_request.filegroups[filegroup].context == ""
+                    or release_request.filegroups[filegroup].controls == ""
+                ):
+                    raise self.RequestPermissionDenied(
+                        f"incomplete context and/or controls for filegroup '{filegroup}'"
+                    )
+
         # check permissions
         owner = release_request.status_owner()
         # author transitions

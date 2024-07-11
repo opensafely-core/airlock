@@ -322,6 +322,9 @@ def request_submit(request, request_id):
     try:
         bll.submit_request(release_request, request.user)
     except bll.RequestPermissionDenied as exc:
+        if "incomplete context and/or controls" in str(exc):
+            messages.error(request, str(exc))
+            return redirect(release_request.get_url())
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
