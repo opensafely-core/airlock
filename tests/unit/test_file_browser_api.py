@@ -167,18 +167,18 @@ def test_get_request_tree_general(release_request):
 
 
 def test_get_request_tree_status(release_request, bll):
+    author = factories.create_user("author", workspaces=[release_request.workspace])
     bll.set_status(
         release_request,
         RequestStatus.SUBMITTED,
-        factories.create_user("author", workspaces=[release_request.workspace]),
+        author,
     )
     checker1 = factories.create_user("checker1", [], True)
     checker2 = factories.create_user("checker2", [], True)
     path = UrlPath("some_dir/file_a.txt")
-    group_path = "group1" / path
-    request_file = release_request.get_request_file_from_output_path(path)
 
-    def set_status(status, user):
+    def set_status(status, user, path_=path, group_="group1"):
+        request_file = release_request.get_request_file_from_output_path(path_)
         if status == UserFileReviewStatus.APPROVED:
             bll.approve_file(release_request, request_file, user)
         elif status == UserFileReviewStatus.REJECTED:
@@ -186,37 +186,79 @@ def test_get_request_tree_status(release_request, bll):
 
         rr = bll.get_release_request(release_request, user)
         tree = get_request_tree(rr, user=user)
-        return tree.get_path(group_path)
+        return tree.get_path(group_ / path_)
 
+    # request SUBMITTED, no reviews
     item = set_status(None, checker1)
-    assert item.request_status == RequestFileReviewStatus.INCOMPLETE
+    assert item.request_status is None
     assert item.user_request_status is None
-    assert "request_incomplete" in item.html_classes()
     assert "user_incomplete" in item.html_classes()
 
+    # request SUBMITTED, checker1 has reviewed
     item = set_status(UserFileReviewStatus.APPROVED, checker1)
-    assert item.request_status == RequestFileReviewStatus.INCOMPLETE
+    assert item.request_status is None
     assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "request_incomplete" in item.html_classes()
     assert "user_approved" in item.html_classes()
 
+    # request SUBMITTED, checker2 has reviewed
     item = set_status(UserFileReviewStatus.APPROVED, checker2)
-    assert item.request_status == RequestFileReviewStatus.APPROVED
+    assert item.request_status is None
     assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "request_approved" in item.html_classes()
     assert "user_approved" in item.html_classes()
 
-    item = set_status(UserFileReviewStatus.REJECTED, checker2)
-    assert item.request_status == RequestFileReviewStatus.CONFLICTED
+    # request SUBMITTED, author
+    item = set_status(None, author)
+    assert item.request_status is None
+    assert item.user_request_status is None
+
+    # request SUBMITTED, checkers conflict
+    pathc = UrlPath("some_dir/file_c.txt")
+    item = set_status(UserFileReviewStatus.REJECTED, checker1, pathc)
+    assert item.request_status is None
     assert item.user_request_status == UserFileReviewStatus.REJECTED
-    assert "request_conflicted" in item.html_classes()
     assert "user_rejected" in item.html_classes()
 
-    item = set_status(UserFileReviewStatus.REJECTED, checker1)
-    assert item.request_status == RequestFileReviewStatus.REJECTED
-    assert item.user_request_status == UserFileReviewStatus.REJECTED
-    assert "request_rejected" in item.html_classes()
-    assert "user_rejected" in item.html_classes()
+    item = set_status(UserFileReviewStatus.APPROVED, checker2, pathc)
+    assert item.request_status is None
+    assert item.user_request_status == UserFileReviewStatus.APPROVED
+    assert "user_approved" in item.html_classes()
+
+    # set status on final file so we can complete
+    pathb = UrlPath("some_dir/file_b.txt")
+    group2 = "group2"
+    set_status(UserFileReviewStatus.REJECTED, checker1, pathb, group2)
+    set_status(UserFileReviewStatus.REJECTED, checker2, pathb, group2)
+
+    # request PARTIALLY_REVIEWED, shows user status still
+    factories.complete_independent_review(release_request, checker1)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
+    item = set_status(None, checker1)
+    assert item.request_status is None
+    assert item.user_request_status == UserFileReviewStatus.APPROVED
+    assert "user_approved" in item.html_classes()
+
+    # request REVIEWED, shows combined status to checker
+    release_request = factories.refresh_release_request(release_request)
+    factories.complete_independent_review(release_request, checker2)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.REVIEWED
+    item = set_status(None, checker2)
+    assert item.request_status == RequestFileReviewStatus.APPROVED
+    assert item.user_request_status is None
+    assert "request_approved" in item.html_classes()
+
+    item = set_status(None, checker2, pathc)
+    assert item.request_status == RequestFileReviewStatus.CONFLICTED
+    assert item.user_request_status is None
+    assert "request_conflicted" in item.html_classes()
+
+    # request RETURNED, shows combined status to author
+    bll.set_status(release_request, RequestStatus.RETURNED, checker1)
+    item = set_status(None, author)
+    assert item.request_status == RequestFileReviewStatus.APPROVED
+    assert item.user_request_status is None
+    assert "request_approved" in item.html_classes()
 
 
 def test_get_workspace_tree_selected_only_file(workspace):

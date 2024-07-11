@@ -13,6 +13,7 @@ from airlock.business_logic import (
     ReleaseRequest,
     RequestFileReviewStatus,
     RequestFileType,
+    RequestStatus,
     UserFileReviewStatus,
     Workspace,
 )
@@ -215,14 +216,14 @@ class PathItem:
 
         if self.workspace_status:
             classes.append(f"workspace_{self.workspace_status.value.lower()}")
+        elif self.is_output():
+            if self.request_status:
+                classes.append(f"request_{self.request_status.value.lower()}")
 
-        if self.request_status:
-            classes.append(f"request_{self.request_status.value.lower()}")
-
-        if self.user_request_status:
-            classes.append(f"user_{self.user_request_status.value.lower()}")
-        else:
-            classes.append("user_incomplete")
+            if self.user_request_status:
+                classes.append(f"user_{self.user_request_status.value.lower()}")
+            else:
+                classes.append("user_incomplete")
 
         if self.request_filetype:
             classes.append(self.request_filetype.value.lower())
@@ -561,12 +562,29 @@ def get_path_tree(
                 # ReleaseRequest containers, so we have these container specfic
                 # calls
                 node.workspace_status = container.get_workspace_status(path)
-                node.request_status = container.get_request_status(path)
 
-                if user:
-                    node.user_request_status = container.get_user_request_status(
-                        path, user
-                    )
+                if isinstance(container, ReleaseRequest):
+                    if container.status in [
+                        RequestStatus.SUBMITTED,
+                        RequestStatus.PARTIALLY_REVIEWED,
+                    ]:
+                        # if the request is in independent review phase, set the user review
+                        # status for the file
+                        if user:  # pragma: no cover
+                            node.user_request_status = (
+                                container.get_user_request_status(path, user)
+                            )
+                    elif container.status == RequestStatus.REVIEWED:
+                        # if request has been reviewed but not yet returned, show request status to
+                        # non-author output-checkers only
+                        if user:  # pragma: no cover
+                            if (
+                                user.output_checker
+                                and container.author != user.username
+                            ):
+                                node.request_status = container.get_request_status(path)
+                    else:
+                        node.request_status = container.get_request_status(path)
 
             tree.append(node)
 

@@ -401,7 +401,7 @@ class Workspace:
         return WorkspaceFileStatus.UNRELEASED
 
     def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None
+        return None  # pragma: nocover
 
     def get_user_request_status(
         self, relpath: UrlPath, user: User
@@ -585,7 +585,7 @@ class CodeRepo:
         return None
 
     def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None
+        return None  # pragma: nocover
 
     def get_user_request_status(
         self, relpath: UrlPath, user: User

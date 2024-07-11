@@ -127,7 +127,7 @@
   width: 14px;
 }
 
-[data-workspace] .workspace_under_review {
+.tree__file.workspace_under_review {
   --file-bg: var(--color-cyan-50);
   --file-border: var(--color-cyan-500);
   --file-name: var(--color-cyan-900);
@@ -136,7 +136,7 @@
   --icon-url: url("/static/icons/add_circle_outline.svg");
 }
 
-[data-workspace] .workspace_updated {
+.tree__file.workspace_updated {
   --file-bg: var(--color-violet-50);
   --file-border: var(--color-violet-500);
   --file-name: var(--color-violet-900);
@@ -145,7 +145,7 @@
   --icon-url: url("/static/icons/update.svg");
 }
 
-[data-request] .tree__file.withdrawn {
+.tree__file.withdrawn {
   --file-bg: var(--color-orange-50) !important;
   --file-border: var(--color-orange-700) !important;
   --file-name: var(--color-orange-800) !important;
@@ -154,7 +154,7 @@
   --icon-url: url("/static/icons/cancel_circle_outline.svg") !important;
 }
 
-[data-request] .tree__file.supporting {
+.tree__file.supporting {
   --file-bg: var(--color-slate-50);
   --file-border: var(--color-slate-50);
   --file-name: var(--color-slate-800);
@@ -163,9 +163,9 @@
   --icon-url: url("/static/icons/attach_file.svg");
 }
 
-[data-request][data-request-independent] .tree__file.user_incomplete,
-[data-request][data-request-independent] .tree__file.user_undecided,
-[data-request] .tree__file.output {
+.tree__file.user_incomplete,
+.tree__file.user_undecided,
+.tree__file.output {
   --file-bg: var(--color-yellow-50);
   --file-border: var(--color-yellow-500);
   --file-name: var(--color-yellow-800);
@@ -174,8 +174,8 @@
   --icon-url: url("/static/icons/unknown.svg");
 }
 
-[data-request][data-request-independent] .tree__file.user_approved,
-[data-request] .tree__file.request_approved {
+.tree__file.user_approved,
+.tree__file.request_approved {
   --file-bg: var(--color-emerald-50);
   --file-border: var(--color-emerald-500);
   --file-name: var(--color-emerald-800);
@@ -184,8 +184,8 @@
   --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-[data-request][data-request-independent] .tree__file.user_rejected, 
-[data-request] .tree__file.request_rejected {
+.tree__file.user_rejected, 
+.tree__file.request_rejected {
   --file-bg: var(--color-fuchsia-50);
   --file-border: var(--color-fuchsia-500);
   --file-name: var(--color-fuchsia-800);
@@ -194,7 +194,7 @@
   --icon-url: url("/static/icons/help_circle_outline.svg");
 }
 
-[data-request] .tree__file.request_conflicted {
+.tree__file.request_conflicted {
   --file-bg: var(--color-violet-50);
   --file-border: var(--color-violet-500);
   --file-name: var(--color-violet-900);
