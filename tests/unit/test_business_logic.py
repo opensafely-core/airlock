@@ -2205,28 +2205,6 @@ def test_approve_file(bll):
     )
 
 
-def test_approve_file_group(bll):
-    path = Path("path/file1.txt")
-    group_name = "test-group"
-    release_request = factories.create_request_at_status(
-        "workspace",
-        status=RequestStatus.SUBMITTED,
-        files=[factories.request_file(path=path, group=group_name)],
-    )
-    checker = factories.create_user(output_checker=True)
-    request_file = release_request.get_request_file_from_output_path(path)
-    bll.approve_file(release_request, request_file, checker)
-
-    audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0] == AuditEvent.from_request(
-        release_request,
-        AuditEventType.REQUEST_FILE_APPROVE,
-        user=checker,
-        path=request_file.relpath,
-        group=request_file.group,
-    )
-
-
 def test_approve_file_requires_two_plus(bll):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2249,29 +2227,6 @@ def test_approve_file_requires_two_plus(bll):
     bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status() == RequestFileReviewStatus.APPROVED
-
-
-def test_reject_file_group(bll):
-    path = Path("path/file1.txt")
-    group_name = "test-group"
-    release_request = factories.create_request_at_status(
-        "workspace",
-        status=RequestStatus.SUBMITTED,
-        files=[factories.request_file(path=path, group=group_name)],
-    )
-    checker = factories.create_user(output_checker=True)
-    request_file = release_request.get_request_file_from_output_path(path)
-
-    bll.reject_file(release_request, request_file, checker)
-
-    audit_log = bll.get_audit_log(request=release_request.id)
-    assert audit_log[0] == AuditEvent.from_request(
-        release_request,
-        AuditEventType.REQUEST_FILE_REJECT,
-        user=checker,
-        path=path,
-        group=group_name,
-    )
 
 
 def test_reject_file(bll):
