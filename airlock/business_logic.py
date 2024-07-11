@@ -2233,6 +2233,19 @@ class BusinessLogicLayer:
         )
         self._dal.audit_event(audit)
 
+    def validate_update_dicts(self, updates):
+        if updates is None:
+            return
+        allowed_keys = {"update", "group", "user"}
+        for update_dict in updates:
+            assert (
+                "update" in update_dict
+            ), "Notification updates must include an `update` key"
+            extra_keys = set(update_dict.keys()) - allowed_keys
+            assert (
+                not extra_keys
+            ), f"Unexpected keys in notification update ({extra_keys})"
+
     def send_notification(
         self,
         request: ReleaseRequest,
@@ -2240,6 +2253,13 @@ class BusinessLogicLayer:
         user: User,
         updates: list[dict[str, str]] | None = None,
     ):
+        """
+        Send a notification about an event.
+        Events can send a optional list of dicts to include in the
+        notification. These must include at least one `update` key
+        with a description of the update, and optional `user` and
+        `group` keys.
+        """
         event_data = {
             "event_type": event_type.value,
             "workspace": request.workspace,
@@ -2248,6 +2268,7 @@ class BusinessLogicLayer:
             "user": user.username,
             "updates": updates,
         }
+        self.validate_update_dicts(updates)
         if settings.AIRLOCK_OUTPUT_CHECKING_ORG:
             event_data.update(
                 {

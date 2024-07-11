@@ -18,6 +18,7 @@ from airlock.business_logic import (
     CodeRepo,
     CommentVisibility,
     DataAccessLayerProtocol,
+    NotificationEventType,
     RequestFileDecision,
     RequestFileType,
     RequestFileVote,
@@ -1271,6 +1272,51 @@ def test_set_status_notifications(
     )
     bll.set_status(release_request, future, users[user])
     assert_last_notification(mock_notifications, notification_event_type)
+
+
+@pytest.mark.parametrize(
+    "updates,success,expected_error",
+    [
+        ([], True, None),
+        ([{"update": "updated a thing"}, {"update": "another update"}], True, None),
+        ([{"update": "updated a thing", "user": "test"}], True, None),
+        ([{"update": "updated a thing", "group": "test"}], True, None),
+        ([{"update": "updated a thing", "user": "test", "group": "test"}], True, None),
+        ([{}], False, "must include an `update` key"),
+        ([{"user": "test"}], False, "must include an `update` key"),
+        ([{"update": "an update", "foo": "bar"}], False, "Unexpected keys"),
+        (
+            [
+                {"update": "updated a thing"},
+                {
+                    "update": "updated a thing",
+                    "user": "test",
+                    "group": "test",
+                    "foo": "bar",
+                },
+            ],
+            False,
+            "Unexpected keys",
+        ),
+    ],
+)
+def test_notification_updates(
+    bll, mock_notifications, updates, success, expected_error
+):
+    author = factories.create_user()
+    release_request = factories.create_release_request("test", author)
+    if success:
+        bll.send_notification(
+            release_request, NotificationEventType.REQUEST_SUBMITTED, author, updates
+        )
+    else:
+        with pytest.raises(AssertionError, match=expected_error):
+            bll.send_notification(
+                release_request,
+                NotificationEventType.REQUEST_SUBMITTED,
+                author,
+                updates,
+            )
 
 
 def test_notification_error(bll, notifications_stubber, caplog):
