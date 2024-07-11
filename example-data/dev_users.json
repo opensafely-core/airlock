@@ -1,9 +1,32 @@
 {
-  "output_checker": {
-    "token": "output_checker",
+  "output_checker_1": {
+    "token": "output_checker_1",
     "details": {
-      "username": "output_checker",
-      "fullname": "Output Checker",
+      "username": "output_checker_1",
+      "fullname": "Output Checker 1",
+      "output_checker": true,
+      "staff": true,
+      "workspaces": {
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_1": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_2": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": true
+        }
+      }
+    }
+  },
+  "output_checker_2": {
+    "token": "output_checker_2",
+    "details": {
+      "username": "output_checker_2",
+      "fullname": "Output Checker 2",
       "output_checker": true,
       "staff": true,
       "workspaces": {
