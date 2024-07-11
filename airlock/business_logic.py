@@ -1815,44 +1815,50 @@ class BusinessLogicLayer:
     def approve_file(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        request_file: RequestFile,
         user: User,
-        group_name: str = "default",
     ):
         """ "Approve a file"""
 
-        self._verify_permission_to_review_file(release_request, relpath, user)
+        self._verify_permission_to_review_file(
+            release_request, request_file.relpath, user
+        )
 
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_APPROVE,
             user=user,
-            path=relpath,
-            group=group_name,
+            path=request_file.relpath,
+            group=request_file.group,
         )
 
-        self._dal.approve_file(release_request.id, relpath, user.username, audit)
+        self._dal.approve_file(
+            release_request.id, request_file.relpath, user.username, audit
+        )
 
     def reject_file(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        request_file: RequestFile,
         user: User,
-        group_name: str = "default",
     ):
         """Reject a file"""
 
-        self._verify_permission_to_review_file(release_request, relpath, user)
+        self._verify_permission_to_review_file(
+            release_request, request_file.relpath, user
+        )
 
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_REJECT,
             user=user,
-            path=relpath,
-            group=group_name,
+            path=request_file.relpath,
+            group=request_file.group,
         )
 
-        self._dal.reject_file(release_request.id, relpath, user.username, audit)
+        self._dal.reject_file(
+            release_request.id, request_file.relpath, user.username, audit
+        )
 
     def reset_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User

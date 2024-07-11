@@ -176,12 +176,13 @@ def test_get_request_tree_status(release_request, bll):
     checker2 = factories.create_user("checker2", [], True)
     path = UrlPath("some_dir/file_a.txt")
     group_path = "group1" / path
+    request_file = release_request.get_request_file_from_output_path(path)
 
     def set_status(status, user):
         if status == UserFileReviewStatus.APPROVED:
-            bll.approve_file(release_request, path, user)
+            bll.approve_file(release_request, request_file, user)
         elif status == UserFileReviewStatus.REJECTED:
-            bll.reject_file(release_request, path, user)
+            bll.reject_file(release_request, request_file, user)
 
         rr = bll.get_release_request(release_request, user)
         tree = get_request_tree(rr, user=user)
