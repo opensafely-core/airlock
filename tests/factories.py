@@ -12,6 +12,7 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     CodeRepo,
+    RequestFile,
     RequestFileType,
     RequestStatus,
     UserFileReviewStatus,
@@ -434,6 +435,22 @@ def write_request_file(
         review_file(request, path, UserFileReviewStatus.APPROVED, *checkers)
     elif rejected:
         review_file(request, path, UserFileReviewStatus.REJECTED, *checkers)
+
+
+def create_request_file_bad(request_file, bad_path):
+    bad_request_file_dict = {
+        "relpath": bad_path,
+        "group": request_file.group,
+        "file_id": request_file.file_id,
+        "reviews": {},
+        "timestamp": request_file.timestamp,
+        "size": request_file.size,
+        "job_id": request_file.job_id,
+        "commit": request_file.commit,
+        "repo": request_file.repo,
+    }
+    bad_request_file = RequestFile.from_dict(bad_request_file_dict)
+    return bad_request_file
 
 
 def get_default_output_checkers():
