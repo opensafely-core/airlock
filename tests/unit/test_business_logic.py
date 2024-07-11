@@ -2145,7 +2145,7 @@ def test_approve_file_not_part_of_request(bll):
     checker = factories.create_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
     bad_path = Path("path/file2.txt")
-    bad_request_file = factories.create_request_file_bad(request_file, bad_path)
+    bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
         bll.approve_file(release_request, bad_request_file, checker)

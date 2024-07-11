@@ -437,7 +437,7 @@ def write_request_file(
         review_file(request, path, UserFileReviewStatus.REJECTED, *checkers)
 
 
-def create_request_file_bad(request_file, bad_path):
+def create_request_file_bad_path(request_file, bad_path):
     bad_request_file_dict = {
         "relpath": bad_path,
         "group": request_file.group,
