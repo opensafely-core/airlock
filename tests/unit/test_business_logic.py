@@ -2090,9 +2090,10 @@ def test_approve_file_not_submitted(bll):
     checker = factories.create_user(output_checker=True)
 
     bll.add_file_to_request(release_request, path, author)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, path, checker)
+        bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
@@ -2106,9 +2107,10 @@ def test_approve_file_not_your_own(bll):
     bll.set_status(
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
+    request_file = release_request.get_request_file_from_output_path(path)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, path, author)
+        bll.approve_file(release_request, request_file, author)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(author) is None
@@ -2123,9 +2125,10 @@ def test_approve_file_not_checker(bll):
     bll.set_status(
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
+    request_file = release_request.get_request_file_from_output_path(path)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, path, author2)
+        bll.approve_file(release_request, request_file, author2)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(author) is None
@@ -2140,9 +2143,12 @@ def test_approve_file_not_part_of_request(bll):
         files=[factories.request_file(path=path)],
     )
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
     bad_path = Path("path/file2.txt")
+    bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
+
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, bad_path, checker)
+        bll.approve_file(release_request, bad_request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
@@ -2157,9 +2163,10 @@ def test_approve_supporting_file(bll):
         files=[factories.request_file(path=path, filetype=RequestFileType.SUPPORTING)],
     )
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     with pytest.raises(bll.ApprovalPermissionDenied):
-        bll.approve_file(release_request, path, checker)
+        bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
@@ -2173,13 +2180,16 @@ def test_approve_file(bll):
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(path=path)],
     )
+    assert "group" in release_request.filegroups
+
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
-    bll.approve_file(release_request, path, checker)
+    bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
@@ -2190,7 +2200,8 @@ def test_approve_file(bll):
         release_request,
         AuditEventType.REQUEST_FILE_APPROVE,
         user=checker,
-        path=path,
+        path=request_file.relpath,
+        group="group",
     )
 
 
@@ -2205,13 +2216,15 @@ def test_approve_file_requires_two_plus(bll):
     checker2 = factories.create_user("checker2", [], True)
     checker3 = factories.create_user("checker3", [], True)
 
-    bll.approve_file(release_request, path, checker1)
-    bll.reject_file(release_request, path, checker2)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    bll.approve_file(release_request, request_file, checker1)
+    bll.reject_file(release_request, request_file, checker2)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status() == RequestFileReviewStatus.CONFLICTED
 
-    bll.approve_file(release_request, path, checker3)
+    bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status() == RequestFileReviewStatus.APPROVED
 
@@ -2223,13 +2236,16 @@ def test_reject_file(bll):
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(path=path)],
     )
+    assert "group" in release_request.filegroups
+
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
-    bll.reject_file(release_request, path, checker)
+    bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
@@ -2241,6 +2257,7 @@ def test_reject_file(bll):
         AuditEventType.REQUEST_FILE_REJECT,
         user=checker,
         path=path,
+        group="group",
     )
 
 
@@ -2252,18 +2269,19 @@ def test_approve_then_reject_file(bll):
         files=[factories.request_file(path=path)],
     )
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
-    bll.approve_file(release_request, path, checker)
+    bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
-    bll.reject_file(release_request, path, checker)
+    bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
@@ -2281,15 +2299,16 @@ def test_reviewreset_then_reset_review_file(bll, review):
         files=[factories.request_file(path=path)],
     )
     checker = factories.create_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_status_for_user(checker) is None
     assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
 
     if review == UserFileReviewStatus.APPROVED:
-        bll.approve_file(release_request, path, checker)
+        bll.approve_file(release_request, request_file, checker)
     elif review == UserFileReviewStatus.REJECTED:
-        bll.reject_file(release_request, path, checker)
+        bll.reject_file(release_request, request_file, checker)
     else:
         assert False
 
@@ -2343,11 +2362,12 @@ def test_request_file_status_approved(bll, reviews, final_review):
 
     for i, review in enumerate(reviews):
         checker = factories.create_user(f"checker{i}", [], True)
+        request_file = release_request.get_request_file_from_output_path(path)
 
         if review == "APPROVED":
-            bll.approve_file(release_request, path, checker)
+            bll.approve_file(release_request, request_file, checker)
         else:
-            bll.reject_file(release_request, path, checker)
+            bll.reject_file(release_request, request_file, checker)
 
         rfile = _get_request_file(release_request, path)
         assert rfile.get_status_for_user(checker) == UserFileReviewStatus[review]
