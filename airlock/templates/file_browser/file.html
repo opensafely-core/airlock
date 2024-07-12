@@ -46,15 +46,17 @@
         </span>
       {% endif %}
 
-      {% with decision=path_item.request_status.decision %}
-        <div class="request-file-status">
-          <span>Decision:
-            <span class="file-status file-status--{{ decision.name.lower }}">
-              {{ decision.description }}
+      {% if path_item.is_output %}
+        {% with decision=path_item.request_status.decision %}
+          <div class="request-file-status">
+            <span>Decision:
+              <span class="file-status file-status--{{ decision.name.lower }}">
+                {{ decision.description }}
+              </span>
             </span>
-          </span>
-        </div>
-      {% endwith %}
+          </div>
+        {% endwith %}
+      {% endif %}
 
       {% if is_author %}
         {% if workspace.is_active %}
