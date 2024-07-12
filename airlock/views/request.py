@@ -14,11 +14,11 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     ROOT_PATH,
+    CommentVisibility,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
-    Visibility,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -148,10 +148,10 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
+        comments = release_request.get_visible_comments_for_group(group, request.user)
         visibilities = release_request.get_writable_comment_visibilities_for_user(
             request.user
         )
-        comments = filegroup.filter_comments(request.user, release_request.author)
         group_comment_form = GroupCommentForm(visibilities=visibilities)
 
         group_comment_create_url = reverse(
@@ -372,7 +372,14 @@ def request_withdraw(request, request_id):
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_return(request, request_id):
-    return _action_request(request, request_id, RequestStatus.RETURNED)
+    release_request = get_release_request_or_raise(request.user, request_id)
+    try:
+        bll.return_request(release_request, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.error(request, "Request has been returned to author")
+    return redirect(release_request.get_url())
 
 
 @instrument(func_attributes={"release_request": "request_id"})
@@ -586,7 +593,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
-                visibility=Visibility[form.cleaned_data["visibility"]],
+                visibility=CommentVisibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover

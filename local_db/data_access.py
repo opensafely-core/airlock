@@ -5,13 +5,13 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
+    CommentVisibility,
     DataAccessLayerProtocol,
     NotificationUpdateType,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
-    Visibility,
 )
 from airlock.types import UrlPath
 from local_db.models import (
@@ -121,12 +121,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.completed_reviews[reviewer] = timezone.now().isoformat()
             metadata.save()
 
-    def reset_reviews(self, request_id: str, audit: AuditEvent):
+    def start_new_turn(self, request_id: str):
         with transaction.atomic():
             metadata = self._find_metadata(request_id)
             metadata.completed_reviews = {}
+            metadata.review_turn += 1
             metadata.save()
-            self._create_audit_log(audit)
 
     def add_file_to_request(
         self,
@@ -417,7 +417,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment: str,
-        visibility: Visibility,
+        visibility: CommentVisibility,
+        review_turn: int,
         username: str,
         audit: AuditEvent,
     ):
@@ -429,15 +430,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 comment=comment,
                 author=username,
                 visibility=visibility,
+                review_turn=review_turn,
             )
 
-            self._create_audit_log(audit)
-
-    def unblind_comments(self, request_id: str, audit: AuditEvent):
-        with transaction.atomic():
-            FileGroupComment.objects.filter(
-                filegroup__request=request_id, visibility=Visibility.BLINDED
-            ).update(visibility=Visibility.PRIVATE)
             self._create_audit_log(audit)
 
     def group_comment_delete(

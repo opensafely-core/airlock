@@ -27,16 +27,17 @@
   {% if show_c3 %}
     <div class="comments" style="margin-top: 1rem;">
       {% #list_group %}
-        {% for comment in group_comments %}
+        {% for comment, metadata in group_comments %}
+
           {% fragment as comment_status %}
             <span>
               {% if request.user.output_checker %}
-                {% pill variant="info" text=comment.visibility.name.title %}
+                {% pill variant="info" text=metadata.description %}
               {% endif %}
               {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
             </span>
           {% endfragment %}
-          {% #list_group_rich_item custom_status=comment_status class=comment.html_class title=comment.author %}
+          {% #list_group_rich_item custom_status=comment_status class=metadata.class title=comment.author %}
             {{ comment.comment }}
             {% if request.user.username == comment.author %}
               <div>

@@ -106,18 +106,40 @@ class RequestFileStatus:
     vote: RequestFileVote | None
 
 
-class Visibility(Enum):
-    """The visibility of various bits of state.
+class CommentVisibility(Enum):
+    """The visibility of comments."""
 
-    Specifically, the FileReview and Comments of an ongoing request.
-    """
-
-    # only visible to author of comment/review
-    BLINDED = "BLINDED"
     # only visible to output-checkers
     PRIVATE = "PRIVATE"
     # visible to all
     PUBLIC = "PUBLIC"
+
+    @classmethod
+    def choices(cls):
+        return {
+            CommentVisibility.PRIVATE: "Only visible to output-checkers",
+            CommentVisibility.PUBLIC: "Visible to all",
+        }
+
+    def description(self):
+        return self.choices()[self]
+
+    @cached_property
+    def independent_description(self):
+        return "Only visible to you until both reviews completed"
+
+
+class ReviewTurnPhase(Enum):
+    """What phase is the request in."""
+
+    # author's phase
+    AUTHOR = "AUTHOR"
+    # can only see your own votes/comments
+    INDEPENDENT = "INDEPENDENT"
+    # output-checkers can see all votes/comments
+    CONSOLIDATING = "CONSOLIDATING"
+    # can see everything
+    COMPLETE = "COMPLETE"
 
 
 class AuditEventType(Enum):
@@ -137,13 +159,11 @@ class AuditEventType(Enum):
     REQUEST_REJECT = "REQUEST_REJECT"
     REQUEST_RETURN = "REQUEST_RETURN"
     REQUEST_RELEASE = "REQUEST_RELEASE"
-    REQUEST_REVIEW_RESET = "REQUEST_REVIEW_RESET"
 
     # request edits
     REQUEST_EDIT = "REQUEST_EDIT"
     REQUEST_COMMENT = "REQUEST_COMMENT"
     REQUEST_COMMENT_DELETE = "REQUEST_COMMENT_DELETE"
-    REQUEST_UNBLIND = "REQUEST_UNBLIND"
 
     # request file status
     REQUEST_FILE_ADD = "REQUEST_FILE_ADD"
@@ -182,7 +202,6 @@ READONLY_EVENTS = {
     AuditEventType.WORKSPACE_FILE_VIEW,
     AuditEventType.REQUEST_FILE_VIEW,
     AuditEventType.REQUEST_FILE_UNDECIDED,
-    AuditEventType.REQUEST_REVIEW_RESET,
 }
 
 
@@ -198,11 +217,9 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
-    AuditEventType.REQUEST_REVIEW_RESET: "Reviews on request reset",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
-    AuditEventType.REQUEST_UNBLIND: "Comments unblinded",
     AuditEventType.REQUEST_FILE_ADD: "Added file",
     AuditEventType.REQUEST_FILE_UPDATE: "Updated file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
@@ -738,24 +755,6 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
-    def filter_comments(self, user: User, request_author: str) -> list[Comment]:
-        comments = []
-        for comment in self.comments:
-            match comment.visibility:
-                case Visibility.BLINDED:
-                    # only the comment author is allowed to see blinded comments
-                    if comment.author == user.username:
-                        comments.append(comment)
-                case Visibility.PRIVATE:
-                    # only output checkers that are not the request author
-                    if user.output_checker and user.username != request_author:
-                        comments.append(comment)
-                case Visibility.PUBLIC:
-                    comments.append(comment)
-                case _:  # pragma: nocover
-                    assert False
-        return comments
-
 
 @dataclass(frozen=True)
 class Comment:
@@ -765,7 +764,8 @@ class Comment:
     comment: str
     author: str
     created_at: datetime
-    visibility: Visibility
+    visibility: CommentVisibility
+    review_turn: int
 
     @classmethod
     def from_dict(cls, attrs):
@@ -776,16 +776,6 @@ class Comment:
             **{k: v for k, v in attrs.items() if k not in ["id"]},
             id=str(attrs["id"]),
         )
-
-    def html_class(self):
-        if self.visibility == Visibility.PUBLIC:
-            return "comment_public"
-        elif self.visibility == Visibility.PRIVATE:
-            return "comment_private"
-        elif self.visibility == Visibility.BLINDED:
-            return "comment_blinded"
-
-        assert False
 
 
 @dataclass
@@ -805,6 +795,7 @@ class ReleaseRequest:
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
     completed_reviews: dict[str, str] = field(default_factory=dict)
+    review_turn: int = 0
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
@@ -881,18 +872,18 @@ class ReleaseRequest:
         self, relpath: UrlPath, user: User
     ) -> RequestFileStatus | None:
         rfile = self.get_request_file_from_urlpath(relpath)
-        visibility = self.get_current_request_visibility()
+        phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
 
-        match visibility:
-            case Visibility.BLINDED:
+        match phase:
+            case ReviewTurnPhase.INDEPENDENT:
                 # already set - no one knows the current status
                 pass
-            case Visibility.PRIVATE:
+            case ReviewTurnPhase.CONSOLIDATING:
                 # only output-checkers know the current status
                 if user.output_checker:
                     decision = rfile.get_decision()
-            case Visibility.PUBLIC:
+            case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
                 # everyone knows the current status
                 decision = rfile.get_decision()
             case _:  # pragma: nocover
@@ -903,6 +894,59 @@ class ReleaseRequest:
             decision=decision,
             vote=rfile.get_file_vote_for_user(user),
         )
+
+    def get_visible_comments_for_group(
+        self, group: str, user: User
+    ) -> list[tuple[Comment, dict[str, str]]]:
+        filegroup = self.filegroups[group]
+        current_phase = self.get_turn_phase()
+        can_see_review_comments = (
+            user.output_checker and not user.username == self.author
+        )
+
+        comments = []
+
+        for comment in filegroup.comments:
+            if current_phase == ReviewTurnPhase.INDEPENDENT:
+                # comments are temporarily hidden
+                metadata = {
+                    "description": comment.visibility.independent_description,
+                    "class": "comment_blinded",
+                }
+            else:
+                metadata = {
+                    "description": comment.visibility.description(),
+                    "class": f"comment_{comment.visibility.name.lower()}",
+                }
+
+            # you can always see comments you've authored. Doing this first
+            # simplifies later logic, and avoids potential bugs with users
+            # adding comments but then they can see the comment they just added
+            if comment.author == user.username:
+                comments.append((comment, metadata))
+                continue
+
+            match comment.visibility:
+                case CommentVisibility.PUBLIC:
+                    # can always see public comments from previous rounds
+                    if comment.review_turn < self.review_turn:
+                        comments.append((comment, metadata))
+                    elif current_phase == ReviewTurnPhase.CONSOLIDATING:
+                        if can_see_review_comments:
+                            comments.append((comment, metadata))
+                case CommentVisibility.PRIVATE:
+                    if can_see_review_comments:
+                        # can see private comments from previous round
+                        if comment.review_turn < self.review_turn:
+                            comments.append((comment, metadata))
+                        # we have completed independent review stage, so output
+                        # checker's can see private comments
+                        elif current_phase != ReviewTurnPhase.INDEPENDENT:
+                            comments.append((comment, metadata))
+                case _:  # pragma: nocover
+                    assert False
+
+        return comments
 
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
@@ -926,35 +970,34 @@ class ReleaseRequest:
 
         raise BusinessLogicLayer.FileNotFound(relpath)
 
-    def get_current_request_visibility(self):
+    def get_turn_phase(self) -> ReviewTurnPhase:
+        if self.status in [RequestStatus.PENDING, RequestStatus.RETURNED]:
+            return ReviewTurnPhase.AUTHOR
+
         if self.status in [RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED]:
-            return Visibility.BLINDED
+            return ReviewTurnPhase.INDEPENDENT
 
         if self.status in [RequestStatus.REVIEWED]:
-            return Visibility.PRIVATE
+            return ReviewTurnPhase.CONSOLIDATING
 
-        return Visibility.PUBLIC
+        return ReviewTurnPhase.COMPLETE
 
-    def get_writable_comment_visibilities_for_user(self, user: User):
+    def get_writable_comment_visibilities_for_user(
+        self, user: User
+    ) -> list[CommentVisibility]:
         """What comment visibilities should this user be able to write for this request?"""
         is_author = user.username == self.author
 
         # author can only ever create public comments
         if is_author:
-            return [Visibility.PUBLIC]
+            return [CommentVisibility.PUBLIC]
 
         # non-author non-output-checker, also only public
         if not user.output_checker:
-            return [Visibility.PUBLIC]
-
-        # we know know the user is an output-checker.
-        #
-        # currently in independent review stage, so they can only write blinded comments
-        if self.get_current_request_visibility() == Visibility.BLINDED:
-            return [Visibility.BLINDED]
+            return [CommentVisibility.PUBLIC]
 
         # all other cases - the output-checker can choose to write public or private comments
-        return [Visibility.PUBLIC, Visibility.PRIVATE]
+        return [CommentVisibility.PRIVATE, CommentVisibility.PUBLIC]
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
@@ -1093,7 +1136,7 @@ class DataAccessLayerProtocol(Protocol):
     def record_review(self, request_id: str, reviewer: str):
         raise NotImplementedError()
 
-    def reset_reviews(self, request_id: str, audit: AuditEvent):
+    def start_new_turn(self, request_id: str):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -1184,13 +1227,11 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment: str,
-        visibility: Visibility,
+        visibility: CommentVisibility,
+        review_turn: int,
         username: str,
         audit: AuditEvent,
     ):
-        raise NotImplementedError()
-
-    def unblind_comments(self, request_id, audit: AuditEvent):
         raise NotImplementedError()
 
     def group_comment_delete(
@@ -1882,20 +1923,13 @@ class BusinessLogicLayer:
 
         # reset any previous review data
         if request.status == RequestStatus.RETURNED:
-            audit = AuditEvent(
-                AuditEventType.REQUEST_REVIEW_RESET,
-                user=user.username,
-                request=request.id,
-            )
-            # reset completed review tracking
-            self._dal.reset_reviews(request.id, audit)
-
             # any unapproved files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
                 for review in rfile.rejected_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
 
         self.set_status(request, RequestStatus.SUBMITTED, user)
+        self._dal.start_new_turn(request.id)
 
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -2026,7 +2060,6 @@ class BusinessLogicLayer:
                 self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
             elif n_reviews == 2:
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
-                self.unblind_review(release_request, user)
         except self.InvalidStateTransition:
             # There is a potential race condition where two reviewers hit the Complete Review
             # button at the same time, and both attempt to transition from SUBMITTED to
@@ -2045,20 +2078,10 @@ class BusinessLogicLayer:
                 and release_request.status == RequestStatus.PARTIALLY_REVIEWED
             ):
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
-                self.unblind_review(release_request, user)
 
-    def unblind_review(self, release_request: ReleaseRequest, user: User):
-        """Unblind all votes and comments that were made during the independant review phase.
-
-        This allows other output checkers to see them, but not users.
-        """
-        audit = AuditEvent.from_request(
-            request=release_request,
-            type=AuditEventType.REQUEST_UNBLIND,
-            user=user,
-        )
-
-        self._dal.unblind_comments(release_request.id, audit)
+    def return_request(self, release_request: ReleaseRequest, user: User):
+        self.set_status(release_request, RequestStatus.RETURNED, user)
+        self._dal.start_new_turn(release_request.id)
 
     def mark_file_undecided(
         self,
@@ -2134,7 +2157,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         group: str,
         comment: str,
-        visibility: Visibility,
+        visibility: CommentVisibility,
         user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
@@ -2148,10 +2171,17 @@ class BusinessLogicLayer:
             user=user,
             group=group,
             comment=comment,
+            review_turn=str(release_request.review_turn),
         )
 
         self._dal.group_comment_create(
-            release_request.id, group, comment, visibility, user.username, audit
+            release_request.id,
+            group,
+            comment,
+            visibility,
+            release_request.review_turn,
+            user.username,
+            audit,
         )
 
     def group_comment_delete(
