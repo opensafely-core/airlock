@@ -144,6 +144,7 @@ TEMPLATES = [
                 # "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "airlock.nav.menu",
+                "airlock.nav.dev_users",
             ],
             "builtins": [
                 "slippers.templatetags.slippers",  # required for assets library
@@ -299,6 +300,7 @@ AIRLOCK_API_ENDPOINT = os.environ.get(
 assert not AIRLOCK_API_ENDPOINT.endswith("/")
 
 AIRLOCK_API_TOKEN = os.environ.get("AIRLOCK_API_TOKEN")
+DEV_USERS = {}
 
 if AIRLOCK_API_TOKEN:  # pragma: no cover
     AIRLOCK_DEV_USERS_FILE = None
@@ -306,6 +308,9 @@ elif dev_user_file := os.environ.get("AIRLOCK_DEV_USERS_FILE"):  # pragma: nocov
     AIRLOCK_DEV_USERS_FILE = WORK_DIR / dev_user_file
     if AIRLOCK_DEV_USERS_FILE.exists():
         dev_users = json.loads(AIRLOCK_DEV_USERS_FILE.read_text())
+        DEV_USERS = {
+            username: details["token"] for username, details in dev_users.items()
+        }
         for dev_user in dev_users.values():
             workspace_keys = set(
                 sum(
