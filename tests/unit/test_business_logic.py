@@ -18,6 +18,7 @@ from airlock.business_logic import (
     CodeRepo,
     CommentVisibility,
     DataAccessLayerProtocol,
+    NotificationEventType,
     RequestFileDecision,
     RequestFileType,
     RequestFileVote,
@@ -1273,6 +1274,51 @@ def test_set_status_notifications(
     assert_last_notification(mock_notifications, notification_event_type)
 
 
+@pytest.mark.parametrize(
+    "updates,success,expected_error",
+    [
+        ([], True, None),
+        ([{"update": "updated a thing"}, {"update": "another update"}], True, None),
+        ([{"update": "updated a thing", "user": "test"}], True, None),
+        ([{"update": "updated a thing", "group": "test"}], True, None),
+        ([{"update": "updated a thing", "user": "test", "group": "test"}], True, None),
+        ([{}], False, "must include an `update` key"),
+        ([{"user": "test"}], False, "must include an `update` key"),
+        ([{"update": "an update", "foo": "bar"}], False, "Unexpected keys"),
+        (
+            [
+                {"update": "updated a thing"},
+                {
+                    "update": "updated a thing",
+                    "user": "test",
+                    "group": "test",
+                    "foo": "bar",
+                },
+            ],
+            False,
+            "Unexpected keys",
+        ),
+    ],
+)
+def test_notification_updates(
+    bll, mock_notifications, updates, success, expected_error
+):
+    author = factories.create_user()
+    release_request = factories.create_release_request("test", author)
+    if success:
+        bll.send_notification(
+            release_request, NotificationEventType.REQUEST_SUBMITTED, author, updates
+        )
+    else:
+        with pytest.raises(AssertionError, match=expected_error):
+            bll.send_notification(
+                release_request,
+                NotificationEventType.REQUEST_SUBMITTED,
+                author,
+                updates,
+            )
+
+
 def test_notification_error(bll, notifications_stubber, caplog):
     mock_notifications = notifications_stubber(
         json={"status": "error", "message": "something went wrong"}
@@ -1485,22 +1531,20 @@ def test_add_file_to_request_invalid_file_type(bll):
 
 
 @pytest.mark.parametrize(
-    "status,success,notification_sent",
+    "status,success",
     [
-        (RequestStatus.PENDING, True, False),
-        (RequestStatus.SUBMITTED, False, False),
-        (RequestStatus.PARTIALLY_REVIEWED, False, False),
-        (RequestStatus.REVIEWED, False, False),
-        (RequestStatus.RETURNED, True, True),
-        (RequestStatus.APPROVED, False, False),
-        (RequestStatus.REJECTED, False, False),
-        (RequestStatus.RELEASED, False, False),
-        (RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.PENDING, True),
+        (RequestStatus.SUBMITTED, False),
+        (RequestStatus.PARTIALLY_REVIEWED, False),
+        (RequestStatus.REVIEWED, False),
+        (RequestStatus.RETURNED, True),
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.REJECTED, False),
+        (RequestStatus.RELEASED, False),
+        (RequestStatus.WITHDRAWN, False),
     ],
 )
-def test_add_file_to_request_states(
-    status, success, notification_sent, bll, mock_notifications
-):
+def test_add_file_to_request_states(status, success, bll):
     author = factories.create_user("author", ["workspace"], False)
 
     path = UrlPath("path/file.txt")
@@ -1530,12 +1574,6 @@ def test_add_file_to_request_states(
             group="default",
             filetype="OUTPUT",
         )
-
-        if notification_sent:
-            last_notification = get_last_notification(mock_notifications)
-            assert last_notification["updates"][0]["update_type"] == "file added"
-        else:
-            assert_no_notifications(mock_notifications)
     else:
         with pytest.raises(bll.RequestPermissionDenied):
             bll.add_file_to_request(release_request, path, author)
@@ -1741,7 +1779,7 @@ def test_update_file_to_request_states(
         assert_no_notifications(mock_notifications)
 
 
-def test_withdraw_file_from_request_pending(bll, mock_notifications):
+def test_withdraw_file_from_request_pending(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path1 = Path("path/file1.txt")
     path2 = Path("path/file2.txt")
@@ -1785,10 +1823,9 @@ def test_withdraw_file_from_request_pending(bll, mock_notifications):
     )
 
     assert release_request.filegroups["group"].files.keys() == set()
-    assert_no_notifications(mock_notifications)
 
 
-def test_withdraw_file_from_request_returned(bll, mock_notifications):
+def test_withdraw_file_from_request_returned(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
     path1 = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -1819,8 +1856,6 @@ def test_withdraw_file_from_request_returned(bll, mock_notifications):
         path=path1,
         group="group",
     )
-    last_notification = get_last_notification(mock_notifications)
-    assert last_notification["updates"][0]["update_type"] == "file withdrawn"
 
 
 @pytest.mark.parametrize(
@@ -2870,7 +2905,7 @@ def test_dal_methods_have_audit_event_parameter():
         ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
 
 
-def test_group_edit_author(bll, mock_notifications):
+def test_group_edit_author(bll):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
     factories.write_request_file(
@@ -2896,76 +2931,6 @@ def test_group_edit_author(bll, mock_notifications):
     assert audit_log[0].extra["group"] == "group"
     assert audit_log[0].extra["context"] == "foo"
     assert audit_log[0].extra["controls"] == "bar"
-
-    # Request is in PENDING, so no notifications sent
-    assert_no_notifications(mock_notifications)
-
-
-@pytest.mark.parametrize(
-    "new_context,new_controls,expected_updates",
-    [
-        (
-            "",
-            "bar",
-            [{"update_type": "controls edited", "group": "group", "user": "author"}],
-        ),
-        (
-            "foo",
-            "",
-            [{"update_type": "context edited", "group": "group", "user": "author"}],
-        ),
-        (
-            "foo",
-            "bar",
-            [
-                {"update_type": "context edited", "group": "group", "user": "author"},
-                {"update_type": "controls edited", "group": "group", "user": "author"},
-            ],
-        ),
-        (
-            "",
-            "",
-            [],
-        ),
-    ],
-)
-def test_group_edit_notifications(
-    bll, mock_notifications, new_context, new_controls, expected_updates, settings
-):
-    # Set the output checking org and repo to override any local settings
-    settings.AIRLOCK_OUTPUT_CHECKING_ORG = settings.AIRLOCK_OUTPUT_CHECKING_REPO = None
-    author = factories.create_user("author", ["workspace"], False)
-    release_request = factories.create_request_at_status(
-        "workspace",
-        author=author,
-        status=RequestStatus.SUBMITTED,
-        files=[factories.request_file("group", "test/file.txt")],
-    )
-
-    # group is always created with no context/controls initially
-    assert release_request.filegroups["group"].context == ""
-    assert release_request.filegroups["group"].controls == ""
-
-    bll.group_edit(release_request, "group", new_context, new_controls, author)
-
-    # notifications endpoint called when request submitted, and again for group edit
-    notification_responses = parse_notification_responses(mock_notifications)
-    if expected_updates:
-        assert notification_responses["count"] == 2
-        submitted_notification, edit_notification = notification_responses[
-            "request_json"
-        ]
-        assert submitted_notification["event_type"] == "request_submitted"
-        assert edit_notification == {
-            "event_type": "request_updated",
-            "workspace": "workspace",
-            "request": release_request.id,
-            "request_author": "author",
-            "user": "author",
-            "updates": expected_updates,
-        }
-    else:
-        assert notification_responses["count"] == 1
 
 
 @pytest.mark.parametrize(

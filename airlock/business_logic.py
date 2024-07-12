@@ -186,16 +186,6 @@ class NotificationEventType(Enum):
     REQUEST_REJECTED = "request_rejected"
     REQUEST_RETURNED = "request_returned"
     REQUEST_RESUBMITTED = "request_resubmitted"
-    REQUEST_UPDATED = "request_updated"
-
-
-class NotificationUpdateType(Enum):
-    FILE_ADDED = "file added"
-    FILE_UPDATED = "file updated"
-    FILE_WITHDRAWN = "file withdrawn"
-    CONTEXT_EDITIED = "context edited"
-    CONTROLS_EDITED = "controls edited"
-    COMMENT_ADDED = "comment added"
 
 
 READONLY_EVENTS = {
@@ -1219,7 +1209,7 @@ class DataAccessLayerProtocol(Protocol):
         context: str,
         controls: str,
         audit: AuditEvent,
-    ) -> list[NotificationUpdateType]:
+    ):
         raise NotImplementedError()
 
     def group_comment_create(
@@ -1731,16 +1721,6 @@ class BusinessLogicLayer:
         )
         release_request.set_filegroups_from_dict(filegroup_data)
 
-        if release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.FILE_ADDED, group_name, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
-
         return release_request
 
     def update_file_in_request(
@@ -1866,14 +1846,6 @@ class BusinessLogicLayer:
                 request_id=release_request.id,
                 relpath=relpath,
                 audit=audit,
-            )
-            updates = [
-                self._get_notification_update_dict(
-                    NotificationUpdateType.FILE_WITHDRAWN, group_name, user
-                )
-            ]
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
             )
         else:
             assert False, f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
@@ -2138,19 +2110,7 @@ class BusinessLogicLayer:
             controls=controls,
         )
 
-        change_notifications = self._dal.group_edit(
-            release_request.id, group, context, controls, audit
-        )
-
-        if change_notifications and release_request.status != RequestStatus.PENDING:
-            updates = [
-                self._get_notification_update_dict(change_notification, group, user)
-                for change_notification in change_notifications
-            ]
-
-            self.send_notification(
-                release_request, NotificationEventType.REQUEST_UPDATED, user, updates
-            )
+        self._dal.group_edit(release_request.id, group, context, controls, audit)
 
     def group_comment_create(
         self,
@@ -2273,14 +2233,18 @@ class BusinessLogicLayer:
         )
         self._dal.audit_event(audit)
 
-    def _get_notification_update_dict(
-        self, update_type: NotificationUpdateType, group_name: str, user: User
-    ):
-        return {
-            "update_type": update_type.value,
-            "group": group_name,
-            "user": user.username,
-        }
+    def validate_update_dicts(self, updates):
+        if updates is None:
+            return
+        allowed_keys = {"update", "group", "user"}
+        for update_dict in updates:
+            assert (
+                "update" in update_dict
+            ), "Notification updates must include an `update` key"
+            extra_keys = set(update_dict.keys()) - allowed_keys
+            assert (
+                not extra_keys
+            ), f"Unexpected keys in notification update ({extra_keys})"
 
     def send_notification(
         self,
@@ -2289,6 +2253,13 @@ class BusinessLogicLayer:
         user: User,
         updates: list[dict[str, str]] | None = None,
     ):
+        """
+        Send a notification about an event.
+        Events can send a optional list of dicts to include in the
+        notification. These must include at least one `update` key
+        with a description of the update, and optional `user` and
+        `group` keys.
+        """
         event_data = {
             "event_type": event_type.value,
             "workspace": request.workspace,
@@ -2297,6 +2268,7 @@ class BusinessLogicLayer:
             "user": user.username,
             "updates": updates,
         }
+        self.validate_update_dicts(updates)
         if settings.AIRLOCK_OUTPUT_CHECKING_ORG:
             event_data.update(
                 {
