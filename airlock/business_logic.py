@@ -1269,6 +1269,9 @@ class BusinessLogicLayer:
     class RequestPermissionDenied(APIException):
         pass
 
+    class IncompleteContextOrControls(RequestPermissionDenied):
+        pass
+
     class RequestReviewDenied(APIException):
         pass
 
@@ -1565,8 +1568,8 @@ class BusinessLogicLayer:
                     release_request.filegroups[filegroup].context == ""
                     or release_request.filegroups[filegroup].controls == ""
                 ):
-                    raise self.RequestPermissionDenied(
-                        f"incomplete context and/or controls for filegroup '{filegroup}'"
+                    raise self.IncompleteContextOrControls(
+                        f"Incomplete context and/or controls for filegroup '{filegroup}'"
                     )
 
         # check permissions
