@@ -321,10 +321,10 @@ def request_submit(request, request_id):
 
     try:
         bll.submit_request(release_request, request.user)
+    except bll.IncompleteContextOrControls as exc:
+        messages.error(request, str(exc))
+        return redirect(release_request.get_url())
     except bll.RequestPermissionDenied as exc:
-        if isinstance(exc, bll.IncompleteContextOrControls):
-            messages.error(request, str(exc))
-            return redirect(release_request.get_url())
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
