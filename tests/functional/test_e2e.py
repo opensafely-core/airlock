@@ -525,6 +525,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
     page.goto(live_server.url + release_request.get_url())
 
     # Reject request
+    find_and_click(page.locator("button[data-modal=rejectRequest]"))
     find_and_click(page.locator("#reject-request-button"))
     # Page contains rejected message text
     expect(page.locator("body")).to_contain_text("Request has been rejected")

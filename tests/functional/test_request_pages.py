@@ -169,7 +169,7 @@ def test_request_buttons(
 
     reviewer_buttons = [
         "#return-request-button",
-        "#reject-request-button",
+        "button[data-modal=rejectRequest]",
         "#complete-review-button",
     ]
 
@@ -318,7 +318,7 @@ def test_request_releaseable(live_server, context, page, bll):
     page.goto(live_server.url + release_request.get_url())
 
     release_files_button = page.locator("#release-files-button")
-    reject_request_button = page.locator("#reject-request-button")
+    reject_request_button = page.locator("button[data-modal=rejectRequest]")
     return_request_button = page.locator("#return-request-button")
 
     # Request is currently reviewed twice
