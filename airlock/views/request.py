@@ -378,7 +378,7 @@ def request_return(request, request_id):
     except bll.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
-    messages.error(request, "Request has been returned to author")
+    messages.success(request, "Request has been returned to author")
     return redirect(release_request.get_url())
 
 
