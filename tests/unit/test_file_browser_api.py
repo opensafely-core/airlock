@@ -166,7 +166,7 @@ def test_get_request_tree_general(release_request):
 
 
 def test_get_request_tree_status(bll):
-    author = factories.create_user("author")
+    author = factories.create_user("author", output_checker=True)
     checker1 = factories.create_user("checker1", [], True)
     checker2 = factories.create_user("checker2", [], True)
 
@@ -208,6 +208,7 @@ def test_get_request_tree_status(bll):
     assert_status(author, RequestFileDecision.INCOMPLETE, None)
     assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
     assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
+    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
 
     bll.approve_file(
         release_request,
@@ -225,9 +226,10 @@ def test_get_request_tree_status(bll):
     assert_status(author, RequestFileDecision.INCOMPLETE, None)
     assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
     assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
+    assert release_request.status == RequestStatus.REVIEWED
 
     # move to RETURNED, votes are all public now
-    bll.set_status(release_request, RequestStatus.RETURNED, checker1)
+    bll.return_request(release_request, checker1)
 
     assert_status(author, RequestFileDecision.APPROVED, None)
     assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)

@@ -864,6 +864,7 @@ class ReleaseRequest:
         rfile = self.get_request_file_from_urlpath(relpath)
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
+        is_output_checker = user.output_checker and self.author != user.username
 
         match phase:
             case ReviewTurnPhase.INDEPENDENT:
@@ -871,7 +872,7 @@ class ReleaseRequest:
                 pass
             case ReviewTurnPhase.CONSOLIDATING:
                 # only output-checkers know the current status
-                if user.output_checker:
+                if is_output_checker:
                     decision = rfile.get_decision()
             case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
                 # everyone knows the current status
