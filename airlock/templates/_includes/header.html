@@ -48,6 +48,43 @@
           </a>
         </li>
       {% else %}
+        {% if dev_users %}
+          <li>
+            <details-utils close-click-outside close-esc>
+              <details class="flex group">
+                <summary
+                  class="
+                         flex relative h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0 cursor-pointer
+                         hover:text-bn-strawberry-700
+                         focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                        "
+                  data-testid="switch-user"
+                >
+                  Switch user
+                  <span class="opacity-75 ml-1">
+                    <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+                    <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
+                  </span>
+                </summary>
+
+                <div class="absolute border-0 origin-top-right top-full mt-2 right-20 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
+                  {% for username, token in dev_users.items %}
+                    <form
+                      {% if username == request.user.username %}style="background-color: var(--color-emerald-50);"{% endif %}
+                      class="border-t block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-oxford-50 focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-inset w-full text-left"
+                      method="POST" action="{% url 'login' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.path }}" />
+                      <input type="hidden" name="user" value="{{ username }}" />
+                      <input type="hidden" name="token" value="{{ token }}" />
+                      <button type="submit">{{ username }}</button>
+                    </form>
+                  {% endfor %}
+                </div>
+              </details>
+            </details-utils>
+          </li>
+        {% endif %}
         <li>
           <details-utils close-click-outside close-esc>
             <details class="flex group">
@@ -84,6 +121,8 @@
             </details>
           </details-utils>
         </li>
+
+
       {% endif %}
     </ul>
   </nav>
