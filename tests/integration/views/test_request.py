@@ -605,6 +605,9 @@ def test_request_submit_author(airlock_client):
         "test1", user=airlock_client.user
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
+    bll.group_edit(
+        release_request, "group", "my context", "my controls", airlock_client.user
+    )
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
@@ -620,11 +623,27 @@ def test_request_submit_not_author(airlock_client):
         "test1", user=other_author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
+    bll.group_edit(release_request, "group", "my context", "my controls", other_author)
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
     assert response.status_code == 403
     persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
+    assert persisted_request.status == RequestStatus.PENDING
+
+
+def test_request_submit_missing_context_controls(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    release_request = factories.create_release_request(
+        "test1", user=airlock_client.user
+    )
+    factories.write_request_file(release_request, "group", "path/test.txt")
+
+    response = airlock_client.post(f"/requests/submit/{release_request.id}")
+
+    assert response.status_code == 302
+    persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
+    # request has not been submitted
     assert persisted_request.status == RequestStatus.PENDING
 
 

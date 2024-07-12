@@ -1270,6 +1270,9 @@ class BusinessLogicLayer:
     class RequestPermissionDenied(APIException):
         pass
 
+    class IncompleteContextOrControls(RequestPermissionDenied):
+        pass
+
     class RequestReviewDenied(APIException):
         pass
 
@@ -1559,6 +1562,16 @@ class BusinessLogicLayer:
             raise self.InvalidStateTransition(
                 f"cannot change status from {release_request.status.name} to {to_status.name}"
             )
+
+        if to_status == RequestStatus.SUBMITTED:
+            for filegroup in release_request.filegroups:
+                if (
+                    release_request.filegroups[filegroup].context == ""
+                    or release_request.filegroups[filegroup].controls == ""
+                ):
+                    raise self.IncompleteContextOrControls(
+                        f"Incomplete context and/or controls for filegroup '{filegroup}'"
+                    )
 
         # check permissions
         owner = release_request.status_owner()

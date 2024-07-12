@@ -604,6 +604,8 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_FILE_ADD,
         AuditEventType.REQUEST_FILE_ADD,
         AuditEventType.REQUEST_FILE_ADD,
+        # add default context & controls
+        AuditEventType.REQUEST_EDIT,
         # submit request
         AuditEventType.REQUEST_SUBMIT,
         # checker reviews
@@ -617,11 +619,11 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     ]
     assert [log.type for log in audit_log] == expected_audit_logs
 
-    checker_review_log = audit_log[5]
-    checker1_review_log = audit_log[6]
-    approve_log = audit_log[7]
-    release_file_log = audit_log[8]
-    release_log = audit_log[9]
+    checker_review_log = audit_log[6]
+    checker1_review_log = audit_log[7]
+    approve_log = audit_log[8]
+    release_file_log = audit_log[9]
+    release_log = audit_log[10]
 
     assert checker_review_log.type == AuditEventType.REQUEST_REVIEW
     assert checker_review_log.user == checker.username
@@ -1328,6 +1330,7 @@ def test_notification_error(bll, notifications_stubber, caplog):
     factories.write_request_file(
         release_request, "group", "test/file.txt", approved=True
     )
+    bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = factories.refresh_release_request(release_request)
     bll.set_status(release_request, RequestStatus.SUBMITTED, author)
     notifications_responses = parse_notification_responses(mock_notifications)
@@ -1415,6 +1418,8 @@ def test_submit_request(bll, mock_notifications):
         "workspace", user=author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request, "group", "test/file.txt")
+    bll.group_edit(release_request, "group", "foo", "bar", author)
+    release_request = bll.get_release_request(release_request.id, author)
     bll.submit_request(release_request, author)
     assert release_request.status == RequestStatus.SUBMITTED
     assert_last_notification(mock_notifications, "request_submitted")
@@ -2383,6 +2388,9 @@ def test_approve_file_not_your_own(bll):
     release_request, path, author = setup_empty_release_request()
 
     bll.add_file_to_request(release_request, path, author)
+    bll.group_edit(release_request, "default", "foo", "bar", author)
+    release_request = bll.get_release_request(release_request.id, author)
+
     bll.set_status(
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )
@@ -2401,6 +2409,9 @@ def test_approve_file_not_checker(bll):
     author2 = factories.create_user("author2", [], False)
 
     bll.add_file_to_request(release_request, path, author)
+    bll.group_edit(release_request, "default", "foo", "bar", author)
+    release_request = bll.get_release_request(release_request.id, author)
+
     bll.set_status(
         release_request=release_request, to_status=RequestStatus.SUBMITTED, user=author
     )

@@ -325,6 +325,15 @@ def create_request_at_status(
         add_file(request)
 
     request = refresh_release_request(request)
+
+    # if we add files, we should add context & controls
+    if files:
+        for filegroup in request.filegroups:
+            dummy_context = "This is some testing context"
+            dummy_controls = "I got rid of all the small numbers"
+            bll.group_edit(request, filegroup, dummy_context, dummy_controls, author)
+        request = refresh_release_request(request)
+
     if status == RequestStatus.PENDING:
         return request
 
