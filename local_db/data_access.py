@@ -5,12 +5,13 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
+    CommentVisibility,
     DataAccessLayerProtocol,
     NotificationUpdateType,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
-    UserFileReviewStatus,
 )
 from airlock.types import UrlPath
 from local_db.models import (
@@ -120,12 +121,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.completed_reviews[reviewer] = timezone.now().isoformat()
             metadata.save()
 
-    def reset_reviews(self, request_id: str, audit: AuditEvent):
+    def start_new_turn(self, request_id: str):
         with transaction.atomic():
             metadata = self._find_metadata(request_id)
             metadata.completed_reviews = {}
+            metadata.review_turn += 1
             metadata.save()
-            self._create_audit_log(audit)
 
     def add_file_to_request(
         self,
@@ -273,7 +274,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=username
             )
-            review.status = UserFileReviewStatus.APPROVED
+            review.status = RequestFileVote.APPROVED
             review.save()
 
             self._create_audit_log(audit)
@@ -289,7 +290,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=username
             )
-            review.status = UserFileReviewStatus.REJECTED
+            review.status = RequestFileVote.REJECTED
             review.save()
 
             self._create_audit_log(audit)
@@ -318,7 +319,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
             review = FileReview.objects.get(file=request_file, reviewer=reviewer)
-            review.status = UserFileReviewStatus.UNDECIDED
+            review.status = RequestFileVote.UNDECIDED
             review.save()
 
             self._create_audit_log(audit)
@@ -416,6 +417,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment: str,
+        visibility: CommentVisibility,
+        review_turn: int,
         username: str,
         audit: AuditEvent,
     ):
@@ -426,6 +429,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 filegroup=filegroup,
                 comment=comment,
                 author=username,
+                visibility=visibility,
+                review_turn=review_turn,
             )
 
             self._create_audit_log(audit)

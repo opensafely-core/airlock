@@ -16,11 +16,12 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     CodeRepo,
+    CommentVisibility,
     DataAccessLayerProtocol,
-    RequestFileReviewStatus,
+    RequestFileDecision,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
-    UserFileReviewStatus,
     Workspace,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
@@ -211,31 +212,33 @@ def test_workspace_get_workspace_archived_ongoing(bll):
         assert "INACTIVE" not in workspace.project().display_name()
 
 
-def test_workspace_get_workspace_status(bll):
+def test_workspace_get_workspace_file_status(bll):
     path = UrlPath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
     user = factories.create_user(workspaces=["workspace"])
 
-    assert workspace.get_workspace_status(path) is None
+    assert workspace.get_workspace_file_status(path) is None
 
     factories.write_workspace_file(workspace, path, contents="foo")
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
     release_request = factories.create_release_request(workspace, user=user)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
     factories.write_request_file(release_request, "group", path)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
     factories.write_workspace_file(workspace, path, contents="changed")
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+    assert (
+        workspace.get_workspace_file_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+    )
 
 
-def test_request_returned_get_workspace_space(bll):
+def test_request_returned_get_workspace_file_status(bll):
     user = factories.create_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
@@ -254,10 +257,10 @@ def test_request_returned_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
 
-def test_request_pending_not_author_get_workspace_space(bll):
+def test_request_pending_not_author_get_workspace_file_status(bll):
     user = factories.create_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
@@ -275,10 +278,10 @@ def test_request_pending_not_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
 
-def test_request_pending_author_get_workspace_space(bll):
+def test_request_pending_author_get_workspace_file_status(bll):
     status = RequestStatus.PENDING
 
     author = factories.create_user("author", ["workspace"], False)
@@ -304,10 +307,10 @@ def test_request_pending_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
 
-def test_request_returned_author_get_workspace_space(bll):
+def test_request_returned_author_get_workspace_file_status(bll):
     status = RequestStatus.RETURNED
 
     author = factories.create_user("author", ["workspace"], False)
@@ -333,7 +336,7 @@ def test_request_returned_author_get_workspace_space(bll):
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
 
 def test_request_container(mock_notifications):
@@ -1400,13 +1403,13 @@ def test_resubmit_request(bll, mock_notifications):
         approved_file = release_request.get_request_file_from_output_path(
             UrlPath("file.txt")
         )
-        assert approved_file.get_status_for_user(user) == UserFileReviewStatus.APPROVED
+        assert approved_file.get_file_vote_for_user(user) == RequestFileVote.APPROVED
 
         # rejected file review is now undecided
         rejected_file = release_request.get_request_file_from_output_path(
             UrlPath("file1.txt")
         )
-        assert rejected_file.get_status_for_user(user) == UserFileReviewStatus.UNDECIDED
+        assert rejected_file.get_file_vote_for_user(user) == RequestFileVote.UNDECIDED
         assert not release_request.all_files_reviewed_by_reviewer(user)
         # completed reviews have been reset
         assert release_request.completed_reviews == {}
@@ -1662,13 +1665,17 @@ def test_update_file_to_request_states(
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
     if success:
-        assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+        assert (
+            workspace.get_workspace_file_status(path)
+            == WorkspaceFileStatus.UNDER_REVIEW
+        )
 
     factories.write_workspace_file(workspace, path, contents="changed")
 
     if success:
         assert (
-            workspace.get_workspace_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+            workspace.get_workspace_file_status(path)
+            == WorkspaceFileStatus.CONTENT_UPDATED
         )
         bll.update_file_in_request(release_request, path, author, "group")
     else:
@@ -1678,12 +1685,14 @@ def test_update_file_to_request_states(
 
     # refresh workspace
     workspace = bll.get_workspace("workspace", author)
-    assert workspace.get_workspace_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
-    rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checkers[0]) is None
-    assert rfile.get_status_for_user(checkers[1]) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    status1 = release_request.get_request_file_status("group" / path, checkers[0])
+    assert status1.vote is None
+    assert status1.decision == RequestFileDecision.INCOMPLETE
+    status2 = release_request.get_request_file_status("group" / path, checkers[1])
+    assert status2.vote is None
+    assert status2.decision == RequestFileDecision.INCOMPLETE
 
     assert release_request.abspath("group" / path).exists()
 
@@ -2003,6 +2012,241 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
+def test_get_visible_comments_for_group(bll):
+    # This test is long and complex.
+    #
+    # It walks through a couple of rounds of back and forth review, validating
+    # that the comments that are visibile to various users at different points
+    # in the process are correct.
+    #
+    author = factories.create_user("author1", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(group="group", approved=True)],
+    )
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 private",
+        CommentVisibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 1 private",
+        CommentVisibility.PRIVATE,
+        checkers[1],
+    )
+
+    # helper function to fetch the current comments for a user
+    def get_comments(user):
+        nonlocal release_request
+        release_request = factories.refresh_release_request(release_request)
+        return [
+            c[0].comment
+            for c in release_request.get_visible_comments_for_group("group", user)
+        ]
+
+    # in RequestPhase.INDEPENDENT, can only see own comments
+    assert get_comments(checkers[0]) == ["turn 1 checker 0 private"]
+    assert get_comments(checkers[1]) == ["turn 1 checker 1 private"]
+    assert get_comments(author) == []
+    assert release_request.review_turn == 1
+
+    factories.complete_independent_review(release_request)
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 public",
+        CommentVisibility.PUBLIC,
+        checkers[0],
+    )
+
+    # in RequestPhase.CONSOLIDATING, checkers should see all private comments
+    # and pending public comments, but author should not see any yet
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(author) == []
+    assert release_request.review_turn == 1
+
+    bll.return_request(release_request, checkers[0])
+
+    # in RequestPhase.COMPLETE, checkers should see all private comments
+    # and pending public comments, but author should not see any yet
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(author) == ["turn 1 checker 0 public"]
+    assert release_request.review_turn == 2
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 2 author public",
+        CommentVisibility.PUBLIC,
+        author,
+    )
+
+    # in RequestPhase.AUTHOR, checkers should see all public/private comments
+    # they've made, but not any the author has made, as it hasn't yet been
+    # returned.
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+    ]
+    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 0 private",
+        CommentVisibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 1 private",
+        CommentVisibility.PRIVATE,
+        checkers[1],
+    )
+
+    # in RequestPhase.INDEPENDENT for a 2nd round
+    # Checkers should see previous round's private comments, but not this rounds
+    # Author should see previous round's public comments, but not any this round
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 1 private",
+    ]
+    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    assert release_request.review_turn == 3
+
+    factories.complete_independent_review(release_request)
+
+    # in RequestPhase.CONSOLIDATING for a 2nd round
+    # Checkers should see previous and current round's private comments,
+    # Author should see previous round's public comments, but not any private comments
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+    ]
+    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+
+    # assume returned
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 0 public",
+        CommentVisibility.PUBLIC,
+        checkers[0],
+    )
+
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+        "turn 3 checker 0 public",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+        "turn 3 checker 0 public",
+    ]
+    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+
+    bll.return_request(release_request, checkers[0])
+
+    # in RequestPhase.COMPLETE for a 2nd round
+    # Checkers should see all historic comments,
+    # Author should see previous round's public comments, but not any private comments
+    assert get_comments(checkers[0]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+        "turn 3 checker 0 public",
+    ]
+    assert get_comments(checkers[1]) == [
+        "turn 1 checker 0 private",
+        "turn 1 checker 1 private",
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 private",
+        "turn 3 checker 1 private",
+        "turn 3 checker 0 public",
+    ]
+    assert get_comments(author) == [
+        "turn 1 checker 0 public",
+        "turn 2 author public",
+        "turn 3 checker 0 public",
+    ]
+
+    assert release_request.review_turn == 4
+
+
 def test_release_request_filegroups_with_no_files(bll):
     release_request, _, _ = setup_empty_release_request()
     assert release_request.filegroups == {}
@@ -2096,8 +2340,8 @@ def test_approve_file_not_submitted(bll):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_approve_file_not_your_own(bll):
@@ -2113,8 +2357,8 @@ def test_approve_file_not_your_own(bll):
         bll.approve_file(release_request, request_file, author)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(author) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(author) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_approve_file_not_checker(bll):
@@ -2131,8 +2375,8 @@ def test_approve_file_not_checker(bll):
         bll.approve_file(release_request, request_file, author2)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(author) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(author) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_approve_file_not_part_of_request(bll):
@@ -2151,8 +2395,8 @@ def test_approve_file_not_part_of_request(bll):
         bll.approve_file(release_request, bad_request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_approve_supporting_file(bll):
@@ -2169,8 +2413,8 @@ def test_approve_supporting_file(bll):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_approve_file(bll):
@@ -2186,14 +2430,14 @@ def test_approve_file(bll):
     request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2222,11 +2466,11 @@ def test_approve_file_requires_two_plus(bll):
     bll.reject_file(release_request, request_file, checker2)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status() == RequestFileReviewStatus.CONFLICTED
+    assert rfile.get_decision() == RequestFileDecision.CONFLICTED
 
     bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status() == RequestFileReviewStatus.APPROVED
+    assert rfile.get_decision() == RequestFileDecision.APPROVED
 
 
 def test_reject_file(bll):
@@ -2242,14 +2486,14 @@ def test_reject_file(bll):
     request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2272,25 +2516,23 @@ def test_approve_then_reject_file(bll):
     request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) == UserFileReviewStatus.APPROVED
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) == UserFileReviewStatus.REJECTED
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
-@pytest.mark.parametrize(
-    "review", [UserFileReviewStatus.APPROVED, UserFileReviewStatus.REJECTED]
-)
+@pytest.mark.parametrize("review", [RequestFileVote.APPROVED, RequestFileVote.REJECTED])
 def test_reviewreset_then_reset_review_file(bll, review):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2302,25 +2544,25 @@ def test_reviewreset_then_reset_review_file(bll, review):
     request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
-    if review == UserFileReviewStatus.APPROVED:
+    if review == RequestFileVote.APPROVED:
         bll.approve_file(release_request, request_file, checker)
-    elif review == UserFileReviewStatus.REJECTED:
+    elif review == RequestFileVote.REJECTED:
         bll.reject_file(release_request, request_file, checker)
     else:
         assert False
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) == review
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) == review
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     bll.reset_review_file(release_request, path, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 def test_reset_review_file_no_reviews(bll):
@@ -2333,26 +2575,26 @@ def test_reset_review_file_no_reviews(bll):
     checker = factories.create_user(output_checker=True)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
     with pytest.raises(bll.FileReviewNotFound):
         bll.reset_review_file(release_request, path, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_status_for_user(checker) is None
-    assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
 
 
 @pytest.mark.parametrize(
-    "reviews, final_review",
+    "votes, decision",
     [
         (["APPROVED", "APPROVED"], "APPROVED"),
         (["REJECTED", "REJECTED"], "REJECTED"),
         (["APPROVED", "REJECTED"], "CONFLICTED"),
     ],
 )
-def test_request_file_status_approved(bll, reviews, final_review):
+def test_request_file_status_decision(bll, votes, decision):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2360,22 +2602,22 @@ def test_request_file_status_approved(bll, reviews, final_review):
         files=[factories.request_file(path=path)],
     )
 
-    for i, review in enumerate(reviews):
+    for i, vote in enumerate(votes):
         checker = factories.create_user(f"checker{i}", [], True)
         request_file = release_request.get_request_file_from_output_path(path)
 
-        if review == "APPROVED":
+        if vote == "APPROVED":
             bll.approve_file(release_request, request_file, checker)
         else:
             bll.reject_file(release_request, request_file, checker)
 
         rfile = _get_request_file(release_request, path)
-        assert rfile.get_status_for_user(checker) == UserFileReviewStatus[review]
+        assert rfile.get_file_vote_for_user(checker) == RequestFileVote[vote]
 
         if i == 0:
-            assert rfile.get_status() == RequestFileReviewStatus.INCOMPLETE
+            assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
         else:
-            assert rfile.get_status() == RequestFileReviewStatus[final_review]
+            assert rfile.get_decision() == RequestFileDecision[decision]
 
 
 def test_mark_file_undecided(bll):
@@ -2398,16 +2640,16 @@ def test_mark_file_undecided(bll):
     review = release_request.get_request_file_from_output_path("file.txt").reviews[
         checker.username
     ]
-    assert review.status == UserFileReviewStatus.UNDECIDED
+    assert review.status == RequestFileVote.UNDECIDED
 
 
 @pytest.mark.parametrize(
     "request_status,file_status,allowed",
     [
         # can only mark undecided for a rejected file on a returned request
-        (RequestStatus.SUBMITTED, UserFileReviewStatus.REJECTED, False),
-        (RequestStatus.RETURNED, UserFileReviewStatus.APPROVED, False),
-        (RequestStatus.RETURNED, UserFileReviewStatus.REJECTED, True),
+        (RequestStatus.SUBMITTED, RequestFileVote.REJECTED, False),
+        (RequestStatus.RETURNED, RequestFileVote.APPROVED, False),
+        (RequestStatus.RETURNED, RequestFileVote.REJECTED, True),
     ],
 )
 def test_mark_file_undecided_permission_errors(
@@ -2424,8 +2666,8 @@ def test_mark_file_undecided_permission_errors(
         files=[
             factories.request_file(
                 path=path,
-                rejected=file_status == UserFileReviewStatus.REJECTED,
-                approved=file_status == UserFileReviewStatus.APPROVED,
+                rejected=file_status == RequestFileVote.REJECTED,
+                approved=file_status == RequestFileVote.APPROVED,
                 checkers=checkers,
             )
         ],
@@ -2463,7 +2705,7 @@ def test_review_request(bll):
 
     # approved second file
     factories.review_file(
-        release_request, "test1.txt", UserFileReviewStatus.APPROVED, checker
+        release_request, "test1.txt", RequestFileVote.APPROVED, checker
     )
     release_request = factories.refresh_release_request(release_request)
     bll.review_request(release_request, checker)
@@ -2605,6 +2847,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_approved_requests",
     "delete_file_from_request",
     "record_review",
+    "start_new_turn",
 }
 
 
@@ -2815,7 +3058,7 @@ def test_group_comment_create_success(
     bll, mock_notifications, status, notification_count
 ):
     author = factories.create_user("author", ["workspace"], False)
-    other = factories.create_user("other", ["workspace"], False)
+    checker = factories.create_user("checker", ["workspace"], True)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2825,8 +3068,13 @@ def test_group_comment_create_success(
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment_create(release_request, "group", "question?", other)
-    bll.group_comment_create(release_request, "group", "answer!", author)
+    # check all visibilities
+    bll.group_comment_create(
+        release_request, "group", "private", CommentVisibility.PRIVATE, checker
+    )
+    bll.group_comment_create(
+        release_request, "group", "public", CommentVisibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     notification_responses = parse_notification_responses(mock_notifications)
@@ -2837,23 +3085,28 @@ def test_group_comment_create_success(
             == "request_submitted"
         )
 
-    assert release_request.filegroups["group"].comments[0].comment == "question?"
-    assert release_request.filegroups["group"].comments[0].author == "other"
-    assert release_request.filegroups["group"].comments[1].comment == "answer!"
-    assert release_request.filegroups["group"].comments[1].author == "author"
+    comments = release_request.filegroups["group"].comments
+    assert comments[0].comment == "private"
+    assert comments[0].visibility == CommentVisibility.PRIVATE
+    assert comments[0].author == "checker"
+
+    assert comments[1].comment == "public"
+    assert comments[1].visibility == CommentVisibility.PUBLIC
+    assert comments[1].author == "author"
 
     audit_log = bll.get_audit_log(request=release_request.id)
+
     assert audit_log[1].request == release_request.id
     assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[1].user == other.username
+    assert audit_log[1].user == checker.username
     assert audit_log[1].extra["group"] == "group"
-    assert audit_log[1].extra["comment"] == "question?"
+    assert audit_log[1].extra["comment"] == "private"
 
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[0].user == author.username
+    assert audit_log[0].user == "author"
     assert audit_log[0].extra["group"] == "group"
-    assert audit_log[0].extra["comment"] == "answer!"
+    assert audit_log[0].extra["comment"] == "public"
 
 
 def test_group_comment_create_permissions(bll):
@@ -2872,14 +3125,20 @@ def test_group_comment_create_permissions(bll):
     assert len(release_request.filegroups["group"].comments) == 0
 
     with pytest.raises(bll.RequestPermissionDenied):
-        bll.group_comment_create(release_request, "group", "question?", other)
+        bll.group_comment_create(
+            release_request, "group", "question?", CommentVisibility.PUBLIC, other
+        )
 
-    bll.group_comment_create(release_request, "group", "collaborator", collaborator)
+    bll.group_comment_create(
+        release_request, "group", "collaborator", CommentVisibility.PUBLIC, collaborator
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
-    bll.group_comment_create(release_request, "group", "checker", checker)
+    bll.group_comment_create(
+        release_request, "group", "checker", CommentVisibility.PUBLIC, checker
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 2
@@ -2897,8 +3156,12 @@ def test_group_comment_delete_success(bll):
 
     assert release_request.filegroups["group"].comments == []
 
-    bll.group_comment_create(release_request, "group", "typo comment", other)
-    bll.group_comment_create(release_request, "group", "not-a-typo comment", other)
+    bll.group_comment_create(
+        release_request, "group", "typo comment", CommentVisibility.PUBLIC, other
+    )
+    bll.group_comment_create(
+        release_request, "group", "not-a-typo comment", CommentVisibility.PUBLIC, other
+    )
 
     release_request = factories.refresh_release_request(release_request)
 
@@ -2950,7 +3213,9 @@ def test_group_comment_delete_permissions(bll):
         files=[factories.request_file("group", "test/file.txt")],
     )
 
-    bll.group_comment_create(release_request, "group", "author comment", author)
+    bll.group_comment_create(
+        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
@@ -2981,7 +3246,9 @@ def test_group_comment_create_invalid_params(bll):
     with pytest.raises(bll.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)
 
-    bll.group_comment_create(release_request, "group", "author comment", author)
+    bll.group_comment_create(
+        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+    )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1

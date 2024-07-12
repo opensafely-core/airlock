@@ -4,9 +4,9 @@ import pytest
 from django.template.loader import render_to_string
 
 from airlock.business_logic import (
-    RequestFileReviewStatus,
+    RequestFileDecision,
+    RequestFileVote,
     RequestStatus,
-    UserFileReviewStatus,
 )
 from airlock.file_browser_api import (
     PathType,
@@ -108,7 +108,6 @@ def test_get_workspace_tree_general(release_request):
     assert "workspace_unreleased" in tree.get_path("some_dir/file_d.txt").html_classes()
 
     assert tree.get_path("some_dir/file_a.txt").request_status is None
-    assert tree.get_path("some_dir/file_a.txt").user_request_status is None
 
     # selected
     assert tree.get_path("some_dir/file_a.txt") == tree.get_selected()
@@ -132,7 +131,7 @@ def test_get_workspace_tree_general(release_request):
 @pytest.mark.django_db
 def test_get_request_tree_general(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
-    tree = get_request_tree(release_request, selected_path)
+    tree = get_request_tree(release_request, factories.create_user(), selected_path)
 
     # simple way to express the entire tree structure, including selected
     expected = textwrap.dedent(
@@ -166,99 +165,73 @@ def test_get_request_tree_general(release_request):
     render_to_string("file_browser/tree.html", {"path": tree})
 
 
-def test_get_request_tree_status(release_request, bll):
-    author = factories.create_user("author", workspaces=[release_request.workspace])
-    bll.set_status(
-        release_request,
-        RequestStatus.SUBMITTED,
-        author,
-    )
+def test_get_request_tree_status(bll):
+    author = factories.create_user("author")
     checker1 = factories.create_user("checker1", [], True)
     checker2 = factories.create_user("checker2", [], True)
+
     path = UrlPath("some_dir/file_a.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(path=path)],
+    )
 
-    def set_status(status, user, path_=path, group_="group1"):
-        request_file = release_request.get_request_file_from_output_path(path_)
-        if status == UserFileReviewStatus.APPROVED:
-            bll.approve_file(release_request, request_file, user)
-        elif status == UserFileReviewStatus.REJECTED:
-            bll.reject_file(release_request, request_file, user)
+    def assert_status(user, decision, vote):
+        nonlocal release_request
+        release_request = factories.refresh_release_request(release_request)
+        tree = get_request_tree(release_request, user)
+        item = tree.get_path("group" / path)
+        assert item.request_status.decision == decision
+        assert item.request_status.vote == vote
 
-        rr = bll.get_release_request(release_request, user)
-        tree = get_request_tree(rr, user=user)
-        return tree.get_path(group_ / path_)
+    # SUBMITTED, so reviews are blinded, checkers can only see your own votes,
+    # author can see nothing.
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
-    # request SUBMITTED, no reviews
-    item = set_status(None, checker1)
-    assert item.request_status is None
-    assert item.user_request_status is None
-    assert "user_incomplete" in item.html_classes()
+    bll.approve_file(
+        release_request,
+        release_request.get_request_file_from_output_path(path),
+        checker1,
+    )
 
-    # request SUBMITTED, checker1 has reviewed
-    item = set_status(UserFileReviewStatus.APPROVED, checker1)
-    assert item.request_status is None
-    assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "user_approved" in item.html_classes()
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
-    # request SUBMITTED, checker2 has reviewed
-    item = set_status(UserFileReviewStatus.APPROVED, checker2)
-    assert item.request_status is None
-    assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "user_approved" in item.html_classes()
-
-    # request SUBMITTED, author
-    item = set_status(None, author)
-    assert item.request_status is None
-    assert item.user_request_status is None
-
-    # request SUBMITTED, checkers conflict
-    pathc = UrlPath("some_dir/file_c.txt")
-    item = set_status(UserFileReviewStatus.REJECTED, checker1, pathc)
-    assert item.request_status is None
-    assert item.user_request_status == UserFileReviewStatus.REJECTED
-    assert "user_rejected" in item.html_classes()
-
-    item = set_status(UserFileReviewStatus.APPROVED, checker2, pathc)
-    assert item.request_status is None
-    assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "user_approved" in item.html_classes()
-
-    # set status on final file so we can complete
-    pathb = UrlPath("some_dir/file_b.txt")
-    group2 = "group2"
-    set_status(UserFileReviewStatus.REJECTED, checker1, pathb, group2)
-    set_status(UserFileReviewStatus.REJECTED, checker2, pathb, group2)
-
-    # request PARTIALLY_REVIEWED, shows user status still
+    # move to PARTIALLY_REVIEWED, but still blinded
     factories.complete_independent_review(release_request, checker1)
-    release_request = factories.refresh_release_request(release_request)
-    assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
-    item = set_status(None, checker1)
-    assert item.request_status is None
-    assert item.user_request_status == UserFileReviewStatus.APPROVED
-    assert "user_approved" in item.html_classes()
 
-    # request REVIEWED, shows combined status to checker
-    release_request = factories.refresh_release_request(release_request)
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
+
+    bll.approve_file(
+        release_request,
+        release_request.get_request_file_from_output_path(path),
+        checker2,
+    )
+
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
+
+    # move to REVIEWED, now unblinded, but author still cannot see anything
     factories.complete_independent_review(release_request, checker2)
-    release_request = factories.refresh_release_request(release_request)
-    assert release_request.status == RequestStatus.REVIEWED
-    item = set_status(None, checker2)
-    assert item.request_status == RequestFileReviewStatus.APPROVED
-    assert item.user_request_status is None
-    assert "request_approved" in item.html_classes()
 
-    item = set_status(None, checker2, pathc)
-    assert item.request_status == RequestFileReviewStatus.CONFLICTED
-    assert item.user_request_status is None
-    assert "request_conflicted" in item.html_classes()
+    assert_status(author, RequestFileDecision.INCOMPLETE, None)
+    assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
 
-    # request RETURNED, shows combined status to author
+    # move to RETURNED, votes are all public now
     bll.set_status(release_request, RequestStatus.RETURNED, checker1)
-    item = set_status(None, author)
-    assert item.request_status == RequestFileReviewStatus.APPROVED
-    assert item.user_request_status is None
-    assert "request_approved" in item.html_classes()
+
+    assert_status(author, RequestFileDecision.APPROVED, None)
+    assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
+    assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
 
 
 def test_get_workspace_tree_selected_only_file(workspace):
@@ -337,7 +310,9 @@ def test_get_workspace_tree_selected_is_empty_dir(workspace):
 @pytest.mark.django_db
 def test_get_request_tree_selected_only_file(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
-    tree = get_request_tree(release_request, selected_path, selected_only=True)
+    tree = get_request_tree(
+        release_request, factories.create_user(), selected_path, selected_only=True
+    )
 
     # only the selected path should be in the tree, and all groups
     expected = textwrap.dedent(
@@ -357,7 +332,9 @@ def test_get_request_tree_selected_only_file(release_request):
 @pytest.mark.django_db
 def test_get_request_tree_selected_only_group(release_request):
     selected_path = UrlPath("group1")
-    tree = get_request_tree(release_request, selected_path, selected_only=True)
+    tree = get_request_tree(
+        release_request, factories.create_user(), selected_path, selected_only=True
+    )
 
     # only the selected path should be in the tree, and all groups
     expected = textwrap.dedent(
@@ -406,7 +383,7 @@ def test_workspace_tree_get_path(workspace, path, exists):
 )
 @pytest.mark.django_db
 def test_request_tree_get_path(release_request, path, exists):
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
 
     if exists:
         tree.get_path(path)
@@ -446,13 +423,13 @@ def test_workspace_tree_content_urls(workspace):
 )
 @pytest.mark.django_db
 def test_request_tree_urls(release_request, path, url):
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
     assert tree.get_path(path).url().endswith(url)
 
 
 @pytest.mark.django_db
 def test_request_tree_download_url(release_request):
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
     assert (
         tree.get_path("group1/some_dir/file_a.txt")
         .download_url()
@@ -475,7 +452,7 @@ def test_workspace_tree_breadcrumbs(workspace):
 
 @pytest.mark.django_db
 def test_request_tree_breadcrumbs(release_request):
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
     path = tree.get_path("group1/some_dir/file_a.txt")
     assert [c.name() for c in path.breadcrumbs()] == [
         release_request.id,
@@ -527,14 +504,14 @@ def test_workspace_tree_selection_bad_path(workspace):
 @pytest.mark.django_db
 def test_request_tree_selection_root(release_request):
     # selected root by default
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
     assert tree.get_selected() == tree
 
 
 @pytest.mark.django_db
 def test_request_tree_selection_path(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
-    tree = get_request_tree(release_request, selected_path)
+    tree = get_request_tree(release_request, factories.create_user(), selected_path)
 
     selected_item = tree.get_path(selected_path)
     assert selected_item.selected
@@ -552,7 +529,7 @@ def test_request_tree_selection_path(release_request):
 @pytest.mark.django_db
 def test_request_tree_selection_not_path(release_request):
     selected_path = UrlPath("bad/path")
-    tree = get_request_tree(release_request, selected_path)
+    tree = get_request_tree(release_request, factories.create_user(), selected_path)
     with pytest.raises(tree.PathNotFound):
         tree.get_selected()
 
@@ -577,7 +554,7 @@ def test_workspace_tree_siblings(workspace):
 
 @pytest.mark.django_db
 def test_request_tree_siblings(release_request):
-    tree = get_request_tree(release_request)
+    tree = get_request_tree(release_request, factories.create_user())
 
     assert tree.siblings() == []
     assert {s.name() for s in tree.get_path("group1").siblings()} == {
@@ -600,7 +577,7 @@ def test_get_workspace_tree_tracing(workspace):
 
 @pytest.mark.django_db
 def test_get_request_tree_tracing(release_request):
-    get_request_tree(release_request)
+    get_request_tree(release_request, factories.create_user())
     traces = get_trace()
     assert len(traces) == 1
     trace = traces[0]

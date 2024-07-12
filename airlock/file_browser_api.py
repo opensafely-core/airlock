@@ -11,10 +11,8 @@ from airlock.business_logic import (
     AirlockContainer,
     CodeRepo,
     ReleaseRequest,
-    RequestFileReviewStatus,
+    RequestFileStatus,
     RequestFileType,
-    RequestStatus,
-    UserFileReviewStatus,
     Workspace,
 )
 from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
@@ -56,8 +54,7 @@ class PathItem:
 
     type: PathType | None = None
     workspace_status: WorkspaceFileStatus | None = None
-    request_status: RequestFileReviewStatus | None = None
-    user_request_status: UserFileReviewStatus | None = None
+    request_status: RequestFileStatus | None = None
     children: list[PathItem] = field(default_factory=list)
     parent: PathItem | None = None
 
@@ -216,12 +213,11 @@ class PathItem:
 
         if self.workspace_status:
             classes.append(f"workspace_{self.workspace_status.value.lower()}")
-        elif self.is_output():
-            if self.request_status:
-                classes.append(f"request_{self.request_status.value.lower()}")
+        elif self.is_output() and self.request_status:
+            classes.append(f"request_{self.request_status.decision.value.lower()}")
 
-            if self.user_request_status:
-                classes.append(f"user_{self.user_request_status.value.lower()}")
+            if self.request_status.vote:
+                classes.append(f"user_{self.request_status.vote.value.lower()}")
             else:
                 classes.append("user_incomplete")
 
@@ -399,9 +395,9 @@ def get_workspace_tree(
 @instrument(func_attributes={"release_request": "release_request"})
 def get_request_tree(
     release_request: ReleaseRequest,
+    user: User,
     selected_path: UrlPath | str = ROOT_PATH,
     selected_only: bool = False,
-    user: User | None = None,
 ):
     """Build a tree recursively for a ReleaseRequest
 
@@ -561,30 +557,11 @@ def get_path_tree(
                 # get_path_tree needs to work with both Workspace and
                 # ReleaseRequest containers, so we have these container specfic
                 # calls
-                node.workspace_status = container.get_workspace_status(path)
+                node.workspace_status = container.get_workspace_file_status(path)
 
-                if isinstance(container, ReleaseRequest):
-                    if container.status in [
-                        RequestStatus.SUBMITTED,
-                        RequestStatus.PARTIALLY_REVIEWED,
-                    ]:
-                        # if the request is in independent review phase, set the user review
-                        # status for the file
-                        if user:  # pragma: no cover
-                            node.user_request_status = (
-                                container.get_user_request_status(path, user)
-                            )
-                    elif container.status == RequestStatus.REVIEWED:
-                        # if request has been reviewed but not yet returned, show request status to
-                        # non-author output-checkers only
-                        if user:  # pragma: no cover
-                            if (
-                                user.output_checker
-                                and container.author != user.username
-                            ):
-                                node.request_status = container.get_request_status(path)
-                    else:
-                        node.request_status = container.get_request_status(path)
+                # user is required for request status, due to visibility
+                if user:
+                    node.request_status = container.get_request_file_status(path, user)
 
             tree.append(node)
 

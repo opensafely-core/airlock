@@ -287,14 +287,15 @@ def test_returned_request(live_server, context, page, bll):
 
     # checker looks at previously rejected/approved files
     login_as_user(live_server, context, user_data["checker1"])
-    status_locator = page.locator(".file-status")
+    status_locator = page.locator(".file-status--approved")
     # go to previously approved file; still shown as approved
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
     expect(status_locator).to_contain_text("Approved")
 
     # go to previously rejected file; now shown as no-status
     page.goto(live_server.url + release_request.get_url("group/file2.txt"))
-    expect(status_locator).to_contain_text("No status")
+    status_locator = page.locator(".file-status--undecided")
+    expect(status_locator).to_contain_text("Undecided")
 
 
 def test_request_releaseable(live_server, context, page, bll):

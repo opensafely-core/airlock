@@ -11,9 +11,10 @@ from ulid import ulid  # type: ignore
 
 from airlock.business_logic import (
     AuditEventType,
+    CommentVisibility,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
-    UserFileReviewStatus,
 )
 
 
@@ -90,6 +91,7 @@ class RequestMetadata(models.Model):
     author = models.TextField()  # just username, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
     completed_reviews = models.JSONField(default=dict)
+    review_turn = models.IntegerField(default=0)
 
     def get_filegroups_to_dict(self):
         return {
@@ -107,6 +109,7 @@ class RequestMetadata(models.Model):
             created_at=self.created_at,
             filegroups=self.get_filegroups_to_dict(),
             completed_reviews=self.completed_reviews,
+            review_turn=self.review_turn,
         )
 
 
@@ -149,6 +152,8 @@ class FileGroupComment(models.Model):
 
     comment = models.TextField()
     author = models.TextField()  # just username, as we have no User model
+    visibility = EnumField(enum=CommentVisibility)
+    review_turn = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
 
     def to_dict(self):
@@ -157,6 +162,8 @@ class FileGroupComment(models.Model):
             "comment": self.comment,
             "author": self.author,
             "created_at": self.created_at,
+            "visibility": self.visibility,
+            "review_turn": self.review_turn,
         }
 
 
@@ -217,7 +224,7 @@ class FileReview(models.Model):
         RequestFileMetadata, related_name="reviews", on_delete=models.RESTRICT
     )
     reviewer = models.TextField()
-    status = EnumField(default=UserFileReviewStatus.REJECTED, enum=UserFileReviewStatus)
+    status = EnumField(default=RequestFileVote.REJECTED, enum=RequestFileVote)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

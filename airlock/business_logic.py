@@ -68,8 +68,8 @@ class RequestFileType(Enum):
     CODE = "code"
 
 
-class UserFileReviewStatus(Enum):
-    """An individual user's vote on a specific file."""
+class RequestFileVote(Enum):
+    """An individual output checker's vote on a specific file."""
 
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -77,14 +77,69 @@ class UserFileReviewStatus(Enum):
         "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
     )
 
+    def description(self):
+        if self == RequestFileVote.REJECTED:
+            return "Changes Requested"
+        return self.name.title()
 
-class RequestFileReviewStatus(Enum):
+
+class RequestFileDecision(Enum):
     """The current state of all user reviews on this file."""
 
     REJECTED = "REJECTED"
     APPROVED = "APPROVED"
     CONFLICTED = "CONFLICTED"
     INCOMPLETE = "INCOMPLETE"
+
+    def description(self):  # pragma: nocover
+        if self == RequestFileDecision.REJECTED:
+            return "Changes Requested"
+        return self.name.title()
+
+
+@dataclass
+class RequestFileStatus:
+    """The current visible decision and inidividual vote for a specific user."""
+
+    user: User
+    decision: RequestFileDecision
+    vote: RequestFileVote | None
+
+
+class CommentVisibility(Enum):
+    """The visibility of comments."""
+
+    # only visible to output-checkers
+    PRIVATE = "PRIVATE"
+    # visible to all
+    PUBLIC = "PUBLIC"
+
+    @classmethod
+    def choices(cls):
+        return {
+            CommentVisibility.PRIVATE: "Only visible to output-checkers",
+            CommentVisibility.PUBLIC: "Visible to all",
+        }
+
+    def description(self):
+        return self.choices()[self]
+
+    @cached_property
+    def independent_description(self):
+        return "Only visible to you until both reviews completed"
+
+
+class ReviewTurnPhase(Enum):
+    """What phase is the request in."""
+
+    # author's phase
+    AUTHOR = "AUTHOR"
+    # can only see your own votes/comments
+    INDEPENDENT = "INDEPENDENT"
+    # output-checkers can see all votes/comments
+    CONSOLIDATING = "CONSOLIDATING"
+    # can see everything
+    COMPLETE = "COMPLETE"
 
 
 class AuditEventType(Enum):
@@ -104,7 +159,6 @@ class AuditEventType(Enum):
     REQUEST_REJECT = "REQUEST_REJECT"
     REQUEST_RETURN = "REQUEST_RETURN"
     REQUEST_RELEASE = "REQUEST_RELEASE"
-    REQUEST_REVIEW_RESET = "REQUEST_REVIEW_RESET"
 
     # request edits
     REQUEST_EDIT = "REQUEST_EDIT"
@@ -148,7 +202,6 @@ READONLY_EVENTS = {
     AuditEventType.WORKSPACE_FILE_VIEW,
     AuditEventType.REQUEST_FILE_VIEW,
     AuditEventType.REQUEST_FILE_UNDECIDED,
-    AuditEventType.REQUEST_REVIEW_RESET,
 }
 
 
@@ -164,7 +217,6 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
-    AuditEventType.REQUEST_REVIEW_RESET: "Reviews on request reset",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
@@ -263,16 +315,13 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        """Get request status of file."""
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        """Get user's request status of file."""
+    ) -> RequestFileStatus | None:
+        """Get request status of file."""
 
 
 @dataclass(frozen=True)
@@ -372,7 +421,7 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         # defence in depth, we've been given a bad file path
         try:
             self.abspath(relpath)
@@ -400,12 +449,9 @@ class Workspace:
 
         return WorkspaceFileStatus.UNRELEASED
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None  # pragma: nocover
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
+    ) -> RequestFileStatus | None:
         return None  # pragma: nocover
 
     def get_requests_url(self):
@@ -581,16 +627,13 @@ class CodeRepo:
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return None  # pragma: nocover
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        return None  # pragma: no cover
+    ) -> RequestFileStatus | None:
+        return None  # pragma: nocover
 
 
 @dataclass(frozen=True)
@@ -600,7 +643,7 @@ class FileReview:
     """
 
     reviewer: str
-    status: UserFileReviewStatus
+    status: RequestFileVote
     created_at: datetime
     updated_at: datetime
 
@@ -640,7 +683,7 @@ class RequestFile:
             },
         )
 
-    def get_status(self) -> RequestFileReviewStatus:
+    def get_decision(self) -> RequestFileDecision:
         """The status of RequestFile, based on mutliple reviews.
 
         We specificially only require 2 APPROVED votes, rather than all votes
@@ -651,20 +694,20 @@ class RequestFile:
 
         if len(all_reviews) < 2:
             # not enough votes yet
-            return RequestFileReviewStatus.INCOMPLETE
+            return RequestFileDecision.INCOMPLETE
 
         # if we have 2+ APPROVED reviews, we are APPROVED
-        if all_reviews.count(UserFileReviewStatus.APPROVED) >= 2:
-            return RequestFileReviewStatus.APPROVED
+        if all_reviews.count(RequestFileVote.APPROVED) >= 2:
+            return RequestFileDecision.APPROVED
 
         # do the reviews disagree?
         if len(set(all_reviews)) > 1:
-            return RequestFileReviewStatus.CONFLICTED
+            return RequestFileDecision.CONFLICTED
 
         # only case left is all reviews are REJECTED
-        return RequestFileReviewStatus.REJECTED
+        return RequestFileDecision.REJECTED
 
-    def get_status_for_user(self, user: User) -> UserFileReviewStatus | None:
+    def get_file_vote_for_user(self, user: User) -> RequestFileVote | None:
         if user.username in self.reviews:
             return self.reviews[user.username].status
         else:
@@ -674,7 +717,7 @@ class RequestFile:
         return [
             review
             for review in self.reviews.values()
-            if review.status == UserFileReviewStatus.REJECTED
+            if review.status == RequestFileVote.REJECTED
         ]
 
 
@@ -721,6 +764,8 @@ class Comment:
     comment: str
     author: str
     created_at: datetime
+    visibility: CommentVisibility
+    review_turn: int
 
     @classmethod
     def from_dict(cls, attrs):
@@ -750,6 +795,7 @@ class ReleaseRequest:
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
     completed_reviews: dict[str, str] = field(default_factory=dict)
+    review_turn: int = 0
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
@@ -819,16 +865,88 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
-    def get_workspace_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         return None
 
-    def get_request_status(self, relpath: UrlPath) -> RequestFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).get_status()
-
-    def get_user_request_status(
+    def get_request_file_status(
         self, relpath: UrlPath, user: User
-    ) -> UserFileReviewStatus | None:
-        return self.get_request_file_from_urlpath(relpath).get_status_for_user(user)
+    ) -> RequestFileStatus | None:
+        rfile = self.get_request_file_from_urlpath(relpath)
+        phase = self.get_turn_phase()
+        decision = RequestFileDecision.INCOMPLETE
+
+        match phase:
+            case ReviewTurnPhase.INDEPENDENT:
+                # already set - no one knows the current status
+                pass
+            case ReviewTurnPhase.CONSOLIDATING:
+                # only output-checkers know the current status
+                if user.output_checker:
+                    decision = rfile.get_decision()
+            case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
+                # everyone knows the current status
+                decision = rfile.get_decision()
+            case _:  # pragma: nocover
+                assert False
+
+        return RequestFileStatus(
+            user=user,
+            decision=decision,
+            vote=rfile.get_file_vote_for_user(user),
+        )
+
+    def get_visible_comments_for_group(
+        self, group: str, user: User
+    ) -> list[tuple[Comment, dict[str, str]]]:
+        filegroup = self.filegroups[group]
+        current_phase = self.get_turn_phase()
+        can_see_review_comments = (
+            user.output_checker and not user.username == self.author
+        )
+
+        comments = []
+
+        for comment in filegroup.comments:
+            if current_phase == ReviewTurnPhase.INDEPENDENT:
+                # comments are temporarily hidden
+                metadata = {
+                    "description": comment.visibility.independent_description,
+                    "class": "comment_blinded",
+                }
+            else:
+                metadata = {
+                    "description": comment.visibility.description(),
+                    "class": f"comment_{comment.visibility.name.lower()}",
+                }
+
+            # you can always see comments you've authored. Doing this first
+            # simplifies later logic, and avoids potential bugs with users
+            # adding comments but then they can see the comment they just added
+            if comment.author == user.username:
+                comments.append((comment, metadata))
+                continue
+
+            match comment.visibility:
+                case CommentVisibility.PUBLIC:
+                    # can always see public comments from previous rounds
+                    if comment.review_turn < self.review_turn:
+                        comments.append((comment, metadata))
+                    elif current_phase == ReviewTurnPhase.CONSOLIDATING:
+                        if can_see_review_comments:
+                            comments.append((comment, metadata))
+                case CommentVisibility.PRIVATE:
+                    if can_see_review_comments:
+                        # can see private comments from previous round
+                        if comment.review_turn < self.review_turn:
+                            comments.append((comment, metadata))
+                        # we have completed independent review stage, so output
+                        # checker's can see private comments
+                        elif current_phase != ReviewTurnPhase.INDEPENDENT:
+                            comments.append((comment, metadata))
+                case _:  # pragma: nocover
+                    assert False
+
+        return comments
 
     def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
@@ -851,6 +969,35 @@ class ReleaseRequest:
             return self.all_files_by_name[relpath]
 
         raise BusinessLogicLayer.FileNotFound(relpath)
+
+    def get_turn_phase(self) -> ReviewTurnPhase:
+        if self.status in [RequestStatus.PENDING, RequestStatus.RETURNED]:
+            return ReviewTurnPhase.AUTHOR
+
+        if self.status in [RequestStatus.SUBMITTED, RequestStatus.PARTIALLY_REVIEWED]:
+            return ReviewTurnPhase.INDEPENDENT
+
+        if self.status in [RequestStatus.REVIEWED]:
+            return ReviewTurnPhase.CONSOLIDATING
+
+        return ReviewTurnPhase.COMPLETE
+
+    def get_writable_comment_visibilities_for_user(
+        self, user: User
+    ) -> list[CommentVisibility]:
+        """What comment visibilities should this user be able to write for this request?"""
+        is_author = user.username == self.author
+
+        # author can only ever create public comments
+        if is_author:
+            return [CommentVisibility.PUBLIC]
+
+        # non-author non-output-checker, also only public
+        if not user.output_checker:
+            return [CommentVisibility.PUBLIC]
+
+        # all other cases - the output-checker can choose to write public or private comments
+        return [CommentVisibility.PRIVATE, CommentVisibility.PUBLIC]
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
@@ -906,14 +1053,14 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.get_status() == RequestFileReviewStatus.APPROVED
+            request_file.get_decision() == RequestFileDecision.APPROVED
             for request_file in self.output_files().values()
         )
 
     def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
         return all(
-            rfile.get_status_for_user(reviewer)
-            not in [None, UserFileReviewStatus.UNDECIDED]
+            rfile.get_file_vote_for_user(reviewer)
+            not in [None, RequestFileVote.UNDECIDED]
             for rfile in self.output_files().values()
         )
 
@@ -989,7 +1136,7 @@ class DataAccessLayerProtocol(Protocol):
     def record_review(self, request_id: str, reviewer: str):
         raise NotImplementedError()
 
-    def reset_reviews(self, request_id: str, audit: AuditEvent):
+    def start_new_turn(self, request_id: str):
         raise NotImplementedError()
 
     def add_file_to_request(
@@ -1080,6 +1227,8 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment: str,
+        visibility: CommentVisibility,
+        review_turn: int,
         username: str,
         audit: AuditEvent,
     ):
@@ -1612,7 +1761,7 @@ class BusinessLogicLayer:
 
         workspace = self.get_workspace(release_request.workspace, user)
         if (
-            workspace.get_workspace_status(UrlPath(relpath))
+            workspace.get_workspace_file_status(UrlPath(relpath))
             != WorkspaceFileStatus.CONTENT_UPDATED
         ):
             raise self.RequestPermissionDenied(
@@ -1774,20 +1923,13 @@ class BusinessLogicLayer:
 
         # reset any previous review data
         if request.status == RequestStatus.RETURNED:
-            audit = AuditEvent(
-                AuditEventType.REQUEST_REVIEW_RESET,
-                user=user.username,
-                request=request.id,
-            )
-            # reset completed review tracking
-            self._dal.reset_reviews(request.id, audit)
-
             # any unapproved files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
                 for review in rfile.rejected_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
 
         self.set_status(request, RequestStatus.SUBMITTED, user)
+        self._dal.start_new_turn(request.id)
 
     def _verify_permission_to_review_file(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
@@ -1937,6 +2079,10 @@ class BusinessLogicLayer:
             ):
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
 
+    def return_request(self, release_request: ReleaseRequest, user: User):
+        self.set_status(release_request, RequestStatus.RETURNED, user)
+        self._dal.start_new_turn(release_request.id)
+
     def mark_file_undecided(
         self,
         release_request: ReleaseRequest,
@@ -1947,12 +2093,12 @@ class BusinessLogicLayer:
         """Change an existing rejected file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
-        if review.status != UserFileReviewStatus.REJECTED:
+        if review.status != RequestFileVote.REJECTED:
             raise self.ApprovalPermissionDenied(
-                f"cannot change file review from {review.status.name} to {UserFileReviewStatus.UNDECIDED.name} from request in state {release_request.status.name}"
+                f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         audit = AuditEvent.from_request(
@@ -2007,7 +2153,12 @@ class BusinessLogicLayer:
             )
 
     def group_comment_create(
-        self, release_request: ReleaseRequest, group: str, comment: str, user: User
+        self,
+        release_request: ReleaseRequest,
+        group: str,
+        comment: str,
+        visibility: CommentVisibility,
+        user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
             raise self.RequestPermissionDenied(
@@ -2020,10 +2171,17 @@ class BusinessLogicLayer:
             user=user,
             group=group,
             comment=comment,
+            review_turn=str(release_request.review_turn),
         )
 
         self._dal.group_comment_create(
-            release_request.id, group, comment, user.username, audit
+            release_request.id,
+            group,
+            comment,
+            visibility,
+            release_request.review_turn,
+            user.username,
+            audit,
         )
 
     def group_comment_delete(

@@ -14,10 +14,11 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     ROOT_PATH,
+    CommentVisibility,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
-    UserFileReviewStatus,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -76,7 +77,7 @@ def request_view(request, request_id: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_request_tree(release_request, relpath, selected_only, user=request.user)
+    tree = get_request_tree(release_request, request.user, relpath, selected_only)
     path_item = get_path_item_from_tree_or_404(tree, relpath)
 
     is_directory_url = path.endswith("/") or relpath == ROOT_PATH
@@ -85,9 +86,6 @@ def request_view(request, request_id: str, path: str = ""):
         return redirect(path_item.url())
 
     is_author = release_request.author == request.user.username
-    # hack for testing w/o having to switch users
-    if "is_author" in request.GET:  # pragma: nocover
-        is_author = request.GET["is_author"].lower() == "true"
 
     file_withdraw_url = None
     code_url = None
@@ -150,8 +148,12 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
-        comments = filegroup.comments
-        group_comment_form = GroupCommentForm()
+        comments = release_request.get_visible_comments_for_group(group, request.user)
+        visibilities = release_request.get_writable_comment_visibilities_for_user(
+            request.user
+        )
+        group_comment_form = GroupCommentForm(visibilities=visibilities)
+
         group_comment_create_url = reverse(
             "group_comment_create",
             kwargs={"request_id": request_id, "group": group},
@@ -231,13 +233,13 @@ def request_view(request, request_id: str, path: str = ""):
         request_file = release_request.get_request_file_from_urlpath(relpath)
         existing_review = request_file.reviews.get(request.user.username)
 
-        if existing_review and existing_review.status != UserFileReviewStatus.UNDECIDED:
-            if existing_review.status == UserFileReviewStatus.APPROVED:
+        if existing_review and existing_review.status != RequestFileVote.UNDECIDED:
+            if existing_review.status == RequestFileVote.APPROVED:
                 file_approve_url = None
-            elif existing_review.status == UserFileReviewStatus.REJECTED:
+            elif existing_review.status == RequestFileVote.REJECTED:
                 file_reject_url = None
             else:
-                assert False, "Invalid UserFileReviewStatus value"
+                assert False, "Invalid RequestFileVote value"
         else:
             file_reset_review_url = None
 
@@ -266,10 +268,10 @@ def request_view(request, request_id: str, path: str = ""):
         "activity": activity,
         "group_edit_form": group_edit_form,
         "group_edit_url": group_edit_url,
-        "group_comment_form": group_comment_form,
-        "group_readonly": group_readonly,
         "group_comments": comments,
+        "group_comment_form": group_comment_form,
         "group_comment_create_url": group_comment_create_url,
+        "group_readonly": group_readonly,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors
@@ -370,7 +372,14 @@ def request_withdraw(request, request_id):
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def request_return(request, request_id):
-    return _action_request(request, request_id, RequestStatus.RETURNED)
+    release_request = get_release_request_or_raise(request.user, request_id)
+    try:
+        bll.return_request(release_request, request.user)
+    except bll.RequestPermissionDenied as exc:
+        raise PermissionDenied(str(exc))
+
+    messages.error(request, "Request has been returned to author")
+    return redirect(release_request.get_url())
 
 
 @instrument(func_attributes={"release_request": "request_id"})
@@ -573,7 +582,10 @@ def group_edit(request, request_id, group):
 def group_comment_create(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    form = GroupCommentForm(request.POST)
+    visibilities = release_request.get_writable_comment_visibilities_for_user(
+        request.user
+    )
+    form = GroupCommentForm(visibilities, request.POST)
 
     if form.is_valid():
         try:
@@ -581,6 +593,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
+                visibility=CommentVisibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover

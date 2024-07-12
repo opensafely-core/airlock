@@ -5,10 +5,11 @@ import requests
 
 from airlock.business_logic import (
     AuditEventType,
+    CommentVisibility,
     RequestFileType,
+    RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
-    UserFileReviewStatus,
     bll,
 )
 from airlock.types import UrlPath
@@ -78,13 +79,14 @@ def test_request_view_root_summary(airlock_client):
     assert "Created request" in response.rendered_content
 
 
-def test_request_view_root_group(airlock_client):
+def test_request_view_root_group(airlock_client, settings):
+    settings.SHOW_C3 = True
     airlock_client.login(output_checker=True)
     audit_user = factories.create_user("audit_user")
     release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
-        status=RequestStatus.PENDING,
+        status=RequestStatus.SUBMITTED,
         files=[
             factories.request_file("group1", "some_dir/file1.txt"),
             factories.request_file(
@@ -95,11 +97,20 @@ def test_request_view_root_group(airlock_client):
         ],
     )
 
+    bll.group_comment_create(
+        release_request,
+        group="group1",
+        comment="private comment",
+        visibility=CommentVisibility.PRIVATE,
+        user=airlock_client.user,
+    )
+
     response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
     assert response.status_code == 200
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
     assert "Added file" in response.rendered_content
+    assert "private comment" in response.rendered_content
 
 
 def test_request_view_with_directory(airlock_client):
@@ -886,7 +897,7 @@ def test_file_approve(airlock_client):
         .get_request_file_from_output_path(relpath)
         .reviews[airlock_client.user.username]
     )
-    assert review.status == UserFileReviewStatus.APPROVED
+    assert review.status == RequestFileVote.APPROVED
     assert review.reviewer == "testuser"
 
 
@@ -913,7 +924,7 @@ def test_file_reject(airlock_client):
         .get_request_file_from_output_path(relpath)
         .reviews[airlock_client.user.username]
     )
-    assert review.status == UserFileReviewStatus.REJECTED
+    assert review.status == RequestFileVote.REJECTED
     assert review.reviewer == "testuser"
 
 
@@ -939,7 +950,7 @@ def test_file_reset_review(airlock_client):
     review = release_request.get_request_file_from_output_path(relpath).reviews[
         airlock_client.user.username
     ]
-    assert review.status == UserFileReviewStatus.REJECTED
+    assert review.status == RequestFileVote.REJECTED
     assert review.reviewer == "testuser"
 
     # then reset it to have no review
@@ -1465,28 +1476,46 @@ def test_group_edit_bad_group(airlock_client):
     assert response.status_code == 404
 
 
-def test_group_comment_create_success(airlock_client):
+@pytest.mark.parametrize(
+    "output_checker,visibility,allowed",
+    [
+        (False, CommentVisibility.PUBLIC, True),
+        (False, CommentVisibility.PRIVATE, False),
+        (True, CommentVisibility.PUBLIC, True),
+        (True, CommentVisibility.PRIVATE, True),
+    ],
+)
+def test_group_comment_create_success(
+    airlock_client, output_checker, visibility, allowed
+):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.write_request_file(release_request, "group", "file.txt")
 
-    airlock_client.login_with_user(author)
+    user = factories.create_user(
+        output_checker=output_checker, workspaces=["workspace"]
+    )
+    airlock_client.login_with_user(user)
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "opinion"},
+        data={"comment": "opinion", "visibility": visibility.name},
         follow=True,
     )
+    # ensure templates covered
+    assert response.rendered_content
 
     assert response.status_code == 200
     messages = list(response.context.get("messages", []))
-    assert messages[0].message == "Comment added"
 
-    release_request = bll.get_release_request(release_request.id, author)
-
-    assert release_request.filegroups["group"].comments[0].comment == "opinion"
-    assert release_request.filegroups["group"].comments[0].author == "author"
+    if allowed:
+        assert "Comment added" in messages[0].message
+        release_request = bll.get_release_request(release_request.id, author)
+        assert release_request.filegroups["group"].comments[0].comment == "opinion"
+        assert release_request.filegroups["group"].comments[0].author == user.username
+    else:
+        assert "visibility: Select a valid choice" in messages[0].message
 
 
 def test_group_comment_create_bad_user(airlock_client):
@@ -1500,7 +1529,7 @@ def test_group_comment_create_bad_user(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment"},
+        data={"comment": "comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1523,7 +1552,8 @@ def test_group_comment_create_bad_form(airlock_client):
 
     assert response.status_code == 200
     messages = list(response.context.get("messages", []))
-    assert messages[0].message == "comment: This field is required."
+    assert "comment: This field is required" in messages[0].message
+    assert "visibility: This field is required" in messages[0].message
 
 
 def test_group_comment_create_bad_group(airlock_client):
@@ -1536,7 +1566,7 @@ def test_group_comment_create_bad_group(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/create/{release_request.id}/badgroup",
-        data={"comment": "comment"},
+        data={"comment": "comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1552,13 +1582,13 @@ def test_group_comment_delete(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "typo comment"},
+        data={"comment": "typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "not-a-typo comment"},
+        data={"comment": "not-a-typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1588,7 +1618,7 @@ def test_group_comment_delete_bad_form(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "typo comment"},
+        data={"comment": "typo comment", "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1620,7 +1650,10 @@ def test_group_comment_delete_bad_group(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment A"},
+        data={
+            "comment": "comment A",
+            "visibility": "PUBLIC",
+        },
         follow=True,
     )
 
@@ -1630,7 +1663,7 @@ def test_group_comment_delete_bad_group(airlock_client):
 
     response = airlock_client.post(
         f"/requests/comment/delete/{release_request.id}/badgroup",
-        data={"comment_id": comment.id},
+        data={"comment_id": comment.id, "visibility": "PUBLIC"},
         follow=True,
     )
 
@@ -1649,7 +1682,10 @@ def test_group_comment_delete_missing_comment(airlock_client):
     airlock_client.login_with_user(author)
     airlock_client.post(
         f"/requests/comment/create/{release_request.id}/group",
-        data={"comment": "comment A"},
+        data={
+            "comment": "comment A",
+            "visibility": "PUBLIC",
+        },
         follow=True,
     )
 

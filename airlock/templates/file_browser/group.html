@@ -1,3 +1,12 @@
+<style>
+  .comments .comment_private {
+    background-color: lightgrey;
+  }
+
+  .comments .comment_blinded {
+    background-color: darkgrey;
+  }
+</style>
 {% #card title=path_item.name container=True %}
   <form action="{{ group_edit_url }}" method="POST" aria-label="group-edit-form">
     {% csrf_token %}
@@ -18,8 +27,17 @@
   {% if show_c3 %}
     <div class="comments" style="margin-top: 1rem;">
       {% #list_group %}
-        {% for comment in group_comments %}
-          {% #list_group_rich_item status_text=comment.created_at|date:"Y-m-d H:i"  title=comment.author %}
+        {% for comment, metadata in group_comments %}
+
+          {% fragment as comment_status %}
+            <span>
+              {% if request.user.output_checker %}
+                {% pill variant="info" text=metadata.description %}
+              {% endif %}
+              {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+            </span>
+          {% endfragment %}
+          {% #list_group_rich_item custom_status=comment_status class=metadata.class title=comment.author %}
             {{ comment.comment }}
             {% if request.user.username == comment.author %}
               <div>
@@ -35,7 +53,22 @@
         {% #list_group_item %}
           <form action="{{ group_comment_create_url }}" method="POST" aria-label="group-comment-form">
             {% csrf_token %}
+            {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
+              {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
+                Only you will see this comment until two independent reviews have been completed
+              {% /alert %}
+            {% else %}
+              {% #alert variant="info" title="Comments are pending" no_icon=True %}
+                Any comments will be shown to other users once you submit or return a request
+              {% /alert %}
+            {% endif %}
+
             {% form_textarea field=group_comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=True %}
+            {% if group_comment_form.visibility.field.choices|length == 1 %}
+              <input type="hidden" name="visibility" value="{{ group_comment_form.visibility.field.choices.0.0 }}"/>
+            {% else %}
+              {% form_radios field=group_comment_form.visibility choices=group_comment_form.visibility.field.choices class="w-full max-w-lg" %}
+            {% endif%}
             <div class="mt-2">
               {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
             </div>

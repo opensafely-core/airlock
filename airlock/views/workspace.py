@@ -100,7 +100,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     add_file = (
         multiselect_add
         and path_item.is_valid()
-        and workspace.get_workspace_status(path_item.relpath) in valid_states_to_add
+        and workspace.get_workspace_file_status(path_item.relpath)
+        in valid_states_to_add
     )
 
     activity = []
@@ -225,11 +226,11 @@ def multiselect_add_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        state = workspace.get_workspace_status(UrlPath(f))
-        if (
-            state == WorkspaceFileStatus.UNRELEASED
-            or state == WorkspaceFileStatus.CONTENT_UPDATED
-        ):
+        state = workspace.get_workspace_file_status(UrlPath(f))
+        if state in [
+            WorkspaceFileStatus.UNRELEASED,
+            WorkspaceFileStatus.CONTENT_UPDATED,
+        ]:
             files_to_add.append(f)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
@@ -310,7 +311,7 @@ def workspace_add_file_to_request(request, workspace_name):
         relpath = formset_form.cleaned_data["file"]
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-        status = workspace.get_workspace_status(UrlPath(relpath))
+        status = workspace.get_workspace_file_status(UrlPath(relpath))
         if status == WorkspaceFileStatus.CONTENT_UPDATED:
             try:
                 bll.update_file_in_request(

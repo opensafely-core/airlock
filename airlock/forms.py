@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.formsets import BaseFormSet, formset_factory
 
-from airlock.business_logic import FileGroup, RequestFileType
+from airlock.business_logic import CommentVisibility, FileGroup, RequestFileType
 
 
 class ListField(forms.Field):
@@ -129,6 +129,26 @@ class GroupEditForm(forms.Form):
 
 class GroupCommentForm(forms.Form):
     comment = forms.CharField()
+    visibility = forms.ChoiceField(
+        choices=[],
+        required=True,
+        widget=forms.RadioSelect(
+            attrs={"class": "filetype-radio flex items-center gap-2"}
+        ),
+    )
+
+    def __init__(self, visibilities, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # filter only the supplied visibilities, as it can vary depending on
+        # user and request state
+        choices = [
+            (k.name, v)
+            for k, v in CommentVisibility.choices().items()
+            if k in visibilities
+        ]
+        self.fields["visibility"].choices = choices  # type: ignore
+        # choose first in list as default selected value
+        self.fields["visibility"].initial = choices[0][0]  # type: ignore
 
 
 class GroupCommentDeleteForm(forms.Form):
