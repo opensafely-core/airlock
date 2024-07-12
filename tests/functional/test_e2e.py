@@ -321,6 +321,21 @@ def test_e2e_release_files(
         "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
+    # Add context & controls to the filegroup
+    filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
+    find_and_click(filegroup_link)
+
+    context_input = page.locator("#id_context")
+    find_and_click(context_input)
+    context_input.fill("some context")
+
+    controls_input = page.locator("#id_controls")
+    find_and_click(controls_input)
+    controls_input.fill("some controls")
+
+    save_button = page.locator("#edit-group-button")
+    find_and_click(save_button)
+
     # Submit request
     submit_button = page.locator("button[data-modal=submitRequest]")
     find_and_click(submit_button)
