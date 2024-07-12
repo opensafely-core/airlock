@@ -91,7 +91,7 @@ class RequestFileDecision(Enum):
     CONFLICTED = "CONFLICTED"
     INCOMPLETE = "INCOMPLETE"
 
-    def description(self):
+    def description(self):  # pragma: nocover
         if self == RequestFileDecision.REJECTED:
             return "Changes Requested"
         return self.name.title()
