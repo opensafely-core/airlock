@@ -605,6 +605,9 @@ def test_request_submit_author(airlock_client):
         "test1", user=airlock_client.user
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
+    bll.group_edit(
+        release_request, "group", "my context", "my controls", airlock_client.user
+    )
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
@@ -620,6 +623,7 @@ def test_request_submit_not_author(airlock_client):
         "test1", user=other_author, status=RequestStatus.PENDING
     )
     factories.write_request_file(release_request, "group", "path/test.txt")
+    bll.group_edit(release_request, "group", "my context", "my controls", other_author)
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
