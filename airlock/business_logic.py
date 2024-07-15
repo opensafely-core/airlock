@@ -871,7 +871,7 @@ class ReleaseRequest:
                 # already set - no one knows the current status
                 pass
             case ReviewTurnPhase.CONSOLIDATING:
-                # only output-checkers know the current status
+                # only users who can review this request know the current status
                 if can_review:
                     decision = rfile.get_decision()
             case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
