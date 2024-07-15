@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib import messages
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -25,6 +26,7 @@ def login(request):
         # If `user_data` is None then the form object will have the relevant errors
         if user_data is not None:
             request.session["user"] = user_data
+            messages.success(request, f"Logged in as {user_data['username']}")
             return redirect(next_url)
 
     return TemplateResponse(
