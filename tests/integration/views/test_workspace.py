@@ -346,10 +346,11 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         ),
         (RequestStatus.RELEASED, False, [], True),
         (
+            # Released files cannot be added to a new request as an output file
             RequestStatus.RELEASED,
             False,
             [factories.request_file(path="file.txt", approved=True)],
-            True,
+            False,
         ),
     ],
 )

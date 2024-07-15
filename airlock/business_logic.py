@@ -1725,6 +1725,10 @@ class BusinessLogicLayer:
             )
 
         workspace = self.get_workspace(release_request.workspace, user)
+        # Can't add a file that's already been released
+        if workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED:
+            raise self.RequestPermissionDenied("Cannot add released file to request")
+
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 

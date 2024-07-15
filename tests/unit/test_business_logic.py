@@ -1649,6 +1649,36 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
 
 
+def test_add_file_to_request_already_released(bll):
+    user = factories.create_user(workspaces=["workspace"])
+    # release one file, include one supporting file
+    factories.create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        author=user,
+        files=[
+            factories.request_file(path="file.txt", approved=True),
+            factories.request_file(
+                path="supporting.txt", filetype=RequestFileType.SUPPORTING
+            ),
+        ],
+    )
+    # user has no current request
+    assert bll.get_current_request("workspace", user) is None
+
+    # create a new pending request
+    release_request = factories.create_release_request("workspace", user)
+    # can add the supporting file as an output file to this new request
+    bll.add_file_to_request(
+        release_request, "supporting.txt", user, filetype=RequestFileType.OUTPUT
+    )
+    # Can't add the released file
+    with pytest.raises(bll.RequestPermissionDenied, match=r"Cannot add released file"):
+        bll.add_file_to_request(
+            release_request, "file.txt", user, filetype=RequestFileType.OUTPUT
+        )
+
+
 def test_update_file_in_request_invalid_file_type(bll):
     author = factories.create_user("author", ["workspace"], False)
 
