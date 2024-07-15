@@ -338,6 +338,7 @@ class Workspace:
     manifest: dict[str, Any]
     metadata: dict[str, Any]
     current_request: ReleaseRequest | None
+    released_files: dict[str, str]
 
     @classmethod
     def from_directory(
@@ -345,6 +346,7 @@ class Workspace:
         name: str,
         metadata: dict[str, str] | None = None,
         current_request: ReleaseRequest | None = None,
+        released_files: dict[str, str] | None = None,
     ) -> Workspace:
         root = settings.WORKSPACE_DIR / name
         if not root.exists():
@@ -371,6 +373,7 @@ class Workspace:
             manifest=manifest,
             metadata=metadata,
             current_request=current_request,
+            released_files=released_files or {},
         )
 
     def __str__(self):
@@ -418,7 +421,11 @@ class Workspace:
         except BusinessLogicLayer.FileNotFound:
             return None
 
-        # TODO check if file has been released once we can do that
+        metadata = self.get_file_metadata(relpath)
+
+        # check if file has been released once we can do that
+        if metadata and self.released_files.get(str(relpath)) == metadata.content_hash:
+            return WorkspaceFileStatus.RELEASED
 
         if self.current_request:
             try:
@@ -426,7 +433,6 @@ class Workspace:
             except BusinessLogicLayer.FileNotFound:
                 return WorkspaceFileStatus.UNRELEASED
 
-            metadata = self.get_file_metadata(relpath)
             if metadata is None:  # pragma: no cover
                 raise BusinessLogicLayer.ManifestFileError(
                     f"no file metadata available for {relpath}"
