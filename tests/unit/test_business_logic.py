@@ -59,6 +59,7 @@ def test_workspace_container():
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
+    assert workspace.released_files == {}
     assert (
         workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
     )
@@ -237,6 +238,29 @@ def test_workspace_get_workspace_file_status(bll):
     assert (
         workspace.get_workspace_file_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
     )
+
+
+def test_workspace_get_released_files(bll):
+    path = UrlPath("foo/bar.txt")
+    path1 = UrlPath("foo/supporting_bar.txt")
+    factories.create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                path=path, approved=True, filetype=RequestFileType.OUTPUT
+            ),
+            factories.request_file(
+                path=path1, approved=True, filetype=RequestFileType.SUPPORTING
+            ),
+        ],
+    )
+    user = factories.create_user("test", workspaces=["workspace"])
+    workspace = bll.get_workspace("workspace", user)
+    # supporting file is not considered a released file
+    assert set(workspace.released_files.keys()) == {str(path)}
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.RELEASED
+    assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.UNRELEASED
 
 
 def test_request_returned_get_workspace_file_status(bll):
@@ -2894,6 +2918,7 @@ DAL_AUDIT_EXCLUDED = {
     "delete_file_from_request",
     "record_review",
     "start_new_turn",
+    "get_released_files_for_workspace",
 }
 
 

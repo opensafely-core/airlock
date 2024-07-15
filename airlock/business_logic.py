@@ -1132,6 +1132,9 @@ class DataAccessLayerProtocol(Protocol):
     def get_requests_for_workspace(self, workspace: str):
         raise NotImplementedError()
 
+    def get_released_files_for_workspace(self, workspace: str):
+        raise NotImplementedError()
+
     def get_requests_authored_by_user(self, username: str):
         raise NotImplementedError()
 
@@ -1330,6 +1333,7 @@ class BusinessLogicLayer:
             name,
             metadata=metadata,
             current_request=self.get_current_request(name, user),
+            released_files=self.get_released_files_for_workspace(name),
         )
 
     def get_workspaces_for_user(self, user: User) -> list[Workspace]:
@@ -1447,6 +1451,9 @@ class BusinessLogicLayer:
             ReleaseRequest.from_dict(attrs)
             for attrs in self._dal.get_requests_for_workspace(workspace=workspace)
         ]
+
+    def get_released_files_for_workspace(self, workspace: str):
+        return self._dal.get_released_files_for_workspace(workspace=workspace)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
