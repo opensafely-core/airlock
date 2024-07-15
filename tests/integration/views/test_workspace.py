@@ -585,6 +585,42 @@ def test_workspace_multiselect_add_files_none_valid(airlock_client, bll):
     assert 'name="filegroup"' not in response.rendered_content
 
 
+def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path1.txt")
+    factories.write_workspace_file(workspace, "test/path2.txt")
+
+    # create previously released request
+    factories.create_request_at_status(
+        workspace,
+        RequestStatus.RELEASED,
+        author=airlock_client.user,
+        files=[factories.request_file(path="test/path1.txt", approved=True)],
+    )
+
+    # create current pending request
+    factories.create_release_request(workspace, user=airlock_client.user)
+
+    response = airlock_client.post(
+        "/workspaces/multiselect/test1",
+        data={
+            "action": "add_files",
+            "selected": [
+                "test/path1.txt",
+                "test/path2.txt",
+            ],
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "test/path1.txt" in response.rendered_content
+    assert "test/path2.txt" in response.rendered_content
+    assert response.rendered_content.count("already released") == 1
+    assert response.rendered_content.count('value="OUTPUT"') == 1
+
+
 def test_workspace_multiselect_bad_action(airlock_client, bll):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
