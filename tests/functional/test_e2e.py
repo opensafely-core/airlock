@@ -343,19 +343,23 @@ def test_e2e_release_files(
     expect(page.locator("#file-reject-button")).to_have_attribute(
         "aria-pressed", "false"
     )
+    expect(page.locator("#file-reset-button")).to_be_disabled()
     find_and_click(page.locator("#file-reject-button"))
-    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#file-reject-button")).to_have_attribute(
+        "aria-pressed", "true"
+    )
+    expect(page.locator("#file-reset-button")).not_to_be_disabled()
 
     # output checker has now reviewed all output files
     expect(complete_review_button).to_be_visible()
     expect(complete_review_button).to_be_enabled()
 
     # Change our minds & remove the review
-    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
-    find_and_click(page.locator("#file-reset-button"))
-    expect(page.locator("#file-reject-button")).to_have_attribute(
+    expect(page.locator("#file-reset-button")).to_have_attribute(
         "aria-pressed", "false"
     )
+    find_and_click(page.locator("#file-reset-button"))
+    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
     # complete review button disabled again
     expect(complete_review_button).to_be_visible()
@@ -366,7 +370,9 @@ def test_e2e_release_files(
         "aria-pressed", "false"
     )
     find_and_click(page.locator("#file-approve-button"))
-    expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#file-approve-button")).to_have_attribute(
+        "aria-pressed", "true"
+    )
 
     # File is only approved once, so the release files button is still disabled
     expect(release_button).to_be_disabled()
