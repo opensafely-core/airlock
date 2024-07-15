@@ -145,6 +145,15 @@
   --icon-url: url("/static/icons/update.svg");
 }
 
+.tree__file.workspace_released {
+  --file-bg: var(--color-zinc-100);
+  --file-border: var(--color-zinc-500);
+  --file-name: var(--color-zinc-900);
+  --icon-filter: invert(10%) sepia(23%) saturate(3595%) hue-rotate(178deg)
+    brightness(93%) contrast(85%);
+  --icon-url: url("/static/icons/released.svg");
+}
+
 .tree__file.withdrawn {
   --file-bg: var(--color-orange-50) !important;
   --file-border: var(--color-orange-700) !important;
