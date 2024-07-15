@@ -66,8 +66,8 @@
                     <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
                   </span>
                 </summary>
-
                 <div class="absolute border-0 origin-top-right top-full mt-2 right-20 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
+                  <p class="pt-3 pb-2 px-4" style="background-color: var(--color-red-500);">TEST MODE ONLY</p>
                   {% for username, token in dev_users.items %}
                     <form
                       {% if username == request.user.username %}style="background-color: var(--color-emerald-50);"{% endif %}
