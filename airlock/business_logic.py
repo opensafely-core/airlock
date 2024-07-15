@@ -864,7 +864,7 @@ class ReleaseRequest:
         rfile = self.get_request_file_from_urlpath(relpath)
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
-        is_output_checker = user.output_checker and self.author != user.username
+        can_review = self.user_can_review(user)
 
         match phase:
             case ReviewTurnPhase.INDEPENDENT:
@@ -872,7 +872,7 @@ class ReleaseRequest:
                 pass
             case ReviewTurnPhase.CONSOLIDATING:
                 # only output-checkers know the current status
-                if is_output_checker:
+                if can_review:
                     decision = rfile.get_decision()
             case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
                 # everyone knows the current status
@@ -891,9 +891,7 @@ class ReleaseRequest:
     ) -> list[tuple[Comment, dict[str, str]]]:
         filegroup = self.filegroups[group]
         current_phase = self.get_turn_phase()
-        can_see_review_comments = (
-            user.output_checker and not user.username == self.author
-        )
+        can_see_review_comments = self.user_can_review(user)
 
         comments = []
 
@@ -1061,6 +1059,9 @@ class ReleaseRequest:
     # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
+
+    def user_can_review(self, user: User) -> bool:
+        return user.output_checker and not user.username == self.author
 
     def can_be_released(self) -> bool:
         return (
