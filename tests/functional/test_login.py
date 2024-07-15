@@ -8,6 +8,7 @@ from .conftest import login_as_user
 @mock.patch("airlock.login_api.session.post", autospec=True)
 def test_login(requests_post, settings, page, live_server):
     settings.AIRLOCK_API_TOKEN = "test_api_token"
+    settings.DEV_USERS = {}
 
     api_response = requests_post.return_value
     api_response.status_code = 200
