@@ -2,6 +2,8 @@ from unittest import mock
 
 from playwright.sync_api import expect
 
+from .conftest import login_as_user
+
 
 @mock.patch("airlock.login_api.session.post", autospec=True)
 def test_login(requests_post, settings, page, live_server):
@@ -27,3 +29,29 @@ def test_login(requests_post, settings, page, live_server):
 
     expect(page).to_have_url(live_server.url + "/workspaces/")
     expect(page.locator("body")).to_contain_text("Logged in as: test_user")
+    expect(page.get_by_test_id("switch-user")).not_to_be_attached()
+
+
+def test_switch_users(dev_users, settings, page, context, live_server):
+    settings.DEV_USERS = {
+        "researcher": "researcher",
+        "output_checker": "output_checker",
+        "output_checker_1": "output_checker_1",
+    }
+    login_as_user(
+        live_server,
+        context,
+        {"username": "researcher", "workspaces": {}, "output_checker": False},
+    )
+    page.goto(live_server.url)
+    expect(page.locator("body")).to_contain_text("Logged in as: researcher")
+
+    menu_locator = page.get_by_test_id("switch-user")
+    expect(menu_locator).to_be_attached()
+    # Click on the menu item to show the available users
+    menu_locator.click()
+    # Switch user to checker1
+    user_switch_button = page.locator('button:text("output_checker_1")')
+    expect(user_switch_button).to_be_visible()
+    user_switch_button.click()
+    expect(page.locator("body")).to_contain_text("Logged in as: output_checker_1")

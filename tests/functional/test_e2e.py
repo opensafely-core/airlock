@@ -1,7 +1,5 @@
-import json
 import re
 
-import pytest
 from playwright.sync_api import expect
 
 from airlock.business_logic import RequestStatus, bll
@@ -10,55 +8,6 @@ from tests import factories
 
 
 admin_user = factories.create_user("admin", output_checker=True)
-
-
-@pytest.fixture
-def dev_users(tmp_path, settings):
-    settings.AIRLOCK_DEV_USERS_FILE = tmp_path / "dev_users.json"
-    settings.AIRLOCK_DEV_USERS_FILE.write_text(
-        json.dumps(
-            {
-                "output_checker": {
-                    "token": "output_checker",
-                    "details": {
-                        "username": "output_checker",
-                        "fullname": "Output Checker",
-                        "output_checker": True,
-                        "staff": True,
-                        "workspaces": {},
-                    },
-                },
-                "output_checker_1": {
-                    "token": "output_checker_1",
-                    "details": {
-                        "username": "output_checker_1",
-                        "fullname": "Output Checker 1",
-                        "output_checker": True,
-                        "staff": True,
-                        "workspaces": {},
-                    },
-                },
-                "researcher": {
-                    "token": "researcher",
-                    "details": {
-                        "username": "researcher",
-                        "fullname": "Researcher",
-                        "output_checker": False,
-                        "staff": False,
-                        "workspaces": {
-                            "test-workspace": {
-                                "project_details": {
-                                    "name": "Project 1",
-                                    "ongoing": True,
-                                },
-                                "archived": False,
-                            }
-                        },
-                    },
-                },
-            }
-        )
-    )
 
 
 def find_and_click(locator):
