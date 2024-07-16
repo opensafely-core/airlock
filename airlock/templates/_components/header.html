@@ -1,6 +1,6 @@
 <header class="header">
   <h1 class="header__title">
-    {{ title }}
+    {{ title }} {% if context == "request" %}{% pill variant="info" text=release_request.status.name %}{% endif %}
   </h1>
 
   {% if context == "request" and workspace.get_url %}
