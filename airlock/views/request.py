@@ -117,7 +117,15 @@ def request_view(request, request_id: str, path: str = ""):
     group_comment_form = None
     group_comment_create_url = None
     group_comment_delete_url = None
-    group_readonly = release_request.is_final() or not is_author
+
+    can_edit_group = (
+        # no-one can edit context/controls for final requests
+        not release_request.is_final()
+        # only authors can edit context/controls
+        and is_author
+        # and only if the request is in draft i.e. in an author-owned turn
+        and release_request.is_in_draft()
+    )
 
     activity = []
     group_activity = []
@@ -267,7 +275,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comments": comments,
         "group_comment_form": group_comment_form,
         "group_comment_create_url": group_comment_create_url,
-        "group_readonly": group_readonly,
+        "group_readonly": not can_edit_group,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors

@@ -61,20 +61,30 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
                 "workspace": {
                     "project_details": {"name": "Project 2", "ongoing": True},
                     "archived": False,
-                }
+                },
+                "pending": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                },
             },
             "output_checker": False,
         },
     )
 
-    release_request = factories.create_request_at_status(
+    submitted_release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         files=[factories.request_file(group="group")],
         status=RequestStatus.SUBMITTED,
     )
+    pending_release_request = factories.create_request_at_status(
+        "pending",
+        author=author,
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.PENDING,
+    )
 
-    page.goto(live_server.url + release_request.get_url("group"))
+    page.goto(live_server.url + pending_release_request.get_url("group"))
     contents = page.locator("#selected-contents")
 
     group_edit_locator = contents.get_by_role("form", name="group-edit-form")
@@ -84,7 +94,8 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     context_locator.fill("test context")
     controls_locator.fill("test controls")
 
-    group_edit_locator.get_by_role("button", name="Save").click()
+    group_save_button = group_edit_locator.get_by_role("button", name="Save")
+    group_save_button.click()
 
     expect(context_locator).to_have_value("test context")
     expect(controls_locator).to_have_value("test controls")
@@ -103,6 +114,12 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
 
     comments_locator = contents.locator(".comments")
     expect(comments_locator).to_contain_text("test comment")
+
+    # cannot edit context/controls for submitted request
+    page.goto(live_server.url + submitted_release_request.get_url("group"))
+    expect(context_locator).not_to_be_editable()
+    expect(controls_locator).not_to_be_editable()
+    expect(group_save_button).not_to_be_visible()
 
 
 def _workspace_dict():
