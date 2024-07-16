@@ -588,15 +588,17 @@ def test_workspace_multiselect_add_files_none_valid(airlock_client, bll):
 def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
-    factories.write_workspace_file(workspace, "test/path1.txt")
-    factories.write_workspace_file(workspace, "test/path2.txt")
+    factories.write_workspace_file(workspace, "test/path1.txt", "foo")
+    factories.write_workspace_file(workspace, "test/path2.txt", "bar")
 
     # create previously released request
     factories.create_request_at_status(
         workspace,
         RequestStatus.RELEASED,
         author=airlock_client.user,
-        files=[factories.request_file(path="test/path1.txt", approved=True)],
+        files=[
+            factories.request_file(path="test/path1.txt", contents="foo", approved=True)
+        ],
     )
 
     # create current pending request

@@ -59,7 +59,7 @@ def test_workspace_container():
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
-    assert workspace.released_files == {}
+    assert workspace.released_files == set()
     assert (
         workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
     )
@@ -248,17 +248,23 @@ def test_workspace_get_released_files(bll):
         RequestStatus.RELEASED,
         files=[
             factories.request_file(
-                path=path, approved=True, filetype=RequestFileType.OUTPUT
+                path=path,
+                contents="foo",
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
             ),
             factories.request_file(
-                path=path1, approved=True, filetype=RequestFileType.SUPPORTING
+                path=path1,
+                contents="bar",
+                approved=True,
+                filetype=RequestFileType.SUPPORTING,
             ),
         ],
     )
     user = factories.create_user("test", workspaces=["workspace"])
     workspace = bll.get_workspace("workspace", user)
     # supporting file is not considered a released file
-    assert set(workspace.released_files.keys()) == {str(path)}
+    assert len(workspace.released_files) == 1
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.RELEASED
     assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.UNRELEASED
 
@@ -1657,9 +1663,11 @@ def test_add_file_to_request_already_released(bll):
         RequestStatus.RELEASED,
         author=user,
         files=[
-            factories.request_file(path="file.txt", approved=True),
+            factories.request_file(path="file.txt", contents="foo", approved=True),
             factories.request_file(
-                path="supporting.txt", filetype=RequestFileType.SUPPORTING
+                path="supporting.txt",
+                contents="bar",
+                filetype=RequestFileType.SUPPORTING,
             ),
         ],
     )
