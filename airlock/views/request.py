@@ -18,7 +18,6 @@ from airlock.business_logic import (
     RequestFileType,
     RequestFileVote,
     RequestStatus,
-    RequestStatusOwner,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -90,10 +89,7 @@ def request_view(request, request_id: str, path: str = ""):
     file_withdraw_url = None
     code_url = None
 
-    if (
-        release_request.status_owner() == RequestStatusOwner.AUTHOR
-        and not is_directory_url
-    ):
+    if release_request.is_in_draft() and not is_directory_url:
         # A file can only be withdrawn from a request that is currently
         # editable by the author
         file_withdraw_url = reverse(
