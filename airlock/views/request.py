@@ -179,7 +179,13 @@ def request_view(request, request_id: str, path: str = ""):
         user_has_completed_review = False
         user_has_reviewed_all_files = False
 
-    if user_has_reviewed_all_files and not user_has_completed_review:
+    if (
+        user_has_reviewed_all_files
+        and not user_has_completed_review
+        # HTMX doesn't currently consume these messages so we shouldn't set them
+        # for HTMX requests
+        and not request.htmx
+    ):
         messages.success(
             request, "All files reviewed. Your review can now be completed."
         )
