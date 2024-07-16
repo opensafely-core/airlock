@@ -89,7 +89,7 @@ def request_view(request, request_id: str, path: str = ""):
     file_withdraw_url = None
     code_url = None
 
-    if release_request.is_in_draft() and not is_directory_url:
+    if release_request.is_editing() and not is_directory_url:
         # A file can only be withdrawn from a request that is currently
         # editable by the author
         file_withdraw_url = reverse(
@@ -124,7 +124,7 @@ def request_view(request, request_id: str, path: str = ""):
         # only authors can edit context/controls
         and is_author
         # and only if the request is in draft i.e. in an author-owned turn
-        and release_request.is_in_draft()
+        and release_request.is_editing()
     )
 
     can_comment = (
@@ -139,7 +139,7 @@ def request_view(request, request_id: str, path: str = ""):
         # any user with access to the workspace can comment if the request is in draft
         (
             request.user.can_access_workspace(release_request.workspace)
-            and release_request.is_in_draft()
+            and release_request.is_editing()
         )
     )
 

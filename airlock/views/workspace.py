@@ -84,7 +84,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         can_action_request = False
 
     multiselect_add = can_action_request and (
-        workspace.current_request is None or workspace.current_request.is_in_draft()
+        workspace.current_request is None or workspace.current_request.is_editing()
     )
 
     valid_states_to_add = [

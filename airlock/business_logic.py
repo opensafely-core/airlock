@@ -1079,7 +1079,7 @@ class ReleaseRequest:
             BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.REVIEWER
         )
 
-    def is_in_draft(self):
+    def is_editing(self):
         return (
             BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.AUTHOR
         )
