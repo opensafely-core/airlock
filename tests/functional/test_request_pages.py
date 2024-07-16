@@ -50,7 +50,9 @@ def test_request_file_withdraw(live_server, context, page, bll):
     expect(page.locator("#withdraw-file-button")).not_to_be_visible()
 
 
-def test_request_group_edit_comment(live_server, context, page, bll, settings):
+def test_request_group_edit_comment_for_author(
+    live_server, context, page, bll, settings
+):
     settings.SHOW_C3 = False  # context and controls visible, comments hidden
     author = login_as_user(
         live_server,
@@ -61,20 +63,30 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
                 "workspace": {
                     "project_details": {"name": "Project 2", "ongoing": True},
                     "archived": False,
-                }
+                },
+                "pending": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                },
             },
             "output_checker": False,
         },
     )
 
-    release_request = factories.create_request_at_status(
+    submitted_release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         files=[factories.request_file(group="group")],
         status=RequestStatus.SUBMITTED,
     )
+    pending_release_request = factories.create_request_at_status(
+        "pending",
+        author=author,
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.PENDING,
+    )
 
-    page.goto(live_server.url + release_request.get_url("group"))
+    page.goto(live_server.url + pending_release_request.get_url("group"))
     contents = page.locator("#selected-contents")
 
     group_edit_locator = contents.get_by_role("form", name="group-edit-form")
@@ -84,7 +96,8 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     context_locator.fill("test context")
     controls_locator.fill("test controls")
 
-    group_edit_locator.get_by_role("button", name="Save").click()
+    group_save_button = group_edit_locator.get_by_role("button", name="Save")
+    group_save_button.click()
 
     expect(context_locator).to_have_value("test context")
     expect(controls_locator).to_have_value("test controls")
@@ -99,10 +112,70 @@ def test_request_group_edit_comment(live_server, context, page, bll, settings):
     comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
 
     comment_locator.fill("test comment")
-    group_comment_locator.get_by_role("button", name="Comment").click()
+    comment_button = group_comment_locator.get_by_role("button", name="Comment")
+    comment_button.click()
 
     comments_locator = contents.locator(".comments")
     expect(comments_locator).to_contain_text("test comment")
+
+    # cannot edit context/controls for submitted request or add comment
+    page.goto(live_server.url + submitted_release_request.get_url("group"))
+    expect(context_locator).not_to_be_editable()
+    expect(controls_locator).not_to_be_editable()
+    expect(group_save_button).not_to_be_visible()
+    expect(comment_button).not_to_be_visible()
+
+
+def test_request_group_edit_comment_for_checker(
+    live_server, context, page, bll, settings
+):
+    settings.SHOW_C3 = True
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "checker",
+            "workspaces": {},
+            "output_checker": True,
+        },
+    )
+
+    submitted_release_request = factories.create_request_at_status(
+        "workspace",
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.SUBMITTED,
+    )
+    pending_release_request = factories.create_request_at_status(
+        "pending",
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.PENDING,
+    )
+
+    page.goto(live_server.url + submitted_release_request.get_url("group"))
+    contents = page.locator("#selected-contents")
+
+    group_edit_locator = contents.get_by_role("form", name="group-edit-form")
+    context_locator = group_edit_locator.get_by_role("textbox", name="context")
+    controls_locator = group_edit_locator.get_by_role("textbox", name="controls")
+    group_save_button = group_edit_locator.get_by_role("button", name="Save")
+
+    group_comment_locator = contents.get_by_role("form", name="group-comment-form")
+    comment_button = group_comment_locator.get_by_role("button", name="Comment")
+
+    # only author can edit context/controls
+    expect(context_locator).not_to_be_editable()
+    expect(controls_locator).not_to_be_editable()
+    expect(group_save_button).not_to_be_visible()
+    # in submitted status, output-checker can comment
+    expect(comment_button).to_be_visible()
+
+    # cannot edit context/controls for submitted request or add comment
+    page.goto(live_server.url + pending_release_request.get_url("group"))
+    expect(context_locator).not_to_be_editable()
+    expect(controls_locator).not_to_be_editable()
+    expect(group_save_button).not_to_be_visible()
+    # in pending status, output-checker cannot comment
+    expect(comment_button).not_to_be_visible()
 
 
 def _workspace_dict():

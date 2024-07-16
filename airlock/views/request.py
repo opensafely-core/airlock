@@ -18,7 +18,6 @@ from airlock.business_logic import (
     RequestFileType,
     RequestFileVote,
     RequestStatus,
-    RequestStatusOwner,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -90,10 +89,7 @@ def request_view(request, request_id: str, path: str = ""):
     file_withdraw_url = None
     code_url = None
 
-    if (
-        release_request.status_owner() == RequestStatusOwner.AUTHOR
-        and not is_directory_url
-    ):
+    if release_request.is_editing() and not is_directory_url:
         # A file can only be withdrawn from a request that is currently
         # editable by the author
         file_withdraw_url = reverse(
@@ -121,7 +117,31 @@ def request_view(request, request_id: str, path: str = ""):
     group_comment_form = None
     group_comment_create_url = None
     group_comment_delete_url = None
-    group_readonly = release_request.is_final() or not is_author
+
+    can_edit_group = (
+        # no-one can edit context/controls for final requests
+        not release_request.is_final()
+        # only authors can edit context/controls
+        and is_author
+        # and only if the request is in draft i.e. in an author-owned turn
+        and release_request.is_editing()
+    )
+
+    can_comment = (
+        # no-one can comment on final requests
+        not release_request.is_final()
+        # user who can review can comment if the request is under review
+        and (
+            release_request.user_can_review(request.user)
+            and release_request.is_under_review()
+        )
+        or
+        # any user with access to the workspace can comment if the request is in draft
+        (
+            request.user.can_access_workspace(release_request.workspace)
+            and release_request.is_editing()
+        )
+    )
 
     activity = []
     group_activity = []
@@ -277,7 +297,8 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comments": comments,
         "group_comment_form": group_comment_form,
         "group_comment_create_url": group_comment_create_url,
-        "group_readonly": group_readonly,
+        "group_readonly": not can_edit_group,
+        "can_comment": can_comment,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors

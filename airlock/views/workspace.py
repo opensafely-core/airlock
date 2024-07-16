@@ -11,7 +11,6 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     RequestFileType,
-    RequestStatusOwner,
     bll,
 )
 from airlock.file_browser_api import get_workspace_tree
@@ -85,8 +84,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         can_action_request = False
 
     multiselect_add = can_action_request and (
-        workspace.current_request is None
-        or workspace.current_request.status_owner() == RequestStatusOwner.AUTHOR
+        workspace.current_request is None or workspace.current_request.is_editing()
     )
 
     valid_states_to_add = [

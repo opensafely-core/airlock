@@ -1074,6 +1074,16 @@ class ReleaseRequest:
             BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.SYSTEM
         )
 
+    def is_under_review(self):
+        return (
+            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.REVIEWER
+        )
+
+    def is_editing(self):
+        return (
+            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.AUTHOR
+        )
+
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     # Make a "staging" copy of the file under a temporary name so we know it can't be
