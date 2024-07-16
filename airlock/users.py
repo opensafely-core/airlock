@@ -48,10 +48,13 @@ class User:
             self.output_checker or workspace_name in self.workspaces
         )
 
+    def can_access_workspace(self, workspace_name):
+        return workspace_name in self.workspaces
+
     def verify_can_action_request(self, workspace_name):
         # Only users with explict access to the workspace can create/modify release
         # requests.
-        if workspace_name not in self.workspaces:
+        if not self.can_access_workspace(workspace_name):
             raise ActionDenied(f"you do not have permission for {workspace_name}")
         # Requests for archived workspaces cannot be created/modified
         if self.workspaces[workspace_name]["archived"]:

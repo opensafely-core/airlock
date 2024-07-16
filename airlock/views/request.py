@@ -127,6 +127,22 @@ def request_view(request, request_id: str, path: str = ""):
         and release_request.is_in_draft()
     )
 
+    can_comment = (
+        # no-one can comment on final requests
+        not release_request.is_final()
+        # user who can review can comment if the request is under review
+        and (
+            release_request.user_can_review(request.user)
+            and release_request.is_under_review()
+        )
+        or
+        # any user with access to the workspace can comment if the request is in draft
+        (
+            request.user.can_access_workspace(release_request.workspace)
+            and release_request.is_in_draft()
+        )
+    )
+
     activity = []
     group_activity = []
 
@@ -276,6 +292,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comment_form": group_comment_form,
         "group_comment_create_url": group_comment_create_url,
         "group_readonly": not can_edit_group,
+        "can_comment": can_comment,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         # TODO, but for now stops template variable errors
