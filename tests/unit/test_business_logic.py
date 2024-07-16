@@ -3181,6 +3181,8 @@ def test_group_comment_delete_permissions(bll):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker", [], True)
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3192,20 +3194,30 @@ def test_group_comment_delete_permissions(bll):
     bll.group_comment_create(
         release_request, "group", "author comment", CommentVisibility.PUBLIC, author
     )
+    bll.group_comment_create(
+        release_request, "group", "checker comment", CommentVisibility.PUBLIC, checker
+    )
     release_request = factories.refresh_release_request(release_request)
 
-    assert len(release_request.filegroups["group"].comments) == 1
+    assert len(release_request.filegroups["group"].comments) == 2
     test_comment = release_request.filegroups["group"].comments[0]
+    checker_comment = release_request.filegroups["group"].comments[1]
 
-    with pytest.raises(bll.RequestPermissionDenied):
-        bll.group_comment_delete(
-            release_request, "group", test_comment.id, collaborator
-        )
+    for user in [collaborator, other, checker]:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.group_comment_delete(release_request, "group", test_comment.id, user)
 
-    with pytest.raises(bll.RequestPermissionDenied):
-        bll.group_comment_delete(release_request, "group", test_comment.id, other)
+    for user in [collaborator, author, other]:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.group_comment_delete(release_request, "group", checker_comment.id, user)
 
-    assert len(release_request.filegroups["group"].comments) == 1
+    assert len(release_request.filegroups["group"].comments) == 2
+
+    # users can delete their own comments
+    bll.group_comment_delete(release_request, "group", test_comment.id, author)
+    bll.group_comment_delete(release_request, "group", checker_comment.id, checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert len(release_request.filegroups["group"].comments) == 0
 
 
 def test_group_comment_create_invalid_params(bll):

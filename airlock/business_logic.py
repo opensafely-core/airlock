@@ -2162,11 +2162,6 @@ class BusinessLogicLayer:
     def group_comment_delete(
         self, release_request: ReleaseRequest, group: str, comment_id: str, user: User
     ):
-        if release_request.workspace not in user.workspaces:
-            raise self.RequestPermissionDenied(
-                f"User {user.username} does not have permission to access this workspace"
-            )
-
         filegroup = release_request.filegroups.get(group)
         if not filegroup:
             raise self.FileNotFound(f"Filegroup {group} not found")
