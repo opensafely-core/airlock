@@ -235,10 +235,12 @@ def request_view(request, request_id: str, path: str = ""):
         kwargs={"request_id": request_id},
     )
 
-    if is_directory_url or release_request.request_filetype(path) in [
-        RequestFileType.SUPPORTING,
-        RequestFileType.WITHDRAWN,
-    ]:
+    if (
+        is_directory_url
+        or not release_request.is_under_review()
+        or release_request.request_filetype(path)
+        in [RequestFileType.SUPPORTING, RequestFileType.WITHDRAWN]
+    ):
         file_approve_url = None
         file_reject_url = None
         file_reset_review_url = None
