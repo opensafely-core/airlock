@@ -63,7 +63,7 @@ def test_renderers_get_renderer_request(
     grouppath = "group" / filepath
     request = factories.create_release_request("workspace")
     # use a csv as test data, it works for other types too
-    factories.write_request_file(request, "group", filepath, "a,b,c\n1,2,3")
+    factories.add_request_file(request, "group", filepath, "a,b,c\n1,2,3")
 
     time = 1709652904  # date this test was written
     abspath = request.abspath(grouppath)

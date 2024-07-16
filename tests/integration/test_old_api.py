@@ -50,7 +50,7 @@ def test_old_api_create_release_with_error(responses, caplog):
 def test_old_api_upload_file(responses):
     release_request = factories.create_release_request("workspace", id="request-id")
     relpath = Path("test/file.txt")
-    factories.write_request_file(release_request, "group", relpath, "test")
+    factories.add_request_file(release_request, "group", relpath, "test")
     abspath = release_request.abspath("group" / relpath)
 
     responses.post(
@@ -68,7 +68,7 @@ def test_old_api_upload_file(responses):
 def test_old_api_upload_file_error(responses, caplog):
     release_request = factories.create_release_request("workspace", id="request-id")
     relpath = Path("test/file.txt")
-    factories.write_request_file(release_request, "group", relpath, "test")
+    factories.add_request_file(release_request, "group", relpath, "test")
     abspath = release_request.abspath("group" / relpath)
 
     responses.post(

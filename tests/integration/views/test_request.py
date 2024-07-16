@@ -29,7 +29,7 @@ def test_request_index_no_user(airlock_client):
 def test_request_view_index(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", airlock_client.user)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
     response = airlock_client.get(f"/requests/view/{release_request.id}/")
     assert "group" in response.rendered_content
 
@@ -116,7 +116,7 @@ def test_request_view_root_group(airlock_client, settings):
 def test_request_view_with_directory(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "group", "some_dir/file.txt")
+    factories.add_request_file(release_request, "group", "some_dir/file.txt")
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/some_dir/"
     )
@@ -130,7 +130,7 @@ def test_request_view_with_directory(airlock_client):
 def test_request_view_with_file(airlock_client, filetype):
     release_request = factories.create_release_request("workspace")
     airlock_client.login(output_checker=True)
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "group", "file.txt", "foobar", filetype=filetype
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}/group/file.txt")
@@ -145,7 +145,7 @@ def test_request_view_with_file(airlock_client, filetype):
 def test_request_view_with_file_htmx(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "group", "file.txt", "foobar")
+    factories.add_request_file(release_request, "group", "file.txt", "foobar")
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt",
         headers={"HX-Request": "true"},
@@ -365,9 +365,7 @@ def test_request_view_404_with_files(airlock_client):
 def test_request_view_redirects_to_directory(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(
-        release_request, "group", "some_dir/file.txt", "foobar"
-    )
+    factories.add_request_file(release_request, "group", "some_dir/file.txt", "foobar")
 
     # test for group
     response = airlock_client.get(f"/requests/view/{release_request.id}/group")
@@ -386,7 +384,7 @@ def test_request_view_redirects_to_directory(airlock_client):
 def test_request_view_redirects_to_file(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt/"
     )
@@ -400,9 +398,7 @@ def test_request_view_redirects_to_file(airlock_client):
 def test_request_contents_file(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(
-        release_request, "default", "file.txt", contents="test"
-    )
+    factories.add_request_file(release_request, "default", "file.txt", contents="test")
     response = airlock_client.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
@@ -418,7 +414,7 @@ def test_request_contents_file(airlock_client):
 def test_request_contents_dir(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = airlock_client.get("/requests/content/id/default/foo")
@@ -428,7 +424,7 @@ def test_request_contents_dir(airlock_client):
 def test_request_contents_file_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = airlock_client.get("/requests/content/id/default/notexists.txt")
@@ -438,7 +434,7 @@ def test_request_contents_file_not_exists(airlock_client):
 def test_request_contents_group_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
     response = airlock_client.get("/requests/content/id/notexist/")
@@ -451,9 +447,7 @@ def test_request_download_file(airlock_client):
     release_request = factories.create_release_request(
         "workspace", id="id", user=author
     )
-    factories.write_request_file(
-        release_request, "default", "file.txt", contents="test"
-    )
+    factories.add_request_file(release_request, "default", "file.txt", contents="test")
     response = airlock_client.get("/requests/content/id/default/file.txt?download")
     assert response.status_code == 200
     assert response.as_attachment
@@ -533,7 +527,7 @@ def test_request_download_file_permissions(
     release_request = factories.create_release_request(
         "workspace", id="id", user=author
     )
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "default", "file.txt", contents="test", user=author
     )
     response = airlock_client.get("/requests/content/id/default/file.txt?download")
@@ -604,7 +598,7 @@ def test_request_submit_author(airlock_client):
     release_request = factories.create_release_request(
         "test1", user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
     bll.group_edit(
         release_request, "group", "my context", "my controls", airlock_client.user
     )
@@ -622,7 +616,7 @@ def test_request_submit_not_author(airlock_client):
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
     bll.group_edit(release_request, "group", "my context", "my controls", other_author)
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
@@ -637,7 +631,7 @@ def test_request_submit_missing_context_controls(airlock_client):
     release_request = factories.create_release_request(
         "test1", user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
@@ -652,7 +646,7 @@ def test_request_withdraw_author(airlock_client):
     release_request = factories.create_release_request(
         "test1", user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
 
     response = airlock_client.post(f"/requests/withdraw/{release_request.id}")
 
@@ -667,7 +661,7 @@ def test_request_withdraw_not_author(airlock_client):
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
 
     response = airlock_client.post(f"/requests/withdraw/{release_request.id}")
 
@@ -814,12 +808,12 @@ def test_requests_for_workspace(airlock_client):
     release_request1 = factories.create_release_request(
         "test1", user=author1, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request1, "group", "path/test.txt")
+    factories.add_request_file(release_request1, "group", "path/test.txt")
 
     release_request2 = factories.create_release_request(
         "test1", user=author2, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request2, "group", "path/test2.txt")
+    factories.add_request_file(release_request2, "group", "path/test2.txt")
 
     response = airlock_client.post("/requests/workspace/test1")
 
@@ -1118,7 +1112,7 @@ def test_file_withdraw_file_not_author(airlock_client):
     release_request = factories.create_release_request(
         "test1",
     )
-    factories.write_request_file(release_request, "group", "path/test.txt")
+    factories.add_request_file(release_request, "group", "path/test.txt")
 
     airlock_client.login(workspaces=["test1"])
     response = airlock_client.post(
@@ -1399,7 +1393,7 @@ def test_group_edit_success(airlock_client):
     release_request = factories.create_release_request(
         "workspace", user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     response = airlock_client.post(
         f"/requests/edit/{release_request.id}/group",
@@ -1426,7 +1420,7 @@ def test_group_edit_no_change(airlock_client, bll):
     release_request = factories.create_release_request(
         "workspace", user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
     bll.group_edit(
         release_request,
         "group",
@@ -1459,7 +1453,7 @@ def test_group_edit_bad_user(airlock_client):
     other = factories.create_user("other", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(other)
 
@@ -1479,7 +1473,7 @@ def test_group_edit_bad_group(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
 
@@ -1510,7 +1504,7 @@ def test_group_comment_create_success(
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     user = factories.create_user(
         output_checker=output_checker, workspaces=["workspace"]
@@ -1542,7 +1536,7 @@ def test_group_comment_create_bad_user(airlock_client):
     other = factories.create_user("other", ["other"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(other)
 
@@ -1559,7 +1553,7 @@ def test_group_comment_create_bad_form(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
 
@@ -1579,7 +1573,7 @@ def test_group_comment_create_bad_group(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
 
@@ -1596,7 +1590,7 @@ def test_group_comment_delete(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
     airlock_client.post(
@@ -1632,7 +1626,7 @@ def test_group_comment_delete_bad_form(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
     airlock_client.post(
@@ -1664,7 +1658,7 @@ def test_group_comment_delete_bad_group(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
     airlock_client.post(
@@ -1696,7 +1690,7 @@ def test_group_comment_delete_missing_comment(airlock_client):
     author = factories.create_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(release_request, "group", "file.txt")
+    factories.add_request_file(release_request, "group", "file.txt")
 
     airlock_client.login_with_user(author)
     airlock_client.post(

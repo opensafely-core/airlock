@@ -9,7 +9,7 @@ from tests import factories
 def test_command(bll):
     workspace = factories.create_workspace("workspace")
     release_request = factories.create_release_request(workspace)
-    factories.write_request_file(
+    factories.add_request_file(
         release_request, "group", "subdir/file.txt", "some content"
     )
 

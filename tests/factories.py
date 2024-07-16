@@ -411,14 +411,14 @@ def request_file(
 ):
     def add_file(request):
         request = refresh_release_request(request)
-        write_request_file(
+        add_request_file(
             request, group, path, approved=approved, rejected=rejected, **kwargs
         )
 
     return add_file
 
 
-def write_request_file(
+def add_request_file(
     request,
     group,
     path,

@@ -229,7 +229,7 @@ def test_workspace_get_workspace_file_status(bll):
     workspace = bll.get_workspace("workspace", user)
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
-    factories.write_request_file(release_request, "group", path)
+    factories.add_request_file(release_request, "group", path)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
@@ -372,7 +372,7 @@ def test_request_returned_author_get_workspace_file_status(bll):
 
 def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(release_request, "group", "bar.html")
+    factories.add_request_file(release_request, "group", "bar.html")
 
     assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
     assert release_request.get_id() == "id"
@@ -1357,9 +1357,7 @@ def test_notification_error(bll, notifications_stubber, caplog):
     )
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=True
-    )
+    factories.add_request_file(release_request, "group", "test/file.txt", approved=True)
     bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = factories.refresh_release_request(release_request)
     bll.set_status(release_request, RequestStatus.SUBMITTED, author)
@@ -1447,7 +1445,7 @@ def test_submit_request(bll, mock_notifications):
     release_request = factories.create_release_request(
         "workspace", user=author, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request, "group", "test/file.txt")
+    factories.add_request_file(release_request, "group", "test/file.txt")
     bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = bll.get_release_request(release_request.id, author)
     bll.submit_request(release_request, author)
@@ -2982,7 +2980,7 @@ def test_dal_methods_have_audit_event_parameter():
 def test_group_edit_author(bll):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
+    factories.add_request_file(
         release_request,
         "group",
         "test/file.txt",
