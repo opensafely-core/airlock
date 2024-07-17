@@ -230,7 +230,6 @@ def test_get_request_tree_status(bll):
 
     # move to RETURNED, votes are all public now
     bll.return_request(release_request, checker1)
-
     assert_status(author, RequestFileDecision.APPROVED, None)
     assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
     assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)

@@ -679,14 +679,21 @@ class RequestFile:
             },
         )
 
-    def get_decision(self) -> RequestFileDecision:
-        """The status of RequestFile, based on mutliple reviews.
-
-        We specificially only require 2 APPROVED votes, rather than all votes
-        being APPROVED, as this allows a 3rd review to mark a file APPROVED to
-        unblock things if one of the initial reviewers is unavailable.
+    def get_decision(self, completed_reviewers) -> RequestFileDecision:
         """
-        all_reviews = [v.status for v in self.reviews.values()]
+        The status of RequestFile, based on multiple reviews.
+
+        Disclosivity can only be assessed by considering all files in a release
+        together. Therefore an overall decision on a file is based on votes from
+        from completed reviews only.
+
+        We specificially only require 2 APPROVED votes (within completed reviews),
+        rather than all votes being APPROVED, as this allows a 3rd review to mark
+        a file APPROVED to unblock things if one of the initial reviewers is unavailable.
+        """
+        all_reviews = [
+            v.status for v in self.reviews.values() if v.reviewer in completed_reviewers
+        ]
 
         if len(all_reviews) < 2:
             # not enough votes yet
@@ -791,6 +798,7 @@ class ReleaseRequest:
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
     completed_reviews: dict[str, str] = field(default_factory=dict)
+    turn_reviewers: set[str] = field(default_factory=set)
     review_turn: int = 0
 
     @classmethod
@@ -871,7 +879,13 @@ class ReleaseRequest:
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
         can_review = self.user_can_review(user)
+        completed_reviewers_this_turn = self.completed_reviews.keys()
 
+        # If we're in the AUTHOR phase of a turn (i.e. the request is being
+        # edited by the author, it's not in an under-review status), we need
+        # to show the decision from the previous turn, if there is one. For
+        # all other (reviewing) phases, we show the current decision based on
+        # te completed reviews in this turn.
         match phase:
             case ReviewTurnPhase.INDEPENDENT:
                 # already set - no one knows the current status
@@ -879,10 +893,13 @@ class ReleaseRequest:
             case ReviewTurnPhase.CONSOLIDATING:
                 # only users who can review this request know the current status
                 if can_review:
-                    decision = rfile.get_decision()
-            case ReviewTurnPhase.COMPLETE | ReviewTurnPhase.AUTHOR:
+                    decision = rfile.get_decision(completed_reviewers_this_turn)
+            case ReviewTurnPhase.COMPLETE:
                 # everyone knows the current status
-                decision = rfile.get_decision()
+                decision = rfile.get_decision(completed_reviewers_this_turn)
+            case ReviewTurnPhase.AUTHOR:
+                # everyone can the status at the end of the previous turn
+                decision = rfile.get_decision(self.turn_reviewers)
             case _:  # pragma: nocover
                 assert False
 
@@ -1048,7 +1065,8 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.get_decision() == RequestFileDecision.APPROVED
+            request_file.get_decision(self.completed_reviews.keys())
+            == RequestFileDecision.APPROVED
             for request_file in self.output_files().values()
         )
 

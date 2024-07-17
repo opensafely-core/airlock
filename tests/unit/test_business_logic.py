@@ -2443,7 +2443,10 @@ def test_approve_file_not_submitted(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_approve_file_not_your_own(bll):
@@ -2463,7 +2466,10 @@ def test_approve_file_not_your_own(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(author) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_approve_file_not_checker(bll):
@@ -2484,7 +2490,10 @@ def test_approve_file_not_checker(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(author) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_approve_file_not_part_of_request(bll):
@@ -2504,7 +2513,10 @@ def test_approve_file_not_part_of_request(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_approve_supporting_file(bll):
@@ -2522,7 +2534,10 @@ def test_approve_supporting_file(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_approve_file(bll):
@@ -2539,13 +2554,19 @@ def test_approve_file(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2557,7 +2578,7 @@ def test_approve_file(bll):
     )
 
 
-def test_approve_file_requires_two_plus(bll):
+def test_approve_file_requires_two_plus_completed_reviews(bll):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2573,12 +2594,30 @@ def test_approve_file_requires_two_plus(bll):
     bll.approve_file(release_request, request_file, checker1)
     bll.reject_file(release_request, request_file, checker2)
 
+    # Reviewers must complete their independent review before we can assess
+    # a file's decision
+    factories.complete_independent_review(release_request, checker1, checker2)
+    release_request = factories.refresh_release_request(release_request)
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_decision() == RequestFileDecision.CONFLICTED
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.CONFLICTED
+    )
 
+    # A 3rd reviewer can tie-break, but they need to also complete their full review
     bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_decision() == RequestFileDecision.APPROVED
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.CONFLICTED
+    )
+
+    factories.complete_independent_review(release_request, checker3)
+    release_request = factories.refresh_release_request(release_request)
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.APPROVED
+    )
 
 
 def test_reject_file(bll):
@@ -2595,13 +2634,19 @@ def test_reject_file(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2625,19 +2670,28 @@ def test_approve_then_reject_file(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     bll.reject_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 @pytest.mark.parametrize("review", [RequestFileVote.APPROVED, RequestFileVote.REJECTED])
@@ -2653,7 +2707,10 @@ def test_reviewreset_then_reset_review_file(bll, review):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     if review == RequestFileVote.APPROVED:
         bll.approve_file(release_request, request_file, checker)
@@ -2664,13 +2721,19 @@ def test_reviewreset_then_reset_review_file(bll, review):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == review
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     bll.reset_review_file(release_request, path, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 def test_reset_review_file_no_reviews(bll):
@@ -2684,14 +2747,20 @@ def test_reset_review_file_no_reviews(bll):
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
     with pytest.raises(bll.FileReviewNotFound):
         bll.reset_review_file(release_request, path, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
-    assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+    assert (
+        rfile.get_decision(release_request.completed_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
 
 
 @pytest.mark.parametrize(
@@ -2722,10 +2791,25 @@ def test_request_file_status_decision(bll, votes, decision):
         rfile = _get_request_file(release_request, path)
         assert rfile.get_file_vote_for_user(checker) == RequestFileVote[vote]
 
+        # complete review before we can determine a decision
+        release_request = factories.refresh_release_request(release_request)
+        assert (
+            rfile.get_decision(release_request.completed_reviews.keys())
+            == RequestFileDecision.INCOMPLETE
+        )
+
+        factories.complete_independent_review(release_request, checker)
+        release_request = factories.refresh_release_request(release_request)
         if i == 0:
-            assert rfile.get_decision() == RequestFileDecision.INCOMPLETE
+            assert (
+                rfile.get_decision(release_request.completed_reviews.keys())
+                == RequestFileDecision.INCOMPLETE
+            )
         else:
-            assert rfile.get_decision() == RequestFileDecision[decision]
+            assert (
+                rfile.get_decision(release_request.completed_reviews.keys())
+                == RequestFileDecision[decision]
+            )
 
 
 def test_mark_file_undecided(bll):
