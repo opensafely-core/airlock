@@ -131,3 +131,15 @@ def test_csv_renderer_handles_uneven_columns(tmp_path):
     response.render()
     assert response.status_code == 200
     assert response.context_data["use_datatables"] is False
+
+
+def test_plaintext_renderer_handles_invalid_utf8(tmp_path):
+    invalid_file = tmp_path / "invalid.txt"
+    invalid_file.write_bytes(b"invalid \xf0\xa4\xad continuation byte")
+    relpath = invalid_file.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath, plaintext=True)
+    renderer = Renderer.from_file(invalid_file, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+    assert "invalid � continuation byte" in response.rendered_content

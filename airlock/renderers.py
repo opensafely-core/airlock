@@ -36,7 +36,7 @@ class RendererTemplate:
 class Renderer:
     MAX_AGE = 365 * 24 * 60 * 60  # 1 year
     template: ClassVar[RendererTemplate | None] = None
-    open_mode: ClassVar[str] = "rb"
+    is_text: ClassVar[bool] = False
 
     stream: IO[Any]
     file_cache_id: str
@@ -54,7 +54,11 @@ class Renderer:
             cache_id = filesystem_key(stat)
 
         return cls(
-            stream=abspath.open(cls.open_mode),
+            stream=(
+                abspath.open("r", errors="replace")
+                if cls.is_text
+                else abspath.open("rb")
+            ),
             file_cache_id=cache_id,
             last_modified=formatdate(stat.st_mtime, usegmt=True),
             filename=path.name,
@@ -64,15 +68,12 @@ class Renderer:
     def from_contents(
         cls, contents: bytes, relpath: UrlPath, cache_id: str
     ) -> Renderer:
-        if cls.open_mode == "rb":
-            return cls(
-                BytesIO(contents),
-                file_cache_id=cache_id,
-                filename=relpath.name,
-            )
-
         return cls(
-            StringIO(contents.decode("utf8")),
+            stream=(
+                StringIO(contents.decode("utf8", errors="replace"))
+                if cls.is_text
+                else BytesIO(contents)
+            ),
             file_cache_id=cache_id,
             filename=relpath.name,
         )
@@ -117,7 +118,7 @@ class Renderer:
 
 class CSVRenderer(Renderer):
     template = RendererTemplate.from_name("file_browser/csv.html")
-    open_mode: ClassVar[str] = "r"
+    is_text: ClassVar[bool] = True
 
     def context(self):
         reader = csv.reader(self.stream)
@@ -132,7 +133,7 @@ class CSVRenderer(Renderer):
 
 class TextRenderer(Renderer):
     template = RendererTemplate.from_name("file_browser/text.html")
-    open_mode: ClassVar[str] = "r"
+    is_text: ClassVar[bool] = True
 
     def context(self):
         return {
