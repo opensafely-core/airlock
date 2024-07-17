@@ -402,16 +402,11 @@ def create_request_at_status(
         return request
 
     if status == RequestStatus.RELEASED:
-        for relpath in request.output_files():
-            bll._dal.release_file(
-                request.id,
-                relpath,
-                checker.username,
-                audit=create_audit_event(
-                    AuditEventType.REQUEST_FILE_APPROVE, user=checker.username
-                ),
-            )
-        bll.set_status(request, RequestStatus.RELEASED, checker)
+        bll.release_files(
+            request,
+            user=checker,
+            upload=False,
+        )
         return refresh_release_request(request)
 
     raise Exception(f"invalid state: {status}")  # pragma: no cover
