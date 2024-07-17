@@ -202,6 +202,11 @@ def request_view(request, request_id: str, path: str = ""):
     if (
         user_has_reviewed_all_files
         and not user_has_completed_review
+        # Only show the reminder if the request is under review. A request
+        # could have been reviewed by 3 checkers, completed by 2 and returned.
+        # We don't want to show the message to the incomplete reviewer who can't
+        # act on it.
+        and release_request.is_under_review()
         # HTMX doesn't currently consume these messages so we shouldn't set them
         # for HTMX requests
         and not request.htmx
@@ -235,10 +240,12 @@ def request_view(request, request_id: str, path: str = ""):
         kwargs={"request_id": request_id},
     )
 
-    if is_directory_url or release_request.request_filetype(path) in [
-        RequestFileType.SUPPORTING,
-        RequestFileType.WITHDRAWN,
-    ]:
+    if (
+        is_directory_url
+        or not release_request.is_under_review()
+        or release_request.request_filetype(path)
+        in [RequestFileType.SUPPORTING, RequestFileType.WITHDRAWN]
+    ):
         file_approve_url = None
         file_reject_url = None
         file_reset_review_url = None

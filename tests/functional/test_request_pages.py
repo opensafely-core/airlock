@@ -188,19 +188,23 @@ def _workspace_dict():
 
 
 @pytest.mark.parametrize(
-    "author,login_as,status,reviewer_buttons_visible,release_button_visible",
+    "author,login_as,status,reviewer_buttons_visible,release_button_visible,file_review_buttons_visible",
+    # reviewer buttons: return/reject/complete review
+    # file review buttons: on a file view approve/request changes/reset
     [
-        ("researcher", "researcher", RequestStatus.SUBMITTED, False, False),
-        ("researcher", "checker", RequestStatus.SUBMITTED, True, True),
-        ("checker", "checker", RequestStatus.SUBMITTED, False, False),
-        ("researcher", "checker", RequestStatus.PARTIALLY_REVIEWED, True, True),
-        ("checker", "checker", RequestStatus.PARTIALLY_REVIEWED, False, False),
-        ("researcher", "checker", RequestStatus.REVIEWED, True, True),
+        ("researcher", "researcher", RequestStatus.SUBMITTED, False, False, False),
+        ("researcher", "checker", RequestStatus.SUBMITTED, True, True, True),
+        ("checker", "checker", RequestStatus.SUBMITTED, False, False, False),
+        ("researcher", "checker", RequestStatus.PARTIALLY_REVIEWED, True, True, True),
+        ("checker", "checker", RequestStatus.PARTIALLY_REVIEWED, False, False, False),
+        ("researcher", "checker", RequestStatus.REVIEWED, True, True, True),
+        ("researcher", "checker", RequestStatus.RETURNED, False, False, False),
+        ("checker", "checker", RequestStatus.RETURNED, False, False, False),
         # APPROVED status - can be released, but other review buttons are hidden
-        ("researcher", "checker", RequestStatus.APPROVED, False, True),
-        ("researcher", "checker", RequestStatus.RELEASED, False, False),
-        ("researcher", "checker", RequestStatus.REJECTED, False, False),
-        ("researcher", "checker", RequestStatus.WITHDRAWN, False, False),
+        ("researcher", "checker", RequestStatus.APPROVED, False, True, False),
+        ("researcher", "checker", RequestStatus.RELEASED, False, False, False),
+        ("researcher", "checker", RequestStatus.REJECTED, False, False, False),
+        ("researcher", "checker", RequestStatus.WITHDRAWN, False, False, False),
     ],
 )
 def test_request_buttons(
@@ -213,6 +217,7 @@ def test_request_buttons(
     status,
     reviewer_buttons_visible,
     release_button_visible,
+    file_review_buttons_visible,
 ):
     user_data = {
         "researcher": dict(
@@ -257,6 +262,20 @@ def test_request_buttons(
         expect(page.locator("#release-files-button")).to_be_visible()
     else:
         expect(page.locator("#release-files-button")).not_to_be_visible()
+
+    page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+
+    file_review_buttons = [
+        "#file-approve-button",
+        "#file-reject-button",
+        "#file-reset-button",
+    ]
+    if file_review_buttons_visible:
+        for button_id in file_review_buttons:
+            expect(page.locator(button_id)).to_be_visible()
+    else:
+        for button_id in file_review_buttons:
+            expect(page.locator(button_id)).not_to_be_visible()
 
 
 @pytest.mark.parametrize(
