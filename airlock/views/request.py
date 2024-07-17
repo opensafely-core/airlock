@@ -268,6 +268,13 @@ def request_view(request, request_id: str, path: str = ""):
         request_action_required = (
             "You have reviewed all files. You can now complete your review."
         )
+    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
+        request.user
+    ):
+        if release_request.can_be_released():
+            request_action_required = "Two independent reviews have been completed. You can now return, reject or release this request."
+        else:
+            request_action_required = "Two independent reviews have been completed. You can now return or reject this request."
     else:
         request_action_required = None
 
