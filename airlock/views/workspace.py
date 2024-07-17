@@ -230,6 +230,8 @@ def multiselect_add_files(request, multiform, workspace):
             WorkspaceFileStatus.CONTENT_UPDATED,
         ]:
             files_to_add.append(f)
+        elif state == WorkspaceFileStatus.RELEASED:
+            files_ignored[f] = "already released"
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
             files_ignored[f] = f"already in group {rfile.group}"

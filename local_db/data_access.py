@@ -99,6 +99,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
         ]
 
+    def get_released_files_for_workspace(self, workspace: str):
+        return set(
+            RequestFileMetadata.objects.filter(
+                request__workspace=workspace, released_at__isnull=False
+            ).values_list("file_id", flat=True)
+        )
+
     def get_requests_by_status(self, *states: RequestStatus):
         return [
             metadata.to_dict()

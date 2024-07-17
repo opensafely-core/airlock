@@ -338,6 +338,7 @@ class Workspace:
     manifest: dict[str, Any]
     metadata: dict[str, Any]
     current_request: ReleaseRequest | None
+    released_files: set[str]
 
     @classmethod
     def from_directory(
@@ -345,6 +346,7 @@ class Workspace:
         name: str,
         metadata: dict[str, str] | None = None,
         current_request: ReleaseRequest | None = None,
+        released_files: set[str] | None = None,
     ) -> Workspace:
         root = settings.WORKSPACE_DIR / name
         if not root.exists():
@@ -371,6 +373,7 @@ class Workspace:
             manifest=manifest,
             metadata=metadata,
             current_request=current_request,
+            released_files=released_files or set(),
         )
 
     def __str__(self):
@@ -418,7 +421,11 @@ class Workspace:
         except BusinessLogicLayer.FileNotFound:
             return None
 
-        # TODO check if file has been released once we can do that
+        metadata = self.get_file_metadata(relpath)
+
+        # check if file has been released once we can do that
+        if metadata and metadata.content_hash in self.released_files:
+            return WorkspaceFileStatus.RELEASED
 
         if self.current_request:
             try:
@@ -426,7 +433,6 @@ class Workspace:
             except BusinessLogicLayer.FileNotFound:
                 return WorkspaceFileStatus.UNRELEASED
 
-            metadata = self.get_file_metadata(relpath)
             if metadata is None:  # pragma: no cover
                 raise BusinessLogicLayer.ManifestFileError(
                     f"no file metadata available for {relpath}"
@@ -1126,6 +1132,9 @@ class DataAccessLayerProtocol(Protocol):
     def get_requests_for_workspace(self, workspace: str):
         raise NotImplementedError()
 
+    def get_released_files_for_workspace(self, workspace: str):
+        raise NotImplementedError()
+
     def get_requests_authored_by_user(self, username: str):
         raise NotImplementedError()
 
@@ -1324,6 +1333,7 @@ class BusinessLogicLayer:
             name,
             metadata=metadata,
             current_request=self.get_current_request(name, user),
+            released_files=self.get_released_files_for_workspace(name),
         )
 
     def get_workspaces_for_user(self, user: User) -> list[Workspace]:
@@ -1441,6 +1451,9 @@ class BusinessLogicLayer:
             ReleaseRequest.from_dict(attrs)
             for attrs in self._dal.get_requests_for_workspace(workspace=workspace)
         ]
+
+    def get_released_files_for_workspace(self, workspace: str):
+        return self._dal.get_released_files_for_workspace(workspace=workspace)
 
     def get_requests_authored_by_user(self, user: User) -> list[ReleaseRequest]:
         """Get all current requests authored by user."""
@@ -1712,6 +1725,10 @@ class BusinessLogicLayer:
             )
 
         workspace = self.get_workspace(release_request.workspace, user)
+        # Can't add a file that's already been released
+        if workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED:
+            raise self.RequestPermissionDenied("Cannot add released file to request")
+
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 

@@ -59,6 +59,7 @@ def test_workspace_container():
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
+    assert workspace.released_files == set()
     assert (
         workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
     )
@@ -237,6 +238,35 @@ def test_workspace_get_workspace_file_status(bll):
     assert (
         workspace.get_workspace_file_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
     )
+
+
+def test_workspace_get_released_files(bll):
+    path = UrlPath("foo/bar.txt")
+    path1 = UrlPath("foo/supporting_bar.txt")
+    factories.create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                path=path,
+                contents="foo",
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+            factories.request_file(
+                path=path1,
+                contents="bar",
+                approved=True,
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+    user = factories.create_user("test", workspaces=["workspace"])
+    workspace = bll.get_workspace("workspace", user)
+    # supporting file is not considered a released file
+    assert len(workspace.released_files) == 1
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.RELEASED
+    assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.UNRELEASED
 
 
 def test_request_returned_get_workspace_file_status(bll):
@@ -1625,6 +1655,38 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
 
 
+def test_add_file_to_request_already_released(bll):
+    user = factories.create_user(workspaces=["workspace"])
+    # release one file, include one supporting file
+    factories.create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        author=user,
+        files=[
+            factories.request_file(path="file.txt", contents="foo", approved=True),
+            factories.request_file(
+                path="supporting.txt",
+                contents="bar",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+    # user has no current request
+    assert bll.get_current_request("workspace", user) is None
+
+    # create a new pending request
+    release_request = factories.create_release_request("workspace", user)
+    # can add the supporting file as an output file to this new request
+    bll.add_file_to_request(
+        release_request, "supporting.txt", user, filetype=RequestFileType.OUTPUT
+    )
+    # Can't add the released file
+    with pytest.raises(bll.RequestPermissionDenied, match=r"Cannot add released file"):
+        bll.add_file_to_request(
+            release_request, "file.txt", user, filetype=RequestFileType.OUTPUT
+        )
+
+
 def test_update_file_in_request_invalid_file_type(bll):
     author = factories.create_user("author", ["workspace"], False)
 
@@ -2894,6 +2956,7 @@ DAL_AUDIT_EXCLUDED = {
     "delete_file_from_request",
     "record_review",
     "start_new_turn",
+    "get_released_files_for_workspace",
 }
 
 
