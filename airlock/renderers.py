@@ -53,12 +53,13 @@ class Renderer:
         if cache_id is None:
             cache_id = filesystem_key(stat)
 
+        if cls.is_text:
+            stream: IO[Any] = abspath.open("r", errors="replace")
+        else:
+            stream = abspath.open("rb")
+
         return cls(
-            stream=(
-                abspath.open("r", errors="replace")
-                if cls.is_text
-                else abspath.open("rb")
-            ),
+            stream=stream,
             file_cache_id=cache_id,
             last_modified=formatdate(stat.st_mtime, usegmt=True),
             filename=path.name,
@@ -68,12 +69,13 @@ class Renderer:
     def from_contents(
         cls, contents: bytes, relpath: UrlPath, cache_id: str
     ) -> Renderer:
+        if cls.is_text:
+            stream: IO[Any] = StringIO(contents.decode("utf8", errors="replace"))
+        else:
+            stream = BytesIO(contents)
+
         return cls(
-            stream=(
-                StringIO(contents.decode("utf8", errors="replace"))
-                if cls.is_text
-                else BytesIO(contents)
-            ),
+            stream=stream,
             file_cache_id=cache_id,
             filename=relpath.name,
         )
