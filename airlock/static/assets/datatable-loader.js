@@ -3,8 +3,8 @@ const observer = new MutationObserver((mutations, obs) => {
     "button.datatable-sorter"
   );
   if (sorterButton) {
-    document.querySelector("#csvtable p.spinner").style.display = "none";
-    document.querySelector("#csvtable table.datatable").style.display = "table";
+    document.querySelector("#airlock-table p.spinner").style.display = "none";
+    document.querySelector("#airlock-table table.datatable").style.display = "table";
     obs.disconnect();
     clearTimeout();
     return;
@@ -25,8 +25,8 @@ setTimeout(() => {
     "button.datatable-sorter"
   );
   if (!sorterButton) {
-    document.querySelector("#csvtable p.spinner").style.display = "none";
-    document.querySelector("#csvtable table.datatable").style.display = "table";
+    document.querySelector("#airlock-table p.spinner").style.display = "none";
+    document.querySelector("#airlock-table table.datatable").style.display = "table";
     const sortIcons = document.getElementsByClassName("sort-icon");
     for (let i = 0; i < sortIcons.length; i++) {
       sortIcons.item(i).style.display = "none";;
