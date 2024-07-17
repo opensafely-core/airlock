@@ -14,7 +14,7 @@
 
   <body>
 
-    <div id="csvtable">
+    <div id="airlock-table">
       {% if use_datatables %}
         <p class="spinner">Loading table data...</p>
         <table class="datatable" style="display: none" id="customTable">
@@ -48,7 +48,7 @@
 
   </div>
 
-  <script src="{% static 'assets/file_browser/csv.js' %}"></script>
+  <script src="{% static 'assets/datatable-loader.js' %}"></script>
 </body>
 
 </html>
