@@ -3,6 +3,8 @@ import json
 import subprocess
 import tempfile
 import time
+import typing
+from dataclasses import dataclass, field
 from hashlib import file_digest
 from pathlib import Path
 
@@ -10,7 +12,6 @@ from django.conf import settings
 
 from airlock.business_logic import (
     AuditEvent,
-    AuditEventType,
     CodeRepo,
     ReleaseRequest,
     RequestFile,
@@ -265,7 +266,7 @@ def create_request_at_status(
     workspace,
     status,
     author=None,
-    files=[],
+    files=None,
     checker=None,
     withdrawn_after=None,
     **kwargs,
@@ -273,8 +274,8 @@ def create_request_at_status(
     """
     Create a valid request at the given status.
 
-    Files must be provided for any status that needs them, in the appropriate reviewed
-    state (e.g. an approved/released status requires at least one fully approved output file).
+    Files must be provided for any status except PENDING. To move to
+    PARTIALLY_REVIEWED and beyond, you will also need to approve or reject.
 
     Files are provided using a factory method for creating them. e.g.
 
@@ -324,17 +325,18 @@ def create_request_at_status(
     )
 
     # add all files
-    for add_file in files:
-        add_file(request)
-
-    request = refresh_release_request(request)
-
-    # if we add files, we should add context & controls
     if files:
+        for testfile in files:
+            testfile.add(request)
+
+        request = refresh_release_request(request)
+
+        # if we add files, we should add context & controls
         for filegroup in request.filegroups:
             dummy_context = "This is some testing context"
             dummy_controls = "I got rid of all the small numbers"
             bll.group_edit(request, filegroup, dummy_context, dummy_controls, author)
+
         request = refresh_release_request(request)
 
     if status == RequestStatus.PENDING:
@@ -346,6 +348,12 @@ def create_request_at_status(
 
     bll.submit_request(request, author)
     request = refresh_release_request(request)
+
+    if files:
+        # apply votes to files.
+        for testfile in files:
+            testfile.vote(request)
+        request = refresh_release_request(request)
 
     if status == RequestStatus.SUBMITTED:
         return request
@@ -409,18 +417,6 @@ def create_request_at_status(
     raise Exception(f"invalid state: {status}")  # pragma: no cover
 
 
-def request_file(
-    group="group", path="test/file.txt", approved=False, rejected=False, **kwargs
-):
-    def add_file(request):
-        request = refresh_release_request(request)
-        add_request_file(
-            request, group, path, approved=approved, rejected=rejected, **kwargs
-        )
-
-    return add_file
-
-
 def add_request_file(
     request,
     group,
@@ -428,10 +424,7 @@ def add_request_file(
     contents="",
     user=None,
     filetype=RequestFileType.OUTPUT,
-    approved=False,
     workspace=None,
-    rejected=False,
-    checkers=None,
 ) -> ReleaseRequest:
     request = refresh_release_request(request)
     # if ensure_workspace is passed a string, it will always create a
@@ -448,15 +441,9 @@ def add_request_file(
     if user is None:  # pragma: nocover
         user = create_user(request.author, workspaces=[workspace.name])
 
-    checkers = checkers or get_default_output_checkers()
-
     bll.add_file_to_request(
         request, relpath=path, user=user, group_name=group, filetype=filetype
     )
-    if approved:
-        review_file(request, path, RequestFileVote.APPROVED, *checkers)
-    elif rejected:
-        review_file(request, path, RequestFileVote.REJECTED, *checkers)
 
     return refresh_release_request(request)
 
@@ -495,25 +482,87 @@ def review_file(request, relpath, status, *users):
         # use the DAL directly means we can add reviews regardless of request
         # state, which is very useful in test setup.
         if status == RequestFileVote.APPROVED:
-            bll._dal.approve_file(
+            bll.approve_file(
                 request,
-                relpath=relpath,
-                username=user.username,
-                audit=create_audit_event(
-                    AuditEventType.REQUEST_FILE_APPROVE, user=user.username
-                ),
+                request.get_request_file_from_output_path(relpath),
+                user=user,
             )
         elif status == RequestFileVote.REJECTED:
-            bll._dal.reject_file(
+            bll.reject_file(
                 request,
-                relpath=relpath,
-                username=user.username,
-                audit=create_audit_event(
-                    AuditEventType.REQUEST_FILE_REJECT, user=user.username
-                ),
+                request.get_request_file_from_output_path(relpath),
+                user=user,
             )
         else:
             raise AssertionError(f"unrecognised status; {status}")  # pragma: no cover
+
+
+@dataclass
+class TestRequestFile:
+    """Placeholder containing file metadata.
+
+    Allows us to set up file states declaratively. Use the add() and vote()
+    methods can be called with a request in the right state.
+    """
+
+    group: str
+    path: UrlPath | str
+    user: User
+    contents: str = ""
+    filetype: RequestFileType = RequestFileType.OUTPUT
+    workspace: str | None = None
+
+    # voting
+    approved: bool = False
+    rejected: bool = False
+    checkers: typing.Sequence[User] = field(default_factory=list)
+
+    def add(self, request):
+        request = refresh_release_request(request)
+        add_request_file(
+            request,
+            group=self.group,
+            path=self.path,
+            contents=self.contents,
+            user=self.user,
+            filetype=self.filetype,
+            workspace=self.workspace,
+        )
+
+    def vote(self, request: ReleaseRequest):
+        if self.approved:
+            review_file(request, self.path, RequestFileVote.APPROVED, *self.checkers)
+        elif self.rejected:
+            review_file(request, self.path, RequestFileVote.REJECTED, *self.checkers)
+
+
+def request_file(
+    group="group",
+    path="test/file.txt",
+    contents="",
+    filetype=RequestFileType.OUTPUT,
+    user=None,
+    approved=False,
+    rejected=False,
+    checkers=None,
+    **kwargs,
+) -> TestRequestFile:
+    """Helper function to define some test file metadata
+
+    At the right points, this metadata will be used to populate and act on
+    a request.
+    """
+    return TestRequestFile(
+        group=group,
+        path=path,
+        contents=contents,
+        filetype=filetype,
+        user=user,
+        # voting
+        approved=approved,
+        rejected=rejected,
+        checkers=checkers or [],
+    )
 
 
 def complete_independent_review(request, *users):
