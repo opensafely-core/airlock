@@ -372,7 +372,7 @@ def test_request_returned_author_get_workspace_file_status(bll):
 
 def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
-    factories.add_request_file(release_request, "group", "bar.html")
+    release_request = factories.add_request_file(release_request, "group", "bar.html")
 
     assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
     assert release_request.get_id() == "id"

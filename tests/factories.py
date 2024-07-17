@@ -12,6 +12,7 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     CodeRepo,
+    ReleaseRequest,
     RequestFile,
     RequestFileType,
     RequestFileVote,
@@ -429,7 +430,8 @@ def add_request_file(
     workspace=None,
     rejected=False,
     checkers=None,
-):
+) -> ReleaseRequest:
+    request = refresh_release_request(request)
     # if ensure_workspace is passed a string, it will always create a
     # new workspace. Optionally pass a workspace instance, which will
     # ensure that adding a file uses the commit from the workspace's
@@ -453,6 +455,8 @@ def add_request_file(
         review_file(request, path, RequestFileVote.APPROVED, *checkers)
     elif rejected:
         review_file(request, path, RequestFileVote.REJECTED, *checkers)
+
+    return refresh_release_request(request)
 
 
 def create_request_file_bad_path(request_file, bad_path):

@@ -130,7 +130,7 @@ def test_request_view_with_directory(airlock_client):
 def test_request_view_with_file(airlock_client, filetype):
     release_request = factories.create_release_request("workspace")
     airlock_client.login(output_checker=True)
-    factories.add_request_file(
+    release_request = factories.add_request_file(
         release_request, "group", "file.txt", "foobar", filetype=filetype
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}/group/file.txt")
@@ -145,7 +145,9 @@ def test_request_view_with_file(airlock_client, filetype):
 def test_request_view_with_file_htmx(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_release_request("workspace")
-    factories.add_request_file(release_request, "group", "file.txt", "foobar")
+    release_request = factories.add_request_file(
+        release_request, "group", "file.txt", "foobar"
+    )
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt",
         headers={"HX-Request": "true"},
