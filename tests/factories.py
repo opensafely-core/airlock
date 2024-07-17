@@ -137,13 +137,15 @@ def update_manifest(workspace: Workspace | str, files=None):
         ]
 
     for i, f in enumerate(files):
-        manifest["outputs"][str(f)] = get_output_metadata(
+        name = str(f)
+        current = manifest.get("outputs", {}).get(name, {})
+        manifest["outputs"][name] = get_output_metadata(
             root / f,
             level="moderately_senstive",
             job_id=f"job_{i}",
             job_request=f"job_request_{i}",
             action=f"action_{i}",
-            commit=commit,
+            commit=current.get("commit", commit),
             repo=repo,
             excluded=False,
         )
