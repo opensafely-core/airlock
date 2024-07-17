@@ -260,6 +260,17 @@ def request_view(request, request_id: str, path: str = ""):
         else:
             file_reset_review_url = None
 
+    if (
+        release_request.is_under_review()
+        and user_has_reviewed_all_files
+        and not user_has_completed_review
+    ):
+        request_action_required = (
+            "You have reviewed all files. You can now complete your review."
+        )
+    else:
+        request_action_required = None
+
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
@@ -292,6 +303,7 @@ def request_view(request, request_id: str, path: str = ""):
         "can_comment": can_comment,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
+        "request_action_required": request_action_required,
         # TODO, but for now stops template variable errors
         "multiselect_url": "",
         "code_url": code_url,
