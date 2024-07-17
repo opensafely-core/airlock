@@ -885,7 +885,7 @@ class ReleaseRequest:
         # edited by the author, it's not in an under-review status), we need
         # to show the decision from the previous turn, if there is one. For
         # all other (reviewing) phases, we show the current decision based on
-        # te completed reviews in this turn.
+        # the completed reviews in this turn.
         match phase:
             case ReviewTurnPhase.INDEPENDENT:
                 # already set - no one knows the current status
