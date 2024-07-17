@@ -134,6 +134,15 @@ def test_code_contents_file(airlock_client):
     assert response.content == b'<pre class="yaml">\nyaml: true\n</pre>\n'
 
 
+def test_code_contents_directory(airlock_client):
+    airlock_client.login(output_checker=True)
+    repo = factories.create_repo("workspace", files=[("somedir/foo.txt", "")])
+
+    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/somedir/")
+    assert response.status_code == 200
+    assert "foo.txt" in response.rendered_content
+
+
 def test_code_contents_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
     repo = factories.create_repo("workspace")
