@@ -77,6 +77,8 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
             "current_request": current_request,
             "return_url": return_url,
             "code_url": "",
+            # TODO, but for now stops template variable errors
+            "multiselect_url": "",
         },
     )
 
