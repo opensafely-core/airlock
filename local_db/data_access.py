@@ -130,6 +130,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def start_new_turn(self, request_id: str):
         with transaction.atomic():
             metadata = self._find_metadata(request_id)
+            metadata.turn_reviewers = ",".join(list(metadata.completed_reviews.keys()))
             metadata.completed_reviews = {}
             metadata.review_turn += 1
             metadata.save()

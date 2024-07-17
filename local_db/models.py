@@ -92,6 +92,9 @@ class RequestMetadata(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     completed_reviews = models.JSONField(default=dict)
     review_turn = models.IntegerField(default=0)
+    # comma-separated list of completed reviewers' usernames
+    # we need to store this at the end of a turn
+    turn_reviewers = models.TextField(null=True)
 
     def get_filegroups_to_dict(self):
         return {
@@ -110,6 +113,9 @@ class RequestMetadata(models.Model):
             filegroups=self.get_filegroups_to_dict(),
             completed_reviews=self.completed_reviews,
             review_turn=self.review_turn,
+            turn_reviewers=set(self.turn_reviewers.split(","))
+            if self.turn_reviewers
+            else set(),
         )
 
 
