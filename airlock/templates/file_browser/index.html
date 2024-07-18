@@ -40,10 +40,10 @@
                         </p>
                       </blockquote>
                     </div>
-                    {% #button type="submit" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}
+                    {% #button type="submit" variant="success" class="action-button" small=True id="submit-for-review-button" %}
                       I confirm I have read the documentation
                     {% /button %}
-                    {% #button variant="primary" class="action-button btn-sm" type="cancel" %}Cancel{% /button %}
+                    {% #button variant="primary" class="action-button" small=True type="cancel" %}Cancel{% /button %}
                   </form>
                 {% /card %}
               {% /modal %}
@@ -51,7 +51,7 @@
               {% comment %} Subsequent re-submission requires just a button press {% endcomment %}
               <form action="{{ request_submit_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
+                {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button" small=True id="submit-for-review-button" %}Submit for review{% /button %}
               </form>
             {% endif %}
             {% #modal id="withdrawRequest" button_small=True button_text="Withdraw this request" button_variant="warning" %}
@@ -65,7 +65,7 @@
                     recreated from scratch.
                     Please confirm you wish to withdraw this request.
                   </div>
-                  {% #button type="submit" variant="danger" class="action-button btn-sm" id="withdraw-request-confirm" %}Withdraw{% /button %}
+                  {% #button type="submit" variant="danger" class="action-button" small=True id="withdraw-request-confirm" %}Withdraw{% /button %}
                   {% #button variant="primary" type="cancel" %}Cancel{% /button %}
                 </form>
               {% /card %}
@@ -75,17 +75,17 @@
           {% if release_request.status_owner.name == "REVIEWER" %}
             {% comment %} User can complete review if they haven't already {% endcomment %}
             {% if user_has_completed_review %}
-              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+              {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
                 Complete review
                 {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
               {% /button %}
             {% elif user_has_reviewed_all_files %}
               <form action="{{ request_review_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" class="btn-sm" tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
+                {% #button type="submit" small=True tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
               </form>
             {% else %}
-              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="complete-review-button" %}
+              {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
                 Complete review
                 {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
               {% /button %}
@@ -103,21 +103,21 @@
                       from scratch. Please confirm you wish to reject this
                       request.
                     </div>
-                    {% #button type="submit" variant="danger" class="action-button btn-sm" id="reject-request-button" %}Reject request{% /button %}
+                    {% #button type="submit" variant="danger" class="action-button" small=True id="reject-request-button" %}Reject request{% /button %}
                     {% #button variant="primary" type="cancel" %}Cancel{% /button %}
                   </form>
                 {% /card %}
               {% /modal %}
               <form action="{{ request_return_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" class="btn-sm" tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
+                {% #button type="submit" small=True tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
               </form>
             {% else %}
-              {% #button disabled=True class="relative group btn-sm" variant="danger" id="reject-request-button" data-modal="rejectRequest" %}
+              {% #button disabled=True class="relative group" small=True variant="danger" id="reject-request-button" data-modal="rejectRequest" %}
                 Reject request
                 {% tooltip class="airlock-tooltip" content="Rejecting a request is disabled until review has been completed by two reviewers" %}
               {% /button %}
-              {% #button disabled=True class="relative group btn-sm" variant="secondary" id="return-request-button" %}
+              {% #button disabled=True class="relative group" small=True variant="secondary" id="return-request-button" %}
                 Return request
                 {% tooltip class="airlock-tooltip" content="Returning a request is disabled until review has been completed by two reviewers" %}
               {% /button %}
@@ -127,13 +127,13 @@
           {% if release_request.can_be_released %}
             <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
               {% csrf_token %}
-              {% #button class="btn-sm" type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}
+              {% #button small=True type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}
                 Release files
                 <img height="16" width="16" class="icon icon--green-700 animate-spin htmx-indicator" src="{% static 'icons/progress_activity.svg' %}" alt="">
               {% /button %}
             </form>
           {% elif release_request.status_owner.name == "REVIEWER" %}
-            {% #button disabled=True class="relative group btn-sm" variant="warning" id="release-files-button" %}
+            {% #button disabled=True class="relative group" small=True variant="warning" id="release-files-button" %}
               Release files
               {% tooltip class="airlock-tooltip" content="Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers" %}
             {% /button %}
