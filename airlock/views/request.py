@@ -44,8 +44,20 @@ def request_index(request):
     outstanding_requests = []
     returned_requests = []
     approved_requests = []
+
+    def get_reviewer_progress(release_request):
+        progress = f"Your review: {release_request.files_reviewed_by_reviewer_count(request.user)}/{len(release_request.output_files())} files"
+        if request.user.username not in release_request.completed_reviews:
+            progress += " (incomplete)"
+        return progress
+
     if request.user.output_checker:
-        outstanding_requests = bll.get_outstanding_requests_for_review(request.user)
+        outstanding_requests = [
+            (outstanding_request, get_reviewer_progress(outstanding_request))
+            for outstanding_request in bll.get_outstanding_requests_for_review(
+                request.user
+            )
+        ]
         returned_requests = bll.get_returned_requests(request.user)
         approved_requests = bll.get_approved_requests(request.user)
 

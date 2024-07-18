@@ -19,10 +19,13 @@
     {% if request.user.output_checker %}
       {% #card title="Outstanding requests awaiting review" %}
         {% #list_group id="outstanding-requests" %}
-          {% for request in outstanding_requests %}
-            {% #list_group_item href=request.get_url %}
-              {{ request.workspace }} by {{ request.author }} {% pill variant="info" text=request.status.name %}
-            {% /list_group_item %}
+          {% for release_request, request_progress in outstanding_requests %}
+            {% fragment as title %}{{ release_request.workspace }} by {{ release_request.author }}{% endfragment %}
+            {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=title %}
+              <p class="text-right text-xs">
+                {{ request_progress }}
+              </p>
+            {% /list_group_rich_item %}
           {% empty %}
             {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
           {% endfor %}

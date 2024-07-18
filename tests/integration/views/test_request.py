@@ -650,7 +650,7 @@ def test_request_index_user_permitted_requests(airlock_client):
     release_request = factories.create_release_request("test1", airlock_client.user)
     response = airlock_client.get("/requests/")
     authored_ids = {r.id for r in response.context["authored_requests"]}
-    outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    outstanding_ids = {r[0].id for r in response.context["outstanding_requests"]}
     returned_ids = {r.id for r in response.context["returned_requests"]}
     approved_ids = {r.id for r in response.context["approved_requests"]}
     assert authored_ids == {release_request.id}
@@ -683,7 +683,7 @@ def test_request_index_user_output_checker(airlock_client):
     response = airlock_client.get("/requests/")
 
     authored_ids = {r.id for r in response.context["authored_requests"]}
-    outstanding_ids = {r.id for r in response.context["outstanding_requests"]}
+    outstanding_ids = {r[0].id for r in response.context["outstanding_requests"]}
     returned_ids = {r.id for r in response.context["returned_requests"]}
     approved_ids = {r.id for r in response.context["approved_requests"]}
 
@@ -691,6 +691,98 @@ def test_request_index_user_output_checker(airlock_client):
     assert outstanding_ids == {r2.id}
     assert returned_ids == {r3.id}
     assert approved_ids == {r4.id}
+
+
+def test_request_index_user_request_progress(airlock_client):
+    airlock_client.login(workspaces=["test_workspace"], output_checker=True)
+    other = factories.create_user("other")
+    default_checkers = factories.get_default_output_checkers()
+
+    def generate_files(reviewed=False, checkers_a=None, checkers_b=None):
+        if checkers_a is None:
+            checkers_a = default_checkers
+        if checkers_b is None:
+            checkers_b = default_checkers
+        return [
+            factories.request_file(
+                path="afile.txt", contents="a", approved=reviewed, checkers=checkers_a
+            ),
+            factories.request_file(
+                path="bfile.txt", contents="b", approved=reviewed, checkers=checkers_b
+            ),
+        ]
+
+    # submitted, no-one has reviewed
+    r0 = factories.create_request_at_status(
+        "test_workspace",
+        status=RequestStatus.SUBMITTED,
+        files=generate_files(),
+    )
+    # submitted, all files reviewed (but not completed)
+    r1 = factories.create_request_at_status(
+        "test_workspace1",
+        status=RequestStatus.SUBMITTED,
+        files=generate_files(
+            reviewed=True,
+            checkers_a=[airlock_client.user],
+            checkers_b=[airlock_client.user],
+        ),
+    )
+    # partially reviewed by someone else, no files reviewed
+    r2 = factories.create_request_at_status(
+        "other_workspace",
+        status=RequestStatus.PARTIALLY_REVIEWED,
+        files=generate_files(reviewed=True),
+    )
+    # partially reviewed by someone else, some files reviewed
+    r3 = factories.create_request_at_status(
+        "other1_workspace",
+        status=RequestStatus.PARTIALLY_REVIEWED,
+        files=generate_files(
+            reviewed=True,
+            checkers_a=[default_checkers[0]],
+            checkers_b=[airlock_client.user, default_checkers[0]],
+        ),
+    )
+    # partially reviewed by user, all files reviewed
+    r4 = factories.create_request_at_status(
+        "other2_workspace",
+        author=other,
+        status=RequestStatus.PARTIALLY_REVIEWED,
+        files=generate_files(
+            reviewed=True,
+            checkers_a=[airlock_client.user],
+            checkers_b=[airlock_client.user, default_checkers[0]],
+        ),
+    )
+    # fully reviewed by other checkers
+    r5 = factories.create_request_at_status(
+        "other3_workspace",
+        author=other,
+        status=RequestStatus.REVIEWED,
+        files=generate_files(reviewed=True),
+    )
+    # fully reviewed by other user
+    r6_checkers = [airlock_client.user, default_checkers[0]]
+    r6 = factories.create_request_at_status(
+        "other4_workspace",
+        author=other,
+        status=RequestStatus.REVIEWED,
+        files=generate_files(
+            reviewed=True, checkers_a=r6_checkers, checkers_b=r6_checkers
+        ),
+    )
+
+    response = airlock_client.get("/requests/")
+    assert response.context["outstanding_requests"] == [
+        (r0, "Your review: 0/2 files (incomplete)"),
+        (r1, "Your review: 2/2 files (incomplete)"),
+        (r2, "Your review: 0/2 files (incomplete)"),
+        (r3, "Your review: 1/2 files (incomplete)"),
+        (r4, "Your review: 2/2 files"),
+        (r5, "Your review: 0/2 files (incomplete)"),
+        (r6, "Your review: 2/2 files"),
+    ]
 
 
 def test_request_submit_author(airlock_client):
