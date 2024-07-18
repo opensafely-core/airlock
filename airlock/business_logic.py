@@ -1074,11 +1074,17 @@ class ReleaseRequest:
             for request_file in self.output_files().values()
         )
 
-    def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
-        return all(
-            rfile.get_file_vote_for_user(reviewer)
-            not in [None, RequestFileVote.UNDECIDED]
+    def files_reviewed_by_reviewer_count(self, reviewer: User) -> int:
+        return sum(
+            1
             for rfile in self.output_files().values()
+            if rfile.get_file_vote_for_user(reviewer)
+            not in [None, RequestFileVote.UNDECIDED]
+        )
+
+    def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
+        return self.files_reviewed_by_reviewer_count(reviewer) == len(
+            self.output_files()
         )
 
     def completed_reviews_count(self):
