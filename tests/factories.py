@@ -474,8 +474,6 @@ def review_file(request, relpath, status, *users):
 
     relpath = UrlPath(relpath)
     for user in users:
-        # use the DAL directly means we can add reviews regardless of request
-        # state, which is very useful in test setup.
         if status == RequestFileVote.APPROVED:
             bll.approve_file(
                 request,
