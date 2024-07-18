@@ -656,9 +656,9 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_FILE_APPROVE,
         AuditEventType.REQUEST_REVIEW,
         AuditEventType.REQUEST_REVIEW,
-        # return reqjest
+        # return request
         AuditEventType.REQUEST_RETURN,
-        # withdraw an resubmitt
+        # withdraw and resubmit
         AuditEventType.REQUEST_FILE_WITHDRAW,
         AuditEventType.REQUEST_SUBMIT,
         # re-review

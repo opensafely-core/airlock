@@ -496,7 +496,7 @@ def review_file(request, relpath, status, *users):
 class TestRequestFile:
     """Placeholder containing file metadata.
 
-    Allows us to set up file states declaratively. Use the add() and vote()
+    Allows us to set up file states declaratively. The add() and vote()
     methods can be called with a request in the right state.
     """
 

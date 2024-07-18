@@ -1901,7 +1901,7 @@ class BusinessLogicLayer:
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
 
-        Passing upload=False will just performa the DAL actions, but not
+        Passing upload=False will just perform the DAL actions, but not
         actually attempt to upload the files. This defaults to True, and is
         primarily used for testing.
         """
