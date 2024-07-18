@@ -415,9 +415,7 @@ class Workspace:
         return reverse("workspace_view", kwargs=kwargs)
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        # this will throw FileNotFound if we have a bad file path
-        self.abspath(relpath)
-
+        # get_file_metadata will throw FileNotFound if we have a bad file path
         metadata = self.get_file_metadata(relpath)
 
         # check if file has been released once we can do that
@@ -492,10 +490,7 @@ class Workspace:
             pass
 
         # not in manifest, e.g. log file. Check disk
-        try:
-            return FileMetadata.from_path(self.abspath(relpath))
-        except BusinessLogicLayer.FileNotFound:
-            return None
+        return FileMetadata.from_path(self.abspath(relpath))
 
     def abspath(self, relpath):
         """Get absolute path for file
