@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load airlock %}
+
 {% block metatitle %}Requests |  Airlock{% endblock metatitle %}
 
 {% block content %}
@@ -8,8 +10,9 @@
 
     {% #card title="Requests by "|add:request.user.username %}
       {% #list_group id="authored-requests" %}
-        {% for request in authored_requests %}
-          {% #list_group_item href=request.get_url %}{{ request.workspace }}: {{ request.status.name }}{% /list_group_item %}
+        {% for release_request in authored_requests %}
+          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+          {% /list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No requests" description="You do not have any authored requests" %}
         {% endfor %}
@@ -34,8 +37,9 @@
 
       {% #card title="Requests returned for changes/questions" %}
         {% #list_group id="returned-requests" %}
-          {% for request in returned_requests %}
-            {% #list_group_item href=request.get_url %}{{ request.workspace }} by {{ request.author }}{% /list_group_item %}
+          {% for release_request in returned_requests %}
+            {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+            {% /list_group_rich_item %}
           {% empty %}
             {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
           {% endfor %}
@@ -45,8 +49,9 @@
       {% if approved_requests %}
         {% #card title="Approved requests awaiting release" %}
           {% #list_group id="returned-requests" %}
-            {% for request in approved_requests %}
-              {% #list_group_item href=request.get_url %}{{ request.workspace }} by {{ request.author }}{% /list_group_item %}
+            {% for release_request in approved_requests %}
+              {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+              {% /list_group_rich_item %}
             {% endfor %}
           {% /list_group %}
         {% /card %}
