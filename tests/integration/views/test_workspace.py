@@ -164,6 +164,42 @@ def test_workspace_view_with_file(airlock_client):
     assert "HX-Request" in response.headers["Vary"]
 
 
+@pytest.mark.parametrize(
+    "request_status",
+    [
+        (RequestStatus.RETURNED),
+        (RequestStatus.SUBMITTED),
+    ],
+)
+def test_workspace_view_with_updated_file(airlock_client, request_status):
+    author = factories.create_user("author", workspaces=["test-workspace"])
+
+    airlock_client.login_with_user(author)
+    # set up a returned file & request
+    path = "file.txt"
+    workspace = factories.create_workspace("test-workspace")
+
+    request = factories.create_request_at_status(
+        "test-workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path=path, group="default", rejected=True)],
+    )
+
+    if request_status != RequestStatus.RETURNED:
+        bll.set_status(request, request_status, author)
+
+    # change the file on disk
+    factories.write_workspace_file(workspace, path, contents="changed")
+
+    response = airlock_client.get("/workspaces/view/test-workspace/file.txt")
+    assert response.status_code == 200
+    assert workspace.get_contents_url(UrlPath("file.txt")) in response.rendered_content
+    assert "Update File in Request" in response.rendered_content
+    assert response.template_name == "file_browser/index.html"
+    assert "HX-Request" in response.headers["Vary"]
+
+
 def test_workspace_view_with_file_htmx(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")

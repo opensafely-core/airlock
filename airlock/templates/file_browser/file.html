@@ -8,7 +8,13 @@
           hx-target="#multiselect_modal"
           hx-swap="outerHtml"
         >
-          {% #button type="submit" name="action" value="add_files" variant="success" %}Add File to Request{% /button %}
+          {% #button type="submit" name="action" value="add_files" variant="success" %}
+            {% if path_item.workspace_status.value == "UPDATED" %}
+              Update File in Request
+            {% else %}
+              Add File to Request
+            {% endif %}
+          {% /button %}
           <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
           <input type=hidden name="next_url" value="{{ request.path }}"/>
           {% csrf_token %}
@@ -28,7 +34,11 @@
         {% /button %}
       {% elif current_request and not current_request.is_editing %}
         {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
-          Add File to Request
+          {% if path_item.workspace_status.value == "UPDATED" %}
+            Update File in Request
+          {% else %}
+            Add File to Request
+          {% endif %}
         {% /button %}
       {% else %}
         {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
