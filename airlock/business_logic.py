@@ -1041,6 +1041,8 @@ class ReleaseRequest:
         try:
             return self.get_request_file_from_urlpath(urlpath).filetype
         except BusinessLogicLayer.FileNotFound:
+            # this includes the case when urlpath is an output directory
+            # e.g. `foo` when the request contains `foo/bar.txt`
             return None
 
     def set_filegroups_from_dict(self, attrs):
