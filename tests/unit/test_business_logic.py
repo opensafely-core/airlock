@@ -219,7 +219,8 @@ def test_workspace_get_workspace_file_status(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_user(workspaces=["workspace"])
 
-    assert workspace.get_workspace_file_status(path) is None
+    with pytest.raises(bll.FileNotFound):
+        workspace.get_workspace_file_status(path)
 
     factories.write_workspace_file(workspace, path, contents="foo")
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
