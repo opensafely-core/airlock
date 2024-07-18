@@ -19,7 +19,7 @@
           {% if release_request.status_owner.name == "AUTHOR" %}
             {% if release_request.status.name == "PENDING" %}
               {% comment %} Initial submission requires confirmation modal {% endcomment %}
-              {% #modal id="submitRequest" button_text="Submit for review" button_variant="success" %}
+              {% #modal id="submitRequest" button_small=True button_text="Submit for review" button_variant="success" %}
                 {% #card container=True title="Submit this request for review" %}
                   <form action="{{ request_submit_url }}" method="POST">
                     {% csrf_token %}
@@ -54,7 +54,7 @@
                 {% #button type="submit" tooltip="This request is ready to be reviewed" variant="success" class="action-button btn-sm" id="submit-for-review-button" %}Submit for review{% /button %}
               </form>
             {% endif %}
-            {% #modal id="withdrawRequest" button_text="Withdraw this request" button_variant="warning" %}
+            {% #modal id="withdrawRequest" button_small=True button_text="Withdraw this request" button_variant="warning" %}
               {% #card container=True title="Withdraw this request" %}
                 <form action="{{ request_withdraw_url }}" method="POST">
                   {% csrf_token %}
@@ -92,7 +92,7 @@
             {% endif %}
             {% comment %} A fully reviewed request can be returned or rejected {% endcomment %}
             {% if release_request.status.name == "REVIEWED" %}
-              {% #modal id="rejectRequest" button_text="Reject request" button_variant="danger" %}
+              {% #modal id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" %}
                 {% #card container=True title="Reject this request" %}
                   <form action="{{ request_reject_url }}" method="POST">
                     {% csrf_token %}
