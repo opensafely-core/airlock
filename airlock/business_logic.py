@@ -415,11 +415,8 @@ class Workspace:
         return reverse("workspace_view", kwargs=kwargs)
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        # defence in depth, we've been given a bad file path
-        try:
-            self.abspath(relpath)
-        except BusinessLogicLayer.FileNotFound:
-            return None
+        # this will throw FileNotFound if we have a bad file path
+        self.abspath(relpath)
 
         metadata = self.get_file_metadata(relpath)
 
