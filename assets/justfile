@@ -11,17 +11,32 @@ clean:
     rm -rf $ASSETS_DIST
 
 
-update: clean
+# Update upstream assets from job-server
+update JOBSERVER_DIR="": clean
     #!/bin/bash
     set -euo pipefail
-    tmpdir=$(mktemp -d)
-    git clone --depth=1 https://github.com/opensafely-core/job-server $tmpdir
-    just -d $tmpdir --justfile $tmpdir/justfile assets-install
-    just -d $tmpdir --justfile $tmpdir/justfile assets-build
+
+    jobserver_dir={{ JOBSERVER_DIR }}
+
+    if [ -z "$jobserver_dir" ]; then
+        jobserver_dir=$(mktemp -d)
+        git clone --depth=1 https://github.com/opensafely-core/job-server "$jobserver_dir";
+    else
+        # If we have a jobserver_dir, make sure it's an absolute path, otherwise calls to
+        # the job-server --justfile below may fail unexpectedly, because we're likely to
+        # be calling this justfile from one directory up (as in just/assets update).
+        if [ ! "${jobserver_dir:0:1}" = "/" ]; then
+            echo "JOBSERVER_DIR must be an absolute path to your local job-server directory"
+            exit 1
+        fi 
+    fi
+
+    just -d "$jobserver_dir" --justfile "$jobserver_dir"/justfile assets-install
+    just -d "$jobserver_dir" --justfile "$jobserver_dir"/justfile assets-build
     mkdir -p dist templates
-    cp -r $tmpdir/templates/_components/* ./templates/_components/
-    cp $tmpdir/jobserver/views/components.py ./base_views.py
+    cp -r "$jobserver_dir"/templates/_components/* ./templates/_components/
+    cp "$jobserver_dir"/jobserver/views/components.py ./base_views.py
     mkdir -p dist
-    cp -r $tmpdir/assets/dist/* ./dist/
-    cp -r $tmpdir/assets/dist/.vite ./dist/
+    cp -r "$jobserver_dir"/assets/dist/* ./dist/
+    cp -r "$jobserver_dir"/assets/dist/.vite ./dist/
 
