@@ -199,22 +199,6 @@ def request_view(request, request_id: str, path: str = ""):
         user_has_completed_review = False
         user_has_reviewed_all_files = False
 
-    if (
-        user_has_reviewed_all_files
-        and not user_has_completed_review
-        # Only show the reminder if the request is under review. A request
-        # could have been reviewed by 3 checkers, completed by 2 and returned.
-        # We don't want to show the message to the incomplete reviewer who can't
-        # act on it.
-        and release_request.is_under_review()
-        # HTMX doesn't currently consume these messages so we shouldn't set them
-        # for HTMX requests
-        and not request.htmx
-    ):
-        messages.success(
-            request, "All files reviewed. Your review can now be completed."
-        )
-
     request_submit_url = reverse(
         "request_submit",
         kwargs={"request_id": request_id},
@@ -276,6 +260,24 @@ def request_view(request, request_id: str, path: str = ""):
         else:
             file_reset_review_url = None
 
+    if (
+        release_request.is_under_review()
+        and user_has_reviewed_all_files
+        and not user_has_completed_review
+    ):
+        request_action_required = (
+            "You have reviewed all files. You can now complete your review."
+        )
+    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
+        request.user
+    ):
+        if release_request.can_be_released():
+            request_action_required = "Two independent reviews have been completed. You can now return, reject or release this request."
+        else:
+            request_action_required = "Two independent reviews have been completed. You can now return or reject this request."
+    else:
+        request_action_required = None
+
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
@@ -308,6 +310,7 @@ def request_view(request, request_id: str, path: str = ""):
         "can_comment": can_comment,
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
+        "request_action_required": request_action_required,
         # TODO, but for now stops template variable errors
         "multiselect_url": "",
         "code_url": code_url,

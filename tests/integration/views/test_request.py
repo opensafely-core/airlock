@@ -196,7 +196,7 @@ def test_request_view_with_submitted_request(airlock_client):
         ),
     ],
 )
-def test_request_view_complete_review_message(airlock_client, files, has_message):
+def test_request_view_complete_review_alert(airlock_client, files, has_message):
     checker = factories.get_default_output_checkers()[0]
     airlock_client.login(checker.username, output_checker=True)
     release_request = factories.create_request_at_status(
@@ -207,15 +207,109 @@ def test_request_view_complete_review_message(airlock_client, files, has_message
 
     # The all-files-reviewed reminder message is only shown if the request has
     # output files and all have been reviewed
-    if has_message:
-        assert "All files reviewed" in list(response.context["messages"])[0].message
-    else:
-        assert not list(response.context["messages"])
+    assert (
+        "You can now complete your review" in response.rendered_content
+    ) == has_message
 
     # The all-files-reviewed reminder message is never shown to an author
     airlock_client.login(release_request.author, workspaces=["workspace"])
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert not list(response.context["messages"])
+    assert "You can now complete your review" not in response.rendered_content
+
+
+@pytest.mark.parametrize(
+    "request_status,author,login_as,files,has_message,can_release",
+    [
+        (
+            # invalid status for message
+            RequestStatus.PARTIALLY_REVIEWED,
+            "researcher",
+            "checker",
+            [factories.request_file(approved=True)],
+            False,
+            False,
+        ),
+        (
+            # reviewed and all approved, output-checker can return/reject/release
+            RequestStatus.REVIEWED,
+            "researcher",
+            "checker",
+            [factories.request_file(approved=True)],
+            True,
+            True,
+        ),
+        (
+            # reviewed and not all approved, output-checker can return/reject
+            RequestStatus.REVIEWED,
+            "researcher",
+            "checker",
+            [
+                factories.request_file(approved=True, path="foo.txt"),
+                factories.request_file(rejected=True, path="bar.txt"),
+            ],
+            True,
+            False,
+        ),
+        (
+            # reviewed and all approved, output-checker is author
+            RequestStatus.REVIEWED,
+            "checker",
+            "checker",
+            [factories.request_file(approved=True)],
+            False,
+            False,
+        ),
+        (
+            # reviewed and all approved, logged in as non output-checker
+            RequestStatus.REVIEWED,
+            "researcher",
+            "researcher1",
+            [factories.request_file(approved=True)],
+            False,
+            False,
+        ),
+        (
+            # reviewed and all approved, logged in as author
+            RequestStatus.REVIEWED,
+            "researcher",
+            "researcher",
+            [factories.request_file(approved=True)],
+            False,
+            False,
+        ),
+    ],
+)
+def test_request_view_complete_turn_alert(
+    airlock_client, request_status, author, login_as, files, has_message, can_release
+):
+    """
+    Alert message shown when a request has two completed reviews and
+    can now be progressed by returning/rejecting/releasing
+    """
+    users = {
+        "researcher": factories.create_user("researcher", workspaces=["workspace"]),
+        "researcher1": factories.create_user("researcher", output_checker=False),
+        "checker": factories.create_user("checker", output_checker=True),
+    }
+    airlock_client.login(users[login_as].username, output_checker=True)
+    release_request = factories.create_request_at_status(
+        "workspace", author=users[author], status=request_status, files=files
+    )
+
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+
+    # The reminder message is only shown if the request in REVIEWED status
+    # and the user is an output checker and not the author
+    if has_message:
+        if can_release:
+            assert (
+                "You can now return, reject or release this request"
+                in response.rendered_content
+            )
+        else:
+            assert "You can now return or reject" in response.rendered_content
+    else:
+        assert "You can now return" not in response.rendered_content
 
 
 def test_request_view_with_reviewed_request(airlock_client):
@@ -741,7 +835,7 @@ def test_request_review_output_checker(airlock_client):
 
     response = airlock_client.get(release_request.get_url())
     # Files have been reviewed but review has not been completed yet
-    assert "All files reviewed" in list(response.context["messages"])[0].message
+    assert "You can now complete your review" in response.rendered_content
 
     response = airlock_client.post(
         f"/requests/review/{release_request.id}", follow=True
@@ -757,7 +851,7 @@ def test_request_review_output_checker(airlock_client):
 
     response = airlock_client.get(release_request.get_url())
     # Reminder message no longer shown now that review is complete
-    assert list(response.context["messages"]) == []
+    assert "You can now complete your review" not in response.rendered_content
 
 
 def test_request_review_non_output_checker(airlock_client):
