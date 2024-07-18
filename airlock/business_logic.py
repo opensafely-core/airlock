@@ -1910,11 +1910,15 @@ class BusinessLogicLayer:
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
-    def release_files(self, release_request: ReleaseRequest, user: User):
+    def release_files(self, release_request: ReleaseRequest, user: User, upload=True):
         """Release all files from a release_request to job-server.
 
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
+
+        Passing upload=False will just perform the DAL actions, but not
+        actually attempt to upload the files. This defaults to True, and is
+        primarily used for testing.
         """
 
         # we check this is valid status transition *before* releasing the files
@@ -1924,12 +1928,16 @@ class BusinessLogicLayer:
         self.validate_file_types(file_paths)
 
         filelist = old_api.create_filelist(file_paths, release_request)
-        jobserver_release_id = old_api.create_release(
-            release_request.workspace,
-            release_request.id,
-            filelist.json(),
-            user.username,
-        )
+
+        if upload:
+            jobserver_release_id = old_api.create_release(
+                release_request.workspace,
+                release_request.id,
+                filelist.json(),
+                user.username,
+            )
+        else:
+            jobserver_release_id = None
 
         for relpath, abspath in file_paths:
             audit = AuditEvent.from_request(
@@ -1939,7 +1947,11 @@ class BusinessLogicLayer:
                 path=relpath,
             )
             self._dal.release_file(release_request.id, relpath, user.username, audit)
-            old_api.upload_file(jobserver_release_id, relpath, abspath, user.username)
+
+            if upload:
+                old_api.upload_file(
+                    jobserver_release_id, relpath, abspath, user.username
+                )
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
 

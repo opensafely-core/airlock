@@ -569,7 +569,7 @@ def test_workspace_multiselect_add_files_one_valid(airlock_client, bll):
     release_request = factories.create_release_request(
         workspace, user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group1", "test/path1.txt")
+    factories.add_request_file(release_request, "group1", "test/path1.txt")
 
     response = airlock_client.post(
         "/workspaces/multiselect/test1",
@@ -598,8 +598,8 @@ def test_workspace_multiselect_add_files_none_valid(airlock_client, bll):
     release_request = factories.create_release_request(
         workspace, user=airlock_client.user
     )
-    factories.write_request_file(release_request, "group1", "test/path1.txt")
-    factories.write_request_file(release_request, "group1", "test/path2.txt")
+    factories.add_request_file(release_request, "group1", "test/path1.txt")
+    factories.add_request_file(release_request, "group1", "test/path2.txt")
 
     response = airlock_client.post(
         "/workspaces/multiselect/test1",

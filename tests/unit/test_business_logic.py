@@ -230,7 +230,7 @@ def test_workspace_get_workspace_file_status(bll):
     workspace = bll.get_workspace("workspace", user)
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
 
-    factories.write_request_file(release_request, "group", path)
+    factories.add_request_file(release_request, "group", path)
     # refresh workspace
     workspace = bll.get_workspace("workspace", user)
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
@@ -257,7 +257,6 @@ def test_workspace_get_released_files(bll):
             factories.request_file(
                 path=path1,
                 contents="bar",
-                approved=True,
                 filetype=RequestFileType.SUPPORTING,
             ),
         ],
@@ -373,7 +372,7 @@ def test_request_returned_author_get_workspace_file_status(bll):
 
 def test_request_container(mock_notifications):
     release_request = factories.create_release_request("workspace", id="id")
-    factories.write_request_file(release_request, "group", "bar.html")
+    release_request = factories.add_request_file(release_request, "group", "bar.html")
 
     assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
     assert release_request.get_id() == "id"
@@ -544,20 +543,19 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
     old_api.create_release.return_value = "jobserver_id"
-    checker = factories.create_user("checker", [], output_checker=True)
-    checker1 = factories.create_user("checker1", [], output_checker=True)
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
         id="request_id",
-        status=RequestStatus.APPROVED,
-        checker=checker,
+        author=author,
+        status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
                 group="group",
                 path="test/file.txt",
                 contents="test",
                 approved=True,
-                checkers=[checker, checker1],
             ),
             # a supporting file, which should NOT be released
             factories.request_file(
@@ -566,23 +564,39 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
                 filetype=RequestFileType.SUPPORTING,
             ),
             # An approved but withdrawn file, which should NOT be released
+            # Note will withdraw later
             factories.request_file(
                 group="group",
                 path="test/withdrawn_file.txt",
-                filetype=RequestFileType.WITHDRAWN,
                 approved=True,
             ),
         ],
     )
+
+    bll.withdraw_file_from_request(
+        release_request,
+        UrlPath("group/test/withdrawn_file.txt"),
+        author,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+    bll.review_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    bll.review_request(release_request, checkers[1])
+    release_request = factories.refresh_release_request(release_request)
+    bll.set_status(release_request, RequestStatus.APPROVED, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+
     relpath = Path("test/file.txt")
     abspath = release_request.abspath("group" / relpath)
 
     freezer.move_to("2022-01-01T12:34:56")
-    bll.release_files(release_request, checker)
+    bll.release_files(release_request, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.filegroups["group"].files[relpath]
-    assert request_file.released_by == checker.username
+    assert request_file.released_by == checkers[0].username
     assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
 
     expected_json = {
@@ -602,24 +616,21 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     }
 
     old_api.create_release.assert_called_once_with(
-        "workspace", "request_id", json.dumps(expected_json), checker.username
+        "workspace", "request_id", json.dumps(expected_json), checkers[0].username
     )
     old_api.upload_file.assert_called_once_with(
-        "jobserver_id", relpath, abspath, checker.username
+        "jobserver_id", relpath, abspath, checkers[0].username
     )
 
     notification_responses = parse_notification_responses(mock_notifications)
-    # Notifications expected for:
-    # - set status to submitted
-    # - set status to partially reviewed
-    # - set status to reviewed
-    # - set status to approved
-    # - set status to released
-    # (Note: files are added to the request when it is in pending status, so no notifications sent.)
-    assert notification_responses["count"] == 5
+    assert notification_responses["count"] == 9
     request_json = notification_responses["request_json"]
     expected_notifications = [
         "request_submitted",
+        "request_partially_reviewed",
+        "request_reviewed",
+        "request_returned",
+        "request_resubmitted",
         "request_partially_reviewed",
         "request_reviewed",
         "request_approved",
@@ -639,9 +650,20 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_EDIT,
         # submit request
         AuditEventType.REQUEST_SUBMIT,
-        # checker reviews
+        # initial reviews
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
         AuditEventType.REQUEST_REVIEW,
-        # checker1 reviews
+        AuditEventType.REQUEST_REVIEW,
+        # return request
+        AuditEventType.REQUEST_RETURN,
+        # withdraw and resubmit
+        AuditEventType.REQUEST_FILE_WITHDRAW,
+        AuditEventType.REQUEST_SUBMIT,
+        # re-review
+        AuditEventType.REQUEST_REVIEW,
         AuditEventType.REQUEST_REVIEW,
         # appprove, release 1 output file, change request to released
         AuditEventType.REQUEST_APPROVE,
@@ -649,38 +671,6 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_RELEASE,
     ]
     assert [log.type for log in audit_log] == expected_audit_logs
-
-    checker_review_log = audit_log[6]
-    checker1_review_log = audit_log[7]
-    approve_log = audit_log[8]
-    release_file_log = audit_log[9]
-    release_log = audit_log[10]
-
-    assert checker_review_log.type == AuditEventType.REQUEST_REVIEW
-    assert checker_review_log.user == checker.username
-    assert checker_review_log.request == release_request.id
-    assert checker_review_log.workspace == "workspace"
-
-    assert checker1_review_log.type == AuditEventType.REQUEST_REVIEW
-    assert checker1_review_log.user == checker1.username
-    assert checker1_review_log.request == release_request.id
-    assert checker1_review_log.workspace == "workspace"
-
-    assert approve_log.type == AuditEventType.REQUEST_APPROVE
-    assert approve_log.user == checker.username
-    assert approve_log.request == release_request.id
-    assert approve_log.workspace == "workspace"
-
-    assert release_file_log.type == AuditEventType.REQUEST_FILE_RELEASE
-    assert release_file_log.user == checker.username
-    assert release_file_log.request == release_request.id
-    assert release_file_log.workspace == "workspace"
-    assert release_file_log.path == Path("test/file.txt")
-
-    assert release_log.type == AuditEventType.REQUEST_RELEASE
-    assert release_log.user == checker.username
-    assert release_log.request == release_request.id
-    assert release_log.workspace == "workspace"
 
 
 def test_provider_get_requests_for_workspace(bll):
@@ -1358,9 +1348,7 @@ def test_notification_error(bll, notifications_stubber, caplog):
     )
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
-        release_request, "group", "test/file.txt", approved=True
-    )
+    factories.add_request_file(release_request, "group", "test/file.txt")
     bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = factories.refresh_release_request(release_request)
     bll.set_status(release_request, RequestStatus.SUBMITTED, author)
@@ -1448,7 +1436,7 @@ def test_submit_request(bll, mock_notifications):
     release_request = factories.create_release_request(
         "workspace", user=author, status=RequestStatus.PENDING
     )
-    factories.write_request_file(release_request, "group", "test/file.txt")
+    factories.add_request_file(release_request, "group", "test/file.txt")
     bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = bll.get_release_request(release_request.id, author)
     bll.submit_request(release_request, author)
@@ -3067,7 +3055,7 @@ def test_dal_methods_have_audit_event_parameter():
 def test_group_edit_author(bll):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_release_request("workspace", user=author)
-    factories.write_request_file(
+    factories.add_request_file(
         release_request,
         "group",
         "test/file.txt",

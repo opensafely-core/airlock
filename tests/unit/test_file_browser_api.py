@@ -36,9 +36,9 @@ def workspace():
 @pytest.fixture
 def release_request(workspace):
     rr = factories.create_release_request(workspace)
-    factories.write_request_file(rr, "group1", "some_dir/file_a.txt")
-    factories.write_request_file(rr, "group1", "some_dir/file_c.txt")
-    factories.write_request_file(rr, "group2", "some_dir/file_b.txt")
+    factories.add_request_file(rr, "group1", "some_dir/file_a.txt")
+    factories.add_request_file(rr, "group1", "some_dir/file_c.txt")
+    factories.add_request_file(rr, "group2", "some_dir/file_b.txt")
     return factories.refresh_release_request(rr)
 
 
