@@ -622,18 +622,6 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     )
 
     notification_responses = parse_notification_responses(mock_notifications)
-    # Notifications expected for:
-    # - set status to submitted
-    # - set status to partially reviewed
-    # - set status to reviewed
-    # - set status to returned
-    # - set status to submitted
-    # - set status to partially reviewed
-    # - set status to reviewed
-    # - set status to returned
-    # - set status to approved
-    # - set status to released
-    # (Note: files are added to the request when it is in pending status, so no notifications sent.)
     assert notification_responses["count"] == 9
     request_json = notification_responses["request_json"]
     expected_notifications = [
