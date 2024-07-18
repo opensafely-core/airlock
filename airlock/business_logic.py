@@ -52,6 +52,13 @@ class RequestStatus(Enum):
     RETURNED = "RETURNED"
     RELEASED = "RELEASED"
 
+    def description(self):
+        if self == RequestStatus.PARTIALLY_REVIEWED:
+            return "1 REVIEW COMPLETE"
+        if self == RequestStatus.REVIEWED:
+            return "ALL REVIEWS COMPLETE"
+        return self.name
+
 
 class RequestStatusOwner(Enum):
     """Who can write to a request in this state."""
