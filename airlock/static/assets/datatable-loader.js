@@ -1,4 +1,4 @@
-const observer = new MutationObserver((mutations, obs) => {
+var observer = new MutationObserver((mutations, obs) => {
   const sorterButton = document.querySelector(
     "button.datatable-sorter"
   );
