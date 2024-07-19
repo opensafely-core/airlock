@@ -496,7 +496,7 @@ def file_reject(request, request_id, path: str):
         raise Http404()
 
     try:
-        bll.reject_file(release_request, request_file, request.user)
+        bll.request_changes_to_file(release_request, request_file, request.user)
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 

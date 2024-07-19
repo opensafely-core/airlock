@@ -143,7 +143,12 @@ class ReviewTurnPhase(Enum):
 
 
 class AuditEventType(Enum):
-    """Audit log events."""
+    """Audit log events.
+
+    Note that the string values are stored in the local_db database via
+    AuditEvent.type.  Any changes to values will require a database migration.
+    See eg #562.
+    """
 
     # file access
     WORKSPACE_FILE_VIEW = "WORKSPACE_FILE_VIEW"
@@ -170,7 +175,7 @@ class AuditEventType(Enum):
     REQUEST_FILE_UPDATE = "REQUEST_FILE_UPDATE"
     REQUEST_FILE_WITHDRAW = "REQUEST_FILE_WITHDRAW"
     REQUEST_FILE_APPROVE = "REQUEST_FILE_APPROVE"
-    REQUEST_FILE_REJECT = "REQUEST_FILE_REJECT"
+    REQUEST_FILE_REQUEST_CHANGES = "REQUEST_FILE_REQUEST_CHANGES"
     REQUEST_FILE_RESET_REVIEW = "REQUEST_FILE_RESET_REVIEW"
     REQUEST_FILE_UNDECIDED = "REQUEST_FILE_UNDECIDED"
     REQUEST_FILE_RELEASE = "REQUEST_FILE_RELEASE"
@@ -214,7 +219,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_UPDATE: "Updated file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
-    AuditEventType.REQUEST_FILE_REJECT: "Changes requested to file",
+    AuditEventType.REQUEST_FILE_REQUEST_CHANGES: "Changes requested to file",
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
     AuditEventType.REQUEST_FILE_UNDECIDED: "Rejected file moved to undecided",
     AuditEventType.REQUEST_FILE_RELEASE: "File released",
@@ -1209,7 +1214,7 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
-    def reject_file(
+    def request_changes_to_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
         raise NotImplementedError()
@@ -2019,7 +2024,7 @@ class BusinessLogicLayer:
             release_request.id, request_file.relpath, user.username, audit
         )
 
-    def reject_file(
+    def request_changes_to_file(
         self,
         release_request: ReleaseRequest,
         request_file: RequestFile,
@@ -2033,13 +2038,13 @@ class BusinessLogicLayer:
 
         audit = AuditEvent.from_request(
             request=release_request,
-            type=AuditEventType.REQUEST_FILE_REJECT,
+            type=AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
             user=user,
             path=request_file.relpath,
             group=request_file.group,
         )
 
-        self._dal.reject_file(
+        self._dal.request_changes_to_file(
             release_request.id, request_file.relpath, user.username, audit
         )
 

@@ -286,7 +286,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
 
-    def reject_file(
+    def request_changes_to_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
         with transaction.atomic():
