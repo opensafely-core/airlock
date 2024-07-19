@@ -476,6 +476,40 @@ def test_e2e_update_file(page, live_server, dev_users):
     )
 
 
+def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
+    """
+    Test researcher updates a modified file in a returned request
+    """
+    # Set up a returned request with an approved file
+    author = factories.create_user("researcher", ["test-workspace"], False)
+    path = "subdir/file.txt"
+
+    release_request = factories.create_request_at_status(
+        "test-workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path=path, group="default", approved=True)],
+    )
+
+    login_as(live_server, page, "researcher")
+
+    # Withdraw file after it's been reviewd
+    page.goto(live_server.url + release_request.get_url("default/subdir/file.txt"))
+    find_and_click(page.locator("#withdraw-file-button"))
+
+    # Change our mind: go to workspace page and re-add it
+    workspace = bll.get_workspace("test-workspace", author)
+    page.goto(live_server.url + workspace.get_url("subdir/"))
+    find_and_click(page.locator('input[name="selected"]'))
+    find_and_click(page.locator("button[value=add_files]"))
+    find_and_click(page.get_by_role("form").locator("#add-file-button"))
+
+    # Confirm it's been re-added
+    expect(page.locator("body")).to_contain_text(
+        "Output file has been updated in request"
+    )
+
+
 def test_e2e_reject_request(page, live_server, dev_users):
     """
     Test output-checker rejects a release request
