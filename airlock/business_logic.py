@@ -432,8 +432,9 @@ class Workspace:
                 raise BusinessLogicLayer.ManifestFileError(
                     f"no file metadata available for {relpath}"
                 )
-
-            if rfile.file_id == metadata.content_hash:
+            if rfile.filetype is RequestFileType.WITHDRAWN:
+                return WorkspaceFileStatus.WITHDRAWN
+            elif rfile.file_id == metadata.content_hash:
                 return WorkspaceFileStatus.UNDER_REVIEW
             else:
                 return WorkspaceFileStatus.CONTENT_UPDATED
@@ -1794,10 +1795,10 @@ class BusinessLogicLayer:
             )
 
         workspace = self.get_workspace(release_request.workspace, user)
-        if (
-            workspace.get_workspace_file_status(UrlPath(relpath))
-            != WorkspaceFileStatus.CONTENT_UPDATED
-        ):
+        if workspace.get_workspace_file_status(UrlPath(relpath)) not in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]:
             raise self.RequestPermissionDenied(
                 "Cannot update file in request if it is not updated on disk"
             )

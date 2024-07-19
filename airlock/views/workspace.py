@@ -228,6 +228,7 @@ def multiselect_add_files(request, multiform, workspace):
         if state in [
             WorkspaceFileStatus.UNRELEASED,
             WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
         ]:
             files_to_add.append(f)
         elif state == WorkspaceFileStatus.RELEASED:
@@ -312,7 +313,10 @@ def workspace_add_file_to_request(request, workspace_name):
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
         status = workspace.get_workspace_file_status(UrlPath(relpath))
-        if status == WorkspaceFileStatus.CONTENT_UPDATED:
+        if status in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]:
             try:
                 bll.update_file_in_request(
                     release_request, relpath, request.user, group_name, filetype
@@ -322,8 +326,12 @@ def workspace_add_file_to_request(request, workspace_name):
                 msgs.append(f"{relpath}: {err}")
             else:
                 success = True
+                if status is WorkspaceFileStatus.CONTENT_UPDATED:
+                    verb_phrase = "updated in"
+                else:
+                    verb_phrase = "added to"
                 msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been updated in request (file group '{group_name}')",
+                    f"{relpath}: {filetype.name.title()} file has been {verb_phrase} request (file group '{group_name}')",
                 )
         else:
             try:
