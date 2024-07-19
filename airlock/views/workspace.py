@@ -326,8 +326,12 @@ def workspace_add_file_to_request(request, workspace_name):
                 msgs.append(f"{relpath}: {err}")
             else:
                 success = True
+                if status is WorkspaceFileStatus.CONTENT_UPDATED:
+                    verb_phrase = "updated in"
+                else:
+                    verb_phrase = "added to"
                 msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been updated in request (file group '{group_name}')",
+                    f"{relpath}: {filetype.name.title()} file has been {verb_phrase} request (file group '{group_name}')",
                 )
         else:
             try:

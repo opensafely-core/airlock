@@ -506,7 +506,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
 
     # Confirm it's been re-added
     expect(page.locator("body")).to_contain_text(
-        "Output file has been updated in request"
+        "Output file has been added to request"
     )
 
 
