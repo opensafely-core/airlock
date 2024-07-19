@@ -1795,10 +1795,10 @@ class BusinessLogicLayer:
             )
 
         workspace = self.get_workspace(release_request.workspace, user)
-        if (
-            workspace.get_workspace_file_status(UrlPath(relpath))
-            != WorkspaceFileStatus.CONTENT_UPDATED
-        ):
+        if workspace.get_workspace_file_status(UrlPath(relpath)) not in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]:
             raise self.RequestPermissionDenied(
                 "Cannot update file in request if it is not updated on disk"
             )

@@ -1918,6 +1918,35 @@ def test_withdraw_file_from_request_returned(bll):
     assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.WITHDRAWN
 
 
+def test_readd_withdrawn_file_to_request_returned(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=True,
+            ),
+        ],
+    )
+
+    bll.withdraw_file_from_request(release_request, "group" / path, user=author)
+
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.WITHDRAWN
+
+    bll.update_file_in_request(release_request, path, group_name="group", user=author)
+
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+
 @pytest.mark.parametrize(
     "status",
     [
