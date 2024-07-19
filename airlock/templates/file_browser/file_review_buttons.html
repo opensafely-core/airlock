@@ -37,7 +37,12 @@
   </button>
 {% endif %}
 
-{% if request.htmx %}
+{% comment %}
+These hx-swap-oob elements should only be rendered if this was loaded by an htmx vote.
+Note we can't just rely on request.htmx here, because the tree also loads this
+content by htmx.
+{% endcomment %}
+{% if htmx_vote %}
   <div hx-swap-oob="true" id="your-vote">
     {% include 'file_browser/_includes/vote.html' %}
   </div>

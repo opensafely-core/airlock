@@ -328,6 +328,7 @@ def request_view(request, request_id: str, path: str = ""):
         "group_comment_delete_url": group_comment_delete_url,
         "vote": "",
         "decision": "",
+        "htmx_vote": False,
     }
 
     return TemplateResponse(request, template, context)
@@ -506,6 +507,7 @@ def file_vote_response(request, release_request_id, path, user):
     vote = request_file_status.vote
 
     context = {
+        "htmx_vote": True,
         "vote": vote,
         "decision": request_file_status.decision,
         "file_approve_url": (
