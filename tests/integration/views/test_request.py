@@ -728,13 +728,15 @@ def test_request_index_user_request_progress(airlock_client):
             checkers_b=[airlock_client.user],
         ),
     )
-    # partially reviewed by someone else, no files reviewed
+    # completed review by other checker, making the request partially reviewed.
+    # no files reviewed by the user.
     r2 = factories.create_request_at_status(
         "other_workspace",
         status=RequestStatus.PARTIALLY_REVIEWED,
         files=generate_files(reviewed=True),
     )
-    # partially reviewed by someone else, some files reviewed
+    # completed review by other checker, making the request partially reviewed.
+    # some files reviewed by the user.
     r3 = factories.create_request_at_status(
         "other1_workspace",
         status=RequestStatus.PARTIALLY_REVIEWED,
@@ -744,7 +746,7 @@ def test_request_index_user_request_progress(airlock_client):
             checkers_b=[airlock_client.user, default_checkers[0]],
         ),
     )
-    # partially reviewed by user, all files reviewed
+    # review completed by the user, making the request partially reviewed
     r4 = factories.create_request_at_status(
         "other2_workspace",
         author=other,
@@ -762,7 +764,7 @@ def test_request_index_user_request_progress(airlock_client):
         status=RequestStatus.REVIEWED,
         files=generate_files(reviewed=True),
     )
-    # fully reviewed by other user
+    # fully reviewed by user & one other checker
     r6_checkers = [airlock_client.user, default_checkers[0]]
     r6 = factories.create_request_at_status(
         "other4_workspace",
