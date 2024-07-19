@@ -6,6 +6,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
+from django.utils.text import slugify
+
 from airlock.business_logic import (
     ROOT_PATH,
     AirlockContainer,
@@ -86,6 +88,10 @@ class PathItem:
             children=[self],
             expanded=True,
         )
+
+    def slug(self):
+        "Slugified relpath that can be used as an id for htmx"
+        return slugify(str(self.relpath))
 
     def name(self):
         if self.relpath == ROOT_PATH:

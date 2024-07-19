@@ -20,7 +20,7 @@ from airlock.business_logic import (
     RequestStatus,
     bll,
 )
-from airlock.file_browser_api import get_request_tree
+from airlock.file_browser_api import PathItem, get_request_tree
 from airlock.forms import GroupCommentDeleteForm, GroupCommentForm, GroupEditForm
 from airlock.types import UrlPath
 from services.tracing import instrument
@@ -515,6 +515,11 @@ def file_vote_response(request, release_request_id, path, user):
             file_reject_url if vote != RequestFileVote.REJECTED else None
         ),
         "file_reset_review_url": file_reset_review_url if vote is not None else None,
+        "path_item": PathItem(
+            container=release_request,
+            request_status=request_file_status,
+            relpath=UrlPath(path),
+        ),
     }
 
     return render(request, "file_browser/file_review_buttons.html", context)
