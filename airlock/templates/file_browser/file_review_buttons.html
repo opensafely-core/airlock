@@ -1,0 +1,52 @@
+{% if file_approve_url %}
+  <form hx-post="{{ file_approve_url }}" hx-target="#file-review-buttons" hx-swap="innerHtml">
+    {% csrf_token %}
+    <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
+      Approve file
+    </button>
+  </form>
+{% elif file_reset_review_url and file_reject_url %}
+  <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-approve-button" disabled="true">
+    Approve file
+  </button>
+{% endif %}
+
+{% if file_reject_url %}
+  <form hx-post="{{ file_reject_url }}" hx-target="#file-review-buttons" hx-swap="innerHtml">
+    {% csrf_token %}
+    <button aria-pressed="false" class="btn-group__btn" id="file-reject-button" type="submit">
+      Request changes
+    </button>
+  </form>
+{% elif file_reset_review_url and file_approve_url %}
+  <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-reject-button" disabled="true">
+    Request changes
+  </button>
+{% endif %}
+
+{% if file_reset_review_url %}
+  <form hx-post="{{ file_reset_review_url }}" hx-target="#file-review-buttons" hx-swap="innerHtml">
+    {% csrf_token %}
+    <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reset-button" type="submit">
+      Undecided
+    </button>
+  </form>
+{% elif file_approve_url and file_reject_url %}
+  <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" disabled="true">
+    Undecided
+  </button>
+{% endif %}
+
+{% if request.htmx %}
+  <div hx-swap-oob="true" id="your-vote">
+    {% include 'file_browser/_includes/vote.html' %}
+  </div>
+
+  <div hx-swap-oob="true" id="file-decision">
+    {% include 'file_browser/_includes/decision.html' %}
+  </div>
+
+  <span hx-swap-oob="true" id="{{ path_item.slug }}">
+    {% include "file_browser/_includes/file_leaf.html" %}
+  </span>
+{% endif %}

@@ -1,0 +1,7 @@
+{% if vote %}
+  <span>Your review:
+    <span class="file-status file-status--{{ vote.name.lower }}">
+      {{ vote.description }}
+    </span>
+  </span>
+{% endif %}

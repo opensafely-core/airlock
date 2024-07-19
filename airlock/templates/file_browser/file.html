@@ -61,15 +61,11 @@
       {% endif %}
 
       {% if path_item.is_output %}
-        {% with decision=path_item.request_status.decision %}
-          <div class="request-file-status">
-            <span>Decision:
-              <span class="file-status file-status--{{ decision.name.lower }}">
-                {{ decision.description }}
-              </span>
-            </span>
-          </div>
-        {% endwith %}
+        <div id="file-decision">
+          {% with decision=path_item.request_status.decision %}
+            {% include 'file_browser/_includes/decision.html' %}
+          {% endwith %}
+        </div>
       {% endif %}
 
       {% if is_author %}
@@ -84,58 +80,14 @@
         {% endif %}
       {% elif is_output_checker %}
         {% if path_item.is_output %}
-          <div>
+          <div id="your-vote">
             {% with vote=path_item.request_status.vote %}
-              {% if vote %}
-                <span>Your review:
-                  <span class="file-status file-status--{{ vote.name.lower }}">
-                    {{ vote.description }}
-                  </span>
-                </span>
-              {% endif %}
+              {% include 'file_browser/_includes/vote.html' %}
             {% endwith %}
           </div>
         {% endif %}
-
-        <div class="btn-group">
-          {% if file_approve_url %}
-            <form action="{{ file_approve_url }}" method="POST">
-              {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
-                Approve file
-              </button>
-            </form>
-          {% elif file_reset_review_url and file_reject_url %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-approve-button" disabled="true">
-              Approve file
-            </button>
-          {% endif %}
-
-          {% if file_reject_url %}
-            <form action="{{ file_reject_url }}" method="POST">
-              {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn" id="file-reject-button" type="submit">
-                Request changes
-              </button>
-            </form>
-          {% elif file_reset_review_url and file_approve_url %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-reject-button" disabled="true">
-              Request changes
-            </button>
-          {% endif %}
-
-          {% if file_reset_review_url %}
-            <form action="{{ file_reset_review_url }}" method="POST">
-              {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reset-button" type="submit">
-                Undecided
-              </button>
-            </form>
-          {% elif file_approve_url and file_reject_url %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" disabled="true">
-              Undecided
-            </button>
-          {% endif %}
+        <div class="btn-group" id="file-review-buttons" >
+          {% include 'file_browser/file_review_buttons.html' %}
         </div>
       {% endif %}
     {% endif %}

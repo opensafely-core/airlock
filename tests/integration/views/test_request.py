@@ -1093,7 +1093,7 @@ def test_file_approve(airlock_client):
     response = airlock_client.post(
         f"/requests/approve/{release_request.id}/group/{path}"
     )
-    assert response.status_code == 302
+    assert response.status_code == 200
     relpath = UrlPath(path)
     review = (
         bll.get_release_request(release_request.id, author)
@@ -1120,7 +1120,7 @@ def test_file_reject(airlock_client):
     response = airlock_client.post(
         f"/requests/reject/{release_request.id}/group/{path}"
     )
-    assert response.status_code == 302
+    assert response.status_code == 200
     relpath = UrlPath(path)
     review = (
         bll.get_release_request(release_request.id, author)
@@ -1147,7 +1147,7 @@ def test_file_reset_review(airlock_client):
     response = airlock_client.post(
         f"/requests/reject/{release_request.id}/group/{path}"
     )
-    assert response.status_code == 302
+    assert response.status_code == 200
     relpath = UrlPath(path)
     release_request = factories.refresh_release_request(release_request)
     review = release_request.get_request_file_from_output_path(relpath).reviews[
@@ -1160,7 +1160,7 @@ def test_file_reset_review(airlock_client):
     response = airlock_client.post(
         f"/requests/reset_review/{release_request.id}/group/{path}"
     )
-    assert response.status_code == 302
+    assert response.status_code == 200
     relpath = UrlPath(path)
     release_request = factories.refresh_release_request(release_request)
     reviews = release_request.filegroups["group"].files[relpath].reviews

@@ -1,0 +1,9 @@
+{% if decision %}
+  <div class="request-file-status">
+    <span>Decision:
+      <span class="file-status file-status--{{ decision.name.lower }}">
+        {{ decision.description }}
+      </span>
+    </span>
+  </div>
+{% endif %}

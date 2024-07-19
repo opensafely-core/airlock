@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -326,6 +326,8 @@ def request_view(request, request_id: str, path: str = ""):
         "code_url": code_url,
         "return_url": "",
         "group_comment_delete_url": group_comment_delete_url,
+        "vote": "",
+        "decision": "",
     }
 
     return TemplateResponse(request, template, context)
@@ -477,6 +479,47 @@ def requests_for_workspace(request, workspace_name: str):
     )
 
 
+def file_vote_response(request, release_request_id, path, user):
+    """
+    Get the template context following a changed vote on a file.
+    """
+    file_approve_url = reverse(
+        "file_approve",
+        kwargs={"request_id": release_request_id, "path": path},
+    )
+    file_reject_url = reverse(
+        "file_reject",
+        kwargs={"request_id": release_request_id, "path": path},
+    )
+    file_reset_review_url = reverse(
+        "file_reset_review",
+        kwargs={"request_id": release_request_id, "path": path},
+    )
+
+    # Retrieve the request again so the request file status is up-to-date
+    release_request = bll.get_release_request(release_request_id, user)
+    request_file_status = release_request.get_request_file_status(path, user)
+
+    # This is called in response to a vote or reset vote, so request_file_status
+    # should never be None
+    assert request_file_status is not None
+    vote = request_file_status.vote
+
+    context = {
+        "vote": vote,
+        "decision": request_file_status.decision,
+        "file_approve_url": (
+            file_approve_url if vote != RequestFileVote.APPROVED else None
+        ),
+        "file_reject_url": (
+            file_reject_url if vote != RequestFileVote.REJECTED else None
+        ),
+        "file_reset_review_url": file_reset_review_url if vote is not None else None,
+    }
+
+    return render(request, "file_browser/file_review_buttons.html", context)
+
+
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_approve(request, request_id, path: str):
@@ -492,7 +535,7 @@ def file_approve(request, request_id, path: str):
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
-    return redirect(release_request.get_url(path))
+    return file_vote_response(request, request_id, path, request.user)
 
 
 @instrument(func_attributes={"release_request": "request_id"})
@@ -510,7 +553,7 @@ def file_reject(request, request_id, path: str):
     except bll.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
-    return redirect(release_request.get_url(path))
+    return file_vote_response(request, request_id, path, request.user)
 
 
 @instrument(func_attributes={"release_request": "request_id"})
@@ -530,8 +573,7 @@ def file_reset_review(request, request_id, path: str):
     except bll.FileReviewNotFound:
         raise Http404()
 
-    messages.success(request, "File review has been reset")
-    return redirect(release_request.get_url(path))
+    return file_vote_response(request, request_id, path, request.user)
 
 
 @vary_on_headers("HX-Request")
