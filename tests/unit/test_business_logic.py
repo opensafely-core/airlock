@@ -1914,6 +1914,9 @@ def test_withdraw_file_from_request_returned(bll):
         group="group",
     )
 
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.WITHDRAWN
+
 
 @pytest.mark.parametrize(
     "status",
