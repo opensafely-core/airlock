@@ -943,10 +943,11 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
-        AuditEvent.from_request(
-            release_request,
-            AuditEventType.REQUEST_CREATE,
-            user=user,
+        AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace.name,
+            request=release_request.id,
         )
     ]
 
@@ -1005,10 +1006,11 @@ def test_provider_get_current_request_for_former_user(bll):
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
-        AuditEvent.from_request(
-            release_request,
-            AuditEventType.REQUEST_CREATE,
-            user=user,
+        AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace="workspace",
+            request=release_request.id,
         )
     ]
 

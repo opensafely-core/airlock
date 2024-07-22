@@ -251,6 +251,8 @@ class AuditEvent:
         **kwargs: str,
     ):
         # Note: kwargs go straight to extra
+        # set review_turn from request
+        kwargs["review_turn"] = str(request.review_turn)
         event = cls(
             type=type,
             user=user.username,
@@ -282,6 +284,21 @@ class AuditEvent:
     def description(self):
         return AUDIT_MSG_FORMATS[self.type]
 
+    @property
+    def review_turn(self) -> int:
+        return int(self.extra.get("review_turn", 0))
+
+    @property
+    def author(self) -> str:
+        return self.user
+
+    @property
+    def visibility(self) -> CommentVisibility:
+        v = self.extra.get("visibility")
+        if v:
+            return CommentVisibility[v.upper()]
+        else:
+            return CommentVisibility.PUBLIC
 
 
 class VisibleItem(Protocol):
@@ -2243,6 +2260,7 @@ class BusinessLogicLayer:
             group=group,
             comment=comment,
             review_turn=str(release_request.review_turn),
+            visibility=visibility.name,
         )
 
         self._dal.group_comment_create(
@@ -2294,11 +2312,23 @@ class BusinessLogicLayer:
         exclude_readonly: bool = False,
         size: int | None = None,
     ) -> list[AuditEvent]:
-        return self._dal.get_audit_log(
+        """Fetches the audit log for this request, filtering for what the user can see."""
+
+        audits = self._dal.get_audit_log(
             request=request.id,
             group=group,
             exclude=READONLY_EVENTS if exclude_readonly else set(),
             size=size,
+        )
+
+        return list(
+            filter_visible_items(
+                audits,
+                request.review_turn,
+                request.get_turn_phase(),
+                request.user_can_review(user),
+                user,
+            )
         )
 
     def audit_workspace_file_access(
