@@ -29,6 +29,12 @@ from services.tracing import instrument
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
 
+VALID_WORKSPACEFILE_STATES_TO_ADD = [
+    WorkspaceFileStatus.UNRELEASED,
+    WorkspaceFileStatus.CONTENT_UPDATED,
+    WorkspaceFileStatus.WITHDRAWN,
+]
+
 
 def grouped_workspaces(workspaces):
     workspaces_by_project = defaultdict(list)
@@ -87,12 +93,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         workspace.current_request is None or workspace.current_request.is_editing()
     )
 
-    valid_states_to_add = [
-        WorkspaceFileStatus.UNRELEASED,
-        WorkspaceFileStatus.CONTENT_UPDATED,
-        WorkspaceFileStatus.WITHDRAWN,
-    ]
-
     # Only show the add file form button if the multiselect_add condition is true,
     # and also this pathitem is a file that can be added to a request - i.e. it is a
     # file and it's not already on the current request for the user
@@ -100,7 +100,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         multiselect_add
         and path_item.is_valid()
         and workspace.get_workspace_file_status(path_item.relpath)
-        in valid_states_to_add
+        in VALID_WORKSPACEFILE_STATES_TO_ADD
     )
 
     activity = []
@@ -226,11 +226,7 @@ def multiselect_add_files(request, multiform, workspace):
         workspace.abspath(f)  # validate path
 
         state = workspace.get_workspace_file_status(UrlPath(f))
-        if state in [
-            WorkspaceFileStatus.UNRELEASED,
-            WorkspaceFileStatus.CONTENT_UPDATED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]:
+        if state in VALID_WORKSPACEFILE_STATES_TO_ADD:
             files_to_add.append(f)
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"
