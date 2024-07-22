@@ -161,7 +161,11 @@ def request_view(request, request_id: str, path: str = ""):
 
     if relpath == ROOT_PATH:
         # viewing the root
-        activity = bll.get_audit_log(request=release_request.id, exclude_readonly=True)
+        activity = bll.get_request_audit_log(
+            user=request.user,
+            request=release_request,
+            exclude_readonly=True,
+        )
 
     # if we are viewing a group page, load the specific group data and forms
     elif len(relpath.parts) == 1:
@@ -194,8 +198,11 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
-        group_activity = bll.get_audit_log(
-            request=release_request.id, group=group, exclude_readonly=True
+        group_activity = bll.get_request_audit_log(
+            user=request.user,
+            request=release_request,
+            group=group,
+            exclude_readonly=True,
         )
 
     if not is_author:

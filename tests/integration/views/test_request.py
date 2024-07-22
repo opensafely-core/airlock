@@ -76,7 +76,6 @@ def test_request_view_root_summary(airlock_client):
     assert ">\n      1\n    <" in response.rendered_content
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
-    assert "Created request" in response.rendered_content
 
 
 def test_request_view_root_group(airlock_client, settings):
@@ -109,7 +108,6 @@ def test_request_view_root_group(airlock_client, settings):
     assert response.status_code == 200
     assert "Recent activity" in response.rendered_content
     assert "audit_user" in response.rendered_content
-    assert "Added file" in response.rendered_content
     assert "private comment" in response.rendered_content
 
 
@@ -498,9 +496,9 @@ def test_request_contents_file(airlock_client):
     response = airlock_client.get("/requests/content/id/default/file.txt")
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
-    audit_log = bll.get_audit_log(
-        user=airlock_client.user.username,
-        request=release_request.id,
+    audit_log = bll.get_request_audit_log(
+        user=airlock_client.user,
+        request=release_request,
     )
     assert audit_log[0].type == AuditEventType.REQUEST_FILE_VIEW
     assert audit_log[0].path == UrlPath("default/file.txt")
@@ -549,9 +547,9 @@ def test_request_download_file(airlock_client):
     assert response.as_attachment
     assert list(response.streaming_content) == [b"test"]
 
-    audit_log = bll.get_audit_log(
-        user=airlock_client.user.username,
-        request=release_request.id,
+    audit_log = bll.get_request_audit_log(
+        user=airlock_client.user,
+        request=release_request,
     )
     assert audit_log[0].type == AuditEventType.REQUEST_FILE_DOWNLOAD
     assert audit_log[0].path == UrlPath("default/file.txt")
@@ -632,9 +630,9 @@ def test_request_download_file_permissions(
         assert response.as_attachment
         assert list(response.streaming_content) == [b"test"]
 
-        audit_log = bll.get_audit_log(
-            user=airlock_client.user.username,
-            request=release_request.id,
+        audit_log = bll.get_request_audit_log(
+            user=airlock_client.user,
+            request=release_request,
         )
         assert audit_log[0].type == AuditEventType.REQUEST_FILE_DOWNLOAD
     else:
