@@ -2291,19 +2291,16 @@ class BusinessLogicLayer:
             release_request.id, group, comment_id, user.username, audit
         )
 
-    def get_audit_log(
+    def get_request_audit_log(
         self,
-        user: str | None = None,
-        workspace: str | None = None,
-        request: str | None = None,
+        user: User,
+        request: ReleaseRequest,
         group: str | None = None,
         exclude_readonly: bool = False,
         size: int | None = None,
     ) -> list[AuditEvent]:
         return self._dal.get_audit_log(
-            user=user,
-            workspace=workspace,
-            request=request,
+            request=request.id,
             group=group,
             exclude=READONLY_EVENTS if exclude_readonly else set(),
             size=size,
