@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Protocol, Self, cast
+from typing import Any, Protocol, Self, Sequence, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -286,6 +286,61 @@ class AuditEvent:
 
     def description(self):
         return AUDIT_MSG_FORMATS[self.type]
+
+
+
+class VisibleItem(Protocol):
+    @property
+    def author(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def review_turn(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def visibility(self) -> CommentVisibility:
+        raise NotImplementedError()
+
+
+def filter_visible_items(
+    items: Sequence[VisibleItem],
+    current_turn: int,
+    current_phase: ReviewTurnPhase,
+    can_see_private: bool,
+    user: User,
+):
+    """Filter a list of items to only include items this user is allowed to view.
+
+    This depends on the current turn, phase, and whether the user is the author
+    of said item.
+    """
+    for item in items:
+        # you can always see things you've authored. Doing this first
+        # simplifies later logic, and avoids potential bugs with users adding
+        # items but then they can not see the item they just added
+        if item.author == user.username:
+            yield item
+            continue
+
+        match item.visibility:
+            case CommentVisibility.PUBLIC:
+                # can always see public comments from previous rounds
+                if item.review_turn < current_turn:
+                    yield item
+                elif current_phase == ReviewTurnPhase.CONSOLIDATING and can_see_private:
+                    yield item
+            case CommentVisibility.PRIVATE:
+                if can_see_private:
+                    # can see private comments from previous round
+                    if item.review_turn < current_turn:
+                        yield item
+                    # we have completed independent review stage, so output
+                    # checker's can see private comments
+                    elif current_phase != ReviewTurnPhase.INDEPENDENT:
+                        yield item
+            case _:  # pragma: nocover
+                assert False
 
 
 class AirlockContainer(Protocol):
@@ -919,11 +974,14 @@ class ReleaseRequest:
     ) -> list[tuple[Comment, dict[str, str]]]:
         filegroup = self.filegroups[group]
         current_phase = self.get_turn_phase()
-        can_see_review_comments = self.user_can_review(user)
+        can_see_private = self.user_can_review(user)
 
         comments = []
+        visible_comments = filter_visible_items(
+            filegroup.comments, self.review_turn, current_phase, can_see_private, user
+        )
 
-        for comment in filegroup.comments:
+        for comment in visible_comments:
             if current_phase == ReviewTurnPhase.INDEPENDENT:
                 # comments are temporarily hidden
                 metadata = {
@@ -936,32 +994,7 @@ class ReleaseRequest:
                     "class": f"comment_{comment.visibility.name.lower()}",
                 }
 
-            # you can always see comments you've authored. Doing this first
-            # simplifies later logic, and avoids potential bugs with users
-            # adding comments but then they can see the comment they just added
-            if comment.author == user.username:
-                comments.append((comment, metadata))
-                continue
-
-            match comment.visibility:
-                case CommentVisibility.PUBLIC:
-                    # can always see public comments from previous rounds
-                    if comment.review_turn < self.review_turn:
-                        comments.append((comment, metadata))
-                    elif current_phase == ReviewTurnPhase.CONSOLIDATING:
-                        if can_see_review_comments:
-                            comments.append((comment, metadata))
-                case CommentVisibility.PRIVATE:
-                    if can_see_review_comments:
-                        # can see private comments from previous round
-                        if comment.review_turn < self.review_turn:
-                            comments.append((comment, metadata))
-                        # we have completed independent review stage, so output
-                        # checker's can see private comments
-                        elif current_phase != ReviewTurnPhase.INDEPENDENT:
-                            comments.append((comment, metadata))
-                case _:  # pragma: nocover
-                    assert False
+            comments.append((comment, metadata))
 
         return comments
 
