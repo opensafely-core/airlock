@@ -52,6 +52,13 @@ class RequestStatus(Enum):
     RETURNED = "RETURNED"
     RELEASED = "RELEASED"
 
+    def description(self):
+        if self == RequestStatus.PARTIALLY_REVIEWED:
+            return "1 REVIEW COMPLETE"
+        if self == RequestStatus.REVIEWED:
+            return "ALL REVIEWS COMPLETE"
+        return self.name
+
 
 class RequestStatusOwner(Enum):
     """Who can write to a request in this state."""
@@ -1065,11 +1072,17 @@ class ReleaseRequest:
             for request_file in self.output_files().values()
         )
 
-    def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
-        return all(
-            rfile.get_file_vote_for_user(reviewer)
-            not in [None, RequestFileVote.UNDECIDED]
+    def files_reviewed_by_reviewer_count(self, reviewer: User) -> int:
+        return sum(
+            1
             for rfile in self.output_files().values()
+            if rfile.get_file_vote_for_user(reviewer)
+            not in [None, RequestFileVote.UNDECIDED]
+        )
+
+    def all_files_reviewed_by_reviewer(self, reviewer: User) -> bool:
+        return self.files_reviewed_by_reviewer_count(reviewer) == len(
+            self.output_files()
         )
 
     def completed_reviews_count(self):

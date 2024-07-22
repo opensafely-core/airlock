@@ -299,8 +299,10 @@ def test_e2e_release_files(
     find_and_click(page.get_by_test_id("nav-requests"))
     expect(page).to_have_url(live_server.url + "/requests/")
 
-    request_link = page.locator("#authored-requests").get_by_role("link")
-    expect(request_link).to_contain_text("SUBMITTED")
+    authored_request_locator = page.locator("#authored-requests")
+    expect(authored_request_locator).to_contain_text("SUBMITTED")
+
+    request_link = authored_request_locator.get_by_role("link")
     # The literal request URL in the html includes the root path (".")
     expect(request_link).to_have_attribute("href", f"/requests/view/{request_id}/")
 
