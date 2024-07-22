@@ -1,0 +1,7 @@
+{% if request_action_required %}
+  <div class="mt-4">
+    {% #alert variant="warning" title="Action required" dismissible=True %}
+      {{ request_action_required }}
+    {% /alert %}
+  </div>
+{% endif %}

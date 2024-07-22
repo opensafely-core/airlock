@@ -73,6 +73,30 @@ def request_index(request):
     )
 
 
+def get_request_action_required(
+    release_request, user, user_has_reviewed_all_files, user_has_completed_review
+):
+    if (
+        release_request.is_under_review()
+        and user_has_reviewed_all_files
+        and not user_has_completed_review
+    ):
+        request_action_required = (
+            "You have reviewed all files. You can now complete your review."
+        )
+    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
+        user
+    ):
+        if release_request.can_be_released():
+            request_action_required = "Two independent reviews have been completed. You can now return, reject or release this request."
+        else:
+            request_action_required = "Two independent reviews have been completed. You can now return or reject this request."
+    else:
+        request_action_required = None
+
+    return request_action_required
+
+
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 @require_http_methods(["GET"])
@@ -270,23 +294,12 @@ def request_view(request, request_id: str, path: str = ""):
         else:
             file_reset_review_url = None
 
-    if (
-        release_request.is_under_review()
-        and user_has_reviewed_all_files
-        and not user_has_completed_review
-    ):
-        request_action_required = (
-            "You have reviewed all files. You can now complete your review."
-        )
-    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
-        request.user
-    ):
-        if release_request.can_be_released():
-            request_action_required = "Two independent reviews have been completed. You can now return, reject or release this request."
-        else:
-            request_action_required = "Two independent reviews have been completed. You can now return or reject this request."
-    else:
-        request_action_required = None
+    request_action_required = get_request_action_required(
+        release_request,
+        request.user,
+        user_has_reviewed_all_files,
+        user_has_completed_review,
+    )
 
     context = {
         "workspace": bll.get_workspace(release_request.workspace, request.user),
@@ -506,8 +519,39 @@ def file_vote_response(request, release_request_id, path, user):
     assert request_file_status is not None
     vote = request_file_status.vote
 
+    # For the request review buttons. These might need to change if the request is in
+    # REVIEWED state and the user has changed their vote
+    user_has_completed_review = user.username in release_request.completed_reviews
+    user_has_reviewed_all_files = (
+        release_request.output_files()
+        and release_request.all_files_reviewed_by_reviewer(user)
+    )
+    request_review_url = reverse(
+        "request_review",
+        kwargs={"request_id": release_request.id},
+    )
+    request_reject_url = reverse(
+        "request_reject",
+        kwargs={"request_id": release_request.id},
+    )
+    request_return_url = reverse(
+        "request_return",
+        kwargs={"request_id": release_request.id},
+    )
+    release_files_url = reverse(
+        "request_release_files",
+        kwargs={"request_id": release_request.id},
+    )
+
+    # For the request action alert (complete review, return/reject/release).
+    # This may also need to refresh depending on the latest vote
+    request_action_required = get_request_action_required(
+        release_request, user, user_has_reviewed_all_files, user_has_completed_review
+    )
+
     context = {
         "htmx_vote": True,
+        "release_request": release_request,
         "vote": vote,
         "decision": request_file_status.decision,
         "file_approve_url": (
@@ -522,6 +566,13 @@ def file_vote_response(request, release_request_id, path, user):
             request_status=request_file_status,
             relpath=UrlPath(path),
         ),
+        "user_has_completed_review": user_has_completed_review,
+        "user_has_reviewed_all_files": user_has_reviewed_all_files,
+        "request_review_url": request_review_url,
+        "request_reject_url": request_reject_url,
+        "request_return_url": request_return_url,
+        "release_files_url": release_files_url,
+        "request_action_required": request_action_required,
     }
 
     return render(request, "file_browser/file_review_buttons.html", context)

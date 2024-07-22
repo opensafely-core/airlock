@@ -1,0 +1,69 @@
+{% load static %}
+<div class="btn-group request-btn-group">
+  {% if release_request.status_owner.name == "REVIEWER" %}
+{% comment %} User can complete review if they haven't already {% endcomment %}
+    {% if user_has_completed_review %}
+      {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
+        Complete review
+        {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
+      {% /button %}
+    {% elif user_has_reviewed_all_files %}
+      <form action="{{ request_review_url }}" method="POST">
+        {% csrf_token %}
+        {% #button type="submit" small=True tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
+      </form>
+    {% else %}
+      {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
+        Complete review
+        {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
+      {% /button %}
+    {% endif %}
+{% comment %} A fully reviewed request can be returned or rejected {% endcomment %}
+    {% if release_request.status.name == "REVIEWED" %}
+      {% #modal id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" %}
+        {% #card container=True title="Reject this request" %}
+          <form action="{{ request_reject_url }}" method="POST">
+            {% csrf_token %}
+
+            <div class="pb-8">
+              This will reject the entire request. Once a request is
+              rejected, it cannot be resubmitted and must be recreated
+              from scratch. Please confirm you wish to reject this
+              request.
+            </div>
+            {% #button type="submit" variant="danger" class="action-button" small=True id="reject-request-button" %}Reject request{% /button %}
+            {% #button variant="primary" type="cancel" %}Cancel{% /button %}
+          </form>
+        {% /card %}
+      {% /modal %}
+      <form action="{{ request_return_url }}" method="POST">
+        {% csrf_token %}
+        {% #button type="submit" small=True tooltip="Return request for changes/clarification" variant="secondary" id="return-request-button" %}Return request{% /button %}
+      </form>
+    {% else %}
+      {% #button disabled=True class="relative group" small=True variant="danger" id="reject-request-button" data-modal="rejectRequest" %}
+        Reject request
+        {% tooltip class="airlock-tooltip" content="Rejecting a request is disabled until review has been completed by two reviewers" %}
+      {% /button %}
+      {% #button disabled=True class="relative group" small=True variant="secondary" id="return-request-button" %}
+        Return request
+        {% tooltip class="airlock-tooltip" content="Returning a request is disabled until review has been completed by two reviewers" %}
+      {% /button %}
+    {% endif %}
+  {% endif %}
+{% comment %} A fully reviewed or approved request can be released if all its files are also approved {% endcomment %}
+  {% if release_request.can_be_released %}
+    <form action="{{ release_files_url }}" method="POST" hx-post="{{ release_files_url }}" hx-disabled-elt="button">
+      {% csrf_token %}
+      {% #button small=True type="submit" tooltip="Release files to jobs.opensafely.org" variant="warning" id="release-files-button" %}
+        Release files
+        <img height="16" width="16" class="icon icon--green-700 animate-spin htmx-indicator" src="{% static 'icons/progress_activity.svg' %}" alt="">
+      {% /button %}
+    </form>
+  {% elif release_request.status_owner.name == "REVIEWER" %}
+    {% #button disabled=True class="relative group" small=True variant="warning" id="release-files-button" %}
+      Release files
+      {% tooltip class="airlock-tooltip" content="Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers" %}
+    {% /button %}
+  {% endif %}
+</div>

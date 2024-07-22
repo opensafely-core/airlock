@@ -54,4 +54,13 @@ content by htmx.
   <span hx-swap-oob="true" id="{{ path_item.slug }}">
     {% include "file_browser/_includes/file_leaf.html" %}
   </span>
+
+  <div hx-swap-oob="true" id="request-review-buttons">
+    {% include "file_browser/_includes/request_review_buttons.html" %}
+  </div>
+
+  <div hx-swap-oob="true" id="action-required-alert">
+    {% include "file_browser/_includes/action_required_alert.html" %}
+  </div>
+
 {% endif %}
