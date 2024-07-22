@@ -90,6 +90,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     valid_states_to_add = [
         WorkspaceFileStatus.UNRELEASED,
         WorkspaceFileStatus.CONTENT_UPDATED,
+        WorkspaceFileStatus.WITHDRAWN,
     ]
 
     # Only show the add file form button if the multiselect_add condition is true,
