@@ -1,6 +1,7 @@
 import hashlib
 import inspect
 import json
+from dataclasses import dataclass
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
@@ -16,16 +17,20 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     CodeRepo,
+    Comment,
     CommentVisibility,
     DataAccessLayerProtocol,
     NotificationEventType,
+    ReleaseRequest,
     RequestFileDecision,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
+    ReviewTurnPhase,
     Workspace,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.users import User
 from tests import factories
 
 
@@ -2150,12 +2155,67 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
-def test_get_visible_comments_for_group(bll):
+@dataclass
+class VisibleItems:
+    """Helper class to make assertions about visiblity of comments and audit logs."""
+
+    comments: list[Comment]
+    audits: list[AuditEvent]
+
+    @classmethod
+    def for_group(
+        cls, request: ReleaseRequest, user: User, group, bll: BusinessLogicLayer
+    ):
+        return cls(
+            comments=request.get_visible_comments_for_group(group, user),
+            audits=bll.get_request_audit_log(user, request, group),
+        )
+
+    def is_comment_visible(self, text: str, author: User) -> bool:
+        for c, _ in self.comments:
+            if c.comment == text and c.author == author.username:
+                return True
+
+        return False
+
+    def is_audit_visible(self, type_: AuditEventType, author: User) -> bool:
+        for audit in self.audits:
+            if audit.type == type_ and audit.user == author.username:
+                return True
+
+        return False
+
+    def comment(self, text: str, author: User) -> bool:
+        """Is this comment in the list of visible items we have?"""
+        if not self.is_comment_visible(text=text, author=author):
+            return False
+
+        return self.is_audit_visible(
+            type_=AuditEventType.REQUEST_COMMENT, author=author
+        )
+
+    def vote(self, vote: RequestFileVote, author: User) -> bool:
+        """Is this vote in the list of visible items we have?"""
+        match vote:
+            case RequestFileVote.APPROVED:
+                event_type = AuditEventType.REQUEST_FILE_APPROVE
+            case RequestFileVote.REJECTED:
+                event_type = AuditEventType.REQUEST_FILE_REQUEST_CHANGES
+            case _:  # pragma: nocover
+                assert False
+
+        return self.is_audit_visible(type_=event_type, author=author)
+
+
+def test_request_comment_and_audit_visibility(bll):
     # This test is long and complex.
     #
-    # It walks through a couple of rounds of back and forth review, validating
-    # that the comments that are visibile to various users at different points
-    # in the process are correct.
+    # It tests both get_visible_comments_for_group() and
+    # get_request_audit_log(), and uses the custom VisibleItems helper above.
+    #
+    # It walks through a couple of rounds and turns of back and forth review,
+    # validating that the comments that are visibile to various users at
+    # different points in the process are correct.
     #
     author = factories.create_user("author1", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
@@ -2164,7 +2224,7 @@ def test_get_visible_comments_for_group(bll):
         "workspace",
         status=RequestStatus.SUBMITTED,
         author=author,
-        files=[factories.request_file(group="group", approved=True)],
+        files=[factories.request_file(group="group", path="file.txt", approved=True)],
     )
 
     bll.group_comment_create(
@@ -2182,23 +2242,34 @@ def test_get_visible_comments_for_group(bll):
         checkers[1],
     )
 
-    # helper function to fetch the current comments for a user
-    def get_comments(user):
-        nonlocal release_request
-        release_request = factories.refresh_release_request(release_request)
-        return [
-            c[0].comment
-            for c in release_request.get_visible_comments_for_group("group", user)
-        ]
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.INDEPENDENT, can only see own comments
-    assert get_comments(checkers[0]) == ["turn 1 checker 0 private"]
-    assert get_comments(checkers[1]) == ["turn 1 checker 1 private"]
-    assert get_comments(author) == []
     assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    def get_visible_items(user):
+        return VisibleItems.for_group(release_request, user, "group", bll)
+
+    # in ReviewTurnPhase.INDEPENDENT, checkers can only see own comments, author can see nothing
+    visible = get_visible_items(checkers[0])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
+
+    visible = get_visible_items(checkers[1])
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
 
     factories.submit_independent_review(release_request)
-
     bll.group_comment_create(
         release_request,
         "group",
@@ -2206,39 +2277,31 @@ def test_get_visible_comments_for_group(bll):
         CommentVisibility.PUBLIC,
         checkers[0],
     )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.CONSOLIDATING, checkers should see all private comments
-    # and pending public comments, but author should not see any yet
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == []
     assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
+
+    # in ReviewTurnPhase.CONSOLIDATING, checkers should see all private comments
+    # and pending public comments, but author should not see any yet
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+
+    # author still cannot see anything
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert not visible.comment("turn 1 checker 0 public", checkers[0])
 
     bll.return_request(release_request, checkers[0])
-
-    # in RequestPhase.COMPLETE, checkers should see all private comments
-    # and pending public comments, but author should not see any yet
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public"]
-    assert release_request.review_turn == 2
-
+    release_request = factories.refresh_release_request(release_request)
     bll.group_comment_create(
         release_request,
         "group",
@@ -2246,24 +2309,34 @@ def test_get_visible_comments_for_group(bll):
         CommentVisibility.PUBLIC,
         author,
     )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.AUTHOR, checkers should see all public/private comments
-    # they've made, but not any the author has made, as it hasn't yet been
-    # returned.
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    assert release_request.review_turn == 2
+    assert release_request.get_turn_phase() == ReviewTurnPhase.AUTHOR
+
+    # in ReviewTurnPhase.AUTHOR, checkers should see turn 1 comments, but not authors turn 2 comments.
+    # Author should turn 1 and 2 public comments
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert not visible.comment("turn 2 author public", author)
+
+    # author can see al turn 1 public comments and votes, their turn 2 public comments, but no private comments.
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
 
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 3
 
     bll.group_comment_create(
         release_request,
@@ -2279,52 +2352,53 @@ def test_get_visible_comments_for_group(bll):
         CommentVisibility.PRIVATE,
         checkers[1],
     )
+    # checker0 rejects the file now. Not realistic, but we want to check that
+    # the audit log for later round votes is hidden
+    bll.request_changes_to_file(
+        release_request,
+        release_request.get_request_file_from_output_path("file.txt"),
+        checkers[0],
+    )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.INDEPENDENT for a 2nd round
+    # in ReviewTurnPhase.INDEPENDENT for a 2nd round
     # Checkers should see previous round's private comments, but not this rounds
     # Author should see previous round's public comments, but not any this round
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
-    assert release_request.review_turn == 3
+    visible = get_visible_items(checkers[0])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert visible.comment("turn 3 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+
+    visible = get_visible_items(checkers[1])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert visible.comment("turn 3 checker 1 private", checkers[1])
+
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
 
     factories.submit_independent_review(release_request)
-
-    # in RequestPhase.CONSOLIDATING for a 2nd round
-    # Checkers should see previous and current round's private comments,
-    # Author should see previous round's public comments, but not any private comments
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
-
-    # assume returned
-
+    release_request = factories.refresh_release_request(release_request)
     bll.group_comment_create(
         release_request,
         "group",
@@ -2332,57 +2406,68 @@ def test_get_visible_comments_for_group(bll):
         CommentVisibility.PUBLIC,
         checkers[0],
     )
+    release_request = factories.refresh_release_request(release_request)
 
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    # in ReviewTurnPhase.CONSOLIDATING for a 2nd round
+    # Checkers should see previous and current round's private comments,
+    # Author should see previous round's public comments, but not any private comments
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert visible.comment("turn 2 author public", author)
+        assert visible.comment("turn 3 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.comment("turn 3 checker 1 private", checkers[1])
+        assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+    # author sees no private comments, and no turn 3 things.
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+    assert not visible.comment("turn 3 checker 0 public", checkers[0])
 
     bll.return_request(release_request, checkers[0])
-
-    # in RequestPhase.COMPLETE for a 2nd round
-    # Checkers should see all historic comments,
-    # Author should see previous round's public comments, but not any private comments
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(author) == [
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 public",
-    ]
-
+    release_request = factories.refresh_release_request(release_request)
     assert release_request.review_turn == 4
+
+    # in ReviewTurnPhase.COMPLETE for a 2nd round
+    # Author should see previous round's public comments, but not any private comments
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert visible.comment("turn 2 author public", author)
+        assert visible.comment("turn 3 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.comment("turn 3 checker 1 private", checkers[1])
+        assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+    # author sees no private comments, and no turn 3 things.
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+    assert visible.comment("turn 3 checker 0 public", checkers[0])
 
 
 def test_release_request_filegroups_with_no_files(bll):
