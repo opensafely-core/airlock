@@ -2477,6 +2477,185 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 3 checker 0 public", checkers[0])
 
 
+def test_get_visible_comments_for_group_metadata(bll):
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(group="group", path="file.txt", approved=True)],
+    )
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 private",
+        Visibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 1 private",
+        Visibility.PRIVATE,
+        checkers[1],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 public",
+        Visibility.PUBLIC,
+        checkers[0],
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    def get_comment_metadata(user):
+        return [
+            m for _, m in release_request.get_visible_comments_for_group("group", user)
+        ]
+
+    assert get_comment_metadata(checkers[0]) == [
+        {
+            "description": Visibility.PRIVATE.independent_description(),
+            "class": "comment_blinded",
+        },
+        {
+            "description": Visibility.PUBLIC.independent_description(),
+            "class": "comment_blinded",
+        },
+    ]
+
+    assert get_comment_metadata(checkers[1]) == [
+        {
+            "description": Visibility.PRIVATE.independent_description(),
+            "class": "comment_blinded",
+        },
+    ]
+
+    assert get_comment_metadata(author) == []
+
+    factories.complete_independent_review(release_request)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
+
+    for checker in checkers:
+        assert get_comment_metadata(checker) == [
+            {
+                "description": Visibility.PRIVATE.description(),
+                "class": "comment_private",
+            },
+            {
+                "description": Visibility.PRIVATE.description(),
+                "class": "comment_private",
+            },
+            {
+                "description": Visibility.PUBLIC.description(),
+                "class": "comment_public",
+            },
+        ]
+
+    assert get_comment_metadata(author) == []
+
+    bll.return_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 2
+    assert release_request.get_turn_phase() == ReviewTurnPhase.AUTHOR
+
+    for checker in checkers:
+        assert get_comment_metadata(checker) == [
+            {
+                "description": Visibility.PRIVATE.description(),
+                "class": "comment_private",
+            },
+            {
+                "description": Visibility.PRIVATE.description(),
+                "class": "comment_private",
+            },
+            {
+                "description": Visibility.PUBLIC.description(),
+                "class": "comment_public",
+            },
+        ]
+
+    assert get_comment_metadata(author) == [
+        {
+            "description": Visibility.PUBLIC.description(),
+            "class": "comment_public",
+        },
+    ]
+
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 3
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 0 private",
+        Visibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 1 private",
+        Visibility.PRIVATE,
+        checkers[1],
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    # comments from previous round are visible
+    assert get_comment_metadata(checkers[0]) == [
+        # previous round comments
+        {
+            "description": Visibility.PRIVATE.description(),
+            "class": "comment_private",
+        },
+        {
+            "description": Visibility.PRIVATE.description(),
+            "class": "comment_private",
+        },
+        {
+            "description": Visibility.PUBLIC.description(),
+            "class": "comment_public",
+        },
+        {
+            "description": Visibility.PRIVATE.independent_description(),
+            "class": "comment_blinded",
+        },
+        # current round comment
+    ]
+
+    assert get_comment_metadata(checkers[1]) == [
+        # previous round comments
+        {
+            "description": Visibility.PRIVATE.description(),
+            "class": "comment_private",
+        },
+        {
+            "description": Visibility.PRIVATE.description(),
+            "class": "comment_private",
+        },
+        {
+            "description": Visibility.PUBLIC.description(),
+            "class": "comment_public",
+        },
+        # current round comment
+        {
+            "description": Visibility.PRIVATE.independent_description(),
+            "class": "comment_blinded",
+        },
+    ]
+
+
 def test_release_request_filegroups_with_no_files(bll):
     release_request, _, _ = setup_empty_release_request()
     assert release_request.filegroups == {}
