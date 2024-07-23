@@ -140,7 +140,7 @@ Tests are divided into the following categories.
 <dl>
    <dt>unit</dt><dd>fast tests of small code units</dd>
    <dt>integration</dt><dd>tests of components working together (e.g. views)</dd>
-   <dt>functional</dt><dd>end-to-end [Playwright](https://playwright.dev/docs/intro) tests</dd>
+   <dt>functional</dt><dd>end-to-end <a href="https://playwright.dev/docs/intro">Playwright</a> tests</dd>
 </dl>
 
 Each category lives in its own directory (for example `tests/unit`) and can be run with
