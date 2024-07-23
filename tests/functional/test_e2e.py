@@ -518,6 +518,9 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
 
     # Change our mind on file 1: go to *workspace* page and re-add it
     page.goto(live_server.url + workspace.get_url("subdir/"))
+    # We have to wait for the datatable to finish rendering before we interact with the
+    # checkboxes otherwise the wrong thing gets selected
+    expect(page.locator("#customTable.datatable-table")).to_be_visible()
     find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
