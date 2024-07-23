@@ -324,7 +324,7 @@ def filter_visible_items(
     items: Sequence[VisibleItem],
     current_turn: int,
     current_phase: ReviewTurnPhase,
-    can_see_private: bool,
+    user_can_review: bool,
     user: User,
 ):
     """Filter a list of items to only include items this user is allowed to view.
@@ -342,18 +342,19 @@ def filter_visible_items(
 
         match item.visibility:
             case CommentVisibility.PUBLIC:
-                # can always see public comments from previous rounds
+                # can always see public items from previous rounds
                 if item.review_turn < current_turn:
                     yield item
-                elif current_phase == ReviewTurnPhase.CONSOLIDATING and can_see_private:
+                # can see public items for other users if CONSOLIDATING and can review
+                elif current_phase == ReviewTurnPhase.CONSOLIDATING and user_can_review:
                     yield item
             case CommentVisibility.PRIVATE:
-                if can_see_private:
-                    # can see private comments from previous round
+                # have to be able to review this request to see *any* private items
+                if user_can_review:
+                    # can always see private items from previous rounds
                     if item.review_turn < current_turn:
                         yield item
-                    # we have completed independent review stage, so output
-                    # checker's can see private comments
+                    # can only see private items from current round if we are not INDEPENDENTe
                     elif current_phase != ReviewTurnPhase.INDEPENDENT:
                         yield item
             case _:  # pragma: nocover
@@ -991,11 +992,14 @@ class ReleaseRequest:
     ) -> list[tuple[Comment, dict[str, str]]]:
         filegroup = self.filegroups[group]
         current_phase = self.get_turn_phase()
-        can_see_private = self.user_can_review(user)
 
         comments = []
         visible_comments = filter_visible_items(
-            filegroup.comments, self.review_turn, current_phase, can_see_private, user
+            filegroup.comments,
+            self.review_turn,
+            current_phase,
+            self.user_can_review(user),
+            user,
         )
 
         for comment in visible_comments:
