@@ -338,7 +338,10 @@ def filter_visible_items(
         match item.visibility:
             case Visibility.PUBLIC:
                 # can always see public items from previous rounds
-                if item.review_turn < current_turn:
+                if (
+                    item.review_turn < current_turn
+                    or current_phase == ReviewTurnPhase.COMPLETE
+                ):
                     yield item
                 # can see public items for other users if CONSOLIDATING and can review
                 elif current_phase == ReviewTurnPhase.CONSOLIDATING and user_can_review:
@@ -347,7 +350,10 @@ def filter_visible_items(
                 # have to be able to review this request to see *any* private items
                 if user_can_review:
                     # can always see private items from previous rounds
-                    if item.review_turn < current_turn:
+                    if (
+                        item.review_turn < current_turn
+                        or current_phase == ReviewTurnPhase.COMPLETE
+                    ):
                         yield item
                     # can only see private items from current round if we are not INDEPENDENTe
                     elif current_phase != ReviewTurnPhase.INDEPENDENT:
