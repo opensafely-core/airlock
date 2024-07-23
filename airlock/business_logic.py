@@ -131,7 +131,6 @@ class CommentVisibility(Enum):
     def description(self):
         return self.choices()[self]
 
-    @cached_property
     def independent_description(self):
         return "Only visible to you until both reviews submitted"
 
@@ -923,11 +922,14 @@ class ReleaseRequest:
 
         comments = []
 
-        for comment in filegroup.comments:
-            if current_phase == ReviewTurnPhase.INDEPENDENT:
-                # comments are temporarily hidden
+        for comment in visible_comments:
+            # does this comment need to be blinded?
+            if (
+                comment.review_turn == self.review_turn
+                and current_phase == ReviewTurnPhase.INDEPENDENT
+            ):
                 metadata = {
-                    "description": comment.visibility.independent_description,
+                    "description": comment.visibility.independent_description(),
                     "class": "comment_blinded",
                 }
             else:
