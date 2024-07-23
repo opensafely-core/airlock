@@ -5,11 +5,11 @@ import requests
 
 from airlock.business_logic import (
     AuditEventType,
-    CommentVisibility,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
+    Visibility,
     bll,
 )
 from airlock.types import UrlPath
@@ -100,7 +100,7 @@ def test_request_view_root_group(airlock_client, settings):
         release_request,
         group="group1",
         comment="private comment",
-        visibility=CommentVisibility.PRIVATE,
+        visibility=Visibility.PRIVATE,
         user=airlock_client.user,
     )
 
@@ -1680,10 +1680,10 @@ def test_group_edit_bad_group(airlock_client):
 @pytest.mark.parametrize(
     "output_checker,visibility,allowed",
     [
-        (False, CommentVisibility.PUBLIC, True),
-        (False, CommentVisibility.PRIVATE, False),
-        (True, CommentVisibility.PUBLIC, True),
-        (True, CommentVisibility.PRIVATE, True),
+        (False, Visibility.PUBLIC, True),
+        (False, Visibility.PRIVATE, False),
+        (True, Visibility.PUBLIC, True),
+        (True, Visibility.PRIVATE, True),
     ],
 )
 def test_group_comment_create_success(

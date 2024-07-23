@@ -18,7 +18,6 @@ from airlock.business_logic import (
     BusinessLogicLayer,
     CodeRepo,
     Comment,
-    CommentVisibility,
     DataAccessLayerProtocol,
     NotificationEventType,
     ReleaseRequest,
@@ -27,6 +26,7 @@ from airlock.business_logic import (
     RequestFileVote,
     RequestStatus,
     ReviewTurnPhase,
+    Visibility,
     Workspace,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
@@ -2231,14 +2231,14 @@ def test_request_comment_and_audit_visibility(bll):
         release_request,
         "group",
         "turn 1 checker 0 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[0],
     )
     bll.group_comment_create(
         release_request,
         "group",
         "turn 1 checker 1 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[1],
     )
 
@@ -2274,7 +2274,7 @@ def test_request_comment_and_audit_visibility(bll):
         release_request,
         "group",
         "turn 1 checker 0 public",
-        CommentVisibility.PUBLIC,
+        Visibility.PUBLIC,
         checkers[0],
     )
     release_request = factories.refresh_release_request(release_request)
@@ -2306,7 +2306,7 @@ def test_request_comment_and_audit_visibility(bll):
         release_request,
         "group",
         "turn 2 author public",
-        CommentVisibility.PUBLIC,
+        Visibility.PUBLIC,
         author,
     )
     release_request = factories.refresh_release_request(release_request)
@@ -2342,14 +2342,14 @@ def test_request_comment_and_audit_visibility(bll):
         release_request,
         "group",
         "turn 3 checker 0 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[0],
     )
     bll.group_comment_create(
         release_request,
         "group",
         "turn 3 checker 1 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[1],
     )
     # checker0 rejects the file now. Not realistic, but we want to check that
@@ -2403,7 +2403,7 @@ def test_request_comment_and_audit_visibility(bll):
         release_request,
         "group",
         "turn 3 checker 0 public",
-        CommentVisibility.PUBLIC,
+        Visibility.PUBLIC,
         checkers[0],
     )
     release_request = factories.refresh_release_request(release_request)
@@ -3314,10 +3314,10 @@ def test_group_comment_create_success(
 
     # check all visibilities
     bll.group_comment_create(
-        release_request, "group", "private", CommentVisibility.PRIVATE, checker
+        release_request, "group", "private", Visibility.PRIVATE, checker
     )
     bll.group_comment_create(
-        release_request, "group", "public", CommentVisibility.PUBLIC, author
+        release_request, "group", "public", Visibility.PUBLIC, author
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3331,11 +3331,11 @@ def test_group_comment_create_success(
 
     comments = release_request.filegroups["group"].comments
     assert comments[0].comment == "private"
-    assert comments[0].visibility == CommentVisibility.PRIVATE
+    assert comments[0].visibility == Visibility.PRIVATE
     assert comments[0].author == "checker"
 
     assert comments[1].comment == "public"
-    assert comments[1].visibility == CommentVisibility.PUBLIC
+    assert comments[1].visibility == Visibility.PUBLIC
     assert comments[1].author == "author"
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
@@ -3370,18 +3370,18 @@ def test_group_comment_create_permissions(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.group_comment_create(
-            release_request, "group", "question?", CommentVisibility.PUBLIC, other
+            release_request, "group", "question?", Visibility.PUBLIC, other
         )
 
     bll.group_comment_create(
-        release_request, "group", "collaborator", CommentVisibility.PUBLIC, collaborator
+        release_request, "group", "collaborator", Visibility.PUBLIC, collaborator
     )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
     bll.group_comment_create(
-        release_request, "group", "checker", CommentVisibility.PUBLIC, checker
+        release_request, "group", "checker", Visibility.PUBLIC, checker
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3401,10 +3401,10 @@ def test_group_comment_delete_success(bll):
     assert release_request.filegroups["group"].comments == []
 
     bll.group_comment_create(
-        release_request, "group", "typo comment", CommentVisibility.PUBLIC, other
+        release_request, "group", "typo comment", Visibility.PUBLIC, other
     )
     bll.group_comment_create(
-        release_request, "group", "not-a-typo comment", CommentVisibility.PUBLIC, other
+        release_request, "group", "not-a-typo comment", Visibility.PUBLIC, other
     )
 
     release_request = factories.refresh_release_request(release_request)
@@ -3460,10 +3460,10 @@ def test_group_comment_delete_permissions(bll):
     )
 
     bll.group_comment_create(
-        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+        release_request, "group", "author comment", Visibility.PUBLIC, author
     )
     bll.group_comment_create(
-        release_request, "group", "checker comment", CommentVisibility.PUBLIC, checker
+        release_request, "group", "checker comment", Visibility.PUBLIC, checker
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3503,7 +3503,7 @@ def test_group_comment_create_invalid_params(bll):
         bll.group_comment_delete(release_request, "group", 1, author)
 
     bll.group_comment_create(
-        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+        release_request, "group", "author comment", Visibility.PUBLIC, author
     )
     release_request = factories.refresh_release_request(release_request)
 
