@@ -113,7 +113,7 @@ class RequestFileStatus:
     vote: RequestFileVote | None
 
 
-class CommentVisibility(Enum):
+class Visibility(Enum):
     """The visibility of comments."""
 
     # only visible to output-checkers
@@ -124,8 +124,8 @@ class CommentVisibility(Enum):
     @classmethod
     def choices(cls):
         return {
-            CommentVisibility.PRIVATE: "Only visible to output-checkers",
-            CommentVisibility.PUBLIC: "Visible to all",
+            Visibility.PRIVATE: "Only visible to output-checkers",
+            Visibility.PUBLIC: "Visible to all",
         }
 
     def description(self):
@@ -298,12 +298,12 @@ class AuditEvent:
         return self.user
 
     @property
-    def visibility(self) -> CommentVisibility:
+    def visibility(self) -> Visibility:
         v = self.extra.get("visibility")
         if v:
-            return CommentVisibility[v.upper()]
+            return Visibility[v.upper()]
         else:
-            return CommentVisibility.PUBLIC
+            return Visibility.PUBLIC
 
 
 class VisibleItem(Protocol):
@@ -316,7 +316,7 @@ class VisibleItem(Protocol):
         raise NotImplementedError()
 
     @property
-    def visibility(self) -> CommentVisibility:
+    def visibility(self) -> Visibility:
         raise NotImplementedError()
 
 
@@ -341,14 +341,14 @@ def filter_visible_items(
             continue
 
         match item.visibility:
-            case CommentVisibility.PUBLIC:
+            case Visibility.PUBLIC:
                 # can always see public items from previous rounds
                 if item.review_turn < current_turn:
                     yield item
                 # can see public items for other users if CONSOLIDATING and can review
                 elif current_phase == ReviewTurnPhase.CONSOLIDATING and user_can_review:
                     yield item
-            case CommentVisibility.PRIVATE:
+            case Visibility.PRIVATE:
                 # have to be able to review this request to see *any* private items
                 if user_can_review:
                     # can always see private items from previous rounds
@@ -845,7 +845,7 @@ class Comment:
     comment: str
     author: str
     created_at: datetime
-    visibility: CommentVisibility
+    visibility: Visibility
     review_turn: int
 
     @classmethod
@@ -1055,20 +1055,20 @@ class ReleaseRequest:
 
     def get_writable_comment_visibilities_for_user(
         self, user: User
-    ) -> list[CommentVisibility]:
+    ) -> list[Visibility]:
         """What comment visibilities should this user be able to write for this request?"""
         is_author = user.username == self.author
 
         # author can only ever create public comments
         if is_author:
-            return [CommentVisibility.PUBLIC]
+            return [Visibility.PUBLIC]
 
         # non-author non-output-checker, also only public
         if not user.output_checker:
-            return [CommentVisibility.PUBLIC]
+            return [Visibility.PUBLIC]
 
         # all other cases - the output-checker can choose to write public or private comments
-        return [CommentVisibility.PRIVATE, CommentVisibility.PUBLIC]
+        return [Visibility.PRIVATE, Visibility.PUBLIC]
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
@@ -1323,7 +1323,7 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment: str,
-        visibility: CommentVisibility,
+        visibility: Visibility,
         review_turn: int,
         username: str,
         audit: AuditEvent,
@@ -2254,7 +2254,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         group: str,
         comment: str,
-        visibility: CommentVisibility,
+        visibility: Visibility,
         user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:

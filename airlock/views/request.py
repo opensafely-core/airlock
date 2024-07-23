@@ -14,10 +14,10 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     ROOT_PATH,
-    CommentVisibility,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
+    Visibility,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -649,7 +649,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
-                visibility=CommentVisibility[form.cleaned_data["visibility"]],
+                visibility=Visibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover

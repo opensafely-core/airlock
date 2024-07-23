@@ -5,12 +5,12 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
-    CommentVisibility,
     DataAccessLayerProtocol,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
+    Visibility,
 )
 from airlock.types import UrlPath
 from local_db.models import (
@@ -418,7 +418,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment: str,
-        visibility: CommentVisibility,
+        visibility: Visibility,
         review_turn: int,
         username: str,
         audit: AuditEvent,
