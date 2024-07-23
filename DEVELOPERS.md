@@ -165,6 +165,13 @@ useful.
 just test -k functional --headed --slowmo 500
 ```
 
+To leave the browser instance open after a test failure you can make
+pytest drop into the debugger using the `--pdb` argument:
+```
+just test --headed --pdb ... <path/to/test.py>
+```
+
+
 ### Django Debug Toolbar
 
 We include DDT as a dev dependency, as it is useful for inspecting django
