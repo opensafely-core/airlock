@@ -496,6 +496,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
             factories.request_file(path=path2, group="default", approved=True),
         ],
     )
+    workspace = bll.get_workspace("test-workspace", author)
 
     login_as(live_server, page, "researcher")
 
@@ -505,10 +506,8 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     page.goto(live_server.url + release_request.get_url("default/subdir/file2.txt"))
     find_and_click(page.locator("#withdraw-file-button"))
 
-    # Change our mind on file 1: go to workspace page and re-add it
-    workspace = bll.get_workspace("test-workspace", author)
-    page.goto(live_server.url + workspace.get_url("subdir/"))
-    find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
+    # Change our mind on file 2: go to file page and re-add it
+    page.goto(live_server.url + workspace.get_url(path2))
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
@@ -517,8 +516,9 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
         "Output file has been added to request"
     )
 
-    # Change our mind on file 2: go to *file* page and re-add it
-    page.goto(live_server.url + workspace.get_url(path2))
+    # Change our mind on file 1: go to *workspace* page and re-add it
+    page.goto(live_server.url + workspace.get_url("subdir/"))
+    find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
