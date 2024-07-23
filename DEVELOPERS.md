@@ -140,7 +140,7 @@ Tests are divided into the following categories.
 <dl>
    <dt>unit</dt><dd>fast tests of small code units</dd>
    <dt>integration</dt><dd>tests of components working together (e.g. views)</dd>
-   <dt>functional</dt><dd>end-to-end [Playwright](https://playwright.dev/docs/intro) tests</dd>
+   <dt>functional</dt><dd>end-to-end <a href="https://playwright.dev/docs/intro">Playwright</a> tests</dd>
 </dl>
 
 Each category lives in its own directory (for example `tests/unit`) and can be run with
@@ -161,16 +161,23 @@ functional tests, in headed mode, slowed down by 500ms. See the
 [playwright docs](https://playwright.dev/python/docs/test-runners#cli-arguments) for additional cli arguments that may be
 useful.
 
+```
+just test -k functional --headed --slowmo 500
+```
+
+To leave the browser instance open after a test failure you can make
+pytest drop into the debugger using the `--pdb` argument:
+```
+just test --headed --pdb ... <path/to/test.py>
+```
+
+
 ### Django Debug Toolbar
 
 We include DDT as a dev dependency, as it is useful for inspecting django
 specific things.  However, it is not enabled by default.  It is only enabled if
 both `DJANGO_DEBUG` and `DJANGO_DEBUG_TOOLBAR` env vars are set to `"True"`.
 
-
-```
-just test -k functional --headed --slowmo 500
-```
 
 #### Browser configuration
 
