@@ -1490,9 +1490,8 @@ class BusinessLogicLayer:
 
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
-        # Only output checkers can see these
         if not user.output_checker:
-            return []
+            raise self.RequestPermissionDenied("Only output checkers can see these")
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1507,9 +1506,8 @@ class BusinessLogicLayer:
 
     def get_returned_requests(self, user: User):
         """Get all requests that have been returned."""
-        # Only output checkers can see these
         if not user.output_checker:
-            return []
+            raise self.RequestPermissionDenied("Only output checkers can see these")
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1522,7 +1520,7 @@ class BusinessLogicLayer:
         """Get all requests that have been approved but not yet released."""
         # Only output checkers can see these
         if not user.output_checker:
-            return []
+            raise self.RequestPermissionDenied("Only output checkers can see these")
 
         return [
             ReleaseRequest.from_dict(attrs)

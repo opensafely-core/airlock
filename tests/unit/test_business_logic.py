@@ -717,16 +717,16 @@ def test_provider_get_requests_authored_by_user(bll):
 
 
 @pytest.mark.parametrize(
-    "output_checker, expected",
+    "output_checker",
     [
         # A non-output checker never sees outstanding requests
-        (False, []),
+        False,
         # An output checker only sees outstanding requests that
         # they did not author
-        (True, ["r1"]),
+        True,
     ],
 )
-def test_provider_get_outstanding_requests_for_review(output_checker, expected, bll):
+def test_provider_get_outstanding_requests_for_review(output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
@@ -759,25 +759,29 @@ def test_provider_get_outstanding_requests_for_review(output_checker, expected, 
             withdrawn_after=RequestStatus.PENDING,
         )
 
-    assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
-        expected
-    )
+    if output_checker:
+        assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
+            ["r1"]
+        )
+    else:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.get_outstanding_requests_for_review(user)
 
 
 @pytest.mark.parametrize(
-    "output_checker, expected",
+    "output_checker",
     [
         # A non-output checker never sees outstanding requests
-        (False, []),
+        False,
         # An output checker only sees outstanding requests that
         # they did not author
-        (True, ["r1"]),
+        True,
     ],
 )
-def test_provider_get_returned_requests(output_checker, expected, bll):
+def test_provider_get_returned_requests(output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
-    output_checker = factories.create_user("other-checker", ["workspace"], True)
+
     # request created by another user, status returned
     factories.create_request_at_status(
         "workspace",
@@ -818,23 +822,26 @@ def test_provider_get_returned_requests(output_checker, expected, bll):
             files=[factories.request_file(approved=True)],
         )
 
-    assert set(r.id for r in bll.get_returned_requests(user)) == set(expected)
+    if output_checker:
+        assert set(r.id for r in bll.get_returned_requests(user)) == set(["r1"])
+    else:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.get_returned_requests(user)
 
 
 @pytest.mark.parametrize(
-    "output_checker, expected",
+    "output_checker",
     [
         # A non-output checker never sees outstanding requests
-        (False, []),
+        False,
         # An output checker only sees outstanding requests that
         # they did not author
-        (True, ["r1"]),
+        True,
     ],
 )
-def test_provider_get_approved_requests(output_checker, expected, bll):
+def test_provider_get_approved_requests(output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
-    output_checker = factories.create_user("other-checker", ["workspace"], True)
 
     # request created by another user, status approved
     factories.create_request_at_status(
@@ -875,7 +882,12 @@ def test_provider_get_approved_requests(output_checker, expected, bll):
             withdrawn_after=RequestStatus.PENDING,
             files=[factories.request_file(approved=True)],
         )
-    assert set(r.id for r in bll.get_approved_requests(user)) == set(expected)
+
+    if output_checker:
+        assert set(r.id for r in bll.get_approved_requests(user)) == set(["r1"])
+    else:
+        with pytest.raises(bll.RequestPermissionDenied):
+            bll.get_approved_requests(user)
 
 
 @pytest.mark.parametrize(
