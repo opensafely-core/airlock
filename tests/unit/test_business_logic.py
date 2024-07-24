@@ -1473,7 +1473,7 @@ def test_resubmit_request(bll, mock_notifications):
             factories.request_file(group="test", path="file1.txt", rejected=True),
         ],
     )
-    assert release_request.completed_reviews_count() == 2
+    assert release_request.submitted_reviews_count() == 2
 
     # author re-submits with no changes to files
     bll.submit_request(release_request, author)
@@ -1495,7 +1495,7 @@ def test_resubmit_request(bll, mock_notifications):
         assert rejected_file.get_file_vote_for_user(user) == RequestFileVote.UNDECIDED
         assert not release_request.all_files_reviewed_by_reviewer(user)
         # submitted reviews have been reset
-        assert release_request.completed_reviews == {}
+        assert release_request.submitted_reviews == {}
 
 
 def test_add_file_to_request_not_author(bll):
@@ -2478,7 +2478,7 @@ def test_approve_file_not_submitted(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2501,7 +2501,7 @@ def test_approve_file_not_your_own(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(author) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2525,7 +2525,7 @@ def test_approve_file_not_checker(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(author) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2548,7 +2548,7 @@ def test_approve_file_not_part_of_request(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2569,7 +2569,7 @@ def test_approve_supporting_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2589,7 +2589,7 @@ def test_approve_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2598,7 +2598,7 @@ def test_approve_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2612,7 +2612,7 @@ def test_approve_file(bll):
     )
 
 
-def test_approve_file_requires_two_plus_completed_reviews(bll):
+def test_approve_file_requires_two_plus_submitted_reviews(bll):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2634,7 +2634,7 @@ def test_approve_file_requires_two_plus_completed_reviews(bll):
     release_request = factories.refresh_release_request(release_request)
     rfile = _get_request_file(release_request, path)
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.CONFLICTED
     )
 
@@ -2642,14 +2642,14 @@ def test_approve_file_requires_two_plus_completed_reviews(bll):
     bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.CONFLICTED
     )
 
     factories.complete_independent_review(release_request, checker3)
     release_request = factories.refresh_release_request(release_request)
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.APPROVED
     )
 
@@ -2669,7 +2669,7 @@ def test_reject_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2678,7 +2678,7 @@ def test_reject_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2705,7 +2705,7 @@ def test_approve_then_reject_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2714,7 +2714,7 @@ def test_approve_then_reject_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2723,7 +2723,7 @@ def test_approve_then_reject_file(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2742,7 +2742,7 @@ def test_reviewreset_then_reset_review_file(bll, review):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2756,7 +2756,7 @@ def test_reviewreset_then_reset_review_file(bll, review):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == review
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2765,7 +2765,7 @@ def test_reviewreset_then_reset_review_file(bll, review):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2782,7 +2782,7 @@ def test_reset_review_file_no_reviews(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2792,7 +2792,7 @@ def test_reset_review_file_no_reviews(bll):
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
     assert (
-        rfile.get_decision(release_request.completed_reviews.keys())
+        rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
@@ -2828,7 +2828,7 @@ def test_request_file_status_decision(bll, votes, decision):
         # complete review before we can determine a decision
         release_request = factories.refresh_release_request(release_request)
         assert (
-            rfile.get_decision(release_request.completed_reviews.keys())
+            rfile.get_decision(release_request.submitted_reviews.keys())
             == RequestFileDecision.INCOMPLETE
         )
 
@@ -2836,12 +2836,12 @@ def test_request_file_status_decision(bll, votes, decision):
         release_request = factories.refresh_release_request(release_request)
         if i == 0:
             assert (
-                rfile.get_decision(release_request.completed_reviews.keys())
+                rfile.get_decision(release_request.submitted_reviews.keys())
                 == RequestFileDecision.INCOMPLETE
             )
         else:
             assert (
-                rfile.get_decision(release_request.completed_reviews.keys())
+                rfile.get_decision(release_request.submitted_reviews.keys())
                 == RequestFileDecision[decision]
             )
 
@@ -2926,7 +2926,7 @@ def test_review_request(bll):
         match="You must review all files to submit your review",
     ):
         bll.review_request(release_request, checker)
-    assert "checker" not in release_request.completed_reviews
+    assert "checker" not in release_request.submitted_reviews
     assert release_request.status == RequestStatus.SUBMITTED
 
     # approved second file
@@ -2936,7 +2936,7 @@ def test_review_request(bll):
     release_request = factories.refresh_release_request(release_request)
     bll.review_request(release_request, checker)
     release_request = factories.refresh_release_request(release_request)
-    assert "checker" in release_request.completed_reviews
+    assert "checker" in release_request.submitted_reviews
     assert release_request.status == RequestStatus.PARTIALLY_REVIEWED
 
     # re-review
@@ -3001,7 +3001,7 @@ def test_review_request_more_than_2_checkers(bll):
     bll.review_request(release_request, checkers[2])
     release_request = factories.refresh_release_request(release_request)
     assert release_request.status == RequestStatus.REVIEWED
-    assert len(release_request.completed_reviews) == 3
+    assert len(release_request.submitted_reviews) == 3
 
 
 def test_review_request_race_condition(bll):
@@ -3031,9 +3031,9 @@ def test_review_request_race_condition(bll):
     # However in a race condition, this could be review 2, but the count is incorrectly
     # retrieved as 1
     with patch(
-        "airlock.business_logic.ReleaseRequest.completed_reviews_count"
-    ) as completed_reviews:
-        completed_reviews.side_effect = [1, 2]
+        "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
+    ) as submitted_reviews:
+        submitted_reviews.side_effect = [1, 2]
         bll.review_request(release_request, checkers[1])
 
     release_request = factories.refresh_release_request(release_request)
@@ -3042,9 +3042,9 @@ def test_review_request_race_condition(bll):
     # Similarly, there could be a race between reviewer 2 and 3. For reviewer 2, we want to move the
     # status to REVIEWED, for review 3 we should do nothing
     with patch(
-        "airlock.business_logic.ReleaseRequest.completed_reviews_count"
-    ) as completed_reviews:
-        completed_reviews.side_effect = [2, 3]
+        "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
+    ) as submitted_reviews:
+        submitted_reviews.side_effect = [2, 3]
         bll.review_request(release_request, checkers[2])
     release_request = factories.refresh_release_request(release_request)
     assert release_request.status == RequestStatus.REVIEWED
@@ -3056,9 +3056,9 @@ def test_review_request_race_condition(bll):
 
     with pytest.raises(bll.InvalidStateTransition):
         with patch(
-            "airlock.business_logic.ReleaseRequest.completed_reviews_count"
-        ) as completed_reviews:
-            completed_reviews.side_effect = [2, 4]
+            "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
+        ) as submitted_reviews:
+            submitted_reviews.side_effect = [2, 4]
             bll.review_request(release_request, checkers[3])
 
 

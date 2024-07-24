@@ -47,7 +47,7 @@ def request_index(request):
 
     def get_reviewer_progress(release_request):
         progress = f"Your review: {release_request.files_reviewed_by_reviewer_count(request.user)}/{len(release_request.output_files())} files"
-        if request.user.username not in release_request.completed_reviews:
+        if request.user.username not in release_request.submitted_reviews:
             progress += " (incomplete)"
         return progress
 
@@ -200,7 +200,7 @@ def request_view(request, request_id: str, path: str = ""):
 
     if not is_author:
         user_has_submitted_review = (
-            request.user.username in release_request.completed_reviews
+            request.user.username in release_request.submitted_reviews
         )
         user_has_reviewed_all_files = (
             release_request.output_files()

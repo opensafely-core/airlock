@@ -679,7 +679,7 @@ class RequestFile:
             },
         )
 
-    def get_decision(self, completed_reviewers) -> RequestFileDecision:
+    def get_decision(self, submitted_reviewers) -> RequestFileDecision:
         """
         The status of RequestFile, based on multiple reviews.
 
@@ -692,7 +692,7 @@ class RequestFile:
         a file APPROVED to unblock things if one of the initial reviewers is unavailable.
         """
         all_reviews = [
-            v.status for v in self.reviews.values() if v.reviewer in completed_reviewers
+            v.status for v in self.reviews.values() if v.reviewer in submitted_reviewers
         ]
 
         if len(all_reviews) < 2:
@@ -797,7 +797,7 @@ class ReleaseRequest:
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
-    completed_reviews: dict[str, str] = field(default_factory=dict)
+    submitted_reviews: dict[str, str] = field(default_factory=dict)
     turn_reviewers: set[str] = field(default_factory=set)
     review_turn: int = 0
 
@@ -879,7 +879,7 @@ class ReleaseRequest:
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
         can_review = self.user_can_review(user)
-        completed_reviewers_this_turn = self.completed_reviews.keys()
+        submitted_reviewers_this_turn = self.submitted_reviews.keys()
 
         # If we're in the AUTHOR phase of a turn (i.e. the request is being
         # edited by the author, it's not in an under-review status), we need
@@ -893,10 +893,10 @@ class ReleaseRequest:
             case ReviewTurnPhase.CONSOLIDATING:
                 # only users who can review this request know the current status
                 if can_review:
-                    decision = rfile.get_decision(completed_reviewers_this_turn)
+                    decision = rfile.get_decision(submitted_reviewers_this_turn)
             case ReviewTurnPhase.COMPLETE:
                 # everyone knows the current status
-                decision = rfile.get_decision(completed_reviewers_this_turn)
+                decision = rfile.get_decision(submitted_reviewers_this_turn)
             case ReviewTurnPhase.AUTHOR:
                 # everyone can the status at the end of the previous turn
                 decision = rfile.get_decision(self.turn_reviewers)
@@ -1067,7 +1067,7 @@ class ReleaseRequest:
 
     def all_files_approved(self):
         return all(
-            request_file.get_decision(self.completed_reviews.keys())
+            request_file.get_decision(self.submitted_reviews.keys())
             == RequestFileDecision.APPROVED
             for request_file in self.output_files().values()
         )
@@ -1085,8 +1085,8 @@ class ReleaseRequest:
             self.output_files()
         )
 
-    def completed_reviews_count(self):
-        return len(self.completed_reviews)
+    def submitted_reviews_count(self):
+        return len(self.submitted_reviews)
 
     # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
@@ -2092,7 +2092,7 @@ class BusinessLogicLayer:
                 "You must review all files to submit your review"
             )
 
-        if user.username in release_request.completed_reviews:
+        if user.username in release_request.submitted_reviews:
             raise self.RequestReviewDenied(
                 "You have already submitted your review of this request"
             )
@@ -2100,7 +2100,7 @@ class BusinessLogicLayer:
         self._dal.record_review(release_request.id, user.username)
 
         release_request = self.get_release_request(release_request.id, user)
-        n_reviews = release_request.completed_reviews_count()
+        n_reviews = release_request.submitted_reviews_count()
 
         # this method is called twice, by different users. It advances the
         # state differently depending on whether its the 1st or 2nd review to
@@ -2124,7 +2124,7 @@ class BusinessLogicLayer:
                 raise
             release_request = self.get_release_request(release_request.id, user)
             if (
-                release_request.completed_reviews_count() > 1
+                release_request.submitted_reviews_count() > 1
                 and release_request.status == RequestStatus.PARTIALLY_REVIEWED
             ):
                 self.set_status(release_request, RequestStatus.REVIEWED, user)

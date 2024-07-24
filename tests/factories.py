@@ -359,7 +359,7 @@ def create_request_at_status(
         return request
 
     # If there are output files, get the usernames of all file reviewers
-    # so we can complete reviews with the correct checkers.
+    # so we can submit reviews with the correct checkers.
     # Note that it is possible to review a request with no output files
     # (potentially before returning it to the reviewer so they can add some).
     # Approving or releasing requests with no output files is not allowed.
