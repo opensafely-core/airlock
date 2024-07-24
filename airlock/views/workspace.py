@@ -121,6 +121,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 kwargs={
                     "workspace_name": workspace.name,
                     "commit": workspace.get_manifest_for_file(path).get("commit"),
+                    "path": "project.yaml",
                 },
             )
             + f"?return_url={workspace.get_url(path)}"
