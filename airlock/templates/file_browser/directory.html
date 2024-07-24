@@ -69,6 +69,10 @@
               <th>
                 <div class="flex flex-row gap-2">Review State{% datatable_sort_icon %}</div>
               </th>
+            {% elif context == "request" %}
+              <th>
+                <div class="flex flex-row gap-2">File Type{% datatable_sort_icon %}</div>
+              </th>
             {% endif %}
             <th>
               <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
@@ -89,6 +93,8 @@
               <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
               {% if context == "workspace" %}
                 <td>{{ path.display_status }}</td>
+              {% elif context == "request" %}
+                <td>{{ path.request_filetype.name|title }}</td>
               {% endif %}
               <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
               <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
