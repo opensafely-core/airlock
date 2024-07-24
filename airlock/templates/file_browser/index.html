@@ -74,7 +74,7 @@
         {% elif is_output_checker %}
           {% if release_request.status_owner.name == "REVIEWER" %}
             {% comment %} User can complete review if they haven't already {% endcomment %}
-            {% if user_has_completed_review %}
+            {% if user_has_submitted_review %}
               {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
                 Complete review
                 {% tooltip class="airlock-tooltip" content="You have already completed your review" %}

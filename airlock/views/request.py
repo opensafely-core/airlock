@@ -199,7 +199,7 @@ def request_view(request, request_id: str, path: str = ""):
         )
 
     if not is_author:
-        user_has_completed_review = (
+        user_has_submitted_review = (
             request.user.username in release_request.completed_reviews
         )
         user_has_reviewed_all_files = (
@@ -207,7 +207,7 @@ def request_view(request, request_id: str, path: str = ""):
             and release_request.all_files_reviewed_by_reviewer(request.user)
         )
     else:
-        user_has_completed_review = False
+        user_has_submitted_review = False
         user_has_reviewed_all_files = False
 
     request_submit_url = reverse(
@@ -274,7 +274,7 @@ def request_view(request, request_id: str, path: str = ""):
     if (
         release_request.is_under_review()
         and user_has_reviewed_all_files
-        and not user_has_completed_review
+        and not user_has_submitted_review
     ):
         request_action_required = (
             "You have reviewed all files. You can now complete your review."
@@ -309,7 +309,7 @@ def request_view(request, request_id: str, path: str = ""):
         "request_return_url": request_return_url,
         "request_withdraw_url": request_withdraw_url,
         "release_files_url": release_files_url,
-        "user_has_completed_review": user_has_completed_review,
+        "user_has_submitted_review": user_has_submitted_review,
         "user_has_reviewed_all_files": user_has_reviewed_all_files,
         "activity": activity,
         "group_edit_form": group_edit_form,
