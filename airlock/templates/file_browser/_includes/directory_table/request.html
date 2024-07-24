@@ -1,0 +1,30 @@
+{% load airlock %}
+
+{% #table class="dir_table" id="customTable" %}
+  {% #table_head %}
+    <tr>
+      <th>
+        <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+      </th>
+      <th>
+        <div class="flex flex-row gap-2">File Type{% datatable_sort_icon %}</div>
+      </th>
+      <th>
+        <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
+      </th>
+      <th>
+        <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
+      </th>
+    </tr>
+  {% /table_head %}
+  <tbody>
+    {% for path in path_item.children %}
+      <tr>
+        <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+        <td>{{ path.request_filetype.name|title }}</td>
+        <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+        <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+{% /table %}
