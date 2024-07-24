@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
+from django_htmx.http import HttpResponseClientRedirect
 
 from airlock.business_logic import CodeRepo, Workspace, bll
 from airlock.file_browser_api import get_code_tree
@@ -36,6 +38,20 @@ def validate_return_url(url):
 @instrument(func_attributes={"workspace": "workspace_name", "commit": "commit"})
 def view(request, workspace_name: str, commit: str, path: str = ""):
     return_url = validate_return_url(request.GET.get("return_url"))
+    if path == "":
+        # if the path is empty (i.e. this is the root, the top of the git repo),
+        # redirect to the project.yaml instead of showing the empty page at the
+        # root. Every repo related to output files is expected to contain a project.yaml.
+        url = reverse("code_view", args=(workspace_name, commit, "project.yaml"))
+        if return_url:
+            url += f"?return_url={return_url}"
+        # For an htmx request, we need to tell htmx to redirect us so that we get the
+        # project.yaml correctly selected in the tree
+        if request.htmx:
+            return HttpResponseClientRedirect(redirect_to=url)
+        else:
+            return redirect(url)
+
     workspace = get_workspace_or_raise(request.user, workspace_name)
 
     try:
@@ -52,7 +68,6 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         selected_only = True
 
     tree = get_code_tree(repo, UrlPath(path), selected_only)
-
     path_item = get_path_item_from_tree_or_404(tree, path)
 
     is_directory_url = path.endswith("/") or path == ""

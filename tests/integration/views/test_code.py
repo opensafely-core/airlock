@@ -11,7 +11,7 @@ def test_code_view_index(airlock_client):
     airlock_client.login(output_checker=True)
     repo = factories.create_repo("workspace")
 
-    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/")
+    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/", follow=True)
     assert "project.yaml" in response.rendered_content
 
 
@@ -21,7 +21,8 @@ def test_code_view_index_return_url(airlock_client):
     repo = factories.create_repo(workspace)
 
     response = airlock_client.get(
-        f"/code/view/workspace/{repo.commit}/?return_url={workspace.get_url()}"
+        f"/code/view/workspace/{repo.commit}/?return_url={workspace.get_url()}",
+        follow=True,
     )
     assert "project.yaml" in response.rendered_content
     assert "return-button" in response.rendered_content
@@ -33,7 +34,7 @@ def test_code_view_index_request_author(airlock_client):
     factories.create_release_request(workspace, user=airlock_client.user)
     repo = factories.create_repo(workspace)
 
-    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/")
+    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/", follow=True)
     assert "project.yaml" in response.rendered_content
     assert "current-request-button" in response.rendered_content
 
@@ -43,7 +44,7 @@ def test_code_view_index_user_has_workspace_access(airlock_client):
     workspace = factories.create_workspace("workspace")
     repo = factories.create_repo(workspace)
 
-    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/")
+    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/", follow=True)
     assert "project.yaml" in response.rendered_content
     assert "workspace-home-button" in response.rendered_content
 
@@ -82,12 +83,26 @@ def test_code_view_dir_redirects(airlock_client):
     )
 
 
+def test_code_view_root_redirects(airlock_client):
+    airlock_client.login(output_checker=True)
+    repo = factories.create_repo("workspace", files=[("somedir/foo.txt", "")])
+
+    response = airlock_client.get(f"/code/view/workspace/{repo.commit}/")
+    assert response.status_code == 302
+    assert (
+        response.headers["Location"]
+        == f"/code/view/workspace/{repo.commit}/project.yaml"
+    )
+
+
 @pytest.mark.parametrize(
+    # Note all calls to the root URL are redirected to project.yaml first, so we test the
+    # redirects from there
     "code_url,redirected_url",
     [
-        ("/code/view/workspace/notexist/", "/workspaces/view/workspace/"),
+        ("/code/view/workspace/notexist/project.yaml", "/workspaces/view/workspace/"),
         (
-            "/code/view/workspace/notexist/?return_url=/workspaces/view/workspace/foo.txt",
+            "/code/view/workspace/notexist/project.yaml?return_url=/workspaces/view/workspace/foo.txt",
             "/workspaces/view/workspace/foo.txt",
         ),
     ],
@@ -104,13 +119,15 @@ def test_code_view_no_repo(airlock_client, code_url, redirected_url):
 @pytest.mark.parametrize(
     "code_url,redirected_url",
     [
-        ("/code/view/workspace/abcdefg/", "/workspaces/view/workspace/"),
+        # Note all calls to the root URL are redirected to project.yaml first, so we test the
+        # redirects from there
+        ("/code/view/workspace/abcdefg/project.yaml", "/workspaces/view/workspace/"),
         (
-            "/code/view/workspace/abcdefg/?return_url=/workspaces/view/workspace/foo.txt",
+            "/code/view/workspace/abcdefg/project.yaml?return_url=/workspaces/view/workspace/foo.txt",
             "/workspaces/view/workspace/foo.txt",
         ),
         (
-            "/code/view/workspace/abcdefg/?return_url=http://example.com",
+            "/code/view/workspace/abcdefg/project.yaml?return_url=http://example.com",
             "/workspaces/view/workspace/",
         ),
     ],
