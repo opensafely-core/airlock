@@ -1494,7 +1494,7 @@ def test_resubmit_request(bll, mock_notifications):
         )
         assert rejected_file.get_file_vote_for_user(user) == RequestFileVote.UNDECIDED
         assert not release_request.all_files_reviewed_by_reviewer(user)
-        # completed reviews have been reset
+        # submitted reviews have been reset
         assert release_request.completed_reviews == {}
 
 
@@ -2923,7 +2923,7 @@ def test_review_request(bll):
     # first file is already rejected, second file is not reviewed
     with pytest.raises(
         bll.RequestReviewDenied,
-        match="You must review all files to complete your review",
+        match="You must review all files to submit your review",
     ):
         bll.review_request(release_request, checker)
     assert "checker" not in release_request.completed_reviews
@@ -2941,7 +2941,7 @@ def test_review_request(bll):
 
     # re-review
     with pytest.raises(
-        bll.RequestReviewDenied, match="You have already completed your review"
+        bll.RequestReviewDenied, match="You have already submitted your review"
     ):
         bll.review_request(release_request, checker)
 
@@ -3025,9 +3025,9 @@ def test_review_request_race_condition(bll):
     # first checker completes review
     bll.review_request(release_request, checkers[0])
 
-    # mock race condition by patching the number of completed reviews to return 1 initially
+    # mock race condition by patching the number of submitted reviews to return 1 initially
     # This is called AFTER recording the review. If it's a first review, we expect there to
-    # be 1 completed reivew, if it's a second review we expect there to be 2.
+    # be 1 submitted reivew, if it's a second review we expect there to be 2.
     # However in a race condition, this could be review 2, but the count is incorrectly
     # retrieved as 1
     with patch(

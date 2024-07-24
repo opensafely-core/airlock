@@ -54,9 +54,9 @@ class RequestStatus(Enum):
 
     def description(self):
         if self == RequestStatus.PARTIALLY_REVIEWED:
-            return "1 REVIEW COMPLETE"
+            return "ONE REVIEW SUBMITTED"
         if self == RequestStatus.REVIEWED:
-            return "ALL REVIEWS COMPLETE"
+            return "ALL REVIEWS SUBMITTED"
         return self.name
 
 
@@ -133,7 +133,7 @@ class CommentVisibility(Enum):
 
     @cached_property
     def independent_description(self):
-        return "Only visible to you until both reviews completed"
+        return "Only visible to you until both reviews submitted"
 
 
 class ReviewTurnPhase(Enum):
@@ -685,9 +685,9 @@ class RequestFile:
 
         Disclosivity can only be assessed by considering all files in a release
         together. Therefore an overall decision on a file is based on votes from
-        from completed reviews only.
+        from submitted reviews only.
 
-        We specificially only require 2 APPROVED votes (within completed reviews),
+        We specificially only require 2 APPROVED votes (within submitted reviews),
         rather than all votes being APPROVED, as this allows a 3rd review to mark
         a file APPROVED to unblock things if one of the initial reviewers is unavailable.
         """
@@ -885,7 +885,7 @@ class ReleaseRequest:
         # edited by the author, it's not in an under-review status), we need
         # to show the decision from the previous turn, if there is one. For
         # all other (reviewing) phases, we show the current decision based on
-        # the completed reviews in this turn.
+        # the submitted reviews in this turn.
         match phase:
             case ReviewTurnPhase.INDEPENDENT:
                 # already set - no one knows the current status
@@ -2089,12 +2089,12 @@ class BusinessLogicLayer:
 
         if not release_request.all_files_reviewed_by_reviewer(user):
             raise self.RequestReviewDenied(
-                "You must review all files to complete your review"
+                "You must review all files to submit your review"
             )
 
         if user.username in release_request.completed_reviews:
             raise self.RequestReviewDenied(
-                "You have already completed your review of this request"
+                "You have already submitted your review of this request"
             )
 
         self._dal.record_review(release_request.id, user.username)
@@ -2104,14 +2104,14 @@ class BusinessLogicLayer:
 
         # this method is called twice, by different users. It advances the
         # state differently depending on whether its the 1st or 2nd review to
-        # be completed.
+        # be submitted.
         try:
             if n_reviews == 1:
                 self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
             elif n_reviews == 2:
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
         except self.InvalidStateTransition:
-            # There is a potential race condition where two reviewers hit the Complete Review
+            # There is a potential race condition where two reviewers hit the Submit Review
             # button at the same time, and both attempt to transition from SUBMITTED to
             # PARTIALLY_REVIEWED, or from PARTIALLY_REVIEWED to REVIEWED
             # Assuming that the request status is now either PARTIALLY_REVIEWED or REVIEWED,
