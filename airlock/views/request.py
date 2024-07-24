@@ -277,15 +277,15 @@ def request_view(request, request_id: str, path: str = ""):
         and not user_has_submitted_review
     ):
         request_action_required = (
-            "You have reviewed all files. You can now complete your review."
+            "You have reviewed all files. You can now submit your review."
         )
     elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
         request.user
     ):
         if release_request.can_be_released():
-            request_action_required = "Two independent reviews have been completed. You can now return, reject or release this request."
+            request_action_required = "Two independent reviews have been submitted. You can now return, reject or release this request."
         else:
-            request_action_required = "Two independent reviews have been completed. You can now return or reject this request."
+            request_action_required = "Two independent reviews have been submitted. You can now return or reject this request."
     else:
         request_action_required = None
 
@@ -391,7 +391,7 @@ def request_review(request, request_id):
     except bll.RequestReviewDenied as exc:
         messages.error(request, str(exc))
     else:
-        messages.success(request, "Your review has been completed")
+        messages.success(request, "Your review has been submitted")
 
     return redirect(release_request.get_url())
 

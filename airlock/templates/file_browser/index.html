@@ -73,21 +73,21 @@
           {% endif %}
         {% elif is_output_checker %}
           {% if release_request.status_owner.name == "REVIEWER" %}
-            {% comment %} User can complete review if they haven't already {% endcomment %}
+            {% comment %} User can submit review if they haven't already {% endcomment %}
             {% if user_has_submitted_review %}
-              {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
-                Complete review
-                {% tooltip class="airlock-tooltip" content="You have already completed your review" %}
+              {% #button disabled=True class="relative group" small=True variant="secondary" id="submit-review-button" %}
+                Submit review
+                {% tooltip class="airlock-tooltip" content="You have already submitted your review" %}
               {% /button %}
             {% elif user_has_reviewed_all_files %}
               <form action="{{ request_review_url }}" method="POST">
                 {% csrf_token %}
-                {% #button type="submit" small=True tooltip="Complete Review" variant="secondary" id="complete-review-button" %}Complete review{% /button %}
+                {% #button type="submit" small=True tooltip="Submit Review" variant="secondary" id="submit-review-button" %}Submit review{% /button %}
               </form>
             {% else %}
-              {% #button disabled=True class="relative group" small=True variant="secondary" id="complete-review-button" %}
-                Complete review
-                {% tooltip class="airlock-tooltip" content="You must review all files before you can complete your review" %}
+              {% #button disabled=True class="relative group" small=True variant="secondary" id="submit-review-button" %}
+                Submit review
+                {% tooltip class="airlock-tooltip" content="You must review all files before you can submit your review" %}
               {% /button %}
             {% endif %}
             {% comment %} A fully reviewed request can be returned or rejected {% endcomment %}
@@ -115,11 +115,11 @@
             {% else %}
               {% #button disabled=True class="relative group" small=True variant="danger" id="reject-request-button" data-modal="rejectRequest" %}
                 Reject request
-                {% tooltip class="airlock-tooltip" content="Rejecting a request is disabled until review has been completed by two reviewers" %}
+                {% tooltip class="airlock-tooltip" content="Rejecting a request is disabled until review has been submitted by two reviewers" %}
               {% /button %}
               {% #button disabled=True class="relative group" small=True variant="secondary" id="return-request-button" %}
                 Return request
-                {% tooltip class="airlock-tooltip" content="Returning a request is disabled until review has been completed by two reviewers" %}
+                {% tooltip class="airlock-tooltip" content="Returning a request is disabled until review has been submitted by two reviewers" %}
               {% /button %}
             {% endif %}
           {% endif %}
