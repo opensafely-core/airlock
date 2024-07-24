@@ -118,6 +118,7 @@ def request_view(request, request_id: str, path: str = ""):
                     "commit": release_request.get_request_file_from_urlpath(
                         path
                     ).commit,
+                    "path": "project.yaml",
                 },
             )
             + f"?return_url={release_request.get_url(path)}"
