@@ -209,7 +209,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_CREATE: "Created request",
     AuditEventType.REQUEST_SUBMIT: "Submitted request",
     AuditEventType.REQUEST_WITHDRAW: "Withdrew request",
-    AuditEventType.REQUEST_REVIEW: "Reviewed request",
+    AuditEventType.REQUEST_REVIEW: "Submitted review",
     AuditEventType.REQUEST_APPROVE: "Approved request",
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
@@ -2070,7 +2070,7 @@ class BusinessLogicLayer:
 
     def review_request(self, release_request: ReleaseRequest, user: User):
         """
-        Complete a review
+        Submit a review
 
         Marking the request as either PARTIALLY_REVIEWED or REVIEWED, depending on whether this is the first or second review.
         """
