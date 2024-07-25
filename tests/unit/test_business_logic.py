@@ -2729,7 +2729,7 @@ def test_approve_then_request_changes_to_file(bll):
 
 
 @pytest.mark.parametrize("review", [RequestFileVote.APPROVED, RequestFileVote.REJECTED])
-def test_reviewreset_then_reset_review_file(bll, review):
+def test_review_then_reset_review_file(bll, review):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2795,6 +2795,41 @@ def test_reset_review_file_no_reviews(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+
+
+def test_reset_review_file_after_review_submitted(bll):
+    path = Path("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
+    )
+    checker = factories.create_user(output_checker=True)
+    # request_file = release_request.get_request_file_from_output_path(path)
+
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_file_vote_for_user(checker) is None
+    assert (
+        rfile.get_decision(release_request.submitted_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
+
+    bll.approve_file(release_request, rfile, checker)
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_file_vote_for_user(checker) is RequestFileVote.APPROVED
+    factories.submit_independent_review(release_request, checker)
+    release_request = factories.refresh_release_request(release_request)
+
+    # After submitting a review, the user can't reset it
+    rfile = _get_request_file(release_request, path)
+    with pytest.raises(bll.ApprovalPermissionDenied):
+        bll.reset_review_file(release_request, path, checker)
+    assert rfile.get_file_vote_for_user(checker) is RequestFileVote.APPROVED
+
+    # but they can still change their vote
+    bll.request_changes_to_file(release_request, rfile, checker)
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_file_vote_for_user(checker) is RequestFileVote.REJECTED
 
 
 @pytest.mark.parametrize(

@@ -2064,6 +2064,11 @@ class BusinessLogicLayer:
 
         self._verify_permission_to_review_file(release_request, relpath, user)
 
+        if user.username in release_request.submitted_reviews:
+            raise self.ApprovalPermissionDenied(
+                "cannot reset file from submitted review"
+            )
+
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_RESET_REVIEW,

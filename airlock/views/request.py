@@ -270,6 +270,10 @@ def request_view(request, request_id: str, path: str = ""):
                 assert False, "Invalid RequestFileVote value"
         else:
             file_reset_review_url = None
+        
+        # Disable reset button for submitted reviews
+        if user_has_submitted_review:
+            file_reset_review_url = None
 
     if (
         release_request.is_under_review()
