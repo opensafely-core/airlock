@@ -56,7 +56,7 @@
               {% csrf_token %}
               {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
                 {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
-                  Only you will see this comment until two independent reviews have been completed
+                  Only you will see this comment until two independent reviews have been submitted
                 {% /alert %}
               {% else %}
                 {% #alert variant="info" title="Comments are pending" no_icon=True %}

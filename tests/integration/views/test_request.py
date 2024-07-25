@@ -170,7 +170,7 @@ def test_request_view_with_submitted_request(airlock_client):
     assert "Rejecting a request is disabled" in response.rendered_content
     assert "Releasing to jobs.opensafely.org is disabled" in response.rendered_content
     assert "Returning a request is disabled" in response.rendered_content
-    assert "Complete review" in response.rendered_content
+    assert "Submit review" in response.rendered_content
 
 
 @pytest.mark.parametrize(
@@ -198,7 +198,7 @@ def test_request_view_with_submitted_request(airlock_client):
         ),
     ],
 )
-def test_request_view_complete_review_alert(airlock_client, files, has_message):
+def test_request_view_submit_review_alert(airlock_client, files, has_message):
     checker = factories.get_default_output_checkers()[0]
     airlock_client.login(checker.username, output_checker=True)
     release_request = factories.create_request_at_status(
@@ -210,13 +210,13 @@ def test_request_view_complete_review_alert(airlock_client, files, has_message):
     # The all-files-reviewed reminder message is only shown if the request has
     # output files and all have been reviewed
     assert (
-        "You can now complete your review" in response.rendered_content
+        "You can now submit your review" in response.rendered_content
     ) == has_message
 
     # The all-files-reviewed reminder message is never shown to an author
     airlock_client.login(release_request.author, workspaces=["workspace"])
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert "You can now complete your review" not in response.rendered_content
+    assert "You can now submit your review" not in response.rendered_content
 
 
 @pytest.mark.parametrize(
@@ -285,7 +285,7 @@ def test_request_view_complete_turn_alert(
     airlock_client, request_status, author, login_as, files, has_message, can_release
 ):
     """
-    Alert message shown when a request has two completed reviews and
+    Alert message shown when a request has two submitted reviews and
     can now be progressed by returning/rejecting/releasing
     """
     users = {
@@ -332,8 +332,8 @@ def test_request_view_with_reviewed_request(airlock_client):
         assert button_text in response.rendered_content
         assert diabled_tooltip not in response.rendered_content
 
-    assert "Complete review" in response.rendered_content
-    assert "You have already completed your review" in response.rendered_content
+    assert "Submit review" in response.rendered_content
+    assert "You have already submitted your review" in response.rendered_content
 
 
 @pytest.mark.parametrize("status", list(RequestStatus))
@@ -714,7 +714,7 @@ def test_request_index_user_request_progress(airlock_client):
         status=RequestStatus.SUBMITTED,
         files=generate_files(),
     )
-    # submitted, all files reviewed (but not completed)
+    # submitted, all files reviewed (but review not submitted)
     r1 = factories.create_request_at_status(
         "test_workspace1",
         status=RequestStatus.SUBMITTED,
@@ -724,14 +724,14 @@ def test_request_index_user_request_progress(airlock_client):
             checkers_b=[airlock_client.user],
         ),
     )
-    # completed review by other checker, making the request partially reviewed.
+    # submitted review by other checker, making the request partially reviewed.
     # no files reviewed by the user.
     r2 = factories.create_request_at_status(
         "other_workspace",
         status=RequestStatus.PARTIALLY_REVIEWED,
         files=generate_files(reviewed=True),
     )
-    # completed review by other checker, making the request partially reviewed.
+    # submitted review by other checker, making the request partially reviewed.
     # some files reviewed by the user.
     r3 = factories.create_request_at_status(
         "other1_workspace",
@@ -742,7 +742,7 @@ def test_request_index_user_request_progress(airlock_client):
             checkers_b=[airlock_client.user, default_checkers[0]],
         ),
     )
-    # review completed by the user, making the request partially reviewed
+    # review submitted by the user, making the request partially reviewed
     r4 = factories.create_request_at_status(
         "other2_workspace",
         author=other,
@@ -924,8 +924,8 @@ def test_request_review_output_checker(airlock_client):
     )
 
     response = airlock_client.get(release_request.get_url())
-    # Files have been reviewed but review has not been completed yet
-    assert "You can now complete your review" in response.rendered_content
+    # Files have been reviewed but review has not been submitted yet
+    assert "You can now submit your review" in response.rendered_content
 
     response = airlock_client.post(
         f"/requests/review/{release_request.id}", follow=True
@@ -935,13 +935,13 @@ def test_request_review_output_checker(airlock_client):
     persisted_request = factories.refresh_release_request(release_request)
     assert persisted_request.status == RequestStatus.PARTIALLY_REVIEWED
     assert (
-        "Your review has been completed"
+        "Your review has been submitted"
         in list(response.context["messages"])[0].message
     )
 
     response = airlock_client.get(release_request.get_url())
-    # Reminder message no longer shown now that review is complete
-    assert "You can now complete your review" not in response.rendered_content
+    # Reminder message no longer shown now that review is submitted
+    assert "You can now submit your review" not in response.rendered_content
 
 
 def test_request_review_non_output_checker(airlock_client):
@@ -976,7 +976,7 @@ def test_request_review_not_all_files_reviewed(airlock_client):
     persisted_request = factories.refresh_release_request(release_request)
     assert persisted_request.status == RequestStatus.SUBMITTED
     assert (
-        "You must review all files to complete your review" in response.rendered_content
+        "You must review all files to submit your review" in response.rendered_content
     )
 
 

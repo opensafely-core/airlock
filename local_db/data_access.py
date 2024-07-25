@@ -124,14 +124,14 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         with transaction.atomic():
             # persist reviewer state
             metadata = self._find_metadata(request_id)
-            metadata.completed_reviews[reviewer] = timezone.now().isoformat()
+            metadata.submitted_reviews[reviewer] = timezone.now().isoformat()
             metadata.save()
 
     def start_new_turn(self, request_id: str):
         with transaction.atomic():
             metadata = self._find_metadata(request_id)
-            metadata.turn_reviewers = ",".join(list(metadata.completed_reviews.keys()))
-            metadata.completed_reviews = {}
+            metadata.turn_reviewers = ",".join(list(metadata.submitted_reviews.keys()))
+            metadata.submitted_reviews = {}
             metadata.review_turn += 1
             metadata.save()
 

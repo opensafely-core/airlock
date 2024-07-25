@@ -359,7 +359,7 @@ def create_request_at_status(
         return request
 
     # If there are output files, get the usernames of all file reviewers
-    # so we can complete reviews with the correct checkers.
+    # so we can submit reviews with the correct checkers.
     # Note that it is possible to review a request with no output files
     # (potentially before returning it to the reviewer so they can add some).
     # Approving or releasing requests with no output files is not allowed.
@@ -370,10 +370,10 @@ def create_request_at_status(
         ]
 
     if status == RequestStatus.PARTIALLY_REVIEWED:
-        complete_independent_review(request, file_reviewers[0])
+        submit_independent_review(request, file_reviewers[0])
         return refresh_release_request(request)
-    # all other state require completed reviews.
-    complete_independent_review(request, *file_reviewers)
+    # all other statuses require submitted reviews.
+    submit_independent_review(request, *file_reviewers)
     request = refresh_release_request(request)
 
     if status == RequestStatus.REVIEWED:
@@ -558,7 +558,7 @@ def request_file(
     )
 
 
-def complete_independent_review(request, *users):
+def submit_independent_review(request, *users):
     users = users or get_default_output_checkers()
 
     request = refresh_release_request(request)

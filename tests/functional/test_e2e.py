@@ -83,12 +83,12 @@ def test_e2e_release_files(
     - View supporting file
     - Reject output file
     - Approve output file
-    - Complete review
+    - Submit review
     - Logout
 
     3) Log in as second output checker
     - Approve output file
-    - Complete review
+    - Submit review
     - Release files
     - View requests list again and confirm released request is not shown
     """
@@ -324,10 +324,10 @@ def test_e2e_release_files(
     find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
     expect(page.locator("body")).to_contain_text(request_id)
 
-    complete_review_button = page.locator("#complete-review-button")
-    # output checker hasn't reviewed files yet, complete review button visible but disabled
-    expect(complete_review_button).to_be_visible()
-    expect(complete_review_button).to_be_disabled()
+    submit_review_button = page.locator("#submit-review-button")
+    # output checker hasn't reviewed files yet, submit review button visible but disabled
+    expect(submit_review_button).to_be_visible()
+    expect(submit_review_button).to_be_disabled()
 
     # Reuse the locators from the workspace view to click on filegroup and then file
     # Click to open the filegroup tree
@@ -353,8 +353,8 @@ def test_e2e_release_files(
     expect(page.locator("#file-reset-button")).not_to_be_disabled()
 
     # output checker has now reviewed all output files
-    expect(complete_review_button).to_be_visible()
-    expect(complete_review_button).to_be_enabled()
+    expect(submit_review_button).to_be_visible()
+    expect(submit_review_button).to_be_enabled()
 
     # Change our minds & remove the review
     expect(page.locator("#file-reset-button")).to_have_attribute(
@@ -363,9 +363,9 @@ def test_e2e_release_files(
     find_and_click(page.locator("#file-reset-button"))
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
-    # complete review button disabled again
-    expect(complete_review_button).to_be_visible()
-    expect(complete_review_button).to_be_disabled()
+    # submit review button disabled again
+    expect(submit_review_button).to_be_visible()
+    expect(submit_review_button).to_be_disabled()
 
     # Think some more & finally approve the file
     expect(page.locator("#file-approve-button")).to_have_attribute(
@@ -400,8 +400,8 @@ def test_e2e_release_files(
     expect(page.locator("#file-reject-button")).not_to_be_visible()
     expect(page.locator("#file-reset-button")).not_to_be_visible()
 
-    # complete review for this output-checker
-    find_and_click(page.locator("#complete-review-button"))
+    # submit review for this output-checker
+    find_and_click(page.locator("#submit-review-button"))
     # Logout (by clearing cookies) and log in as second output-checker to do second approval
     # and release
     context.clear_cookies()
@@ -411,11 +411,11 @@ def test_e2e_release_files(
     find_and_click(page.locator("#file-approve-button"))
 
     # The file has 2 approvals, but the release files button is not yet enabled until this
-    # reviewer completes their review
+    # reviewer submits their review
     expect(release_button).to_be_disabled()
 
-    # complete review
-    find_and_click(page.locator("#complete-review-button"))
+    # submit review
+    find_and_click(page.locator("#submit-review-button"))
     expect(release_button).to_be_enabled()
 
     # Mock the responses from job-server

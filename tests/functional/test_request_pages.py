@@ -189,7 +189,7 @@ def _workspace_dict():
 
 @pytest.mark.parametrize(
     "author,login_as,status,reviewer_buttons_visible,release_button_visible,file_review_buttons_visible",
-    # reviewer buttons: return/reject/complete review
+    # reviewer buttons: return/reject/submit review
     # file review buttons: on a file view approve/request changes/reset
     [
         ("researcher", "researcher", RequestStatus.SUBMITTED, False, False, False),
@@ -248,7 +248,7 @@ def test_request_buttons(
     reviewer_buttons = [
         "#return-request-button",
         "button[data-modal=rejectRequest]",
-        "#complete-review-button",
+        "#submit-review-button",
     ]
 
     if reviewer_buttons_visible:
