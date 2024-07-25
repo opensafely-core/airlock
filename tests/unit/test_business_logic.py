@@ -2628,7 +2628,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
     bll.approve_file(release_request, request_file, checker1)
     bll.reject_file(release_request, request_file, checker2)
 
-    # Reviewers must complete their independent review before we can assess
+    # Reviewers must submit their independent review before we can assess
     # a file's decision
     factories.submit_independent_review(release_request, checker1, checker2)
     release_request = factories.refresh_release_request(release_request)
@@ -2638,7 +2638,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
         == RequestFileDecision.CONFLICTED
     )
 
-    # A 3rd reviewer can tie-break, but they need to also complete their full review
+    # A 3rd reviewer can tie-break, but they need to also submit their full review
     bll.approve_file(release_request, request_file, checker3)
     rfile = _get_request_file(release_request, path)
     assert (
@@ -2825,7 +2825,7 @@ def test_request_file_status_decision(bll, votes, decision):
         rfile = _get_request_file(release_request, path)
         assert rfile.get_file_vote_for_user(checker) == RequestFileVote[vote]
 
-        # complete review before we can determine a decision
+        # reviewer must submit review before we can determine a decision
         release_request = factories.refresh_release_request(release_request)
         assert (
             rfile.get_decision(release_request.submitted_reviews.keys())
@@ -3022,7 +3022,7 @@ def test_review_request_race_condition(bll):
             factories.request_file(path="test1.txt", rejected=True, checkers=checkers),
         ],
     )
-    # first checker completes review
+    # first checker submits review
     bll.review_request(release_request, checkers[0])
 
     # mock race condition by patching the number of submitted reviews to return 1 initially

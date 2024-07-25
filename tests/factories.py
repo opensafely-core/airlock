@@ -372,7 +372,7 @@ def create_request_at_status(
     if status == RequestStatus.PARTIALLY_REVIEWED:
         submit_independent_review(request, file_reviewers[0])
         return refresh_release_request(request)
-    # all other state require completed reviews.
+    # all other statuses require submitted reviews.
     submit_independent_review(request, *file_reviewers)
     request = refresh_release_request(request)
 
