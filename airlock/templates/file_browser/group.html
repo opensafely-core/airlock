@@ -27,17 +27,32 @@
   {% if show_c3 %}
     <div class="comments" style="margin-top: 1rem;">
       {% #list_group %}
-        {% for comment, metadata in group_comments %}
+        {% for comment, comment_class in group_comments %}
 
           {% fragment as comment_status %}
             <span>
               {% if request.user.output_checker %}
-                {% pill variant="info" text=metadata.description %}
+                {% if release_request.get_turn_phase.name == "INDEPENDENT" %}
+                  {% #pill variant="info" text="Blinded" class="group" %}
+                    Blinded
+                    {% comment%}
+                      TODO: get tooltips working for pills
+                      {% tooltip content=comment.visibility.blinded_description %}
+                    {% endcomment%}
+                  {% /pill%}
+                {% endif %}
+                {% #pill variant="info" class="group" %}
+                  {{ comment.visibility.name.title }}
+                  {% comment%}
+                    TODO: get tooltips working for pills
+                    {%tooltip content=comment.visibility.description %}
+                  {% endcomment%}
+                {% /pill%}
               {% endif %}
               {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
             </span>
           {% endfragment %}
-          {% #list_group_rich_item custom_status=comment_status class=metadata.class title=comment.author %}
+          {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
             {{ comment.comment }}
             {% if request.user.username == comment.author %}
               <div>
