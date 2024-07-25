@@ -342,7 +342,7 @@ def filter_visible_items(
 
         match item.visibility:
             case Visibility.PUBLIC:
-                # can always see public items from previous rounds
+                # can always see public items from previous turns and completed turns
                 if (
                     item.review_turn < current_turn
                     or current_phase == ReviewTurnPhase.COMPLETE
@@ -354,13 +354,13 @@ def filter_visible_items(
             case Visibility.PRIVATE:
                 # have to be able to review this request to see *any* private items
                 if user_can_review:
-                    # can always see private items from previous rounds
+                    # can always see private items from previous turns
                     if (
                         item.review_turn < current_turn
                         or current_phase == ReviewTurnPhase.COMPLETE
                     ):
                         yield item
-                    # can only see private items from current round if we are not INDEPENDENTe
+                    # can only see private items from current turn if we are not INDEPENDENT
                     elif current_phase != ReviewTurnPhase.INDEPENDENT:
                         yield item
             case _:  # pragma: nocover
