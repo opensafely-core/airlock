@@ -1991,17 +1991,17 @@ class BusinessLogicLayer:
     ):
         if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
             raise self.ApprovalPermissionDenied(
-                f"cannot approve file from request in state {release_request.status.name}"
+                f"cannot review file from request in state {release_request.status.name}"
             )
 
         if user.username == release_request.author:
             raise self.ApprovalPermissionDenied(
-                "cannot approve files in your own request"
+                "cannot review files in your own request"
             )
 
         if not user.output_checker:
             raise self.ApprovalPermissionDenied(
-                "only an output checker can approve a file"
+                "only an output checker can review a file"
             )
 
         if relpath not in release_request.output_files():
