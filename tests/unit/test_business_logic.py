@@ -2195,7 +2195,7 @@ def test_get_visible_comments_for_group(bll):
     assert get_comments(author) == []
     assert release_request.review_turn == 1
 
-    factories.complete_independent_review(release_request)
+    factories.submit_independent_review(release_request)
 
     bll.group_comment_create(
         release_request,
@@ -2298,7 +2298,7 @@ def test_get_visible_comments_for_group(bll):
     assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
     assert release_request.review_turn == 3
 
-    factories.complete_independent_review(release_request)
+    factories.submit_independent_review(release_request)
 
     # in RequestPhase.CONSOLIDATING for a 2nd round
     # Checkers should see previous and current round's private comments,
@@ -2630,7 +2630,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
 
     # Reviewers must complete their independent review before we can assess
     # a file's decision
-    factories.complete_independent_review(release_request, checker1, checker2)
+    factories.submit_independent_review(release_request, checker1, checker2)
     release_request = factories.refresh_release_request(release_request)
     rfile = _get_request_file(release_request, path)
     assert (
@@ -2646,7 +2646,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
         == RequestFileDecision.CONFLICTED
     )
 
-    factories.complete_independent_review(release_request, checker3)
+    factories.submit_independent_review(release_request, checker3)
     release_request = factories.refresh_release_request(release_request)
     assert (
         rfile.get_decision(release_request.submitted_reviews.keys())
@@ -2832,7 +2832,7 @@ def test_request_file_status_decision(bll, votes, decision):
             == RequestFileDecision.INCOMPLETE
         )
 
-        factories.complete_independent_review(release_request, checker)
+        factories.submit_independent_review(release_request, checker)
         release_request = factories.refresh_release_request(release_request)
         if i == 0:
             assert (

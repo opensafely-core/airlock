@@ -203,7 +203,7 @@ def test_get_request_tree_status(bll):
     assert_status(checker2, RequestFileDecision.INCOMPLETE, None)
 
     # move to PARTIALLY_REVIEWED, but still blinded
-    factories.complete_independent_review(release_request, checker1)
+    factories.submit_independent_review(release_request, checker1)
 
     assert_status(author, RequestFileDecision.INCOMPLETE, None)
     assert_status(checker1, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
@@ -221,7 +221,7 @@ def test_get_request_tree_status(bll):
     assert_status(checker2, RequestFileDecision.INCOMPLETE, RequestFileVote.APPROVED)
 
     # move to REVIEWED, now unblinded, but author still cannot see anything
-    factories.complete_independent_review(release_request, checker2)
+    factories.submit_independent_review(release_request, checker2)
 
     assert_status(author, RequestFileDecision.INCOMPLETE, None)
     assert_status(checker1, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
