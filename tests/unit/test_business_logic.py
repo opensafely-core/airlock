@@ -2477,7 +2477,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 3 checker 0 public", checkers[0])
 
 
-def test_get_visible_comments_for_group_metadata(bll):
+def test_get_visible_comments_for_group_class(bll):
     author = factories.create_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
 
@@ -2519,24 +2519,8 @@ def test_get_visible_comments_for_group_metadata(bll):
             m for _, m in release_request.get_visible_comments_for_group("group", user)
         ]
 
-    assert get_comment_metadata(checkers[0]) == [
-        {
-            "description": Visibility.PRIVATE.independent_description(),
-            "class": "comment_blinded",
-        },
-        {
-            "description": Visibility.PUBLIC.independent_description(),
-            "class": "comment_blinded",
-        },
-    ]
-
-    assert get_comment_metadata(checkers[1]) == [
-        {
-            "description": Visibility.PRIVATE.independent_description(),
-            "class": "comment_blinded",
-        },
-    ]
-
+    assert get_comment_metadata(checkers[0]) == ["comment_blinded", "comment_blinded"]
+    assert get_comment_metadata(checkers[1]) == ["comment_blinded"]
     assert get_comment_metadata(author) == []
 
     factories.complete_independent_review(release_request)
@@ -2546,18 +2530,9 @@ def test_get_visible_comments_for_group_metadata(bll):
 
     for checker in checkers:
         assert get_comment_metadata(checker) == [
-            {
-                "description": Visibility.PRIVATE.description(),
-                "class": "comment_private",
-            },
-            {
-                "description": Visibility.PRIVATE.description(),
-                "class": "comment_private",
-            },
-            {
-                "description": Visibility.PUBLIC.description(),
-                "class": "comment_public",
-            },
+            "comment_private",
+            "comment_private",
+            "comment_public",
         ]
 
     assert get_comment_metadata(author) == []
@@ -2569,26 +2544,12 @@ def test_get_visible_comments_for_group_metadata(bll):
 
     for checker in checkers:
         assert get_comment_metadata(checker) == [
-            {
-                "description": Visibility.PRIVATE.description(),
-                "class": "comment_private",
-            },
-            {
-                "description": Visibility.PRIVATE.description(),
-                "class": "comment_private",
-            },
-            {
-                "description": Visibility.PUBLIC.description(),
-                "class": "comment_public",
-            },
+            "comment_private",
+            "comment_private",
+            "comment_public",
         ]
 
-    assert get_comment_metadata(author) == [
-        {
-            "description": Visibility.PUBLIC.description(),
-            "class": "comment_public",
-        },
-    ]
+    assert get_comment_metadata(author) == ["comment_public"]
 
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
@@ -2614,45 +2575,16 @@ def test_get_visible_comments_for_group_metadata(bll):
 
     # comments from previous round are visible
     assert get_comment_metadata(checkers[0]) == [
-        # previous round comments
-        {
-            "description": Visibility.PRIVATE.description(),
-            "class": "comment_private",
-        },
-        {
-            "description": Visibility.PRIVATE.description(),
-            "class": "comment_private",
-        },
-        {
-            "description": Visibility.PUBLIC.description(),
-            "class": "comment_public",
-        },
-        {
-            "description": Visibility.PRIVATE.independent_description(),
-            "class": "comment_blinded",
-        },
-        # current round comment
+        "comment_private",
+        "comment_private",
+        "comment_public",
+        "comment_blinded",
     ]
-
     assert get_comment_metadata(checkers[1]) == [
-        # previous round comments
-        {
-            "description": Visibility.PRIVATE.description(),
-            "class": "comment_private",
-        },
-        {
-            "description": Visibility.PRIVATE.description(),
-            "class": "comment_private",
-        },
-        {
-            "description": Visibility.PUBLIC.description(),
-            "class": "comment_public",
-        },
-        # current round comment
-        {
-            "description": Visibility.PRIVATE.independent_description(),
-            "class": "comment_blinded",
-        },
+        "comment_private",
+        "comment_private",
+        "comment_public",
+        "comment_blinded",
     ]
 
 

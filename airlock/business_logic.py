@@ -125,14 +125,15 @@ class Visibility(Enum):
     def choices(cls):
         return {
             Visibility.PRIVATE: "Only visible to output-checkers",
-            Visibility.PUBLIC: "Visible to all",
+            Visibility.PUBLIC: "Visible to all users",
         }
 
-    def description(self):
+    # These will be for tooltips once those are working inside of pills
+    def description(self):  # pragma: no cover
         return self.choices()[self]
 
-    def independent_description(self):
-        return "Only visible to you until both reviews submitted"
+    def blinded_description(self):  # pragma: no cover
+        return "Only visible to you until two reviews have been completed"
 
 
 class ReviewTurnPhase(Enum):
@@ -989,7 +990,7 @@ class ReleaseRequest:
 
     def get_visible_comments_for_group(
         self, group: str, user: User
-    ) -> list[tuple[Comment, dict[str, str]]]:
+    ) -> list[tuple[Comment, str]]:
         filegroup = self.filegroups[group]
         current_phase = self.get_turn_phase()
 
@@ -1008,17 +1009,11 @@ class ReleaseRequest:
                 comment.review_turn == self.review_turn
                 and current_phase == ReviewTurnPhase.INDEPENDENT
             ):
-                metadata = {
-                    "description": comment.visibility.independent_description(),
-                    "class": "comment_blinded",
-                }
+                html_class = "comment_blinded"
             else:
-                metadata = {
-                    "description": comment.visibility.description(),
-                    "class": f"comment_{comment.visibility.name.lower()}",
-                }
+                html_class = f"comment_{comment.visibility.name.lower()}"
 
-            comments.append((comment, metadata))
+            comments.append((comment, html_class))
 
         return comments
 
