@@ -2523,7 +2523,7 @@ def test_get_visible_comments_for_group_class(bll):
     assert get_comment_metadata(checkers[1]) == ["comment_blinded"]
     assert get_comment_metadata(author) == []
 
-    factories.complete_independent_review(release_request)
+    factories.submit_independent_review(release_request)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.review_turn == 1
     assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
