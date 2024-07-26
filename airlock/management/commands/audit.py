@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     @transaction.atomic()
     def handle(self, *args, **options):
-        audit_log = bll.get_audit_log(
+        audit_log = bll._dal.get_audit_log(
             user=options["user"],
             workspace=options["workspace"],
             request=options["request"],

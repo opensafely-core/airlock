@@ -16,8 +16,8 @@ class Migration(migrations.Migration):
             model_name="filegroupcomment",
             name="visibility",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.CommentVisibility.PUBLIC,
-                enum=airlock.business_logic.CommentVisibility,
+                default=airlock.business_logic.Visibility.PUBLIC,
+                enum=airlock.business_logic.Visibility,
             ),
             preserve_default=False,
         ),
