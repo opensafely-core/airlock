@@ -63,7 +63,7 @@
   --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-.file-status--rejected, .file-status--conflicted {
+.file-status--changes_requested, .file-status--conflicted {
   --status-color: var(--color-fuchsia-800);
   --status-bg: var(--color-fuchsia-100);
   --icon-filter: invert(17%) sepia(40%) saturate(5736%) hue-rotate(284deg)

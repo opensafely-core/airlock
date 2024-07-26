@@ -193,8 +193,8 @@
   --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-.tree__file.user_rejected, 
-.tree__file.request_rejected {
+.tree__file.user_changes_requested, 
+.tree__file.request_changes_requested {
   --file-bg: var(--color-fuchsia-50);
   --file-border: var(--color-fuchsia-500);
   --file-name: var(--color-fuchsia-800);
