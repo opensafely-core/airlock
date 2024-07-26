@@ -2159,7 +2159,7 @@ def setup_empty_release_request():
 class VisibleItemsHelper:
     """Helper class to make assertions about visiblity of comments and audit logs.
 
-    It will fetch comments and audits that are visible a specific request and
+    It will fetch comments and audits that are visible for a specific request and
     user, and store them to make assertions about.
     """
 
