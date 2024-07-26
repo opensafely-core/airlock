@@ -319,7 +319,7 @@ def test_request_returnable(
                 group="group",
                 path="file2.txt",
                 checkers=checkers,
-                rejected=checkers is not None,
+                changes_requested=checkers is not None,
             ),
         ],
     )
@@ -363,7 +363,10 @@ def test_returned_request(live_server, context, page, bll):
                 group="group", path="file1.txt", checkers=checkers, approved=True
             ),
             factories.request_file(
-                group="group", path="file2.txt", checkers=checkers, rejected=True
+                group="group",
+                path="file2.txt",
+                checkers=checkers,
+                changes_requested=True,
             ),
         ],
     )
@@ -377,14 +380,14 @@ def test_returned_request(live_server, context, page, bll):
     # logout by clearing cookies
     context.clear_cookies()
 
-    # checker looks at previously rejected/approved files
+    # checker looks at previously changes_requested/approved files
     login_as_user(live_server, context, user_data["checker1"])
     status_locator = page.locator(".file-status--approved")
     # go to previously approved file; still shown as approved
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
     expect(status_locator).to_contain_text("Approved")
 
-    # go to previously rejected file; now shown as no-status
+    # go to previously changes_requested file; now shown as no-status
     page.goto(live_server.url + release_request.get_url("group/file2.txt"))
     status_locator = page.locator(".file-status--undecided")
     expect(status_locator).to_contain_text("Undecided")

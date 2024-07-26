@@ -79,29 +79,23 @@ class RequestFileVote(Enum):
     """An individual output checker's vote on a specific file."""
 
     APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    UNDECIDED = (
-        "UNDECIDED"  # set on REJECTED files by Airlock when a request is re-submitted
-    )
+    CHANGES_REQUESTED = "CHANGES_REQUESTED"
+    UNDECIDED = "UNDECIDED"  # set on CHANGES_REQUESTED files by Airlock when a request is re-submitted
 
     def description(self):
-        if self == RequestFileVote.REJECTED:
-            return "Changes Requested"
-        return self.name.title()
+        return self.name.replace("_", " ").title()
 
 
 class RequestFileDecision(Enum):
     """The current state of all user reviews on this file."""
 
-    REJECTED = "REJECTED"
+    CHANGES_REQUESTED = "CHANGES_REQUESTED"
     APPROVED = "APPROVED"
     CONFLICTED = "CONFLICTED"
     INCOMPLETE = "INCOMPLETE"
 
     def description(self):  # pragma: nocover
-        if self == RequestFileDecision.REJECTED:
-            return "Changes Requested"
-        return self.name.title()
+        return self.name.replace("_", " ").title()
 
 
 @dataclass
@@ -228,7 +222,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_APPROVE: "Approved file",
     AuditEventType.REQUEST_FILE_REQUEST_CHANGES: "Changes requested to file",
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
-    AuditEventType.REQUEST_FILE_UNDECIDED: "Rejected file moved to undecided",
+    AuditEventType.REQUEST_FILE_UNDECIDED: "File with changes requested moved to undecided",
     AuditEventType.REQUEST_FILE_RELEASE: "File released",
 }
 
@@ -791,8 +785,8 @@ class RequestFile:
         if len(set(all_reviews)) > 1:
             return RequestFileDecision.CONFLICTED
 
-        # only case left is all reviews are REJECTED
-        return RequestFileDecision.REJECTED
+        # only case left is all reviews are CHANGES_REQUESTED
+        return RequestFileDecision.CHANGES_REQUESTED
 
     def get_file_vote_for_user(self, user: User) -> RequestFileVote | None:
         if user.username in self.reviews:
@@ -800,11 +794,11 @@ class RequestFile:
         else:
             return None
 
-    def rejected_reviews(self):
+    def changes_requested_reviews(self):
         return [
             review
             for review in self.reviews.values()
-            if review.status == RequestFileVote.REJECTED
+            if review.status == RequestFileVote.CHANGES_REQUESTED
         ]
 
 
@@ -2029,7 +2023,7 @@ class BusinessLogicLayer:
     def submit_request(self, request: ReleaseRequest, user: User):
         """
         Change status to SUBMITTED. If the request is currently in
-        RETURNED status, mark any rejected reviews as undecided.
+        RETURNED status, mark any changes-requested reviews as undecided.
         """
         self.check_status(request, RequestStatus.SUBMITTED, user)
 
@@ -2037,7 +2031,7 @@ class BusinessLogicLayer:
         if request.status == RequestStatus.RETURNED:
             # any unapproved files that have not been updated are set to UNDECIDED
             for rfile in request.output_files().values():
-                for review in rfile.rejected_reviews():
+                for review in rfile.changes_requested_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
 
         self.set_status(request, RequestStatus.SUBMITTED, user)
@@ -2096,7 +2090,7 @@ class BusinessLogicLayer:
         request_file: RequestFile,
         user: User,
     ):
-        """Reject a file"""
+        """Request changes to a file"""
 
         self._verify_permission_to_review_file(
             release_request, request_file.relpath, user
@@ -2207,13 +2201,13 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
     ):
-        """Change an existing rejected file in a returned request to undecided before re-submitting"""
+        """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
             raise self.ApprovalPermissionDenied(
                 f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
-        if review.status != RequestFileVote.REJECTED:
+        if review.status != RequestFileVote.CHANGES_REQUESTED:
             raise self.ApprovalPermissionDenied(
                 f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )

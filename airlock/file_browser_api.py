@@ -205,9 +205,7 @@ class PathItem:
     def html_classes(self):
         """Semantic html classes for this PathItem.
 
-        Currently, only "selected" is used, but it made sense to be able to
-        distinguish file/dirs, and maybe even file types, in the UI, in case we
-        need to.
+        Distinguish file/dirs, file types and file statuses, in the UI.
         """
         classes = [self.type.value.lower()] if self.type else []
 

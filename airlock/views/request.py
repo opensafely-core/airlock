@@ -277,7 +277,7 @@ def request_view(request, request_id: str, path: str = ""):
         match existing_review_status:
             case RequestFileVote.APPROVED:
                 voting_buttons["approve"]["disabled"] = True
-            case RequestFileVote.REJECTED:
+            case RequestFileVote.CHANGES_REQUESTED:
                 voting_buttons["request_changes"]["disabled"] = True
             case RequestFileVote.UNDECIDED | None:
                 voting_buttons["reset_review"]["disabled"] = True

@@ -330,7 +330,7 @@ def test_request_pending_author_get_workspace_file_status(bll):
         path=path,
         contents="1",
         user=author,
-        rejected=True,
+        changes_requested=True,
     )
 
     factories.create_request_at_status(
@@ -359,7 +359,7 @@ def test_request_returned_author_get_workspace_file_status(bll):
         path=path,
         contents="1",
         user=author,
-        rejected=True,
+        changes_requested=True,
     )
 
     factories.create_request_at_status(
@@ -1391,7 +1391,7 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
         status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(
-                approved=all_files_approved, rejected=not all_files_approved
+                approved=all_files_approved, changes_requested=not all_files_approved
             )
         ],
     )
@@ -1467,17 +1467,19 @@ def test_submit_request(bll, mock_notifications):
 def test_resubmit_request(bll, mock_notifications):
     """
     From returned
-    Files with rejected status are moved to undecided
+    Files with changes requested status are moved to undecided
     """
     author = factories.create_user("author", ["workspace"], False)
-    # Returned request with two files, one is approved by both reviewers, one is rejected
+    # Returned request with two files, one is approved by both reviewers, one has changes requested
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
         files=[
             factories.request_file(group="test", path="file.txt", approved=True),
-            factories.request_file(group="test", path="file1.txt", rejected=True),
+            factories.request_file(
+                group="test", path="file1.txt", changes_requested=True
+            ),
         ],
     )
     assert release_request.submitted_reviews_count() == 2
@@ -1495,11 +1497,14 @@ def test_resubmit_request(bll, mock_notifications):
         )
         assert approved_file.get_file_vote_for_user(user) == RequestFileVote.APPROVED
 
-        # rejected file review is now undecided
-        rejected_file = release_request.get_request_file_from_output_path(
+        # changes_requested file review is now undecided
+        changes_requested_file = release_request.get_request_file_from_output_path(
             UrlPath("file1.txt")
         )
-        assert rejected_file.get_file_vote_for_user(user) == RequestFileVote.UNDECIDED
+        assert (
+            changes_requested_file.get_file_vote_for_user(user)
+            == RequestFileVote.UNDECIDED
+        )
         assert not release_request.all_files_reviewed_by_reviewer(user)
         # submitted reviews have been reset
         assert release_request.submitted_reviews == {}
@@ -1733,7 +1738,7 @@ def test_update_file_in_request_not_updated(bll):
 
 
 @pytest.mark.parametrize(
-    "status,approved,rejected,success,notification_sent",
+    "status,approved,changes_requested,success,notification_sent",
     [
         (RequestStatus.PENDING, False, False, True, False),
         (RequestStatus.SUBMITTED, False, False, False, False),
@@ -1747,7 +1752,13 @@ def test_update_file_in_request_not_updated(bll):
     ],
 )
 def test_update_file_to_request_states(
-    status, approved, rejected, success, notification_sent, bll, mock_notifications
+    status,
+    approved,
+    changes_requested,
+    success,
+    notification_sent,
+    bll,
+    mock_notifications,
 ):
     author = factories.create_user("author", ["workspace"], False)
     checkers = factories.get_default_output_checkers()
@@ -1763,7 +1774,7 @@ def test_update_file_to_request_states(
         path=path,
         user=author,
         approved=approved,
-        rejected=rejected,
+        changes_requested=changes_requested,
     )
 
     release_request = factories.create_request_at_status(
@@ -1910,7 +1921,11 @@ def test_withdraw_file_from_request_returned(bll):
         status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
-                group="group", path=path1, contents="1", user=author, rejected=True
+                group="group",
+                path=path1,
+                contents="1",
+                user=author,
+                changes_requested=True,
             ),
         ],
     )
@@ -2203,7 +2218,7 @@ class VisibleItemsHelper:
         match vote:
             case RequestFileVote.APPROVED:
                 event_type = AuditEventType.REQUEST_FILE_APPROVE
-            case RequestFileVote.REJECTED:
+            case RequestFileVote.CHANGES_REQUESTED:
                 event_type = AuditEventType.REQUEST_FILE_REQUEST_CHANGES
             case _:  # pragma: nocover
                 assert False
@@ -2356,7 +2371,7 @@ def test_request_comment_and_audit_visibility(bll):
         Visibility.PRIVATE,
         checkers[1],
     )
-    # checker0 rejects the file now. Not realistic, but we want to check that
+    # checker0 requests changes to the file now. Not realistic, but we want to check that
     # the audit log for later round votes is hidden
     bll.request_changes_to_file(
         release_request,
@@ -2376,7 +2391,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 1 checker 0 public", checkers[0])
     assert visible.comment("turn 2 author public", author)
     assert visible.comment("turn 3 checker 0 private", checkers[0])
-    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert not visible.comment("turn 3 checker 1 private", checkers[1])
 
     visible = get_visible_items(checkers[1])
@@ -2387,7 +2402,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 1 checker 0 public", checkers[0])
     assert visible.comment("turn 2 author public", author)
     assert not visible.comment("turn 3 checker 0 private", checkers[0])
-    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert visible.comment("turn 3 checker 1 private", checkers[1])
 
     visible = get_visible_items(author)
@@ -2398,7 +2413,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 1 checker 0 public", checkers[0])
     assert visible.comment("turn 2 author public", author)
     assert not visible.comment("turn 3 checker 0 private", checkers[0])
-    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert not visible.comment("turn 3 checker 1 private", checkers[1])
 
     factories.submit_independent_review(release_request)
@@ -2424,7 +2439,7 @@ def test_request_comment_and_audit_visibility(bll):
         assert visible.comment("turn 1 checker 0 public", checkers[0])
         assert visible.comment("turn 2 author public", author)
         assert visible.comment("turn 3 checker 0 private", checkers[0])
-        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
         assert visible.comment("turn 3 checker 1 private", checkers[1])
         assert visible.comment("turn 3 checker 0 public", checkers[0])
 
@@ -2437,7 +2452,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 1 checker 0 public", checkers[0])
     assert visible.comment("turn 2 author public", author)
     assert not visible.comment("turn 3 checker 0 private", checkers[0])
-    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert not visible.comment("turn 3 checker 1 private", checkers[1])
     assert not visible.comment("turn 3 checker 0 public", checkers[0])
 
@@ -2459,7 +2474,7 @@ def test_request_comment_and_audit_visibility(bll):
         assert visible.comment("turn 1 checker 0 public", checkers[0])
         assert visible.comment("turn 2 author public", author)
         assert visible.comment("turn 3 checker 0 private", checkers[0])
-        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
         assert visible.comment("turn 3 checker 1 private", checkers[1])
         assert visible.comment("turn 3 checker 0 public", checkers[0])
 
@@ -2472,7 +2487,7 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.comment("turn 1 checker 0 public", checkers[0])
     assert visible.comment("turn 2 author public", author)
     assert not visible.comment("turn 3 checker 0 private", checkers[0])
-    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert not visible.comment("turn 3 checker 1 private", checkers[1])
     assert visible.comment("turn 3 checker 0 public", checkers[0])
 
@@ -2882,7 +2897,7 @@ def test_request_changes_to_file(bll):
     bll.request_changes_to_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
     assert (
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
@@ -2927,14 +2942,16 @@ def test_approve_then_request_changes_to_file(bll):
     bll.request_changes_to_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
     assert (
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
 
 
-@pytest.mark.parametrize("review", [RequestFileVote.APPROVED, RequestFileVote.REJECTED])
+@pytest.mark.parametrize(
+    "review", [RequestFileVote.APPROVED, RequestFileVote.CHANGES_REQUESTED]
+)
 def test_review_then_reset_review_file(bll, review):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2954,7 +2971,7 @@ def test_review_then_reset_review_file(bll, review):
 
     if review == RequestFileVote.APPROVED:
         bll.approve_file(release_request, request_file, checker)
-    elif review == RequestFileVote.REJECTED:
+    elif review == RequestFileVote.CHANGES_REQUESTED:
         bll.request_changes_to_file(release_request, request_file, checker)
     else:
         assert False
@@ -3034,15 +3051,15 @@ def test_reset_review_file_after_review_submitted(bll):
     # but they can still change their vote
     bll.request_changes_to_file(release_request, rfile, checker)
     rfile = _get_request_file(release_request, path)
-    assert rfile.get_file_vote_for_user(checker) is RequestFileVote.REJECTED
+    assert rfile.get_file_vote_for_user(checker) is RequestFileVote.CHANGES_REQUESTED
 
 
 @pytest.mark.parametrize(
     "votes, decision",
     [
         (["APPROVED", "APPROVED"], "APPROVED"),
-        (["REJECTED", "REJECTED"], "REJECTED"),
-        (["APPROVED", "REJECTED"], "CONFLICTED"),
+        (["CHANGES_REQUESTED", "CHANGES_REQUESTED"], "CHANGES_REQUESTED"),
+        (["APPROVED", "CHANGES_REQUESTED"], "CONFLICTED"),
     ],
 )
 def test_request_file_status_decision(bll, votes, decision):
@@ -3091,7 +3108,7 @@ def test_mark_file_undecided(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(path="file.txt", rejected=True)],
+        files=[factories.request_file(path="file.txt", changes_requested=True)],
     )
 
     # first default output-checker
@@ -3112,16 +3129,16 @@ def test_mark_file_undecided(bll):
 @pytest.mark.parametrize(
     "request_status,file_status,allowed",
     [
-        # can only mark undecided for a rejected file on a returned request
-        (RequestStatus.SUBMITTED, RequestFileVote.REJECTED, False),
+        # can only mark undecided for a changes_requested file on a returned request
+        (RequestStatus.SUBMITTED, RequestFileVote.CHANGES_REQUESTED, False),
         (RequestStatus.RETURNED, RequestFileVote.APPROVED, False),
-        (RequestStatus.RETURNED, RequestFileVote.REJECTED, True),
+        (RequestStatus.RETURNED, RequestFileVote.CHANGES_REQUESTED, True),
     ],
 )
 def test_mark_file_undecided_permission_errors(
     bll, request_status, file_status, allowed
 ):
-    # Set up that already has 2 reviews; these are both rejected for
+    # Set up file that already has 2 reviews; these are both changes_requested for
     # requests that we want to be in RETURNED status, and approved
     # for SUBMITTED/APPROVED/RELEASED, so we can set the request status
     path = "path/file.txt"
@@ -3132,7 +3149,7 @@ def test_mark_file_undecided_permission_errors(
         files=[
             factories.request_file(
                 path=path,
-                rejected=file_status == RequestFileVote.REJECTED,
+                changes_requested=file_status == RequestFileVote.CHANGES_REQUESTED,
                 approved=file_status == RequestFileVote.APPROVED,
                 checkers=checkers,
             )
@@ -3156,11 +3173,13 @@ def test_review_request(bll):
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
-            factories.request_file(path="test.txt", rejected=True, checkers=[checker]),
+            factories.request_file(
+                path="test.txt", changes_requested=True, checkers=[checker]
+            ),
             factories.request_file(path="test1.txt"),
         ],
     )
-    # first file is already rejected, second file is not reviewed
+    # first file already has changed requested, second file is not reviewed
     with pytest.raises(
         bll.RequestReviewDenied,
         match="You must review all files to submit your review",
@@ -3259,7 +3278,9 @@ def test_review_request_race_condition(bll):
         status=RequestStatus.SUBMITTED,
         files=[
             factories.request_file(path="test.txt", approved=True, checkers=checkers),
-            factories.request_file(path="test1.txt", rejected=True, checkers=checkers),
+            factories.request_file(
+                path="test1.txt", changes_requested=True, checkers=checkers
+            ),
         ],
     )
     # first checker submits review

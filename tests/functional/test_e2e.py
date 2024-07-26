@@ -77,11 +77,11 @@ def test_e2e_release_files(
     - View requests list
     - Click and view submitted request
     - View output file
-    - Reject output file
+    - Request changes to output file
     - Approve output file
     - Download output file
     - View supporting file
-    - Reject output file
+    - Request changes to output file
     - Approve output file
     - Submit review
     - Logout
@@ -341,7 +341,7 @@ def test_e2e_release_files(
     release_button = page.locator("#release-files-button")
     expect(release_button).to_be_disabled()
 
-    # Reject the file
+    # Request changes to the file
     expect(page.locator("#file-request-changes-button")).to_have_attribute(
         "aria-pressed", "false"
     )
@@ -454,7 +454,9 @@ def test_e2e_update_file(page, live_server, dev_users):
         "test-workspace",
         author=author,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(path=path, group="default", rejected=True)],
+        files=[
+            factories.request_file(path=path, group="default", changes_requested=True)
+        ],
     )
 
     # change the file on disk
@@ -549,7 +551,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
         "test-workspace",
         author=factories.create_user("author", workspaces=["test-workspace"]),
         status=RequestStatus.REVIEWED,
-        files=[factories.request_file(rejected=True)],
+        files=[factories.request_file(changes_requested=True)],
     )
 
     # Log in as output checker
@@ -578,7 +580,7 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
         "test-workspace",
         author=user,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(rejected=True)],
+        files=[factories.request_file(changes_requested=True)],
     )
 
     # Log in as a researcher

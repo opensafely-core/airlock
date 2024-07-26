@@ -174,7 +174,9 @@ def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
         "test-workspace",
         author=author,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(path=path, group="default", rejected=True)],
+        files=[
+            factories.request_file(path=path, group="default", changes_requested=True)
+        ],
     )
 
     if request_status != RequestStatus.RETURNED:
@@ -324,7 +326,7 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         (
             RequestStatus.RETURNED,
             True,
-            [factories.request_file(path="file.txt", rejected=True)],
+            [factories.request_file(path="file.txt", changes_requested=True)],
             False,
         ),
         # reviewer-editable
@@ -339,14 +341,14 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         (
             RequestStatus.PARTIALLY_REVIEWED,
             True,
-            [factories.request_file(path="file.txt", rejected=True)],
+            [factories.request_file(path="file.txt", changes_requested=True)],
             False,
         ),
         (RequestStatus.REVIEWED, True, [], False),
         (
             RequestStatus.REVIEWED,
             True,
-            [factories.request_file(path="file.txt", rejected=True)],
+            [factories.request_file(path="file.txt", changes_requested=True)],
             False,
         ),
         # non-editable, can see form because there is no current request
@@ -361,7 +363,7 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         (
             RequestStatus.REJECTED,
             False,
-            [factories.request_file(path="file.txt", rejected=True)],
+            [factories.request_file(path="file.txt", changes_requested=True)],
             True,
         ),
         (RequestStatus.APPROVED, False, [], True),

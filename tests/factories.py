@@ -275,7 +275,7 @@ def create_request_at_status(
     Create a valid request at the given status.
 
     Files must be provided for any status except PENDING. To move to
-    PARTIALLY_REVIEWED and beyond, you will also need to approve or reject.
+    PARTIALLY_REVIEWED and beyond, you will also need to approve or request changes.
 
     Files are provided using a factory method for creating them. e.g.
 
@@ -292,7 +292,7 @@ def create_request_at_status(
     output-checker. If not provided, a default output checker is used.
 
     Optionally, `request_file` can be given `checkers`, a list of users who will
-    review (approve/reject) the file. If not provided, default output checkers
+    review (approve/request changes tp) the file. If not provided, default output checkers
     will be used.
     """
     author = author or create_user(
@@ -480,7 +480,7 @@ def review_file(request, relpath, status, *users):
                 request.get_request_file_from_output_path(relpath),
                 user=user,
             )
-        elif status == RequestFileVote.REJECTED:
+        elif status == RequestFileVote.CHANGES_REQUESTED:
             bll.request_changes_to_file(
                 request,
                 request.get_request_file_from_output_path(relpath),
@@ -507,7 +507,7 @@ class TestRequestFile:
 
     # voting
     approved: bool = False
-    rejected: bool = False
+    changes_requested: bool = False
     checkers: typing.Sequence[User] = field(default_factory=list)
 
     def add(self, request):
@@ -525,8 +525,10 @@ class TestRequestFile:
     def vote(self, request: ReleaseRequest):
         if self.approved:
             review_file(request, self.path, RequestFileVote.APPROVED, *self.checkers)
-        elif self.rejected:
-            review_file(request, self.path, RequestFileVote.REJECTED, *self.checkers)
+        elif self.changes_requested:
+            review_file(
+                request, self.path, RequestFileVote.CHANGES_REQUESTED, *self.checkers
+            )
 
 
 def request_file(
@@ -536,7 +538,7 @@ def request_file(
     filetype=RequestFileType.OUTPUT,
     user=None,
     approved=False,
-    rejected=False,
+    changes_requested=False,
     checkers=None,
     **kwargs,
 ) -> TestRequestFile:
@@ -553,7 +555,7 @@ def request_file(
         user=user,
         # voting
         approved=approved,
-        rejected=rejected,
+        changes_requested=changes_requested,
         checkers=checkers or [],
     )
 
