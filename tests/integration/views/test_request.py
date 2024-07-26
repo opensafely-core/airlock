@@ -1013,7 +1013,7 @@ def test_requests_for_workspace(airlock_client):
     assert author2.username in response.rendered_content
 
 
-@pytest.mark.parametrize("review", [("approve"), ("reject"), ("reset_review")])
+@pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
 def test_file_review_bad_user(airlock_client, review):
     workspace = "test1"
     airlock_client.login(workspaces=[workspace], output_checker=False)
@@ -1102,7 +1102,7 @@ def test_file_approve(airlock_client):
     assert review.reviewer == "testuser"
 
 
-def test_file_reject(airlock_client):
+def test_file_request_changes(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
@@ -1116,7 +1116,7 @@ def test_file_reject(airlock_client):
     )
 
     response = airlock_client.post(
-        f"/requests/reject/{release_request.id}/group/{path}"
+        f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
     relpath = UrlPath(path)
@@ -1141,9 +1141,9 @@ def test_file_reset_review(airlock_client):
             factories.request_file("group", path),
         ],
     )
-    # first reject a file
+    # first request changes to a file
     response = airlock_client.post(
-        f"/requests/reject/{release_request.id}/group/{path}"
+        f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
     relpath = UrlPath(path)

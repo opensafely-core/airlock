@@ -267,7 +267,7 @@ def test_request_buttons(
 
     file_review_buttons = [
         "#file-approve-button",
-        "#file-reject-button",
+        "#file-request-changes-button",
         "#file-reset-button",
     ]
     if file_review_buttons_visible:

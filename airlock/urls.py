@@ -89,9 +89,9 @@ urlpatterns = [
         name="file_approve",
     ),
     path(
-        "requests/reject/<str:request_id>/<path:path>",
-        airlock.views.file_reject,
-        name="file_reject",
+        "requests/request_changes/<str:request_id>/<path:path>",
+        airlock.views.file_request_changes,
+        name="file_request_changes",
     ),
     path(
         "requests/reset_review/<str:request_id>/<path:path>",
