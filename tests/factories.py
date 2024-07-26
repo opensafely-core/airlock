@@ -292,7 +292,7 @@ def create_request_at_status(
     output-checker. If not provided, a default output checker is used.
 
     Optionally, `request_file` can be given `checkers`, a list of users who will
-    review (approve/request changes tp) the file. If not provided, default output checkers
+    review (approve/request changes to) the file. If not provided, default output checkers
     will be used.
     """
     author = author or create_user(
