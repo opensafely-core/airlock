@@ -402,6 +402,15 @@ def test_e2e_release_files(
 
     # submit review for this output-checker
     find_and_click(page.locator("#submit-review-button"))
+
+    # After submitting the review, the output-checker can change their vote, but can't reset it
+    find_and_click(file_link)
+    # file is already approved, so the approve button is disable
+    expect(page.locator("#file-approve-button")).to_be_disabled()
+    # they can change their minds and request changes, but can't reset now
+    expect(page.locator("#file-reject-button")).not_to_be_disabled()
+    expect(page.locator("#file-reset-button")).to_be_disabled()
+
     # Logout (by clearing cookies) and log in as second output-checker to do second approval
     # and release
     context.clear_cookies()

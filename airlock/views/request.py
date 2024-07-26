@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -242,41 +244,49 @@ def request_view(request, request_id: str, path: str = ""):
         kwargs={"request_id": request_id},
     )
 
-    if (
-        is_directory_url
-        or not release_request.is_under_review()
-        or release_request.request_filetype(path)
-        in [RequestFileType.SUPPORTING, RequestFileType.WITHDRAWN]
-    ):
-        file_approve_url = None
-        file_reject_url = None
-        file_reset_review_url = None
-    else:
-        file_approve_url = reverse(
-            "file_approve",
-            kwargs={"request_id": request_id, "path": path},
-        )
-        file_reject_url = reverse(
-            "file_reject",
-            kwargs={"request_id": request_id, "path": path},
-        )
-        file_reset_review_url = reverse(
-            "file_reset_review",
-            kwargs={"request_id": request_id, "path": path},
-        )
+    # set up the voting buttons, defaulting to hidden state
+    voting_buttons: Dict[str, Any] = {
+        "show": False,
+        "approve": {"url": None, "disabled": True},
+        "reject": {"url": None, "disabled": True},
+        "reset_review": {"url": None, "disabled": True},
+    }
 
+    # We can we show the buttons if:
+    # - the path is a file
+    # - this request can currently be reviewed
+    # - the file is an output file (we can't review supporting, withdrawn or code filetypes)
+    if (
+        not is_directory_url
+        and release_request.is_under_review()
+        and release_request.request_filetype(path) == RequestFileType.OUTPUT
+    ):
+        # show the buttons and add their respective URLs
+        voting_buttons["show"] = True
+        for vote in ["approve", "reject", "reset_review"]:
+            voting_buttons[vote] = {
+                "url": reverse(f"file_{vote}", args=(request_id, path)),
+                "disabled": False,
+            }
+
+        # Now determine whether any of the buttons should be disabled
+        # disable buttons for the current vote status
         request_file = release_request.get_request_file_from_urlpath(relpath)
         existing_review = request_file.reviews.get(request.user.username)
-
-        if existing_review and existing_review.status != RequestFileVote.UNDECIDED:
-            if existing_review.status == RequestFileVote.APPROVED:
-                file_approve_url = None
-            elif existing_review.status == RequestFileVote.REJECTED:
-                file_reject_url = None
-            else:
+        existing_review_status = existing_review.status if existing_review else None
+        match existing_review_status:
+            case RequestFileVote.APPROVED:
+                voting_buttons["approve"]["disabled"] = True
+            case RequestFileVote.REJECTED:
+                voting_buttons["reject"]["disabled"] = True
+            case RequestFileVote.UNDECIDED | None:
+                voting_buttons["reset_review"]["disabled"] = True
+            case _:  # pragma: no cover
                 assert False, "Invalid RequestFileVote value"
-        else:
-            file_reset_review_url = None
+
+        # Disable reset button for already submitted review
+        if user_has_submitted_review:
+            voting_buttons["reset_review"]["disabled"] = True
 
     if (
         release_request.is_under_review()
@@ -306,9 +316,7 @@ def request_view(request, request_id: str, path: str = ""):
         # TODO file these in from user/models
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
-        "file_approve_url": file_approve_url,
-        "file_reject_url": file_reject_url,
-        "file_reset_review_url": file_reset_review_url,
+        "voting_buttons": voting_buttons,
         "file_withdraw_url": file_withdraw_url,
         "request_submit_url": request_submit_url,
         "request_review_url": request_review_url,
