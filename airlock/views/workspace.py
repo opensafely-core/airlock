@@ -306,20 +306,18 @@ def workspace_add_file_to_request(request, workspace_name):
             WorkspaceFileStatus.WITHDRAWN,
         ]:
             try:
-                bll.update_file_in_request(
-                    release_request, relpath, request.user, group_name, filetype
-                )
+                bll.update_file_in_request(release_request, relpath, request.user)
             except exceptions.APIException as err:  # pragma: no cover
                 # it's pretty difficult to hit this error
                 msgs.append(f"{relpath}: {err}")
             else:
                 success = True
                 if status is WorkspaceFileStatus.CONTENT_UPDATED:
-                    verb_phrase = "updated in"
+                    verb_phrase = "updated in request"
                 else:
-                    verb_phrase = "added to"
+                    verb_phrase = "added to request (file group '{group_name}')"
                 msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been {verb_phrase} request (file group '{group_name}')",
+                    f"{relpath}: {filetype.name.title()} file has been {verb_phrase}",
                 )
         else:
             try:

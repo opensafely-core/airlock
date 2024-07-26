@@ -1821,7 +1821,7 @@ def test_update_file_to_request_states(
             workspace.get_workspace_file_status(path)
             == WorkspaceFileStatus.CONTENT_UPDATED
         )
-        bll.update_file_in_request(release_request, path, author, "group")
+        bll.update_file_in_request(release_request, path, author)
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.update_file_in_request(release_request, path, author)

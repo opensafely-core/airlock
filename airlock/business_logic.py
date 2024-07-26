@@ -1769,8 +1769,6 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         relpath: UrlPath,
         user: User,
-        group_name: str = "default",
-        filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
@@ -1786,15 +1784,16 @@ class BusinessLogicLayer:
             manifest["content_hash"] == file_id
         ), "File hash does not match manifest.json"
 
-        reviews = release_request.get_request_file_from_output_path(relpath).reviews
-        for reviewer_username in reviews:
+        request_file = release_request.get_request_file_from_output_path(relpath)
+
+        for reviewer_username in request_file.reviews:
             audit = AuditEvent.from_request(
                 request=release_request,
                 type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
                 user=user,
                 path=relpath,
-                group=group_name,
-                filetype=filetype.name,
+                group=request_file.group,
+                filetype=request_file.filetype.name,
                 reviewer=reviewer_username,
             )
             self._dal.reset_review_file(
@@ -1809,8 +1808,8 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_WITHDRAW,
             user=user,
             path=relpath,
-            group=group_name,
-            filetype=filetype.name,
+            group=request_file.group,
+            filetype=request_file.filetype.name,
         )
         filegroup_data = self._dal.delete_file_from_request(
             request_id=release_request.id,
@@ -1823,15 +1822,15 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_UPDATE,
             user=user,
             path=relpath,
-            group=group_name,
-            filetype=filetype.name,
+            group=request_file.group,
+            filetype=request_file.filetype.name,
         )
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
-            group_name=group_name,
+            group_name=request_file.group,
             relpath=relpath,
             file_id=file_id,
-            filetype=filetype,
+            filetype=request_file.filetype,
             timestamp=manifest["timestamp"],
             commit=manifest["commit"],
             repo=manifest["repo"],
