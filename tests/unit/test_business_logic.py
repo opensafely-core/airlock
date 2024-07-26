@@ -2805,7 +2805,6 @@ def test_reset_review_file_after_review_submitted(bll):
         files=[factories.request_file(path=path)],
     )
     checker = factories.create_user(output_checker=True)
-    # request_file = release_request.get_request_file_from_output_path(path)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
