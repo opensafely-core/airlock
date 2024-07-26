@@ -30,7 +30,9 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     local_db.models.EnumField(
-                        default=airlock.business_logic.RequestFileVote["REJECTED"]
+                        default=airlock.business_logic.RequestFileVote[
+                            "CHANGES_REQUESTED"
+                        ]
                     ),
                 ),
                 ("created_at", models.DateTimeField(default=django.utils.timezone.now)),

@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             model_name="filereview",
             name="status",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.RequestFileVote["REJECTED"],
+                default=airlock.business_logic.RequestFileVote["CHANGES_REQUESTED"],
                 enum=airlock.business_logic.RequestFileVote,
             ),
         ),
