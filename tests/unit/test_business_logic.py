@@ -1,6 +1,7 @@
 import hashlib
 import inspect
 import json
+from dataclasses import dataclass
 from hashlib import file_digest
 from io import BytesIO
 from pathlib import Path
@@ -16,16 +17,20 @@ from airlock.business_logic import (
     AuditEventType,
     BusinessLogicLayer,
     CodeRepo,
-    CommentVisibility,
+    Comment,
     DataAccessLayerProtocol,
     NotificationEventType,
+    ReleaseRequest,
     RequestFileDecision,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
+    ReviewTurnPhase,
+    Visibility,
     Workspace,
 )
 from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.users import User
 from tests import factories
 
 
@@ -639,7 +644,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     ]
     assert [event["event_type"] for event in request_json] == expected_notifications
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     expected_audit_logs = [
         # create request
         AuditEventType.REQUEST_CREATE,
@@ -941,12 +946,13 @@ def test_provider_get_or_create_current_request_for_user(bll):
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
-        AuditEvent.from_request(
-            release_request,
-            AuditEventType.REQUEST_CREATE,
-            user=user,
+        AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace.name,
+            request=release_request.id,
         )
     ]
 
@@ -1003,12 +1009,13 @@ def test_provider_get_current_request_for_former_user(bll):
     assert release_request.workspace == "workspace"
     assert release_request.author == user.username
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
-        AuditEvent.from_request(
-            release_request,
-            AuditEventType.REQUEST_CREATE,
-            user=user,
+        AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace="workspace",
+            request=release_request.id,
         )
     ]
 
@@ -1215,7 +1222,7 @@ def test_set_status(current, future, valid_author, valid_checker, withdrawn_afte
     if valid_author:
         bll.set_status(release_request1, future, user=author)
         assert release_request1.status == future
-        audit_log = bll.get_audit_log(request=release_request1.id)
+        audit_log = bll._dal.get_audit_log(request=release_request1.id)
         assert audit_log[0].type == audit_type
         assert audit_log[0].user == author.username
         assert audit_log[0].request == release_request1.id
@@ -1227,7 +1234,7 @@ def test_set_status(current, future, valid_author, valid_checker, withdrawn_afte
     if valid_checker:
         bll.set_status(release_request2, future, user=checker)
         assert release_request2.status == future
-        audit_log = bll.get_audit_log(request=release_request2.id)
+        audit_log = bll._dal.get_audit_log(request=release_request2.id)
         assert audit_log[0].type == audit_type
         assert audit_log[0].user == checker.username
         assert audit_log[0].request == release_request2.id
@@ -1602,7 +1609,7 @@ def test_add_file_to_request_states(status, success, bll):
         bll.add_file_to_request(release_request, path, author)
         assert release_request.abspath("default" / path).exists()
 
-        audit_log = bll.get_audit_log(request=release_request.id)
+        audit_log = bll._dal.get_audit_log(request=release_request.id)
         assert audit_log[0] == AuditEvent.from_request(
             release_request,
             AuditEventType.REQUEST_FILE_ADD,
@@ -1803,7 +1810,7 @@ def test_update_file_to_request_states(
 
     assert release_request.abspath("group" / path).exists()
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_UPDATE,
@@ -1869,7 +1876,7 @@ def test_withdraw_file_from_request_pending(bll):
 
     bll.withdraw_file_from_request(release_request, "group" / path1, user=author)
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_WITHDRAW,
@@ -1882,7 +1889,7 @@ def test_withdraw_file_from_request_pending(bll):
 
     bll.withdraw_file_from_request(release_request, "group" / path2, user=author)
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_WITHDRAW,
@@ -1917,7 +1924,7 @@ def test_withdraw_file_from_request_returned(bll):
         RequestFileType.WITHDRAWN,
     ]
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_WITHDRAW,
@@ -2148,12 +2155,71 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
-def test_get_visible_comments_for_group(bll):
+@dataclass
+class VisibleItemsHelper:
+    """Helper class to make assertions about visiblity of comments and audit logs.
+
+    It will fetch comments and audits that are visible for a specific request and
+    user, and store them to make assertions about.
+    """
+
+    comments: list[Comment]
+    audits: list[AuditEvent]
+
+    @classmethod
+    def for_group(
+        cls, request: ReleaseRequest, user: User, group, bll: BusinessLogicLayer
+    ):
+        return cls(
+            comments=request.get_visible_comments_for_group(group, user),
+            audits=bll.get_request_audit_log(user, request, group),
+        )
+
+    def is_comment_visible(self, text: str, author: User) -> bool:
+        for c, _ in self.comments:
+            if c.comment == text and c.author == author.username:
+                return True
+
+        return False
+
+    def is_audit_visible(self, type_: AuditEventType, author: User) -> bool:
+        for audit in self.audits:
+            if audit.type == type_ and audit.user == author.username:
+                return True
+
+        return False
+
+    def comment(self, text: str, author: User) -> bool:
+        """Is this comment in the list of visible items we have?"""
+        if not self.is_comment_visible(text=text, author=author):
+            return False
+
+        return self.is_audit_visible(
+            type_=AuditEventType.REQUEST_COMMENT, author=author
+        )
+
+    def vote(self, vote: RequestFileVote, author: User) -> bool:
+        """Is this vote in the list of visible items we have?"""
+        match vote:
+            case RequestFileVote.APPROVED:
+                event_type = AuditEventType.REQUEST_FILE_APPROVE
+            case RequestFileVote.REJECTED:
+                event_type = AuditEventType.REQUEST_FILE_REQUEST_CHANGES
+            case _:  # pragma: nocover
+                assert False
+
+        return self.is_audit_visible(type_=event_type, author=author)
+
+
+def test_request_comment_and_audit_visibility(bll):
     # This test is long and complex.
     #
-    # It walks through a couple of rounds of back and forth review, validating
-    # that the comments that are visibile to various users at different points
-    # in the process are correct.
+    # It tests both get_visible_comments_for_group() and
+    # get_request_audit_log(), and uses the custom VisibleItems helper above.
+    #
+    # It walks through a couple of rounds and turns of back and forth review,
+    # validating that the comments that are visibile to various users at
+    # different points in the process are correct.
     #
     author = factories.create_user("author1", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
@@ -2162,225 +2228,365 @@ def test_get_visible_comments_for_group(bll):
         "workspace",
         status=RequestStatus.SUBMITTED,
         author=author,
-        files=[factories.request_file(group="group", approved=True)],
+        files=[factories.request_file(group="group", path="file.txt", approved=True)],
     )
 
     bll.group_comment_create(
         release_request,
         "group",
         "turn 1 checker 0 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[0],
     )
     bll.group_comment_create(
         release_request,
         "group",
         "turn 1 checker 1 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[1],
     )
 
-    # helper function to fetch the current comments for a user
-    def get_comments(user):
-        nonlocal release_request
-        release_request = factories.refresh_release_request(release_request)
-        return [
-            c[0].comment
-            for c in release_request.get_visible_comments_for_group("group", user)
-        ]
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.INDEPENDENT, can only see own comments
-    assert get_comments(checkers[0]) == ["turn 1 checker 0 private"]
-    assert get_comments(checkers[1]) == ["turn 1 checker 1 private"]
-    assert get_comments(author) == []
     assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    def get_visible_items(user):
+        return VisibleItemsHelper.for_group(release_request, user, "group", bll)
+
+    # in ReviewTurnPhase.INDEPENDENT, checkers can only see own comments, author can see nothing
+    visible = get_visible_items(checkers[0])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
+
+    visible = get_visible_items(checkers[1])
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
 
     factories.submit_independent_review(release_request)
-
     bll.group_comment_create(
         release_request,
         "group",
         "turn 1 checker 0 public",
-        CommentVisibility.PUBLIC,
+        Visibility.PUBLIC,
         checkers[0],
     )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.CONSOLIDATING, checkers should see all private comments
-    # and pending public comments, but author should not see any yet
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == []
     assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
+
+    # in ReviewTurnPhase.CONSOLIDATING, checkers should see all private comments
+    # and pending public comments, but author should not see any yet
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+
+    # author still cannot see anything
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert not visible.comment("turn 1 checker 0 public", checkers[0])
 
     bll.return_request(release_request, checkers[0])
-
-    # in RequestPhase.COMPLETE, checkers should see all private comments
-    # and pending public comments, but author should not see any yet
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public"]
-    assert release_request.review_turn == 2
-
+    release_request = factories.refresh_release_request(release_request)
     bll.group_comment_create(
         release_request,
         "group",
         "turn 2 author public",
-        CommentVisibility.PUBLIC,
+        Visibility.PUBLIC,
         author,
     )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.AUTHOR, checkers should see all public/private comments
-    # they've made, but not any the author has made, as it hasn't yet been
-    # returned.
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    assert release_request.review_turn == 2
+    assert release_request.get_turn_phase() == ReviewTurnPhase.AUTHOR
+
+    # in ReviewTurnPhase.AUTHOR, checkers should see turn 1 comments, but not authors turn 2 comments.
+    # Author should turn 1 and 2 public comments
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert not visible.comment("turn 2 author public", author)
+
+    # author can see al turn 1 public comments and votes, their turn 2 public comments, but no private comments.
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
 
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 3
 
     bll.group_comment_create(
         release_request,
         "group",
         "turn 3 checker 0 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[0],
     )
     bll.group_comment_create(
         release_request,
         "group",
         "turn 3 checker 1 private",
-        CommentVisibility.PRIVATE,
+        Visibility.PRIVATE,
         checkers[1],
     )
+    # checker0 rejects the file now. Not realistic, but we want to check that
+    # the audit log for later round votes is hidden
+    bll.request_changes_to_file(
+        release_request,
+        release_request.get_request_file_from_output_path("file.txt"),
+        checkers[0],
+    )
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.INDEPENDENT for a 2nd round
+    # in ReviewTurnPhase.INDEPENDENT for a 2nd round
     # Checkers should see previous round's private comments, but not this rounds
     # Author should see previous round's public comments, but not any this round
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    visible = get_visible_items(checkers[0])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert visible.comment("turn 3 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+
+    visible = get_visible_items(checkers[1])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert visible.comment("turn 3 checker 1 private", checkers[1])
+
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+
+    factories.submit_independent_review(release_request)
+    release_request = factories.refresh_release_request(release_request)
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 3 checker 0 public",
+        Visibility.PUBLIC,
+        checkers[0],
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    # in ReviewTurnPhase.CONSOLIDATING for a 2nd round
+    # Checkers should see previous and current round's private comments,
+    # Author should see previous round's public comments, but not any private comments
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert visible.comment("turn 2 author public", author)
+        assert visible.comment("turn 3 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.comment("turn 3 checker 1 private", checkers[1])
+        assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+    # author sees no private comments, and no turn 3 things.
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+    assert not visible.comment("turn 3 checker 0 public", checkers[0])
+
+    # reject the request
+    bll.set_status(release_request, RequestStatus.REJECTED, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    # no increment, as there was no return to author
     assert release_request.review_turn == 3
+    assert release_request.get_turn_phase() == ReviewTurnPhase.COMPLETE
+
+    # COMPLETE has special handling - test it works
+    # checkers can see all things
+    for checker in checkers:
+        visible = get_visible_items(checker)
+        assert visible.comment("turn 1 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+        assert visible.comment("turn 1 checker 1 private", checkers[1])
+        assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+        assert visible.comment("turn 1 checker 0 public", checkers[0])
+        assert visible.comment("turn 2 author public", author)
+        assert visible.comment("turn 3 checker 0 private", checkers[0])
+        assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+        assert visible.comment("turn 3 checker 1 private", checkers[1])
+        assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+    # Author should see all public comments, regardless of round, but not any private comments
+    visible = get_visible_items(author)
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[1])
+    assert visible.comment("turn 1 checker 0 public", checkers[0])
+    assert visible.comment("turn 2 author public", author)
+    assert not visible.comment("turn 3 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.REJECTED, checkers[0])
+    assert not visible.comment("turn 3 checker 1 private", checkers[1])
+    assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+
+def test_get_visible_comments_for_group_class(bll):
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(group="group", path="file.txt", approved=True)],
+    )
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 private",
+        Visibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 1 private",
+        Visibility.PRIVATE,
+        checkers[1],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 public",
+        Visibility.PUBLIC,
+        checkers[0],
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    def get_comment_metadata(user):
+        return [
+            m for _, m in release_request.get_visible_comments_for_group("group", user)
+        ]
+
+    assert get_comment_metadata(checkers[0]) == ["comment_blinded", "comment_blinded"]
+    assert get_comment_metadata(checkers[1]) == ["comment_blinded"]
+    assert get_comment_metadata(author) == []
 
     factories.submit_independent_review(release_request)
 
-    # in RequestPhase.CONSOLIDATING for a 2nd round
-    # Checkers should see previous and current round's private comments,
-    # Author should see previous round's public comments, but not any private comments
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
 
-    # assume returned
+    for checker in checkers:
+        assert get_comment_metadata(checker) == [
+            "comment_private",
+            "comment_private",
+            "comment_public",
+        ]
+
+    assert get_comment_metadata(author) == []
+
+    bll.return_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 2
+    assert release_request.get_turn_phase() == ReviewTurnPhase.AUTHOR
+
+    for checker in checkers:
+        assert get_comment_metadata(checker) == [
+            "comment_private",
+            "comment_private",
+            "comment_public",
+        ]
+
+    assert get_comment_metadata(author) == ["comment_public"]
+
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 3
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
 
     bll.group_comment_create(
         release_request,
         "group",
-        "turn 3 checker 0 public",
-        CommentVisibility.PUBLIC,
+        "turn 3 checker 0 private",
+        Visibility.PRIVATE,
         checkers[0],
     )
-
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
+    bll.group_comment_create(
+        release_request,
+        "group",
         "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
-    ]
-    assert get_comments(author) == ["turn 1 checker 0 public", "turn 2 author public"]
+        Visibility.PRIVATE,
+        checkers[1],
+    )
 
-    bll.return_request(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
 
-    # in RequestPhase.COMPLETE for a 2nd round
-    # Checkers should see all historic comments,
-    # Author should see previous round's public comments, but not any private comments
-    assert get_comments(checkers[0]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
+    # comments from previous round are visible
+    assert get_comment_metadata(checkers[0]) == [
+        "comment_private",
+        "comment_private",
+        "comment_public",
+        "comment_blinded",
     ]
-    assert get_comments(checkers[1]) == [
-        "turn 1 checker 0 private",
-        "turn 1 checker 1 private",
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 private",
-        "turn 3 checker 1 private",
-        "turn 3 checker 0 public",
+    assert get_comment_metadata(checkers[1]) == [
+        "comment_private",
+        "comment_private",
+        "comment_public",
+        "comment_blinded",
     ]
-    assert get_comments(author) == [
-        "turn 1 checker 0 public",
-        "turn 2 author public",
-        "turn 3 checker 0 public",
-    ]
-
-    assert release_request.review_turn == 4
 
 
 def test_release_request_filegroups_with_no_files(bll):
@@ -2602,7 +2808,7 @@ def test_approve_file(bll):
         == RequestFileDecision.INCOMPLETE
     )
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_APPROVE,
@@ -2682,7 +2888,7 @@ def test_request_changes_to_file(bll):
         == RequestFileDecision.INCOMPLETE
     )
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
         AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
@@ -3116,7 +3322,7 @@ def test_group_edit_author(bll):
     assert release_request.filegroups["group"].context == "foo"
     assert release_request.filegroups["group"].controls == "bar"
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_EDIT
     assert audit_log[0].user == author.username
@@ -3227,10 +3433,10 @@ def test_group_comment_create_success(
 
     # check all visibilities
     bll.group_comment_create(
-        release_request, "group", "private", CommentVisibility.PRIVATE, checker
+        release_request, "group", "private", Visibility.PRIVATE, checker
     )
     bll.group_comment_create(
-        release_request, "group", "public", CommentVisibility.PUBLIC, author
+        release_request, "group", "public", Visibility.PUBLIC, author
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3244,14 +3450,14 @@ def test_group_comment_create_success(
 
     comments = release_request.filegroups["group"].comments
     assert comments[0].comment == "private"
-    assert comments[0].visibility == CommentVisibility.PRIVATE
+    assert comments[0].visibility == Visibility.PRIVATE
     assert comments[0].author == "checker"
 
     assert comments[1].comment == "public"
-    assert comments[1].visibility == CommentVisibility.PUBLIC
+    assert comments[1].visibility == Visibility.PUBLIC
     assert comments[1].author == "author"
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
 
     assert audit_log[1].request == release_request.id
     assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
@@ -3283,18 +3489,18 @@ def test_group_comment_create_permissions(bll):
 
     with pytest.raises(bll.RequestPermissionDenied):
         bll.group_comment_create(
-            release_request, "group", "question?", CommentVisibility.PUBLIC, other
+            release_request, "group", "question?", Visibility.PUBLIC, other
         )
 
     bll.group_comment_create(
-        release_request, "group", "collaborator", CommentVisibility.PUBLIC, collaborator
+        release_request, "group", "collaborator", Visibility.PUBLIC, collaborator
     )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
     bll.group_comment_create(
-        release_request, "group", "checker", CommentVisibility.PUBLIC, checker
+        release_request, "group", "checker", Visibility.PUBLIC, checker
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3314,10 +3520,10 @@ def test_group_comment_delete_success(bll):
     assert release_request.filegroups["group"].comments == []
 
     bll.group_comment_create(
-        release_request, "group", "typo comment", CommentVisibility.PUBLIC, other
+        release_request, "group", "typo comment", Visibility.PUBLIC, other
     )
     bll.group_comment_create(
-        release_request, "group", "not-a-typo comment", CommentVisibility.PUBLIC, other
+        release_request, "group", "not-a-typo comment", Visibility.PUBLIC, other
     )
 
     release_request = factories.refresh_release_request(release_request)
@@ -3338,7 +3544,7 @@ def test_group_comment_delete_success(bll):
     assert current_comment.comment == "not-a-typo comment"
     assert current_comment.author == "other"
 
-    audit_log = bll.get_audit_log(request=release_request.id)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[2].request == release_request.id
     assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
     assert audit_log[2].user == other.username
@@ -3373,10 +3579,10 @@ def test_group_comment_delete_permissions(bll):
     )
 
     bll.group_comment_create(
-        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+        release_request, "group", "author comment", Visibility.PUBLIC, author
     )
     bll.group_comment_create(
-        release_request, "group", "checker comment", CommentVisibility.PUBLIC, checker
+        release_request, "group", "checker comment", Visibility.PUBLIC, checker
     )
     release_request = factories.refresh_release_request(release_request)
 
@@ -3416,7 +3622,7 @@ def test_group_comment_create_invalid_params(bll):
         bll.group_comment_delete(release_request, "group", 1, author)
 
     bll.group_comment_create(
-        release_request, "group", "author comment", CommentVisibility.PUBLIC, author
+        release_request, "group", "author comment", Visibility.PUBLIC, author
     )
     release_request = factories.refresh_release_request(release_request)
 

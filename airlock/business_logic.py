@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Protocol, Self, cast
+from typing import Any, Protocol, Self, Sequence, cast
 
 from django.conf import settings
 from django.urls import reverse
@@ -113,7 +113,7 @@ class RequestFileStatus:
     vote: RequestFileVote | None
 
 
-class CommentVisibility(Enum):
+class Visibility(Enum):
     """The visibility of comments."""
 
     # only visible to output-checkers
@@ -124,16 +124,16 @@ class CommentVisibility(Enum):
     @classmethod
     def choices(cls):
         return {
-            CommentVisibility.PRIVATE: "Only visible to output-checkers",
-            CommentVisibility.PUBLIC: "Visible to all",
+            Visibility.PRIVATE: "Only visible to output-checkers",
+            Visibility.PUBLIC: "Visible to all users",
         }
 
-    def description(self):
+    # These will be for tooltips once those are working inside of pills
+    def description(self):  # pragma: no cover
         return self.choices()[self]
 
-    @cached_property
-    def independent_description(self):
-        return "Only visible to you until both reviews submitted"
+    def blinded_description(self):  # pragma: no cover
+        return "Only visible to you until two reviews have been completed"
 
 
 class ReviewTurnPhase(Enum):
@@ -256,6 +256,8 @@ class AuditEvent:
         **kwargs: str,
     ):
         # Note: kwargs go straight to extra
+        # set review_turn from request
+        kwargs["review_turn"] = str(request.review_turn)
         event = cls(
             type=type,
             user=user.username,
@@ -286,6 +288,83 @@ class AuditEvent:
 
     def description(self):
         return AUDIT_MSG_FORMATS[self.type]
+
+    @property
+    def review_turn(self) -> int:
+        return int(self.extra.get("review_turn", 0))
+
+    @property
+    def author(self) -> str:
+        return self.user
+
+    @property
+    def visibility(self) -> Visibility:
+        v = self.extra.get("visibility")
+        if v:
+            return Visibility[v.upper()]
+        else:
+            return Visibility.PUBLIC
+
+
+class VisibleItem(Protocol):
+    @property
+    def author(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def review_turn(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def visibility(self) -> Visibility:
+        raise NotImplementedError()
+
+
+def filter_visible_items(
+    items: Sequence[VisibleItem],
+    current_turn: int,
+    current_phase: ReviewTurnPhase,
+    user_can_review: bool,
+    user: User,
+):
+    """Filter a list of items to only include items this user is allowed to view.
+
+    This depends on the current turn, phase, and whether the user is the author
+    of said item.
+    """
+    for item in items:
+        # you can always see things you've authored. Doing this first
+        # simplifies later logic, and avoids potential bugs with users adding
+        # items but then they can not see the item they just added
+        if item.author == user.username:
+            yield item
+            continue
+
+        match item.visibility:
+            case Visibility.PUBLIC:
+                # can always see public items from previous turns and completed turns
+                if (
+                    item.review_turn < current_turn
+                    or current_phase == ReviewTurnPhase.COMPLETE
+                ):
+                    yield item
+                # can see public items for other users if CONSOLIDATING and can review
+                elif current_phase == ReviewTurnPhase.CONSOLIDATING and user_can_review:
+                    yield item
+            case Visibility.PRIVATE:
+                # have to be able to review this request to see *any* private items
+                if user_can_review:
+                    # can always see private items from previous turns
+                    if (
+                        item.review_turn < current_turn
+                        or current_phase == ReviewTurnPhase.COMPLETE
+                    ):
+                        yield item
+                    # can only see private items from current turn if we are not INDEPENDENT
+                    elif current_phase != ReviewTurnPhase.INDEPENDENT:
+                        yield item
+            case _:  # pragma: nocover
+                assert False
 
 
 class AirlockContainer(Protocol):
@@ -772,7 +851,7 @@ class Comment:
     comment: str
     author: str
     created_at: datetime
-    visibility: CommentVisibility
+    visibility: Visibility
     review_turn: int
 
     @classmethod
@@ -916,52 +995,30 @@ class ReleaseRequest:
 
     def get_visible_comments_for_group(
         self, group: str, user: User
-    ) -> list[tuple[Comment, dict[str, str]]]:
+    ) -> list[tuple[Comment, str]]:
         filegroup = self.filegroups[group]
         current_phase = self.get_turn_phase()
-        can_see_review_comments = self.user_can_review(user)
 
         comments = []
+        visible_comments = filter_visible_items(
+            filegroup.comments,
+            self.review_turn,
+            current_phase,
+            self.user_can_review(user),
+            user,
+        )
 
-        for comment in filegroup.comments:
-            if current_phase == ReviewTurnPhase.INDEPENDENT:
-                # comments are temporarily hidden
-                metadata = {
-                    "description": comment.visibility.independent_description,
-                    "class": "comment_blinded",
-                }
+        for comment in visible_comments:
+            # does this comment need to be blinded?
+            if (
+                comment.review_turn == self.review_turn
+                and current_phase == ReviewTurnPhase.INDEPENDENT
+            ):
+                html_class = "comment_blinded"
             else:
-                metadata = {
-                    "description": comment.visibility.description(),
-                    "class": f"comment_{comment.visibility.name.lower()}",
-                }
+                html_class = f"comment_{comment.visibility.name.lower()}"
 
-            # you can always see comments you've authored. Doing this first
-            # simplifies later logic, and avoids potential bugs with users
-            # adding comments but then they can see the comment they just added
-            if comment.author == user.username:
-                comments.append((comment, metadata))
-                continue
-
-            match comment.visibility:
-                case CommentVisibility.PUBLIC:
-                    # can always see public comments from previous rounds
-                    if comment.review_turn < self.review_turn:
-                        comments.append((comment, metadata))
-                    elif current_phase == ReviewTurnPhase.CONSOLIDATING:
-                        if can_see_review_comments:
-                            comments.append((comment, metadata))
-                case CommentVisibility.PRIVATE:
-                    if can_see_review_comments:
-                        # can see private comments from previous round
-                        if comment.review_turn < self.review_turn:
-                            comments.append((comment, metadata))
-                        # we have completed independent review stage, so output
-                        # checker's can see private comments
-                        elif current_phase != ReviewTurnPhase.INDEPENDENT:
-                            comments.append((comment, metadata))
-                case _:  # pragma: nocover
-                    assert False
+            comments.append((comment, html_class))
 
         return comments
 
@@ -1001,20 +1058,20 @@ class ReleaseRequest:
 
     def get_writable_comment_visibilities_for_user(
         self, user: User
-    ) -> list[CommentVisibility]:
+    ) -> list[Visibility]:
         """What comment visibilities should this user be able to write for this request?"""
         is_author = user.username == self.author
 
         # author can only ever create public comments
         if is_author:
-            return [CommentVisibility.PUBLIC]
+            return [Visibility.PUBLIC]
 
         # non-author non-output-checker, also only public
         if not user.output_checker:
-            return [CommentVisibility.PUBLIC]
+            return [Visibility.PUBLIC]
 
         # all other cases - the output-checker can choose to write public or private comments
-        return [CommentVisibility.PRIVATE, CommentVisibility.PUBLIC]
+        return [Visibility.PRIVATE, Visibility.PUBLIC]
 
     def abspath(self, relpath):
         """Returns abspath to the file on disk.
@@ -1269,7 +1326,7 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment: str,
-        visibility: CommentVisibility,
+        visibility: Visibility,
         review_turn: int,
         username: str,
         audit: AuditEvent,
@@ -2200,7 +2257,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         group: str,
         comment: str,
-        visibility: CommentVisibility,
+        visibility: Visibility,
         user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
@@ -2215,6 +2272,7 @@ class BusinessLogicLayer:
             group=group,
             comment=comment,
             review_turn=str(release_request.review_turn),
+            visibility=visibility.name,
         )
 
         self._dal.group_comment_create(
@@ -2258,22 +2316,31 @@ class BusinessLogicLayer:
             release_request.id, group, comment_id, user.username, audit
         )
 
-    def get_audit_log(
+    def get_request_audit_log(
         self,
-        user: str | None = None,
-        workspace: str | None = None,
-        request: str | None = None,
+        user: User,
+        request: ReleaseRequest,
         group: str | None = None,
         exclude_readonly: bool = False,
         size: int | None = None,
     ) -> list[AuditEvent]:
-        return self._dal.get_audit_log(
-            user=user,
-            workspace=workspace,
-            request=request,
+        """Fetches the audit log for this request, filtering for what the user can see."""
+
+        audits = self._dal.get_audit_log(
+            request=request.id,
             group=group,
             exclude=READONLY_EVENTS if exclude_readonly else set(),
             size=size,
+        )
+
+        return list(
+            filter_visible_items(
+                audits,
+                request.review_turn,
+                request.get_turn_phase(),
+                request.user_can_review(user),
+                user,
+            )
         )
 
     def audit_workspace_file_access(

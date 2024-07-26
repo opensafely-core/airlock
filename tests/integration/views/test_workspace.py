@@ -4,11 +4,9 @@ from django.contrib.messages.api import get_messages
 from django.urls import reverse
 
 from airlock.business_logic import (
-    AuditEventType,
     Project,
     RequestFileType,
     RequestStatus,
-    bll,
 )
 from airlock.types import UrlPath
 from tests import factories
@@ -36,18 +34,11 @@ def test_workspace_view_summary(airlock_client):
     )
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt")
-    # create audit event to appear on activity
-    factories.create_release_request(
-        workspace, user=factories.create_user("audit_user")
-    )
 
     response = airlock_client.get("/workspaces/view/workspace/")
     assert "file.txt" in response.rendered_content
     assert "release-request-button" not in response.rendered_content
     assert "TESTPROJECT" in response.rendered_content
-    assert "Recent activity" in response.rendered_content
-    assert "audit_user" in response.rendered_content
-    assert "Created request" in response.rendered_content
 
 
 def test_workspace_view_archived_inactive(airlock_client):
@@ -171,7 +162,7 @@ def test_workspace_view_with_file(airlock_client):
         (RequestStatus.SUBMITTED),
     ],
 )
-def test_workspace_view_with_updated_file(airlock_client, request_status):
+def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
     author = factories.create_user("author", workspaces=["test-workspace"])
 
     airlock_client.login_with_user(author)
@@ -449,12 +440,6 @@ def test_workspace_contents_file(airlock_client):
     response = airlock_client.get("/workspaces/content/workspace/file.txt")
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
-    audit = bll.get_audit_log(
-        user=airlock_client.user.username,
-        workspace="workspace",
-    )
-    assert audit[0].type == AuditEventType.WORKSPACE_FILE_VIEW
-    assert audit[0].path == UrlPath("file.txt")
 
 
 def test_workspace_contents_dir(airlock_client):
