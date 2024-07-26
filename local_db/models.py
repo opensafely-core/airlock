@@ -11,10 +11,10 @@ from ulid import ulid  # type: ignore
 
 from airlock.business_logic import (
     AuditEventType,
+    CommentVisibility,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
-    Visibility,
 )
 
 
@@ -158,7 +158,7 @@ class FileGroupComment(models.Model):
 
     comment = models.TextField()
     author = models.TextField()  # just username, as we have no User model
-    visibility = EnumField(enum=Visibility)
+    visibility = EnumField(enum=CommentVisibility)
     review_turn = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
 

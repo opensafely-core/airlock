@@ -4,8 +4,8 @@ from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
     BusinessLogicLayer,
+    CommentVisibility,
     RequestStatus,
-    Visibility,
 )
 from airlock.types import UrlPath
 from local_db import data_access, models
@@ -166,7 +166,7 @@ def test_group_comment_delete_bad_params():
         release_request.id,
         "group",
         "author comment",
-        Visibility.PUBLIC,
+        CommentVisibility.PUBLIC,
         release_request.review_turn,
         author,
         audit,

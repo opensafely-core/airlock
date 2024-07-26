@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.formsets import BaseFormSet, formset_factory
 
-from airlock.business_logic import FileGroup, RequestFileType, Visibility
+from airlock.business_logic import CommentVisibility, FileGroup, RequestFileType
 
 
 class ListField(forms.Field):
@@ -142,7 +142,9 @@ class GroupCommentForm(forms.Form):
         # filter only the supplied visibilities, as it can vary depending on
         # user and request state
         choices = [
-            (k.name, v) for k, v in Visibility.choices().items() if k in visibilities
+            (k.name, v)
+            for k, v in CommentVisibility.choices().items()
+            if k in visibilities
         ]
         self.fields["visibility"].choices = choices  # type: ignore
         # choose first in list as default selected value
