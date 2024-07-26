@@ -14,10 +14,10 @@ from opentelemetry import trace
 
 from airlock.business_logic import (
     ROOT_PATH,
+    CommentVisibility,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
-    Visibility,
     bll,
 )
 from airlock.file_browser_api import get_request_tree
@@ -161,11 +161,7 @@ def request_view(request, request_id: str, path: str = ""):
 
     if relpath == ROOT_PATH:
         # viewing the root
-        activity = bll.get_request_audit_log(
-            user=request.user,
-            request=release_request,
-            exclude_readonly=True,
-        )
+        activity = bll.get_audit_log(request=release_request.id, exclude_readonly=True)
 
     # if we are viewing a group page, load the specific group data and forms
     elif len(relpath.parts) == 1:
@@ -198,11 +194,8 @@ def request_view(request, request_id: str, path: str = ""):
             kwargs={"request_id": request_id, "group": group},
         )
 
-        group_activity = bll.get_request_audit_log(
-            user=request.user,
-            request=release_request,
-            group=group,
-            exclude_readonly=True,
+        group_activity = bll.get_audit_log(
+            request=release_request.id, group=group, exclude_readonly=True
         )
 
     if not is_author:
@@ -649,7 +642,7 @@ def group_comment_create(request, request_id, group):
                 release_request,
                 group=group,
                 comment=form.cleaned_data["comment"],
-                visibility=Visibility[form.cleaned_data["visibility"]],
+                visibility=CommentVisibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
         except bll.RequestPermissionDenied as exc:  # pragma: nocover

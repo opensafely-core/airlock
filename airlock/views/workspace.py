@@ -103,7 +103,14 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         in VALID_WORKSPACEFILE_STATES_TO_ADD
     )
 
+    activity = []
     project = workspace.project()
+
+    # we are viewing the root, so load workspace audit log
+    if path == "":
+        activity = bll.get_audit_log(
+            workspace=workspace.name, exclude_readonly=True, size=20
+        )
 
     if path_item.is_directory() or path not in workspace.manifest["outputs"]:
         code_url = None
@@ -143,6 +150,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 kwargs={"workspace_name": workspace_name},
             ),
             # for workspace summary page
+            "activity": activity,
             "project": project,
             # for code button
             "code_url": code_url,
