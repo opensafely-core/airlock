@@ -481,7 +481,7 @@ def review_file(request, relpath, status, *users):
                 user=user,
             )
         elif status == RequestFileVote.REJECTED:
-            bll.reject_file(
+            bll.request_changes_to_file(
                 request,
                 request.get_request_file_from_output_path(relpath),
                 user=user,

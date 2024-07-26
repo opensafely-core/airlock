@@ -2626,7 +2626,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
     request_file = release_request.get_request_file_from_output_path(path)
 
     bll.approve_file(release_request, request_file, checker1)
-    bll.reject_file(release_request, request_file, checker2)
+    bll.request_changes_to_file(release_request, request_file, checker2)
 
     # Reviewers must submit their independent review before we can assess
     # a file's decision
@@ -2654,7 +2654,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
     )
 
 
-def test_reject_file(bll):
+def test_request_changes_to_file(bll):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2673,7 +2673,7 @@ def test_reject_file(bll):
         == RequestFileDecision.INCOMPLETE
     )
 
-    bll.reject_file(release_request, request_file, checker)
+    bll.request_changes_to_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
@@ -2685,14 +2685,14 @@ def test_reject_file(bll):
     audit_log = bll.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
         release_request,
-        AuditEventType.REQUEST_FILE_REJECT,
+        AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
         user=checker,
         path=path,
         group="group",
     )
 
 
-def test_approve_then_reject_file(bll):
+def test_approve_then_request_changes_to_file(bll):
     path = Path("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2718,7 +2718,7 @@ def test_approve_then_reject_file(bll):
         == RequestFileDecision.INCOMPLETE
     )
 
-    bll.reject_file(release_request, request_file, checker)
+    bll.request_changes_to_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.REJECTED
@@ -2749,7 +2749,7 @@ def test_reviewreset_then_reset_review_file(bll, review):
     if review == RequestFileVote.APPROVED:
         bll.approve_file(release_request, request_file, checker)
     elif review == RequestFileVote.REJECTED:
-        bll.reject_file(release_request, request_file, checker)
+        bll.request_changes_to_file(release_request, request_file, checker)
     else:
         assert False
 
@@ -2820,7 +2820,7 @@ def test_request_file_status_decision(bll, votes, decision):
         if vote == "APPROVED":
             bll.approve_file(release_request, request_file, checker)
         else:
-            bll.reject_file(release_request, request_file, checker)
+            bll.request_changes_to_file(release_request, request_file, checker)
 
         rfile = _get_request_file(release_request, path)
         assert rfile.get_file_vote_for_user(checker) == RequestFileVote[vote]
