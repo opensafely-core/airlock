@@ -148,7 +148,7 @@ def request_view(request, request_id: str, path: str = ""):
         not release_request.is_final()
         # user who can review can comment if the request is under review
         and (
-            release_request.user_can_review(request.user)
+            permissions.user_can_review_request(request.user, release_request)
             and release_request.is_under_review()
         )
         or
@@ -299,8 +299,9 @@ def request_view(request, request_id: str, path: str = ""):
         request_action_required = (
             "You have reviewed all files. You can now submit your review."
         )
-    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
-        request.user
+    elif (
+        release_request.status.name == "REVIEWED"
+        and permissions.user_can_review_request(request.user, release_request)
     ):
         if release_request.can_be_released():
             request_action_required = "Two independent reviews have been submitted. You can now return, reject or release this request."

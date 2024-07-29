@@ -1,5 +1,16 @@
+from typing import TYPE_CHECKING
+
 from airlock import exceptions
 from airlock.users import User
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    # We are avoiding circular dependencies by using forward references for
+    # type annotations where necessary, and this check so that type-checkin
+    # imports are not executed at runtime.
+    # https://peps.python.org/pep-0484/#forward-references
+    # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
+    from airlock.business_logic import ReleaseRequest
 
 
 def check_user_can_view_workspace(user: User | None, workspace_name: str):
@@ -60,5 +71,22 @@ def check_user_can_action_request_for_workspace(user: User | None, workspace_nam
 def user_can_action_request_for_workspace(user: User | None, workspace_name: str):
     try:
         return check_user_can_action_request_for_workspace(user, workspace_name) is None
+    except exceptions.RequestPermissionDenied:
+        return False
+
+
+def check_user_can_review_request(user: User, request: "ReleaseRequest"):
+    """
+    This user can be a reviewer for the request.
+    """
+    if not (user.output_checker and request.author != user.username):
+        raise exceptions.RequestPermissionDenied(
+            "You do not have permission to review this request"
+        )
+
+
+def user_can_review_request(user: User, request: "ReleaseRequest"):
+    try:
+        return check_user_can_review_request(user, request) is None
     except exceptions.RequestPermissionDenied:
         return False

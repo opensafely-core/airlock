@@ -954,7 +954,7 @@ class ReleaseRequest:
         rfile = self.get_request_file_from_urlpath(relpath)
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
-        can_review = self.user_can_review(user)
+        can_review = permissions.user_can_review_request(user, self)
         submitted_reviewers_this_turn = self.submitted_reviews.keys()
 
         # If we're in the AUTHOR phase of a turn (i.e. the request is being
@@ -996,7 +996,7 @@ class ReleaseRequest:
             filegroup.comments,
             self.review_turn,
             current_phase,
-            self.user_can_review(user),
+            permissions.user_can_review_request(user, self),
             user,
         )
 
@@ -1145,9 +1145,6 @@ class ReleaseRequest:
     # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
-
-    def user_can_review(self, user: User) -> bool:
-        return user.output_checker and not user.username == self.author
 
     def can_be_released(self) -> bool:
         return (
@@ -2296,7 +2293,7 @@ class BusinessLogicLayer:
                 audits,
                 request.review_turn,
                 request.get_turn_phase(),
-                request.user_can_review(user),
+                permissions.user_can_review_request(user, request),
                 user,
             )
         )

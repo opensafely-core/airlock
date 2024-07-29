@@ -1,6 +1,7 @@
 import pytest
 
 from airlock import exceptions, permissions
+from airlock.business_logic import RequestStatus
 from tests import factories
 
 
@@ -104,3 +105,30 @@ def test_session_user_can_action_request(
     if not can_action_request:
         with pytest.raises(exceptions.RequestPermissionDenied, match=expected_reason):
             assert permissions.check_user_can_action_request_for_workspace(user, "test")
+
+
+@pytest.mark.parametrize(
+    "output_checker,author,workspaces,can_review",
+    [
+        # output checker with no access to workspace can review
+        (True, "other", {}, True),
+        # output checker who is also author cannot review
+        (True, "user", {"test": {}}, False),
+        # non-output-checker cannot review
+        (False, "other", {"test": {}}, False),
+    ],
+)
+def test_user_can_review_request(output_checker, author, workspaces, can_review):
+    user = factories.create_user("user", workspaces, output_checker=output_checker)
+    users = {
+        "user": user,
+        "other": factories.create_user("other", {"test": {}}, output_checker=False),
+    }
+    release_request = factories.create_request_at_status(
+        "test", RequestStatus.SUBMITTED, author=users[author]
+    )
+    assert permissions.user_can_review_request(user, release_request) == can_review
+
+    if not can_review:
+        with pytest.raises(exceptions.RequestPermissionDenied):
+            permissions.check_user_can_review_request(user, release_request)
