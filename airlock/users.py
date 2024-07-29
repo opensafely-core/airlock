@@ -2,8 +2,6 @@ import dataclasses
 import time
 from typing import Any
 
-from airlock.exceptions import ActionDenied
-
 
 @dataclasses.dataclass(frozen=True)
 class User:
@@ -38,29 +36,6 @@ class User:
             "output_checker": self.output_checker,
             "last_refresh": self.last_refresh,
         }
-
-    def has_permission(self, workspace_name):
-        return (
-            # Output checkers can view all workspaces
-            # Authors can view all workspaces they have access to (regardless
-            # of archive or project ongoing status)
-            self.output_checker or workspace_name in self.workspaces
-        )
-
-    def can_access_workspace(self, workspace_name):
-        return workspace_name in self.workspaces
-
-    def verify_can_action_request(self, workspace_name):
-        # Only users with explict access to the workspace can create/modify release
-        # requests.
-        if not self.can_access_workspace(workspace_name):
-            raise ActionDenied(f"you do not have permission for {workspace_name}")
-        # Requests for archived workspaces cannot be created/modified
-        if self.workspaces[workspace_name]["archived"]:
-            raise ActionDenied(f"{workspace_name} has been archived")
-        # Requests for workspaces in not-ongoing projects cannot be created/modified
-        if not self.workspaces[workspace_name]["project_details"]["ongoing"]:
-            raise ActionDenied(f"{workspace_name} is part of an inactive project")
 
     def is_authenticated(self):
         return True

@@ -19,7 +19,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock import exceptions, renderers
+from airlock import exceptions, permissions, renderers
 from airlock.lib.git import (
     GitError,
     list_files_from_repo,
@@ -1349,8 +1349,7 @@ class BusinessLogicLayer:
     def get_workspace(self, name: str, user: User) -> Workspace:
         """Get a workspace object."""
 
-        if user is None or not user.has_permission(name):
-            raise exceptions.WorkspacePermissionDenied()
+        permissions.check_user_can_view_workspace(user, name)
 
         # this is a bit awkward. If the user is an output checker, they may not
         # have the workspace metadata in their User instance, so we provide an
@@ -1430,18 +1429,12 @@ class BusinessLogicLayer:
             self._dal.get_release_request(request_id)
         )
 
-        if not user.has_permission(release_request.workspace):
-            raise exceptions.WorkspacePermissionDenied()
-
+        permissions.check_user_can_view_workspace(user, release_request.workspace)
         return release_request
 
     def get_current_request(self, workspace: str, user: User) -> ReleaseRequest | None:
         """Get the current request for a workspace/user."""
-
-        if not user.has_permission(workspace):
-            raise exceptions.RequestPermissionDenied(
-                f"you do not have permission to view requests for {workspace}"
-            )
+        permissions.check_user_can_view_workspace(user, workspace)
 
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace,
@@ -1472,10 +1465,7 @@ class BusinessLogicLayer:
 
         # requests for output-checkers, and for archived workspaces and inactive
         # projects are still viewable, check if user has permission to create one
-        try:
-            user.verify_can_action_request(workspace)
-        except exceptions.ActionDenied as exc:
-            raise exceptions.RequestPermissionDenied(exc)
+        permissions.check_user_can_action_request_for_workspace(user, workspace)
 
         if request is not None:
             return request
@@ -1485,11 +1475,7 @@ class BusinessLogicLayer:
         self, workspace: str, user: User
     ) -> list[ReleaseRequest]:
         """Get all release requests in workspaces a user has access to."""
-
-        if not user.has_permission(workspace):
-            raise exceptions.RequestPermissionDenied(
-                f"you do not have permission to view requests for {workspace}"
-            )
+        permissions.check_user_can_view_workspace(user, workspace)
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1736,10 +1722,9 @@ class BusinessLogicLayer:
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
 
-        try:
-            user.verify_can_action_request(release_request.workspace)
-        except exceptions.ActionDenied as exc:
-            raise exceptions.RequestPermissionDenied(exc)
+        permissions.check_user_can_action_request_for_workspace(
+            user, release_request.workspace
+        )
 
     def validate_file_types(self, file_paths):
         """

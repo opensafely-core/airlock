@@ -699,7 +699,7 @@ def test_provider_get_requests_for_workspace_bad_user(bll):
     factories.create_release_request("workspace", user, id="r1")
     factories.create_release_request("workspace_2", other_user, id="r2")
 
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exceptions.WorkspacePermissionDenied):
         bll.get_requests_for_workspace("workspace", other_user)
 
 
@@ -965,28 +965,34 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
 
 @pytest.mark.parametrize(
-    "workspaces",
+    "workspaces,exception",
     [
         # no access
-        {},
+        ({}, exceptions.WorkspacePermissionDenied),
         # workspace archived
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": True},
-                "archived": True,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": True},
+                    "archived": True,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
         # project inactive
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": False},
-                "archived": False,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": False},
+                    "archived": False,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
     ],
 )
 def test_provider_get_or_create_current_request_for_user_no_permissions(
-    bll, workspaces
+    bll, workspaces, exception
 ):
     workspace = factories.create_workspace("workspace")
     # create the request with a user who has permission
@@ -996,7 +1002,7 @@ def test_provider_get_or_create_current_request_for_user_no_permissions(
 
     # Duplicate user who has the test permissions/workspace status
     user = factories.create_user("testuser", workspaces, False)
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exception):
         bll.get_or_create_current_request("workspace", user)
 
 

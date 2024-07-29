@@ -14,7 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions
+from airlock import exceptions, permissions
 from airlock.business_logic import (
     ROOT_PATH,
     RequestFileType,
@@ -154,7 +154,9 @@ def request_view(request, request_id: str, path: str = ""):
         or
         # any user with access to the workspace can comment if the request is in draft
         (
-            request.user.can_access_workspace(release_request.workspace)
+            permissions.user_has_role_on_workspace(
+                request.user, release_request.workspace
+            )
             and release_request.is_editing()
         )
     )
