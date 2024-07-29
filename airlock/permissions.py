@@ -75,11 +75,22 @@ def user_can_action_request_for_workspace(user: User | None, workspace_name: str
         return False
 
 
+def check_user_can_review(user: User):
+    """This user can be a reviewer"""
+    if not user.output_checker:
+        raise exceptions.RequestPermissionDenied("Only ouput-checkers allowed")
+
+
+def user_can_review(user: User):
+    try:
+        return check_user_can_review(user) is None
+    except exceptions.RequestPermissionDenied:
+        return False
+
+
 def check_user_can_review_request(user: User, request: "ReleaseRequest"):
-    """
-    This user can be a reviewer for the request.
-    """
-    if not (user.output_checker and request.author != user.username):
+    """This user can be a reviewer for a specific request"""
+    if not (user_can_review(user) and request.author != user.username):
         raise exceptions.RequestPermissionDenied(
             "You do not have permission to review this request"
         )

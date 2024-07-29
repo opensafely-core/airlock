@@ -54,7 +54,7 @@ def request_index(request):
             progress += " (incomplete)"
         return progress
 
-    if request.user.output_checker:
+    if permissions.user_can_review(request.user):
         outstanding_requests = [
             (outstanding_request, get_reviewer_progress(outstanding_request))
             for outstanding_request in bll.get_outstanding_requests_for_review(

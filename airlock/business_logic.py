@@ -1489,52 +1489,35 @@ class BusinessLogicLayer:
             for attrs in self._dal.get_requests_authored_by_user(username=user.username)
         ]
 
+    def _get_reviewable_requests_by_status(self, user: User, *statuses: RequestStatus):
+        permissions.check_user_can_review(user)
+        for attrs in self._dal.get_requests_by_status(*statuses):
+            release_request = ReleaseRequest.from_dict(attrs)
+            if permissions.user_can_review_request(user, release_request):
+                yield release_request
+
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(
+        return list(
+            self._get_reviewable_requests_by_status(
+                user,
                 RequestStatus.SUBMITTED,
                 RequestStatus.PARTIALLY_REVIEWED,
                 RequestStatus.REVIEWED,
             )
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        )
 
     def get_returned_requests(self, user: User):
         """Get all requests that have been returned."""
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(RequestStatus.RETURNED)
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        return list(
+            self._get_reviewable_requests_by_status(user, RequestStatus.RETURNED)
+        )
 
     def get_approved_requests(self, user: User):
         """Get all requests that have been approved but not yet released."""
-        # Only output checkers can see these
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(RequestStatus.APPROVED)
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        return list(
+            self._get_reviewable_requests_by_status(user, RequestStatus.APPROVED)
+        )
 
     VALID_STATE_TRANSITIONS = {
         RequestStatus.PENDING: [
