@@ -184,7 +184,7 @@ def test_request_view_with_submitted_request(airlock_client):
             ],
             False,
         ),
-        ([factories.request_file(rejected=True)], True),
+        ([factories.request_file(changes_requested=True)], True),
         (
             [
                 factories.request_file(approved=True),
@@ -245,7 +245,7 @@ def test_request_view_submit_review_alert(airlock_client, files, has_message):
             "checker",
             [
                 factories.request_file(approved=True, path="foo.txt"),
-                factories.request_file(rejected=True, path="bar.txt"),
+                factories.request_file(changes_requested=True, path="bar.txt"),
             ],
             True,
             False,
@@ -411,7 +411,7 @@ def test_request_view_with_submitted_file_approved(airlock_client):
     assert "Request changes" in response.rendered_content
 
 
-def test_request_view_with_submitted_file_rejected(airlock_client):
+def test_request_view_with_submitted_file_changes_requested(airlock_client):
     airlock_client.login("checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
@@ -420,7 +420,9 @@ def test_request_view_with_submitted_file_rejected(airlock_client):
             factories.request_file("group", "file.txt", contents="foobar"),
         ],
     )
-    airlock_client.post(f"/requests/reject/{release_request.id}/group/file.txt")
+    airlock_client.post(
+        f"/requests/request_changes/{release_request.id}/group/file.txt"
+    )
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
@@ -666,7 +668,7 @@ def test_request_index_user_output_checker(airlock_client):
         "other_other_workspace",
         author=other,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(rejected=True)],
+        files=[factories.request_file(changes_requested=True)],
     )
     r4 = factories.create_request_at_status(
         "other_other1_workspace",
@@ -866,7 +868,7 @@ def test_request_return_author(airlock_client):
         status=RequestStatus.REVIEWED,
         files=[
             factories.request_file("group", "path/test.txt", approved=True),
-            factories.request_file("group", "path/test1.txt", rejected=True),
+            factories.request_file("group", "path/test1.txt", changes_requested=True),
         ],
     )
 
@@ -888,7 +890,7 @@ def test_request_return_output_checker(airlock_client):
         status=RequestStatus.REVIEWED,
         files=[
             factories.request_file("group", "path/test.txt", approved=True),
-            factories.request_file("group", "path/test1.txt", rejected=True),
+            factories.request_file("group", "path/test1.txt", changes_requested=True),
         ],
     )
     response = airlock_client.post(f"/requests/return/{release_request.id}")
@@ -1013,7 +1015,7 @@ def test_requests_for_workspace(airlock_client):
     assert author2.username in response.rendered_content
 
 
-@pytest.mark.parametrize("review", [("approve"), ("reject"), ("reset_review")])
+@pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
 def test_file_review_bad_user(airlock_client, review):
     workspace = "test1"
     airlock_client.login(workspaces=[workspace], output_checker=False)
@@ -1044,7 +1046,7 @@ def test_file_review_bad_user(airlock_client, review):
     )
 
 
-@pytest.mark.parametrize("review", [("approve"), ("reject"), ("reset_review")])
+@pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
 def test_file_review_bad_file(airlock_client, review):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
@@ -1102,7 +1104,7 @@ def test_file_approve(airlock_client):
     assert review.reviewer == "testuser"
 
 
-def test_file_reject(airlock_client):
+def test_file_request_changes(airlock_client):
     airlock_client.login(output_checker=True)
     author = factories.create_user("author", ["test1"], False)
     path = "path/test.txt"
@@ -1116,7 +1118,7 @@ def test_file_reject(airlock_client):
     )
 
     response = airlock_client.post(
-        f"/requests/reject/{release_request.id}/group/{path}"
+        f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
     relpath = UrlPath(path)
@@ -1125,7 +1127,7 @@ def test_file_reject(airlock_client):
         .get_request_file_from_output_path(relpath)
         .reviews[airlock_client.user.username]
     )
-    assert review.status == RequestFileVote.REJECTED
+    assert review.status == RequestFileVote.CHANGES_REQUESTED
     assert review.reviewer == "testuser"
 
 
@@ -1141,9 +1143,9 @@ def test_file_reset_review(airlock_client):
             factories.request_file("group", path),
         ],
     )
-    # first reject a file
+    # first request changes to a file
     response = airlock_client.post(
-        f"/requests/reject/{release_request.id}/group/{path}"
+        f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
     relpath = UrlPath(path)
@@ -1151,7 +1153,7 @@ def test_file_reset_review(airlock_client):
     review = release_request.get_request_file_from_output_path(relpath).reviews[
         airlock_client.user.username
     ]
-    assert review.status == RequestFileVote.REJECTED
+    assert review.status == RequestFileVote.CHANGES_REQUESTED
     assert review.reviewer == "testuser"
 
     # then reset it to have no review
@@ -1179,7 +1181,7 @@ def test_request_reject_output_checker(airlock_client):
         author=author,
         status=RequestStatus.REVIEWED,
         files=[
-            factories.request_file(rejected=True),
+            factories.request_file(changes_requested=True),
         ],
     )
     response = airlock_client.post(f"/requests/reject/{release_request.id}")
@@ -1195,7 +1197,7 @@ def test_request_reject_not_output_checker(airlock_client):
         author=factories.create_user("author1", workspaces=["test1"]),
         status=RequestStatus.REVIEWED,
         files=[
-            factories.request_file(rejected=True),
+            factories.request_file(changes_requested=True),
         ],
     )
     airlock_client.login(workspaces=[release_request.workspace], output_checker=False)
@@ -1241,7 +1243,7 @@ def test_file_withdraw_file_submitted(airlock_client):
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
         files=[
-            factories.request_file("group", "path/test.txt", rejected=True),
+            factories.request_file("group", "path/test.txt", changes_requested=True),
         ],
     )
     # ensure it does exist
@@ -1261,7 +1263,7 @@ def test_file_withdraw_file_returned(airlock_client):
         author=airlock_client.user,
         status=RequestStatus.RETURNED,
         files=[
-            factories.request_file("group", "path/test.txt", rejected=True),
+            factories.request_file("group", "path/test.txt", changes_requested=True),
         ],
     )
     # ensure it does exist

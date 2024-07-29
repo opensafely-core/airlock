@@ -77,11 +77,11 @@ def test_e2e_release_files(
     - View requests list
     - Click and view submitted request
     - View output file
-    - Reject output file
+    - Request changes to output file
     - Approve output file
     - Download output file
     - View supporting file
-    - Reject output file
+    - Request changes to output file
     - Approve output file
     - Submit review
     - Logout
@@ -341,13 +341,13 @@ def test_e2e_release_files(
     release_button = page.locator("#release-files-button")
     expect(release_button).to_be_disabled()
 
-    # Reject the file
-    expect(page.locator("#file-reject-button")).to_have_attribute(
+    # Request changes to the file
+    expect(page.locator("#file-request-changes-button")).to_have_attribute(
         "aria-pressed", "false"
     )
     expect(page.locator("#file-reset-button")).to_be_disabled()
-    find_and_click(page.locator("#file-reject-button"))
-    expect(page.locator("#file-reject-button")).to_have_attribute(
+    find_and_click(page.locator("#file-request-changes-button"))
+    expect(page.locator("#file-request-changes-button")).to_have_attribute(
         "aria-pressed", "true"
     )
     expect(page.locator("#file-reset-button")).not_to_be_disabled()
@@ -397,7 +397,7 @@ def test_e2e_release_files(
         release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
     )
     expect(page.locator("#file-approve-button")).not_to_be_visible()
-    expect(page.locator("#file-reject-button")).not_to_be_visible()
+    expect(page.locator("#file-request-changes-button")).not_to_be_visible()
     expect(page.locator("#file-reset-button")).not_to_be_visible()
 
     # submit review for this output-checker
@@ -408,7 +408,7 @@ def test_e2e_release_files(
     # file is already approved, so the approve button is disable
     expect(page.locator("#file-approve-button")).to_be_disabled()
     # they can change their minds and request changes, but can't reset now
-    expect(page.locator("#file-reject-button")).not_to_be_disabled()
+    expect(page.locator("#file-request-changes-button")).not_to_be_disabled()
     expect(page.locator("#file-reset-button")).to_be_disabled()
 
     # Logout (by clearing cookies) and log in as second output-checker to do second approval
@@ -454,7 +454,9 @@ def test_e2e_update_file(page, live_server, dev_users):
         "test-workspace",
         author=author,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(path=path, group="default", rejected=True)],
+        files=[
+            factories.request_file(path=path, group="default", changes_requested=True)
+        ],
     )
 
     # change the file on disk
@@ -549,7 +551,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
         "test-workspace",
         author=factories.create_user("author", workspaces=["test-workspace"]),
         status=RequestStatus.REVIEWED,
-        files=[factories.request_file(rejected=True)],
+        files=[factories.request_file(changes_requested=True)],
     )
 
     # Log in as output checker
@@ -578,7 +580,7 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
         "test-workspace",
         author=user,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(rejected=True)],
+        files=[factories.request_file(changes_requested=True)],
     )
 
     # Log in as a researcher

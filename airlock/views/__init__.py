@@ -2,7 +2,7 @@ from .auth import login, logout
 from .docs import serve_docs
 from .request import (
     file_approve,
-    file_reject,
+    file_request_changes,
     file_reset_review,
     file_withdraw,
     group_comment_create,
@@ -33,7 +33,7 @@ __all__ = [
     "logout",
     "index",
     "file_approve",
-    "file_reject",
+    "file_request_changes",
     "file_withdraw",
     "request_contents",
     "request_index",

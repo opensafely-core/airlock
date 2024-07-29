@@ -230,7 +230,7 @@ class FileReview(models.Model):
         RequestFileMetadata, related_name="reviews", on_delete=models.RESTRICT
     )
     reviewer = models.TextField()
-    status = EnumField(default=RequestFileVote.REJECTED, enum=RequestFileVote)
+    status = EnumField(default=RequestFileVote.CHANGES_REQUESTED, enum=RequestFileVote)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -248,7 +248,7 @@ def request_view(request, request_id: str, path: str = ""):
     voting_buttons: Dict[str, Any] = {
         "show": False,
         "approve": {"url": None, "disabled": True},
-        "reject": {"url": None, "disabled": True},
+        "request_changes": {"url": None, "disabled": True},
         "reset_review": {"url": None, "disabled": True},
     }
 
@@ -263,7 +263,7 @@ def request_view(request, request_id: str, path: str = ""):
     ):
         # show the buttons and add their respective URLs
         voting_buttons["show"] = True
-        for vote in ["approve", "reject", "reset_review"]:
+        for vote in ["approve", "request_changes", "reset_review"]:
             voting_buttons[vote] = {
                 "url": reverse(f"file_{vote}", args=(request_id, path)),
                 "disabled": False,
@@ -277,8 +277,8 @@ def request_view(request, request_id: str, path: str = ""):
         match existing_review_status:
             case RequestFileVote.APPROVED:
                 voting_buttons["approve"]["disabled"] = True
-            case RequestFileVote.REJECTED:
-                voting_buttons["reject"]["disabled"] = True
+            case RequestFileVote.CHANGES_REQUESTED:
+                voting_buttons["request_changes"]["disabled"] = True
             case RequestFileVote.UNDECIDED | None:
                 voting_buttons["reset_review"]["disabled"] = True
             case _:  # pragma: no cover
@@ -513,7 +513,7 @@ def file_approve(request, request_id, path: str):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_reject(request, request_id, path: str):
+def file_request_changes(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:

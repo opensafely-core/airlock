@@ -297,7 +297,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             review, _ = FileReview.objects.get_or_create(
                 file=request_file, reviewer=username
             )
-            review.status = RequestFileVote.REJECTED
+            review.status = RequestFileVote.CHANGES_REQUESTED
             review.save()
 
             self._create_audit_log(audit)

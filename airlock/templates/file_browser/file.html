@@ -113,14 +113,14 @@
             {% endif %}
 
 
-            {% if voting_buttons.reject.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-reject-button" disabled="true">
+            {% if voting_buttons.request_changes.disabled %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-request-changes-button" disabled="true">
                 Request changes
               </button>
             {% else %}
-              <form action="{{ voting_buttons.reject.url }}" method="POST">
+              <form action="{{ voting_buttons.request_changes.url }}" method="POST">
                 {% csrf_token %}
-                <button aria-pressed="false" class="btn-group__btn" id="file-reject-button" type="submit">
+                <button aria-pressed="false" class="btn-group__btn" id="file-request-changes-button" type="submit">
                   Request changes
                 </button>
               </form>
