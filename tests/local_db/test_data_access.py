@@ -1,9 +1,9 @@
 import pytest
 
+from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
-    BusinessLogicLayer,
     RequestStatus,
     Visibility,
 )
@@ -140,7 +140,7 @@ def test_delete_file_from_request_bad_path():
         user=author,
     )
 
-    with pytest.raises(BusinessLogicLayer.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         dal.delete_file_from_request(release_request.id, UrlPath("bad_path"), audit)
 
 
@@ -179,7 +179,7 @@ def test_group_comment_delete_bad_params():
         group="badgroup",
         comment="author comment",
     )
-    with pytest.raises(BusinessLogicLayer.APIException):
+    with pytest.raises(exceptions.APIException):
         dal.group_comment_delete(release_request.id, "badgroup", "1", author, audit)
 
     audit = AuditEvent.from_request(
@@ -199,5 +199,5 @@ def test_group_comment_delete_bad_params():
         group="group",
         comment="author comment",
     )
-    with pytest.raises(BusinessLogicLayer.APIException):
+    with pytest.raises(exceptions.APIException):
         dal.group_comment_delete(release_request.id, "group", "1", other, audit)

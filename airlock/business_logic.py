@@ -19,7 +19,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock import renderers
+from airlock import exceptions, renderers
 from airlock.lib.git import (
     GitError,
     list_files_from_repo,
@@ -28,7 +28,7 @@ from airlock.lib.git import (
 )
 from airlock.notifications import send_notification_event
 from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
-from airlock.users import ActionDenied, User
+from airlock.users import User
 from airlock.utils import is_valid_file_type
 
 
@@ -435,18 +435,16 @@ class Workspace:
     ) -> Workspace:
         root = settings.WORKSPACE_DIR / name
         if not root.exists():
-            raise BusinessLogicLayer.WorkspaceNotFound(name)
+            raise exceptions.WorkspaceNotFound(name)
 
         manifest_path = root / "metadata/manifest.json"
         if not manifest_path.exists():
-            raise BusinessLogicLayer.ManifestFileError(
-                f"{manifest_path} does not exist"
-            )
+            raise exceptions.ManifestFileError(f"{manifest_path} does not exist")
 
         try:
             manifest = json.loads(manifest_path.read_text())
         except json.JSONDecodeError as exc:
-            raise BusinessLogicLayer.ManifestFileError(
+            raise exceptions.ManifestFileError(
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
 
@@ -510,11 +508,11 @@ class Workspace:
         if self.current_request:
             try:
                 rfile = self.current_request.get_request_file_from_output_path(relpath)
-            except BusinessLogicLayer.FileNotFound:
+            except exceptions.FileNotFound:
                 return WorkspaceFileStatus.UNRELEASED
 
             if metadata is None:  # pragma: no cover
-                raise BusinessLogicLayer.ManifestFileError(
+                raise exceptions.ManifestFileError(
                     f"no file metadata available for {relpath}"
                 )
             if rfile.filetype is RequestFileType.WITHDRAWN:
@@ -564,7 +562,7 @@ class Workspace:
         try:
             return self.manifest["outputs"][str(relpath)]
         except KeyError:
-            raise BusinessLogicLayer.ManifestFileError(
+            raise exceptions.ManifestFileError(
                 f"No entry for {relpath} from manifest.json file"
             )
 
@@ -572,7 +570,7 @@ class Workspace:
         """Get file metadata, i.e. size, timestamp, hash"""
         try:
             return FileMetadata.from_manifest(self.get_manifest_for_file(relpath))
-        except BusinessLogicLayer.ManifestFileError:
+        except exceptions.ManifestFileError:
             pass
 
         # not in manifest, e.g. log file. Check disk
@@ -590,7 +588,7 @@ class Workspace:
 
         # validate path exists
         if not path.exists():
-            raise BusinessLogicLayer.FileNotFound(path)
+            raise exceptions.FileNotFound(path)
 
         return path
 
@@ -617,7 +615,7 @@ class CodeRepo:
     def from_workspace(cls, workspace: Workspace, commit: str):
         try:
             repo = list(workspace.manifest["outputs"].values())[0]["repo"]
-        except (BusinessLogicLayer.ManifestFileError, IndexError, KeyError) as exc:
+        except (exceptions.ManifestFileError, IndexError, KeyError) as exc:
             raise cls.RepoNotFound(
                 f"Could not parse manifest.json file: {workspace.manifest_path()}:\n{exc}"
             )
@@ -682,7 +680,7 @@ class CodeRepo:
         try:
             contents = read_file_from_repo(self.repo, self.commit, relpath)
         except GitError as exc:
-            raise BusinessLogicLayer.FileNotFound(str(exc))
+            raise exceptions.FileNotFound(str(exc))
 
         renderer_class = renderers.get_code_renderer(relpath, plaintext=plaintext)
         # note: we don't actually need an explicit cache_id here, as the commit is
@@ -1023,10 +1021,10 @@ class ReleaseRequest:
         file_relpath = UrlPath(*relpath.parts[1:])
 
         if not (filegroup := self.filegroups.get(group)):
-            raise BusinessLogicLayer.FileNotFound(f"bad group {group} in url {relpath}")
+            raise exceptions.FileNotFound(f"bad group {group} in url {relpath}")
 
         if not (request_file := filegroup.files.get(file_relpath)):
-            raise BusinessLogicLayer.FileNotFound(relpath)
+            raise exceptions.FileNotFound(relpath)
 
         return request_file
 
@@ -1036,7 +1034,7 @@ class ReleaseRequest:
         if relpath in self.all_files_by_name:
             return self.all_files_by_name[relpath]
 
-        raise BusinessLogicLayer.FileNotFound(relpath)
+        raise exceptions.FileNotFound(relpath)
 
     def get_turn_phase(self) -> ReviewTurnPhase:
         if self.status in [RequestStatus.PENDING, RequestStatus.RETURNED]:
@@ -1104,7 +1102,7 @@ class ReleaseRequest:
     def request_filetype(self, urlpath: UrlPath):
         try:
             return self.get_request_file_from_urlpath(urlpath).filetype
-        except BusinessLogicLayer.FileNotFound:
+        except exceptions.FileNotFound:
             # this includes the case when urlpath is an output directory
             # e.g. `foo` when the request contains `foo/bar.txt`
             return None
@@ -1348,47 +1346,11 @@ class BusinessLogicLayer:
     def __init__(self, data_access_layer: DataAccessLayerProtocol):
         self._dal = data_access_layer
 
-    class APIException(Exception):
-        pass
-
-    class WorkspaceNotFound(APIException):
-        pass
-
-    class ReleaseRequestNotFound(APIException):
-        pass
-
-    class FileNotFound(APIException):
-        pass
-
-    class FileReviewNotFound(APIException):
-        pass
-
-    class InvalidStateTransition(APIException):
-        pass
-
-    class WorkspacePermissionDenied(APIException):
-        pass
-
-    class RequestPermissionDenied(APIException):
-        pass
-
-    class IncompleteContextOrControls(RequestPermissionDenied):
-        pass
-
-    class RequestReviewDenied(APIException):
-        pass
-
-    class ApprovalPermissionDenied(APIException):
-        pass
-
-    class ManifestFileError(APIException):
-        pass
-
     def get_workspace(self, name: str, user: User) -> Workspace:
         """Get a workspace object."""
 
         if user is None or not user.has_permission(name):
-            raise self.WorkspacePermissionDenied()
+            raise exceptions.WorkspacePermissionDenied()
 
         # this is a bit awkward. If the user is an output checker, they may not
         # have the workspace metadata in their User instance, so we provide an
@@ -1425,7 +1387,7 @@ class BusinessLogicLayer:
         for workspace_name in user.workspaces:
             try:
                 workspace = self.get_workspace(workspace_name, user)
-            except self.WorkspaceNotFound:
+            except exceptions.WorkspaceNotFound:
                 continue
 
             workspaces.append(workspace)
@@ -1469,7 +1431,7 @@ class BusinessLogicLayer:
         )
 
         if not user.has_permission(release_request.workspace):
-            raise self.WorkspacePermissionDenied()
+            raise exceptions.WorkspacePermissionDenied()
 
         return release_request
 
@@ -1477,7 +1439,7 @@ class BusinessLogicLayer:
         """Get the current request for a workspace/user."""
 
         if not user.has_permission(workspace):
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"you do not have permission to view requests for {workspace}"
             )
 
@@ -1512,8 +1474,8 @@ class BusinessLogicLayer:
         # projects are still viewable, check if user has permission to create one
         try:
             user.verify_can_action_request(workspace)
-        except ActionDenied as exc:
-            raise self.RequestPermissionDenied(exc)
+        except exceptions.ActionDenied as exc:
+            raise exceptions.RequestPermissionDenied(exc)
 
         if request is not None:
             return request
@@ -1525,7 +1487,7 @@ class BusinessLogicLayer:
         """Get all release requests in workspaces a user has access to."""
 
         if not user.has_permission(workspace):
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"you do not have permission to view requests for {workspace}"
             )
 
@@ -1547,7 +1509,9 @@ class BusinessLogicLayer:
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
         if not user.output_checker:
-            raise self.RequestPermissionDenied("Only output checkers can see these")
+            raise exceptions.RequestPermissionDenied(
+                "Only output checkers can see these"
+            )
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1563,7 +1527,9 @@ class BusinessLogicLayer:
     def get_returned_requests(self, user: User):
         """Get all requests that have been returned."""
         if not user.output_checker:
-            raise self.RequestPermissionDenied("Only output checkers can see these")
+            raise exceptions.RequestPermissionDenied(
+                "Only output checkers can see these"
+            )
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1576,7 +1542,9 @@ class BusinessLogicLayer:
         """Get all requests that have been approved but not yet released."""
         # Only output checkers can see these
         if not user.output_checker:
-            raise self.RequestPermissionDenied("Only output checkers can see these")
+            raise exceptions.RequestPermissionDenied(
+                "Only output checkers can see these"
+            )
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1663,7 +1631,7 @@ class BusinessLogicLayer:
         valid_transitions = self.VALID_STATE_TRANSITIONS.get(release_request.status, [])
 
         if to_status not in valid_transitions:
-            raise self.InvalidStateTransition(
+            raise exceptions.InvalidStateTransition(
                 f"cannot change status from {release_request.status.name} to {to_status.name}"
             )
 
@@ -1673,7 +1641,7 @@ class BusinessLogicLayer:
                     release_request.filegroups[filegroup].context == ""
                     or release_request.filegroups[filegroup].controls == ""
                 ):
-                    raise self.IncompleteContextOrControls(
+                    raise exceptions.IncompleteContextOrControls(
                         f"Incomplete context and/or controls for filegroup '{filegroup}'"
                     )
 
@@ -1684,7 +1652,7 @@ class BusinessLogicLayer:
             owner == RequestStatusOwner.AUTHOR
             and user.username != release_request.author
         ):
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"only the request author {release_request.author} can set status from {release_request.status} to {to_status.name}"
             )
         # reviewer transitions
@@ -1696,12 +1664,12 @@ class BusinessLogicLayer:
             in [RequestStatus.APPROVED, RequestStatus.REJECTED]
         ):
             if not user.output_checker:
-                raise self.RequestPermissionDenied(
+                raise exceptions.RequestPermissionDenied(
                     f"only an output checker can set status to {to_status.name}"
                 )
 
             if user.username == release_request.author:
-                raise self.RequestPermissionDenied(
+                raise exceptions.RequestPermissionDenied(
                     f"Can not set your own request to {to_status.name}"
                 )
 
@@ -1709,7 +1677,7 @@ class BusinessLogicLayer:
                 to_status == RequestStatus.APPROVED
                 and not release_request.all_files_approved()
             ):
-                raise self.RequestPermissionDenied(
+                raise exceptions.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request has unapproved files."
                 )
 
@@ -1717,7 +1685,7 @@ class BusinessLogicLayer:
                 to_status == RequestStatus.APPROVED
                 and not release_request.output_files()
             ):
-                raise self.RequestPermissionDenied(
+                raise exceptions.RequestPermissionDenied(
                     f"Cannot set status to {to_status.name}; request contains no output files."
                 )
 
@@ -1759,19 +1727,19 @@ class BusinessLogicLayer:
 
     def _validate_editable(self, release_request, user):
         if user.username != release_request.author:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"only author {release_request.author} can modify the files in this request"
             )
 
         if release_request.status_owner() != RequestStatusOwner.AUTHOR:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"cannot modify files in request that is in state {release_request.status.name}"
             )
 
         try:
             user.verify_can_action_request(release_request.workspace)
-        except ActionDenied as exc:
-            raise self.RequestPermissionDenied(exc)
+        except exceptions.ActionDenied as exc:
+            raise exceptions.RequestPermissionDenied(exc)
 
     def validate_file_types(self, file_paths):
         """
@@ -1784,7 +1752,7 @@ class BusinessLogicLayer:
         """
         for relpath, _ in file_paths:
             if not is_valid_file_type(Path(relpath)):
-                raise self.RequestPermissionDenied(
+                raise exceptions.RequestPermissionDenied(
                     f"Invalid file type ({relpath}) found in request"
                 )
 
@@ -1800,14 +1768,16 @@ class BusinessLogicLayer:
 
         relpath = UrlPath(relpath)
         if not is_valid_file_type(Path(relpath)):
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"Cannot add file of type {relpath.suffix} to request"
             )
 
         workspace = self.get_workspace(release_request.workspace, user)
         # Can't add a file that's already been released
         if workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED:
-            raise self.RequestPermissionDenied("Cannot add released file to request")
+            raise exceptions.RequestPermissionDenied(
+                "Cannot add released file to request"
+            )
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
@@ -1857,7 +1827,7 @@ class BusinessLogicLayer:
 
         relpath = UrlPath(relpath)
         if not is_valid_file_type(Path(relpath)):
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"Cannot update file of type {relpath.suffix} in request"
             )
 
@@ -1866,7 +1836,7 @@ class BusinessLogicLayer:
             WorkspaceFileStatus.CONTENT_UPDATED,
             WorkspaceFileStatus.WITHDRAWN,
         ]:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 "Cannot update file in request if it is not updated on disk"
             )
 
@@ -2041,22 +2011,22 @@ class BusinessLogicLayer:
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
     ):
         if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 f"cannot review file from request in state {release_request.status.name}"
             )
 
         if user.username == release_request.author:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 "cannot review files in your own request"
             )
 
         if not user.output_checker:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 "only an output checker can review a file"
             )
 
         if relpath not in release_request.output_files():
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 "file is not an output file on this request"
             )
 
@@ -2116,7 +2086,7 @@ class BusinessLogicLayer:
         self._verify_permission_to_review_file(release_request, relpath, user)
 
         if user.username in release_request.submitted_reviews:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 "cannot reset file from submitted review"
             )
 
@@ -2136,25 +2106,27 @@ class BusinessLogicLayer:
         Marking the request as either PARTIALLY_REVIEWED or REVIEWED, depending on whether this is the first or second review.
         """
         if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"Cannot review request in state {release_request.status.name}"
             )
 
         if user.username == release_request.author:
-            raise self.RequestPermissionDenied("You cannot review your own request")
+            raise exceptions.RequestPermissionDenied(
+                "You cannot review your own request"
+            )
 
         if not user.output_checker:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 "Only an output checker can review a request"
             )
 
         if not release_request.all_files_reviewed_by_reviewer(user):
-            raise self.RequestReviewDenied(
+            raise exceptions.RequestReviewDenied(
                 "You must review all files to submit your review"
             )
 
         if user.username in release_request.submitted_reviews:
-            raise self.RequestReviewDenied(
+            raise exceptions.RequestReviewDenied(
                 "You have already submitted your review of this request"
             )
 
@@ -2171,7 +2143,7 @@ class BusinessLogicLayer:
                 self.set_status(release_request, RequestStatus.PARTIALLY_REVIEWED, user)
             elif n_reviews == 2:
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
-        except self.InvalidStateTransition:
+        except exceptions.InvalidStateTransition:
             # There is a potential race condition where two reviewers hit the Submit Review
             # button at the same time, and both attempt to transition from SUBMITTED to
             # PARTIALLY_REVIEWED, or from PARTIALLY_REVIEWED to REVIEWED
@@ -2203,12 +2175,12 @@ class BusinessLogicLayer:
     ):
         """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         if review.status != RequestFileVote.CHANGES_REQUESTED:
-            raise self.ApprovalPermissionDenied(
+            raise exceptions.ApprovalPermissionDenied(
                 f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
@@ -2233,12 +2205,14 @@ class BusinessLogicLayer:
         user: User,
     ):
         if release_request.author != user.username:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 "Only request author can edit the request"
             )
 
         if release_request.is_final():
-            raise self.RequestPermissionDenied("This request is no longer editable")
+            raise exceptions.RequestPermissionDenied(
+                "This request is no longer editable"
+            )
 
         audit = AuditEvent.from_request(
             request=release_request,
@@ -2260,7 +2234,7 @@ class BusinessLogicLayer:
         user: User,
     ):
         if not user.output_checker and release_request.workspace not in user.workspaces:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"User {user.username} does not have permission to comment"
             )
 
@@ -2289,17 +2263,17 @@ class BusinessLogicLayer:
     ):
         filegroup = release_request.filegroups.get(group)
         if not filegroup:
-            raise self.FileNotFound(f"Filegroup {group} not found")
+            raise exceptions.FileNotFound(f"Filegroup {group} not found")
 
         comment = next(
             (c for c in filegroup.comments if c.id == comment_id),
             None,
         )
         if not comment:
-            raise self.FileNotFound(f"Comment {comment_id} not found")
+            raise exceptions.FileNotFound(f"Comment {comment_id} not found")
 
         if not user.username == comment.author:
-            raise self.RequestPermissionDenied(
+            raise exceptions.RequestPermissionDenied(
                 f"User {user.username} is not the author of this comment, so cannot delete"
             )
 

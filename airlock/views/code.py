@@ -6,6 +6,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
+from airlock import exceptions
 from airlock.business_logic import CodeRepo, Workspace, bll
 from airlock.file_browser_api import get_code_tree
 from airlock.types import UrlPath
@@ -93,7 +94,7 @@ def contents(request, workspace_name: str, commit: str, path: str):
     plaintext = request.GET.get("plaintext", False)
     try:
         renderer = repo.get_renderer(UrlPath(path), plaintext=plaintext)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     return serve_file(request, renderer)

@@ -2,8 +2,7 @@ import dataclasses
 import time
 from typing import Any
 
-
-class ActionDenied(Exception): ...
+from airlock.exceptions import ActionDenied
 
 
 @dataclasses.dataclass(frozen=True)

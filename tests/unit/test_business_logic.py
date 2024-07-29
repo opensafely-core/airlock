@@ -12,6 +12,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import old_api
+from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
@@ -84,17 +85,17 @@ def test_workspace_container():
 
 
 def test_workspace_from_directory_errors():
-    with pytest.raises(BusinessLogicLayer.WorkspaceNotFound):
+    with pytest.raises(exceptions.WorkspaceNotFound):
         Workspace.from_directory("workspace", {})
 
     (settings.WORKSPACE_DIR / "workspace").mkdir()
-    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+    with pytest.raises(exceptions.ManifestFileError):
         Workspace.from_directory("workspace")
 
     manifest_path = settings.WORKSPACE_DIR / "workspace/metadata/manifest.json"
     manifest_path.parent.mkdir(parents=True)
     manifest_path.write_text(":")
-    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+    with pytest.raises(exceptions.ManifestFileError):
         Workspace.from_directory("workspace")
 
 
@@ -124,7 +125,7 @@ def test_workspace_manifest_for_file_not_found(bll):
     workspace = bll.get_workspace(
         "workspace", factories.create_user(workspaces=["workspace"])
     )
-    with pytest.raises(BusinessLogicLayer.ManifestFileError):
+    with pytest.raises(exceptions.ManifestFileError):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
 
 
@@ -132,7 +133,7 @@ def test_get_file_metadata():
     workspace = factories.create_workspace("workspace")
 
     # non-existent file
-    with pytest.raises(BusinessLogicLayer.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         workspace.get_file_metadata(UrlPath("metadata/foo.log"))
 
     # directory
@@ -225,7 +226,7 @@ def test_workspace_get_workspace_file_status(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_user(workspaces=["workspace"])
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         workspace.get_workspace_file_status(path)
 
     factories.write_workspace_file(workspace, path, contents="foo")
@@ -522,7 +523,7 @@ def test_provider_request_release_files_request_not_approved(bll, mock_notificat
         status=RequestStatus.SUBMITTED,
     )
 
-    with pytest.raises(bll.InvalidStateTransition):
+    with pytest.raises(exceptions.InvalidStateTransition):
         bll.release_files(release_request, checker)
 
     # Notification for submitting request only
@@ -542,7 +543,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
         )
 
     checker = factories.create_user("checker", [], output_checker=True)
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.release_files(release_request, checker)
     assert_last_notification(mock_notifications, "request_approved")
 
@@ -698,7 +699,7 @@ def test_provider_get_requests_for_workspace_bad_user(bll):
     factories.create_release_request("workspace", user, id="r1")
     factories.create_release_request("workspace_2", other_user, id="r2")
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.get_requests_for_workspace("workspace", other_user)
 
 
@@ -769,7 +770,7 @@ def test_provider_get_outstanding_requests_for_review(output_checker, bll):
             ["r1"]
         )
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_outstanding_requests_for_review(user)
 
 
@@ -830,7 +831,7 @@ def test_provider_get_returned_requests(output_checker, bll):
     if output_checker:
         assert set(r.id for r in bll.get_returned_requests(user)) == set(["r1"])
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_returned_requests(user)
 
 
@@ -891,7 +892,7 @@ def test_provider_get_approved_requests(output_checker, bll):
     if output_checker:
         assert set(r.id for r in bll.get_approved_requests(user)) == set(["r1"])
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_approved_requests(user)
 
 
@@ -995,7 +996,7 @@ def test_provider_get_or_create_current_request_for_user_no_permissions(
 
     # Duplicate user who has the test permissions/workspace status
     user = factories.create_user("testuser", workspaces, False)
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.get_or_create_current_request("workspace", user)
 
 
@@ -1031,7 +1032,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     factories.create_workspace("workspace")
     user = factories.create_user("output_checker", [], True)
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.get_or_create_current_request("workspace", user)
 
 
@@ -1228,7 +1229,9 @@ def test_set_status(current, future, valid_author, valid_checker, withdrawn_afte
         assert audit_log[0].request == release_request1.id
         assert audit_log[0].workspace == "workspace1"
     else:
-        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+        with pytest.raises(
+            (exceptions.InvalidStateTransition, exceptions.RequestPermissionDenied)
+        ):
             bll.set_status(release_request1, future, user=author)
 
     if valid_checker:
@@ -1240,7 +1243,9 @@ def test_set_status(current, future, valid_author, valid_checker, withdrawn_afte
         assert audit_log[0].request == release_request2.id
         assert audit_log[0].workspace == "workspace2"
     else:
-        with pytest.raises((bll.InvalidStateTransition, bll.RequestPermissionDenied)):
+        with pytest.raises(
+            (exceptions.InvalidStateTransition, exceptions.RequestPermissionDenied)
+        ):
             bll.set_status(release_request2, future, user=checker)
 
 
@@ -1401,7 +1406,7 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
         assert release_request.status == RequestStatus.APPROVED
         assert_last_notification(mock_notifications, "request_approved")
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
         assert_last_notification(mock_notifications, "request_reviewed")
 
@@ -1412,7 +1417,7 @@ def test_set_status_cannot_action_own_request(bll):
         "workspace", author=user, status=RequestStatus.SUBMITTED
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.set_status(release_request1, RequestStatus.PARTIALLY_REVIEWED, user=user)
 
     release_request2 = factories.create_request_at_status(
@@ -1422,7 +1427,7 @@ def test_set_status_cannot_action_own_request(bll):
         files=[factories.request_file(approved=True)],
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.set_status(release_request2, RequestStatus.RELEASED, user=user)
 
 
@@ -1432,7 +1437,7 @@ def test_set_status_approved_no_files_denied(bll):
         "workspace", status=RequestStatus.REVIEWED
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.set_status(release_request, RequestStatus.APPROVED, user=user)
 
 
@@ -1444,7 +1449,7 @@ def test_set_status_approved_only_supporting_file_denied(bll):
         files=[factories.request_file(filetype=RequestFileType.SUPPORTING)],
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.set_status(release_request, RequestStatus.APPROVED, user=user)
 
 
@@ -1522,7 +1527,7 @@ def test_add_file_to_request_not_author(bll):
         user=author,
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.add_file_to_request(release_request, path, other)
 
 
@@ -1560,7 +1565,7 @@ def test_add_file_to_request_no_permission(bll, workspaces):
 
     # create duplicate user with test workspaces
     author = factories.create_user("author", workspaces, False)
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.add_file_to_request(release_request, path, author)
 
 
@@ -1575,7 +1580,7 @@ def test_add_file_to_request_invalid_file_type(bll):
         user=author,
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.add_file_to_request(release_request, path, author)
 
 
@@ -1624,7 +1629,7 @@ def test_add_file_to_request_states(status, success, bll):
             filetype="OUTPUT",
         )
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.add_file_to_request(release_request, path, author)
 
 
@@ -1695,7 +1700,9 @@ def test_add_file_to_request_already_released(bll):
         release_request, "supporting.txt", user, filetype=RequestFileType.OUTPUT
     )
     # Can't add the released file
-    with pytest.raises(bll.RequestPermissionDenied, match=r"Cannot add released file"):
+    with pytest.raises(
+        exceptions.RequestPermissionDenied, match=r"Cannot add released file"
+    ):
         bll.add_file_to_request(
             release_request, "file.txt", user, filetype=RequestFileType.OUTPUT
         )
@@ -1716,7 +1723,7 @@ def test_update_file_in_request_invalid_file_type(bll):
         )
 
     with pytest.raises(
-        bll.RequestPermissionDenied, match=r"Cannot update file of type"
+        exceptions.RequestPermissionDenied, match=r"Cannot update file of type"
     ):
         bll.update_file_in_request(release_request, relpath, author)
 
@@ -1733,7 +1740,7 @@ def test_update_file_in_request_not_updated(bll):
         status=RequestStatus.RETURNED,
     )
 
-    with pytest.raises(bll.RequestPermissionDenied, match=r"not updated"):
+    with pytest.raises(exceptions.RequestPermissionDenied, match=r"not updated"):
         bll.update_file_in_request(release_request, relpath, author)
 
 
@@ -1804,7 +1811,7 @@ def test_update_file_to_request_states(
         )
         bll.update_file_in_request(release_request, path, author, "group")
     else:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.update_file_in_request(release_request, path, author)
         return
 
@@ -2009,7 +2016,7 @@ def test_withdraw_file_from_request_not_editable_state(bll, status):
         else None,
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.withdraw_file_from_request(
             release_request, UrlPath("group/foo.txt"), author
         )
@@ -2029,7 +2036,7 @@ def test_withdraw_file_from_request_bad_file(bll, status):
         ],
     )
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         bll.withdraw_file_from_request(
             release_request, UrlPath("bad/path"), user=author
         )
@@ -2051,7 +2058,7 @@ def test_withdraw_file_from_request_not_author(bll, status):
 
     other = factories.create_user(username="other", workspaces=["workspace"])
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.withdraw_file_from_request(
             release_request, UrlPath("group/foo.txt"), user=other
         )
@@ -2103,10 +2110,10 @@ def test_request_release_get_request_file_from_urlpath(bll):
         ],
     )
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         release_request.get_request_file_from_urlpath("badgroup" / path)
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         release_request.get_request_file_from_urlpath("default/does/not/exist")
 
     request_file = release_request.get_request_file_from_urlpath("default" / path)
@@ -2666,11 +2673,11 @@ def test_release_request_add_same_file(bll):
     assert len(release_request.filegroups["default"].files) == 1
 
     # Adding the same file again should not create a new RequestFile
-    with pytest.raises(bll.APIException):
+    with pytest.raises(exceptions.APIException):
         bll.add_file_to_request(release_request, path, author)
 
     # We also can't add the same file to a different group
-    with pytest.raises(bll.APIException):
+    with pytest.raises(exceptions.APIException):
         bll.add_file_to_request(release_request, path, author, "new_group")
 
     release_request = bll.get_release_request(release_request.id, author)
@@ -2693,7 +2700,7 @@ def test_approve_file_not_submitted(bll):
     bll.add_file_to_request(release_request, path, author)
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -2716,7 +2723,7 @@ def test_approve_file_not_your_own(bll):
     )
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.approve_file(release_request, request_file, author)
 
     rfile = _get_request_file(release_request, path)
@@ -2740,7 +2747,7 @@ def test_approve_file_not_checker(bll):
     )
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.approve_file(release_request, request_file, author2)
 
     rfile = _get_request_file(release_request, path)
@@ -2763,7 +2770,7 @@ def test_approve_file_not_part_of_request(bll):
     bad_path = Path("path/file2.txt")
     bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
 
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.approve_file(release_request, bad_request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -2784,7 +2791,7 @@ def test_approve_supporting_file(bll):
     checker = factories.create_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -3009,7 +3016,7 @@ def test_reset_review_file_no_reviews(bll):
         == RequestFileDecision.INCOMPLETE
     )
 
-    with pytest.raises(bll.FileReviewNotFound):
+    with pytest.raises(exceptions.FileReviewNotFound):
         bll.reset_review_file(release_request, path, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -3044,7 +3051,7 @@ def test_reset_review_file_after_review_submitted(bll):
 
     # After submitting a review, the user can't reset it
     rfile = _get_request_file(release_request, path)
-    with pytest.raises(bll.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.ApprovalPermissionDenied):
         bll.reset_review_file(release_request, path, checker)
     assert rfile.get_file_vote_for_user(checker) is RequestFileVote.APPROVED
 
@@ -3163,7 +3170,7 @@ def test_mark_file_undecided_permission_errors(
     if allowed:
         bll.mark_file_undecided(release_request, review, path, checkers[0])
     else:
-        with pytest.raises(bll.ApprovalPermissionDenied):
+        with pytest.raises(exceptions.ApprovalPermissionDenied):
             bll.mark_file_undecided(release_request, review, path, checkers[0])
 
 
@@ -3181,7 +3188,7 @@ def test_review_request(bll):
     )
     # first file already has changed requested, second file is not reviewed
     with pytest.raises(
-        bll.RequestReviewDenied,
+        exceptions.RequestReviewDenied,
         match="You must review all files to submit your review",
     ):
         bll.review_request(release_request, checker)
@@ -3200,7 +3207,7 @@ def test_review_request(bll):
 
     # re-review
     with pytest.raises(
-        bll.RequestReviewDenied, match="You have already submitted your review"
+        exceptions.RequestReviewDenied, match="You have already submitted your review"
     ):
         bll.review_request(release_request, checker)
 
@@ -3220,7 +3227,8 @@ def test_review_request_non_submitted_status(bll):
         ],
     )
     with pytest.raises(
-        bll.RequestPermissionDenied, match="Cannot review request in state WITHDRAWN"
+        exceptions.RequestPermissionDenied,
+        match="Cannot review request in state WITHDRAWN",
     ):
         bll.review_request(release_request, checker)
 
@@ -3235,7 +3243,8 @@ def test_review_request_non_output_checker(bll):
         ],
     )
     with pytest.raises(
-        bll.RequestPermissionDenied, match="Only an output checker can review a request"
+        exceptions.RequestPermissionDenied,
+        match="Only an output checker can review a request",
     ):
         bll.review_request(release_request, user)
 
@@ -3315,7 +3324,7 @@ def test_review_request_race_condition(bll):
     with patch("airlock.business_logic.BusinessLogicLayer.check_status"):
         bll.set_status(release_request, RequestStatus.SUBMITTED, checkers[0])
 
-    with pytest.raises(bll.InvalidStateTransition):
+    with pytest.raises(exceptions.InvalidStateTransition):
         with patch(
             "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
         ) as submitted_reviews:
@@ -3429,7 +3438,7 @@ def test_group_edit_not_author(bll):
         files=[factories.request_file("group", "test/file.txt")],
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.group_edit(release_request, "group", "foo", "bar", other)
 
 
@@ -3446,7 +3455,7 @@ def test_group_edit_not_editable(bll, status):
         withdrawn_after=RequestStatus.PENDING,
     )
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.group_edit(release_request, "group", "foo", "bar", author)
 
 
@@ -3459,7 +3468,7 @@ def test_group_edit_bad_group(bll):
         files=[factories.request_file("group", "test/file.txt")],
     )
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         bll.group_edit(release_request, "notexist", "foo", "bar", author)
 
 
@@ -3542,7 +3551,7 @@ def test_group_comment_create_permissions(bll):
 
     assert len(release_request.filegroups["group"].comments) == 0
 
-    with pytest.raises(bll.RequestPermissionDenied):
+    with pytest.raises(exceptions.RequestPermissionDenied):
         bll.group_comment_create(
             release_request, "group", "question?", Visibility.PUBLIC, other
         )
@@ -3646,11 +3655,11 @@ def test_group_comment_delete_permissions(bll):
     checker_comment = release_request.filegroups["group"].comments[1]
 
     for user in [collaborator, other, checker]:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.group_comment_delete(release_request, "group", test_comment.id, user)
 
     for user in [collaborator, author, other]:
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.group_comment_delete(release_request, "group", checker_comment.id, user)
 
     assert len(release_request.filegroups["group"].comments) == 2
@@ -3673,7 +3682,7 @@ def test_group_comment_create_invalid_params(bll):
         files=[factories.request_file("group", "test/file.txt")],
     )
 
-    with pytest.raises(bll.APIException):
+    with pytest.raises(exceptions.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)
 
     bll.group_comment_create(
@@ -3684,7 +3693,7 @@ def test_group_comment_create_invalid_params(bll):
     assert len(release_request.filegroups["group"].comments) == 1
     test_comment = release_request.filegroups["group"].comments[0]
 
-    with pytest.raises(bll.APIException):
+    with pytest.raises(exceptions.APIException):
         bll.group_comment_delete(
             release_request, "badgroup", test_comment.id, collaborator
         )

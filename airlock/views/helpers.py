@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseNotModified
 from django.utils.safestring import mark_safe
 
+from airlock import exceptions
 from airlock.business_logic import bll
 from airlock.file_browser_api import PathItem
 from airlock.types import UrlPath
@@ -23,9 +24,9 @@ def get_workspace_or_raise(user, workspace_name):
     """Get the workspace, converting any errors to http codes."""
     try:
         workspace = bll.get_workspace(workspace_name, user)
-    except bll.WorkspaceNotFound:
+    except exceptions.WorkspaceNotFound:
         raise Http404()
-    except bll.WorkspacePermissionDenied:
+    except exceptions.WorkspacePermissionDenied:
         raise PermissionDenied()
 
     return workspace
@@ -35,9 +36,9 @@ def get_release_request_or_raise(user, request_id):
     """Get the release request, converting any errors to http codes."""
     try:
         release_request = bll.get_release_request(request_id, user)
-    except bll.ReleaseRequestNotFound:
+    except exceptions.ReleaseRequestNotFound:
         raise Http404()
-    except bll.WorkspacePermissionDenied:
+    except exceptions.WorkspacePermissionDenied:
         raise PermissionDenied()
 
     return release_request
