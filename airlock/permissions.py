@@ -181,3 +181,21 @@ def user_can_update_file_on_request(
         )
     except exceptions.RequestPermissionDenied:
         return False
+
+
+def check_user_can_withdraw_file_from_request(
+    user: User, request: "ReleaseRequest", relpath: UrlPath
+):
+    if not user_can_edit_request(user, request):
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot withdraw file {relpath} from request"
+        )
+
+
+def user_can_withdraw_file_from_request(
+    user: User, request: "ReleaseRequest", relpath: UrlPath
+):  # pragma: no cover; not currently used
+    try:
+        return check_user_can_withdraw_file_from_request(user, request, relpath) is None
+    except exceptions.RequestPermissionDenied:
+        return False

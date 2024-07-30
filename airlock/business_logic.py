@@ -1851,8 +1851,10 @@ class BusinessLogicLayer:
         group_path: UrlPath,
         user: User,
     ):
-        permissions.check_user_can_edit_request(user, release_request)
         relpath = UrlPath(*group_path.parts[1:])
+        permissions.check_user_can_withdraw_file_from_request(
+            user, release_request, relpath
+        )
 
         group_name = group_path.parts[0]
         audit = AuditEvent.from_request(
