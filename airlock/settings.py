@@ -268,10 +268,7 @@ AIRLOCK_AUTHZ_TIMEOUT = 15 * 60  # 15 minutes
 WHITENOISE_USE_FINDERS = True
 
 DJANGO_VITE = {
-    "default": {
-        "dev_mode": False,
-        "manifest_path": "assets/out/manifest.json"
-    },
+    "default": {"dev_mode": False, "manifest_path": "assets/out/manifest.json"},
     "job_server": {
         # vite assumes collectstatic, so tell it where the manifest is directly
         "manifest_path": ASSETS_DIST / ".vite/manifest.json",
