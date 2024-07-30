@@ -147,7 +147,37 @@ def user_can_add_file_to_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_add_file_to_request(user, request, workspace, relpath)
+        return (
+            check_user_can_add_file_to_request(user, request, workspace, relpath)
+            is None
+        )
     except exceptions.RequestPermissionDenied:
         return False
-    return True
+
+
+def check_user_can_update_file_on_request(
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):
+    check_user_can_edit_request(user, request)
+
+    if not is_valid_file_type(Path(relpath)):
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot update file of type {relpath.suffix} in request"
+        )
+
+    if not workspace.file_can_be_updated(relpath):
+        raise exceptions.RequestPermissionDenied(
+            "Cannot update file in request if it is not updated on disk"
+        )
+
+
+def user_can_update_file_on_request(
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):  # pragma: no cover; not currently used
+    try:
+        return (
+            check_user_can_update_file_on_request(user, request, workspace, relpath)
+            is None
+        )
+    except exceptions.RequestPermissionDenied:
+        return False

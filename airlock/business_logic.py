@@ -598,6 +598,12 @@ class Workspace:
     def file_has_been_released(self, relpath: UrlPath) -> bool:
         return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
 
+    def file_can_be_updated(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]
+
 
 @dataclass(frozen=True)
 class CodeRepo:
@@ -1766,22 +1772,11 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        permissions.check_user_can_edit_request(user, release_request)
-
         relpath = UrlPath(relpath)
-        if not is_valid_file_type(Path(relpath)):
-            raise exceptions.RequestPermissionDenied(
-                f"Cannot update file of type {relpath.suffix} in request"
-            )
-
         workspace = self.get_workspace(release_request.workspace, user)
-        if workspace.get_workspace_file_status(UrlPath(relpath)) not in [
-            WorkspaceFileStatus.CONTENT_UPDATED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]:
-            raise exceptions.RequestPermissionDenied(
-                "Cannot update file in request if it is not updated on disk"
-            )
+        permissions.check_user_can_update_file_on_request(
+            user, release_request, workspace, relpath
+        )
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)

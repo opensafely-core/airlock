@@ -1750,8 +1750,8 @@ def test_update_file_in_request_not_updated(bll):
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
+        files=[factories.request_file(path=relpath, approved=True)],
     )
-
     with pytest.raises(exceptions.RequestPermissionDenied, match=r"not updated"):
         bll.update_file_in_request(release_request, relpath, author)
 
