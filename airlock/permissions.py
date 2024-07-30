@@ -1,7 +1,10 @@
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
+from airlock.types import UrlPath
 from airlock.users import User
+from airlock.utils import is_valid_file_type
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -10,7 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.business_logic import ReleaseRequest
+    from airlock.business_logic import ReleaseRequest, Workspace
 
 
 def check_user_can_view_workspace(user: User | None, workspace_name: str):
@@ -101,3 +104,50 @@ def user_can_review_request(user: User, request: "ReleaseRequest"):
         return check_user_can_review_request(user, request) is None
     except exceptions.RequestPermissionDenied:
         return False
+
+
+def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
+    """
+    This user has permission to edit the request, AND the request is in an
+    editable state
+    """
+    if user.username != request.author:
+        raise exceptions.RequestPermissionDenied(
+            f"only author {request.author} can modify the files in this request"
+        )
+    if not request.is_editing():
+        raise exceptions.RequestPermissionDenied(
+            f"cannot modify files in request that is in state {request.status.name}"
+        )
+    check_user_can_action_request_for_workspace(user, request.workspace)
+
+
+def user_can_edit_request(user: User, request: "ReleaseRequest"):
+    try:
+        return check_user_can_edit_request(user, request) is None
+    except exceptions.RequestPermissionDenied:
+        return False
+
+
+def check_user_can_add_file_to_request(
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):
+    check_user_can_edit_request(user, request)
+
+    if not is_valid_file_type(Path(relpath)):
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot add file of type {relpath.suffix} to request"
+        )
+
+    if workspace.file_has_been_released(relpath):
+        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
+
+
+def user_can_add_file_to_request(
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_add_file_to_request(user, request, workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True

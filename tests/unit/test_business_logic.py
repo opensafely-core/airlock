@@ -1538,29 +1538,35 @@ def test_add_file_to_request_not_author(bll):
 
 
 @pytest.mark.parametrize(
-    "workspaces",
+    "workspaces,exception",
     [
         # no access; possible if a user has been removed from a
         # project/workspace on job-server, or has had their roles
         # updated since a release was created
-        {},
+        ({}, exceptions.WorkspacePermissionDenied),
         # workspace archived
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": True},
-                "archived": True,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": True},
+                    "archived": True,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
         # project inactive
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": False},
-                "archived": False,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": False},
+                    "archived": False,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
     ],
 )
-def test_add_file_to_request_no_permission(bll, workspaces):
+def test_add_file_to_request_no_permission(bll, workspaces, exception):
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
@@ -1571,7 +1577,7 @@ def test_add_file_to_request_no_permission(bll, workspaces):
 
     # create duplicate user with test workspaces
     author = factories.create_user("author", workspaces, False)
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exception):
         bll.add_file_to_request(release_request, path, author)
 
 

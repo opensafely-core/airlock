@@ -595,6 +595,9 @@ class Workspace:
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
 
+    def file_has_been_released(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
+
 
 @dataclass(frozen=True)
 class CodeRepo:
@@ -1142,7 +1145,6 @@ class ReleaseRequest:
     def submitted_reviews_count(self):
         return len(self.submitted_reviews)
 
-    # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
 
@@ -1691,21 +1693,6 @@ class BusinessLogicLayer:
         release_request.status = to_status
         self.send_notification(release_request, notification_event, user)
 
-    def _validate_editable(self, release_request, user):
-        if user.username != release_request.author:
-            raise exceptions.RequestPermissionDenied(
-                f"only author {release_request.author} can modify the files in this request"
-            )
-
-        if release_request.status_owner() != RequestStatusOwner.AUTHOR:
-            raise exceptions.RequestPermissionDenied(
-                f"cannot modify files in request that is in state {release_request.status.name}"
-            )
-
-        permissions.check_user_can_action_request_for_workspace(
-            user, release_request.workspace
-        )
-
     def validate_file_types(self, file_paths):
         """
         Validate file types before releasing.
@@ -1729,20 +1716,11 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        self._validate_editable(release_request, user)
-
         relpath = UrlPath(relpath)
-        if not is_valid_file_type(Path(relpath)):
-            raise exceptions.RequestPermissionDenied(
-                f"Cannot add file of type {relpath.suffix} to request"
-            )
-
         workspace = self.get_workspace(release_request.workspace, user)
-        # Can't add a file that's already been released
-        if workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED:
-            raise exceptions.RequestPermissionDenied(
-                "Cannot add released file to request"
-            )
+        permissions.check_user_can_add_file_to_request(
+            user, release_request, workspace, relpath
+        )
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
@@ -1788,7 +1766,7 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        self._validate_editable(release_request, user)
+        permissions.check_user_can_edit_request(user, release_request)
 
         relpath = UrlPath(relpath)
         if not is_valid_file_type(Path(relpath)):
@@ -1878,7 +1856,7 @@ class BusinessLogicLayer:
         group_path: UrlPath,
         user: User,
     ):
-        self._validate_editable(release_request, user)
+        permissions.check_user_can_edit_request(user, release_request)
         relpath = UrlPath(*group_path.parts[1:])
 
         group_name = group_path.parts[0]
