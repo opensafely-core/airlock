@@ -13,7 +13,8 @@
     {% block extra_meta %}{% endblock %}
 
     {% vite_hmr_client %}
-    {% vite_asset "assets/src/scripts/base.js" %}
+    {% vite_asset "assets/src/scripts/base.js" app="job_server" %}
+    {% vite_asset "assets/src/scripts/main.js" %}
 
     <link rel="stylesheet" href="{% static 'assets/components.css' %}">
     <link rel="stylesheet" href="{% static 'assets/icons.css' %}">
