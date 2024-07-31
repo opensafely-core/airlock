@@ -301,38 +301,29 @@ def workspace_add_file_to_request(request, workspace_name):
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
         status = workspace.get_workspace_file_status(UrlPath(relpath))
-        if status in [
-            WorkspaceFileStatus.CONTENT_UPDATED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]:
-            try:
+        try:
+            if status == WorkspaceFileStatus.CONTENT_UPDATED:
                 bll.update_file_in_request(release_request, relpath, request.user)
-            except exceptions.APIException as err:  # pragma: no cover
-                # it's pretty difficult to hit this error
-                msgs.append(f"{relpath}: {err}")
-            else:
-                success = True
-                if status is WorkspaceFileStatus.CONTENT_UPDATED:
-                    verb_phrase = "updated in request"
-                else:
-                    verb_phrase = "added to request (file group '{group_name}')"
-                msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been {verb_phrase}",
+                success_msg = "updated in request"
+            elif status == WorkspaceFileStatus.WITHDRAWN:
+                bll.add_withdrawn_file_to_request(
+                    release_request, relpath, request.user, group_name, filetype
                 )
-        else:
-            try:
+                success_msg = f"added to request (file group '{group_name}')"
+            else:
                 bll.add_file_to_request(
                     release_request, relpath, request.user, group_name, filetype
                 )
-            except exceptions.APIException as err:
-                # This exception is raised if the file has already been added
-                # (to any group on the request)
-                msgs.append(f"{relpath}: {err}")
-            else:
-                success = True
-                msgs.append(
-                    f"{relpath}: {filetype.name.title()} file has been added to request (file group '{group_name}')",
-                )
+                success_msg = f"added to request (file group '{group_name}')"
+        except exceptions.APIException as err:
+            # This exception can be raised if the file has already been added
+            # (to any group on the request)
+            msgs.append(f"{relpath}: {err}")
+        else:
+            success = True
+            msgs.append(
+                f"{relpath}: {filetype.name.title()} file has been {success_msg}"
+            )
 
     # if any succeeded, show as success
     level = "success" if success else "error"

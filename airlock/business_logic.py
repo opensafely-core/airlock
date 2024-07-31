@@ -1770,6 +1770,31 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
     ) -> ReleaseRequest:
+        request_file = release_request.get_request_file_from_output_path(relpath)
+        return self._delete_from_then_add_file_to_request(
+            release_request, relpath, user, request_file.group, request_file.filetype
+        )
+
+    def add_withdrawn_file_to_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str = "default",
+        filetype: RequestFileType = RequestFileType.OUTPUT,
+    ) -> ReleaseRequest:
+        return self._delete_from_then_add_file_to_request(
+            release_request, relpath, user, group_name, filetype
+        )
+
+    def _delete_from_then_add_file_to_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str,
+        filetype: RequestFileType,
+    ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_update_file_on_request(
@@ -1785,6 +1810,8 @@ class BusinessLogicLayer:
         ), "File hash does not match manifest.json"
 
         request_file = release_request.get_request_file_from_output_path(relpath)
+        old_group = request_file.group
+        old_filetype = request_file.filetype
 
         for reviewer_username in request_file.reviews:
             audit = AuditEvent.from_request(
@@ -1792,8 +1819,8 @@ class BusinessLogicLayer:
                 type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
                 user=user,
                 path=relpath,
-                group=request_file.group,
-                filetype=request_file.filetype.name,
+                group=old_group,
+                filetype=old_filetype.name,
                 reviewer=reviewer_username,
             )
             self._dal.reset_review_file(
@@ -1808,8 +1835,8 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_WITHDRAW,
             user=user,
             path=relpath,
-            group=request_file.group,
-            filetype=request_file.filetype.name,
+            group=old_group,
+            filetype=old_filetype.name,
         )
         filegroup_data = self._dal.delete_file_from_request(
             request_id=release_request.id,
@@ -1822,15 +1849,15 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_UPDATE,
             user=user,
             path=relpath,
-            group=request_file.group,
-            filetype=request_file.filetype.name,
+            group=group_name,
+            filetype=filetype.name,
         )
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
-            group_name=request_file.group,
+            group_name=group_name,
             relpath=relpath,
             file_id=file_id,
-            filetype=request_file.filetype,
+            filetype=filetype,
             timestamp=manifest["timestamp"],
             commit=manifest["commit"],
             repo=manifest["repo"],
