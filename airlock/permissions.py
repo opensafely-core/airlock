@@ -1,10 +1,12 @@
-from pathlib import Path
+"""
+Check if a user has permission to perfom an action.
+"""
+
 from typing import TYPE_CHECKING
 
-from airlock import exceptions
+from airlock import exceptions, policies
 from airlock.types import UrlPath
 from airlock.users import User
-from airlock.utils import is_valid_file_type
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -120,11 +122,8 @@ def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
         raise exceptions.RequestPermissionDenied(
             f"only author {request.author} can modify the files in this request"
         )
-    if not request.is_editing():
-        raise exceptions.RequestPermissionDenied(
-            f"cannot modify files in request that is in state {request.status.name}"
-        )
     check_user_can_action_request_for_workspace(user, request.workspace)
+    policies.check_can_edit_request(request)
 
 
 def user_can_edit_request(user: User, request: "ReleaseRequest"):
@@ -139,14 +138,7 @@ def check_user_can_add_file_to_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
     check_user_can_edit_request(user, request)
-
-    if not is_valid_file_type(Path(relpath)):
-        raise exceptions.RequestPermissionDenied(
-            f"Cannot add file of type {relpath.suffix} to request"
-        )
-
-    if workspace.file_has_been_released(relpath):
-        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
+    policies.check_can_add_file_to_request(workspace, relpath)
 
 
 def user_can_add_file_to_request(
@@ -163,16 +155,7 @@ def check_user_can_update_file_on_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
     check_user_can_edit_request(user, request)
-
-    if not is_valid_file_type(Path(relpath)):
-        raise exceptions.RequestPermissionDenied(
-            f"Cannot update file of type {relpath.suffix} in request"
-        )
-
-    if not workspace.file_can_be_updated(relpath):
-        raise exceptions.RequestPermissionDenied(
-            "Cannot update file in request if it is not updated on disk"
-        )
+    policies.check_can_update_file_on_request(workspace, relpath)
 
 
 def user_can_update_file_on_request(
