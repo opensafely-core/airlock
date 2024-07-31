@@ -33,9 +33,10 @@ def check_user_can_view_workspace(user: User | None, workspace_name: str):
 
 def user_can_view_workspace(user: User | None, workspace_name: str):
     try:
-        return check_user_can_view_workspace(user, workspace_name) is None
+        check_user_can_view_workspace(user, workspace_name)
     except exceptions.WorkspacePermissionDenied:
         return False
+    return True
 
 
 def check_user_has_role_on_workspace(user: User | None, workspace_name: str):
@@ -51,9 +52,10 @@ def check_user_has_role_on_workspace(user: User | None, workspace_name: str):
 
 def user_has_role_on_workspace(user: User | None, workspace_name: str):
     try:
-        return check_user_has_role_on_workspace(user, workspace_name) is None
+        check_user_has_role_on_workspace(user, workspace_name)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_action_request_for_workspace(user: User | None, workspace_name: str):
@@ -73,9 +75,10 @@ def check_user_can_action_request_for_workspace(user: User | None, workspace_nam
 
 def user_can_action_request_for_workspace(user: User | None, workspace_name: str):
     try:
-        return check_user_can_action_request_for_workspace(user, workspace_name) is None
+        check_user_can_action_request_for_workspace(user, workspace_name)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_review(user: User):
@@ -86,9 +89,10 @@ def check_user_can_review(user: User):
 
 def user_can_review(user: User):
     try:
-        return check_user_can_review(user) is None
+        check_user_can_review(user)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_review_request(user: User, request: "ReleaseRequest"):
@@ -101,9 +105,10 @@ def check_user_can_review_request(user: User, request: "ReleaseRequest"):
 
 def user_can_review_request(user: User, request: "ReleaseRequest"):
     try:
-        return check_user_can_review_request(user, request) is None
+        check_user_can_review_request(user, request)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
@@ -124,9 +129,10 @@ def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
 
 def user_can_edit_request(user: User, request: "ReleaseRequest"):
     try:
-        return check_user_can_edit_request(user, request) is None
+        check_user_can_edit_request(user, request)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_add_file_to_request(
@@ -147,12 +153,10 @@ def user_can_add_file_to_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):  # pragma: no cover; not currently used
     try:
-        return (
-            check_user_can_add_file_to_request(user, request, workspace, relpath)
-            is None
-        )
+        check_user_can_add_file_to_request(user, request, workspace, relpath)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_update_file_on_request(
@@ -175,12 +179,11 @@ def user_can_update_file_on_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):  # pragma: no cover; not currently used
     try:
-        return (
-            check_user_can_update_file_on_request(user, request, workspace, relpath)
-            is None
-        )
+        check_user_can_update_file_on_request(user, request, workspace, relpath)
+
     except exceptions.RequestPermissionDenied:
         return False
+    return True
 
 
 def check_user_can_withdraw_file_from_request(
@@ -196,6 +199,7 @@ def user_can_withdraw_file_from_request(
     user: User, request: "ReleaseRequest", relpath: UrlPath
 ):  # pragma: no cover; not currently used
     try:
-        return check_user_can_withdraw_file_from_request(user, request, relpath) is None
+        check_user_can_withdraw_file_from_request(user, request, relpath)
     except exceptions.RequestPermissionDenied:
         return False
+    return True
