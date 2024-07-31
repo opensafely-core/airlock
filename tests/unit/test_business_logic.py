@@ -699,7 +699,7 @@ def test_provider_get_requests_for_workspace_bad_user(bll):
     factories.create_release_request("workspace", user, id="r1")
     factories.create_release_request("workspace_2", other_user, id="r2")
 
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exceptions.WorkspacePermissionDenied):
         bll.get_requests_for_workspace("workspace", other_user)
 
 
@@ -965,28 +965,34 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
 
 @pytest.mark.parametrize(
-    "workspaces",
+    "workspaces,exception",
     [
         # no access
-        {},
+        ({}, exceptions.WorkspacePermissionDenied),
         # workspace archived
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": True},
-                "archived": True,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": True},
+                    "archived": True,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
         # project inactive
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": False},
-                "archived": False,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": False},
+                    "archived": False,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
     ],
 )
 def test_provider_get_or_create_current_request_for_user_no_permissions(
-    bll, workspaces
+    bll, workspaces, exception
 ):
     workspace = factories.create_workspace("workspace")
     # create the request with a user who has permission
@@ -996,7 +1002,7 @@ def test_provider_get_or_create_current_request_for_user_no_permissions(
 
     # Duplicate user who has the test permissions/workspace status
     user = factories.create_user("testuser", workspaces, False)
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exception):
         bll.get_or_create_current_request("workspace", user)
 
 
@@ -1532,29 +1538,35 @@ def test_add_file_to_request_not_author(bll):
 
 
 @pytest.mark.parametrize(
-    "workspaces",
+    "workspaces,exception",
     [
         # no access; possible if a user has been removed from a
         # project/workspace on job-server, or has had their roles
         # updated since a release was created
-        {},
+        ({}, exceptions.WorkspacePermissionDenied),
         # workspace archived
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": True},
-                "archived": True,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": True},
+                    "archived": True,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
         # project inactive
-        {
-            "workspace": {
-                "project_details": {"name": "p1", "ongoing": False},
-                "archived": False,
-            }
-        },
+        (
+            {
+                "workspace": {
+                    "project_details": {"name": "p1", "ongoing": False},
+                    "archived": False,
+                }
+            },
+            exceptions.RequestPermissionDenied,
+        ),
     ],
 )
-def test_add_file_to_request_no_permission(bll, workspaces):
+def test_add_file_to_request_no_permission(bll, workspaces, exception):
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
@@ -1565,7 +1577,7 @@ def test_add_file_to_request_no_permission(bll, workspaces):
 
     # create duplicate user with test workspaces
     author = factories.create_user("author", workspaces, False)
-    with pytest.raises(exceptions.RequestPermissionDenied):
+    with pytest.raises(exception):
         bll.add_file_to_request(release_request, path, author)
 
 
@@ -1738,8 +1750,8 @@ def test_update_file_in_request_not_updated(bll):
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
+        files=[factories.request_file(path=relpath, approved=True)],
     )
-
     with pytest.raises(exceptions.RequestPermissionDenied, match=r"not updated"):
         bll.update_file_in_request(release_request, relpath, author)
 

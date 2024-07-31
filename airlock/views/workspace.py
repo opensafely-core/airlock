@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions
+from airlock import exceptions, permissions
 from airlock.business_logic import (
     RequestFileType,
     bll,
@@ -83,11 +83,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # If there already is a current request, only show the multiselect add
     # if the request is in an author-editable state (pending/returned)
     #
-    try:
-        request.user.verify_can_action_request(workspace_name)
-        can_action_request = True
-    except exceptions.ActionDenied:
-        can_action_request = False
+    can_action_request = permissions.user_can_action_request_for_workspace(
+        request.user, workspace_name
+    )
 
     multiselect_add = can_action_request and (
         workspace.current_request is None or workspace.current_request.is_editing()

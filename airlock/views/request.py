@@ -14,7 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions
+from airlock import exceptions, permissions
 from airlock.business_logic import (
     ROOT_PATH,
     RequestFileType,
@@ -54,7 +54,7 @@ def request_index(request):
             progress += " (incomplete)"
         return progress
 
-    if request.user.output_checker:
+    if permissions.user_can_review(request.user):
         outstanding_requests = [
             (outstanding_request, get_reviewer_progress(outstanding_request))
             for outstanding_request in bll.get_outstanding_requests_for_review(
@@ -148,13 +148,15 @@ def request_view(request, request_id: str, path: str = ""):
         not release_request.is_final()
         # user who can review can comment if the request is under review
         and (
-            release_request.user_can_review(request.user)
+            permissions.user_can_review_request(request.user, release_request)
             and release_request.is_under_review()
         )
         or
         # any user with access to the workspace can comment if the request is in draft
         (
-            request.user.can_access_workspace(release_request.workspace)
+            permissions.user_has_role_on_workspace(
+                request.user, release_request.workspace
+            )
             and release_request.is_editing()
         )
     )
@@ -297,8 +299,9 @@ def request_view(request, request_id: str, path: str = ""):
         request_action_required = (
             "You have reviewed all files. You can now submit your review."
         )
-    elif release_request.status.name == "REVIEWED" and release_request.user_can_review(
-        request.user
+    elif (
+        release_request.status.name == "REVIEWED"
+        and permissions.user_can_review_request(request.user, release_request)
     ):
         if release_request.can_be_released():
             request_action_required = "Two independent reviews have been submitted. You can now return, reject or release this request."

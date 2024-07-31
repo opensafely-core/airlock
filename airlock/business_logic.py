@@ -19,7 +19,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock import exceptions, renderers
+from airlock import exceptions, permissions, renderers
 from airlock.lib.git import (
     GitError,
     list_files_from_repo,
@@ -595,6 +595,15 @@ class Workspace:
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
 
+    def file_has_been_released(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
+
+    def file_can_be_updated(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]
+
 
 @dataclass(frozen=True)
 class CodeRepo:
@@ -954,7 +963,7 @@ class ReleaseRequest:
         rfile = self.get_request_file_from_urlpath(relpath)
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
-        can_review = self.user_can_review(user)
+        can_review = permissions.user_can_review_request(user, self)
         submitted_reviewers_this_turn = self.submitted_reviews.keys()
 
         # If we're in the AUTHOR phase of a turn (i.e. the request is being
@@ -996,7 +1005,7 @@ class ReleaseRequest:
             filegroup.comments,
             self.review_turn,
             current_phase,
-            self.user_can_review(user),
+            permissions.user_can_review_request(user, self),
             user,
         )
 
@@ -1142,12 +1151,8 @@ class ReleaseRequest:
     def submitted_reviews_count(self):
         return len(self.submitted_reviews)
 
-    # helpers for using in template logic
     def status_owner(self) -> RequestStatusOwner:
         return BusinessLogicLayer.STATUS_OWNERS[self.status]
-
-    def user_can_review(self, user: User) -> bool:
-        return user.output_checker and not user.username == self.author
 
     def can_be_released(self) -> bool:
         return (
@@ -1349,8 +1354,7 @@ class BusinessLogicLayer:
     def get_workspace(self, name: str, user: User) -> Workspace:
         """Get a workspace object."""
 
-        if user is None or not user.has_permission(name):
-            raise exceptions.WorkspacePermissionDenied()
+        permissions.check_user_can_view_workspace(user, name)
 
         # this is a bit awkward. If the user is an output checker, they may not
         # have the workspace metadata in their User instance, so we provide an
@@ -1430,18 +1434,12 @@ class BusinessLogicLayer:
             self._dal.get_release_request(request_id)
         )
 
-        if not user.has_permission(release_request.workspace):
-            raise exceptions.WorkspacePermissionDenied()
-
+        permissions.check_user_can_view_workspace(user, release_request.workspace)
         return release_request
 
     def get_current_request(self, workspace: str, user: User) -> ReleaseRequest | None:
         """Get the current request for a workspace/user."""
-
-        if not user.has_permission(workspace):
-            raise exceptions.RequestPermissionDenied(
-                f"you do not have permission to view requests for {workspace}"
-            )
+        permissions.check_user_can_view_workspace(user, workspace)
 
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace,
@@ -1472,10 +1470,7 @@ class BusinessLogicLayer:
 
         # requests for output-checkers, and for archived workspaces and inactive
         # projects are still viewable, check if user has permission to create one
-        try:
-            user.verify_can_action_request(workspace)
-        except exceptions.ActionDenied as exc:
-            raise exceptions.RequestPermissionDenied(exc)
+        permissions.check_user_can_action_request_for_workspace(user, workspace)
 
         if request is not None:
             return request
@@ -1485,11 +1480,7 @@ class BusinessLogicLayer:
         self, workspace: str, user: User
     ) -> list[ReleaseRequest]:
         """Get all release requests in workspaces a user has access to."""
-
-        if not user.has_permission(workspace):
-            raise exceptions.RequestPermissionDenied(
-                f"you do not have permission to view requests for {workspace}"
-            )
+        permissions.check_user_can_view_workspace(user, workspace)
 
         return [
             ReleaseRequest.from_dict(attrs)
@@ -1506,52 +1497,35 @@ class BusinessLogicLayer:
             for attrs in self._dal.get_requests_authored_by_user(username=user.username)
         ]
 
+    def _get_reviewable_requests_by_status(self, user: User, *statuses: RequestStatus):
+        permissions.check_user_can_review(user)
+        for attrs in self._dal.get_requests_by_status(*statuses):
+            release_request = ReleaseRequest.from_dict(attrs)
+            if permissions.user_can_review_request(user, release_request):
+                yield release_request
+
     def get_outstanding_requests_for_review(self, user: User):
         """Get all request that need review."""
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(
+        return list(
+            self._get_reviewable_requests_by_status(
+                user,
                 RequestStatus.SUBMITTED,
                 RequestStatus.PARTIALLY_REVIEWED,
                 RequestStatus.REVIEWED,
             )
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        )
 
     def get_returned_requests(self, user: User):
         """Get all requests that have been returned."""
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(RequestStatus.RETURNED)
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        return list(
+            self._get_reviewable_requests_by_status(user, RequestStatus.RETURNED)
+        )
 
     def get_approved_requests(self, user: User):
         """Get all requests that have been approved but not yet released."""
-        # Only output checkers can see these
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only output checkers can see these"
-            )
-
-        return [
-            ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_by_status(RequestStatus.APPROVED)
-            # Do not show output_checker their own requests
-            if attrs["author"] != user.username
-        ]
+        return list(
+            self._get_reviewable_requests_by_status(user, RequestStatus.APPROVED)
+        )
 
     VALID_STATE_TRANSITIONS = {
         RequestStatus.PENDING: [
@@ -1725,22 +1699,6 @@ class BusinessLogicLayer:
         release_request.status = to_status
         self.send_notification(release_request, notification_event, user)
 
-    def _validate_editable(self, release_request, user):
-        if user.username != release_request.author:
-            raise exceptions.RequestPermissionDenied(
-                f"only author {release_request.author} can modify the files in this request"
-            )
-
-        if release_request.status_owner() != RequestStatusOwner.AUTHOR:
-            raise exceptions.RequestPermissionDenied(
-                f"cannot modify files in request that is in state {release_request.status.name}"
-            )
-
-        try:
-            user.verify_can_action_request(release_request.workspace)
-        except exceptions.ActionDenied as exc:
-            raise exceptions.RequestPermissionDenied(exc)
-
     def validate_file_types(self, file_paths):
         """
         Validate file types before releasing.
@@ -1764,20 +1722,11 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        self._validate_editable(release_request, user)
-
         relpath = UrlPath(relpath)
-        if not is_valid_file_type(Path(relpath)):
-            raise exceptions.RequestPermissionDenied(
-                f"Cannot add file of type {relpath.suffix} to request"
-            )
-
         workspace = self.get_workspace(release_request.workspace, user)
-        # Can't add a file that's already been released
-        if workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED:
-            raise exceptions.RequestPermissionDenied(
-                "Cannot add released file to request"
-            )
+        permissions.check_user_can_add_file_to_request(
+            user, release_request, workspace, relpath
+        )
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
@@ -1823,22 +1772,11 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        self._validate_editable(release_request, user)
-
         relpath = UrlPath(relpath)
-        if not is_valid_file_type(Path(relpath)):
-            raise exceptions.RequestPermissionDenied(
-                f"Cannot update file of type {relpath.suffix} in request"
-            )
-
         workspace = self.get_workspace(release_request.workspace, user)
-        if workspace.get_workspace_file_status(UrlPath(relpath)) not in [
-            WorkspaceFileStatus.CONTENT_UPDATED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]:
-            raise exceptions.RequestPermissionDenied(
-                "Cannot update file in request if it is not updated on disk"
-            )
+        permissions.check_user_can_update_file_on_request(
+            user, release_request, workspace, relpath
+        )
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
@@ -1913,8 +1851,10 @@ class BusinessLogicLayer:
         group_path: UrlPath,
         user: User,
     ):
-        self._validate_editable(release_request, user)
         relpath = UrlPath(*group_path.parts[1:])
+        permissions.check_user_can_withdraw_file_from_request(
+            user, release_request, relpath
+        )
 
         group_name = group_path.parts[0]
         audit = AuditEvent.from_request(
@@ -2311,7 +2251,7 @@ class BusinessLogicLayer:
                 audits,
                 request.review_turn,
                 request.get_turn_phase(),
-                request.user_can_review(user),
+                permissions.user_can_review_request(user, request),
                 user,
             )
         )
