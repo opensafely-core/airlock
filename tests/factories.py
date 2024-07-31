@@ -10,6 +10,7 @@ from pathlib import Path
 
 from django.conf import settings
 
+from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
     CodeRepo,
@@ -429,7 +430,7 @@ def add_request_file(
     workspace = ensure_workspace(workspace or request.workspace)
     try:
         workspace.abspath(path)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         write_workspace_file(workspace, path, contents)
 
     # create a default user with permission on workspace

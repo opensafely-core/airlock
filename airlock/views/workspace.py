@@ -9,6 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
+from airlock import exceptions
 from airlock.business_logic import (
     RequestFileType,
     bll,
@@ -16,7 +17,6 @@ from airlock.business_logic import (
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from airlock.types import UrlPath, WorkspaceFileStatus
-from airlock.users import ActionDenied
 from airlock.views.helpers import (
     display_form_errors,
     display_multiple_messages,
@@ -86,7 +86,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     try:
         request.user.verify_can_action_request(workspace_name)
         can_action_request = True
-    except ActionDenied:
+    except exceptions.ActionDenied:
         can_action_request = False
 
     multiselect_add = can_action_request and (
@@ -161,7 +161,7 @@ def workspace_contents(request, workspace_name: str, path: str):
 
     try:
         abspath = workspace.abspath(path)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     if not abspath.is_file():
@@ -288,7 +288,7 @@ def workspace_add_file_to_request(request, workspace_name):
         for formset_form in formset:
             relpath = formset_form.cleaned_data["file"]
             workspace.abspath(relpath)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404(f"file {relpath} does not exist")
 
     group_name = (
@@ -311,7 +311,7 @@ def workspace_add_file_to_request(request, workspace_name):
                 bll.update_file_in_request(
                     release_request, relpath, request.user, group_name, filetype
                 )
-            except bll.APIException as err:  # pragma: no cover
+            except exceptions.APIException as err:  # pragma: no cover
                 # it's pretty difficult to hit this error
                 msgs.append(f"{relpath}: {err}")
             else:
@@ -328,7 +328,7 @@ def workspace_add_file_to_request(request, workspace_name):
                 bll.add_file_to_request(
                     release_request, relpath, request.user, group_name, filetype
                 )
-            except bll.APIException as err:
+            except exceptions.APIException as err:
                 # This exception is raised if the file has already been added
                 # (to any group on the request)
                 msgs.append(f"{relpath}: {err}")

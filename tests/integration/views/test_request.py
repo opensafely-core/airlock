@@ -3,6 +3,7 @@ from io import BytesIO
 import pytest
 import requests
 
+from airlock import exceptions
 from airlock.business_logic import (
     AuditEventType,
     RequestFileType,
@@ -1232,7 +1233,7 @@ def test_file_withdraw_file_pending(airlock_client):
 
     persisted_request = factories.refresh_release_request(release_request)
 
-    with pytest.raises(bll.FileNotFound):
+    with pytest.raises(exceptions.FileNotFound):
         persisted_request.get_request_file_from_urlpath("group/path/test.txt")
 
 

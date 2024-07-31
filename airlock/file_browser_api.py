@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -176,7 +176,7 @@ class PathItem:
         if metadata is None:
             return None
 
-        return datetime.utcfromtimestamp(metadata.timestamp)
+        return datetime.fromtimestamp(metadata.timestamp, tz=UTC)
 
     def breadcrumbs(self):
         item = self

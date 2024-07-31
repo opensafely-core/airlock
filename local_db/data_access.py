@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
+from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
     AuditEventType,
@@ -54,7 +55,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         try:
             return RequestMetadata.objects.get(id=request_id)
         except RequestMetadata.DoesNotExist:
-            raise BusinessLogicLayer.ReleaseRequestNotFound(request_id)
+            raise exceptions.ReleaseRequestNotFound(request_id)
 
     def _get_or_create_filegroupmetadata(self, request_id: str, group_name: str):
         metadata = self._find_metadata(request_id)
@@ -182,7 +183,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     col_count=col_count,
                 )
             else:
-                raise BusinessLogicLayer.APIException(
+                raise exceptions.APIException(
                     f"{filetype.name.title()} file has already been added to request "
                     f"(in file group '{existing_file.filegroup.name}')"
                 )
@@ -215,7 +216,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 )
 
             except RequestFileMetadata.DoesNotExist:
-                raise BusinessLogicLayer.FileNotFound(relpath)
+                raise exceptions.FileNotFound(relpath)
 
             request_file.delete()
             self._create_audit_log(audit)
@@ -241,7 +242,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                     relpath=relpath,
                 )
             except RequestFileMetadata.DoesNotExist:
-                raise BusinessLogicLayer.FileNotFound(relpath)
+                raise exceptions.FileNotFound(relpath)
 
             request_file.filetype = RequestFileType.WITHDRAWN
             request_file.save()
@@ -312,7 +313,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             try:
                 review = FileReview.objects.get(file=request_file, reviewer=username)
             except FileReview.DoesNotExist:
-                raise BusinessLogicLayer.FileReviewNotFound(relpath, username)
+                raise exceptions.FileReviewNotFound(relpath, username)
 
             review.delete()
 
@@ -396,7 +397,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         try:
             return FileGroupMetadata.objects.get(request_id=request_id, name=group)
         except FileGroupMetadata.DoesNotExist:
-            raise BusinessLogicLayer.FileNotFound(group)
+            raise exceptions.FileNotFound(group)
 
     def group_edit(
         self,
@@ -455,7 +456,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 and comment.filegroup.name == group
                 and comment.filegroup.request.id == request_id
             ):
-                raise BusinessLogicLayer.APIException(
+                raise exceptions.APIException(
                     "Comment for deletion has inconsistent attributes "
                     f"(in file group '{comment.filegroup.name}')"
                 )

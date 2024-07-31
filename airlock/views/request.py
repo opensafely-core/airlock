@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
+from airlock import exceptions
 from airlock.business_logic import (
     ROOT_PATH,
     RequestFileType,
@@ -355,7 +356,7 @@ def request_contents(request, request_id: str, path: str):
 
     try:
         abspath = release_request.abspath(path)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     download = "download" in request.GET
@@ -384,10 +385,10 @@ def request_submit(request, request_id):
 
     try:
         bll.submit_request(release_request, request.user)
-    except bll.IncompleteContextOrControls as exc:
+    except exceptions.IncompleteContextOrControls as exc:
         messages.error(request, str(exc))
         return redirect(release_request.get_url())
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been submitted")
@@ -401,9 +402,9 @@ def request_review(request, request_id):
 
     try:
         bll.review_request(release_request, request.user)
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
-    except bll.RequestReviewDenied as exc:
+    except exceptions.RequestReviewDenied as exc:
         messages.error(request, str(exc))
     else:
         messages.success(request, "Your review has been submitted")
@@ -416,7 +417,7 @@ def _action_request(request, request_id, new_status):
 
     try:
         bll.set_status(release_request, new_status, request.user)
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     messages.error(request, f"Request has been {new_status.name.lower()}")
@@ -441,7 +442,7 @@ def request_return(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
     try:
         bll.return_request(release_request, request.user)
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     messages.success(request, "Request has been returned to author")
@@ -456,17 +457,17 @@ def file_withdraw(request, request_id, path: str):
 
     try:
         release_request.get_request_file_from_urlpath(grouppath)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     try:
         bll.withdraw_file_from_request(release_request, grouppath, request.user)
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     try:
         release_request.get_request_file_from_urlpath(grouppath)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         # its been removed - redirect to group that contained
         redirect_url = release_request.get_url(grouppath.parts[0])
     else:
@@ -500,12 +501,12 @@ def file_approve(request, request_id, path: str):
 
     try:
         request_file = release_request.get_request_file_from_urlpath(path)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     try:
         bll.approve_file(release_request, request_file, request.user)
-    except bll.ApprovalPermissionDenied as exc:
+    except exceptions.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
@@ -518,12 +519,12 @@ def file_request_changes(request, request_id, path: str):
 
     try:
         request_file = release_request.get_request_file_from_urlpath(path)
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     try:
         bll.request_changes_to_file(release_request, request_file, request.user)
-    except bll.ApprovalPermissionDenied as exc:
+    except exceptions.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
@@ -536,14 +537,14 @@ def file_reset_review(request, request_id, path: str):
 
     try:
         relpath = release_request.get_request_file_from_urlpath(path).relpath
-    except bll.FileNotFound:
+    except exceptions.FileNotFound:
         raise Http404()
 
     try:
         bll.reset_review_file(release_request, relpath, request.user)
-    except bll.ApprovalPermissionDenied as exc:
+    except exceptions.ApprovalPermissionDenied as exc:
         raise PermissionDenied(str(exc))
-    except bll.FileReviewNotFound:
+    except exceptions.FileReviewNotFound:
         raise Http404()
 
     messages.success(request, "File review has been reset")
@@ -564,9 +565,9 @@ def request_release_files(request, request_id):
         if release_request.status != RequestStatus.APPROVED:
             bll.set_status(release_request, RequestStatus.APPROVED, request.user)
         bll.release_files(release_request, request.user)
-    except bll.RequestPermissionDenied as exc:
+    except exceptions.RequestPermissionDenied as exc:
         messages.error(request, f"Error releasing files: {str(exc)}")
-    except bll.InvalidStateTransition as exc:
+    except exceptions.InvalidStateTransition as exc:
         messages.error(request, f"Error releasing files: {str(exc)}")
     except requests.HTTPError as err:
         if settings.DEBUG:
@@ -629,7 +630,7 @@ def group_edit(request, request_id, group):
                 controls=form.cleaned_data["controls"],
                 user=request.user,
             )
-        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+        except exceptions.RequestPermissionDenied as exc:  # pragma: nocover
             # currently, we can't hit this because of get_release_request_or_raise above.
             # However, that may change, so handle it anyway.
             raise PermissionDenied(str(exc))
@@ -660,11 +661,11 @@ def group_comment_create(request, request_id, group):
                 visibility=Visibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
-        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+        except exceptions.RequestPermissionDenied as exc:  # pragma: nocover
             # currently, we can't hit this because of get_release_request_or_raise above.
             # However, that may change, so handle it anyway.
             raise PermissionDenied(str(exc))
-        except bll.FileNotFound:
+        except exceptions.FileNotFound:
             messages.error(request, f"Invalid group: {group}")
         else:
             messages.success(request, "Comment added")
@@ -691,11 +692,11 @@ def group_comment_delete(request, request_id, group):
                 comment_id=comment_id,
                 user=request.user,
             )
-        except bll.RequestPermissionDenied as exc:  # pragma: nocover
+        except exceptions.RequestPermissionDenied as exc:  # pragma: nocover
             # currently, we can't hit this because of get_release_request_or_raise above.
             # However, that may change, so handle it anyway.
             raise PermissionDenied(str(exc))
-        except bll.FileNotFound:
+        except exceptions.FileNotFound:
             raise Http404(
                 request, f"Comment not found in group {group} with id {comment_id}"
             )
