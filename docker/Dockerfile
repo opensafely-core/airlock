@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1.2
+ARG NODE_VERSION=20
+
 #################################################
 #
 # Create base image with python installed.
@@ -25,6 +27,28 @@ COPY docker/dependencies.txt /tmp/dependencies.txt
 RUN --mount=type=cache,target=/var/cache/apt \
     /root/docker-apt-install.sh /tmp/dependencies.txt
 
+
+#################################################
+#
+# Create node image.
+#
+FROM node:${NODE_VERSION} AS node-builder
+
+WORKDIR /usr/src/app
+
+# copy just what npm ci needs
+COPY package-lock.json package.json ./
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+    npm set cache /usr/src/app/.npm && \
+    npm ci
+
+# just copy in the files `npm run build` needs
+COPY vite.config.js tailwind.config.js postcss.config.js ./
+COPY airlock/templates ./airlock/templates
+COPY assets/templates ./assets/templates
+COPY assets/src ./assets/src
+
+RUN --mount=type=cache,target=./npm npm run build
 
 ##################################################
 #
@@ -82,6 +106,10 @@ WORKDIR /app
 # copy venv over from builder image. These will have root:root ownership, but
 # are readable by all.
 COPY --from=builder /opt/venv /opt/venv
+
+# copy node assets over from node-builder image. These will have root:root ownership, but
+# are readable by all.
+COPY --from=node-builder /usr/src/app/assets/out /opt/assets
 
 # Asset and staticfile management
 #
