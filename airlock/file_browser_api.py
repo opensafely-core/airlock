@@ -202,6 +202,9 @@ class PathItem:
     def is_valid(self):
         return is_valid_file_type(Path(self.relpath))
 
+    def is_updated(self):
+        return self.workspace_status == WorkspaceFileStatus.CONTENT_UPDATED
+
     def html_classes(self):
         """Semantic html classes for this PathItem.
 
