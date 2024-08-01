@@ -17,3 +17,4 @@ opentelemetry-sdk
 # docs
 mkdocs
 mkdocs-material
+environs
