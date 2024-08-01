@@ -1771,7 +1771,7 @@ class BusinessLogicLayer:
         user: User,
     ) -> ReleaseRequest:
         request_file = release_request.get_request_file_from_output_path(relpath)
-        return self._delete_from_then_add_file_to_request(
+        return self.replace_file_in_request(
             release_request, relpath, user, request_file.group, request_file.filetype
         )
 
@@ -1783,11 +1783,11 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        return self._delete_from_then_add_file_to_request(
+        return self.replace_file_in_request(
             release_request, relpath, user, group_name, filetype
         )
 
-    def _delete_from_then_add_file_to_request(
+    def replace_file_in_request(
         self,
         release_request: ReleaseRequest,
         relpath: UrlPath,
