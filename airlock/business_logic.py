@@ -1769,8 +1769,31 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         relpath: UrlPath,
         user: User,
+    ) -> ReleaseRequest:
+        request_file = release_request.get_request_file_from_output_path(relpath)
+        return self.replace_file_in_request(
+            release_request, relpath, user, request_file.group, request_file.filetype
+        )
+
+    def add_withdrawn_file_to_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
+    ) -> ReleaseRequest:
+        return self.replace_file_in_request(
+            release_request, relpath, user, group_name, filetype
+        )
+
+    def replace_file_in_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str,
+        filetype: RequestFileType,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
@@ -1786,15 +1809,18 @@ class BusinessLogicLayer:
             manifest["content_hash"] == file_id
         ), "File hash does not match manifest.json"
 
-        reviews = release_request.get_request_file_from_output_path(relpath).reviews
-        for reviewer_username in reviews:
+        request_file = release_request.get_request_file_from_output_path(relpath)
+        old_group = request_file.group
+        old_filetype = request_file.filetype
+
+        for reviewer_username in request_file.reviews:
             audit = AuditEvent.from_request(
                 request=release_request,
                 type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
                 user=user,
                 path=relpath,
-                group=group_name,
-                filetype=filetype.name,
+                group=old_group,
+                filetype=old_filetype.name,
                 reviewer=reviewer_username,
             )
             self._dal.reset_review_file(
@@ -1809,8 +1835,8 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_FILE_WITHDRAW,
             user=user,
             path=relpath,
-            group=group_name,
-            filetype=filetype.name,
+            group=old_group,
+            filetype=old_filetype.name,
         )
         filegroup_data = self._dal.delete_file_from_request(
             request_id=release_request.id,
