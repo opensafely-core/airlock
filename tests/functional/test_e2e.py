@@ -466,10 +466,7 @@ def test_e2e_update_file(page, live_server, dev_users):
     # Log in as researcher
     login_as(live_server, page, "researcher")
 
-    page.goto(live_server.url + workspace.get_url("subdir/"))
-
-    # click on the multi-select checkbox
-    find_and_click(page.locator('input[name="selected"]'))
+    page.goto(live_server.url + workspace.get_url("subdir/file.txt"))
 
     # Update file in request
     # Find the add file button and click on it to open the modal
