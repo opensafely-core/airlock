@@ -186,3 +186,64 @@ def user_can_withdraw_file_from_request(
     except exceptions.RequestPermissionDenied:
         return False
     return True
+
+
+def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
+    try:
+        check_user_can_review_request(user, request)
+    except exceptions.RequestPermissionDenied as exc:
+        raise exceptions.RequestReviewDenied(str(exc))
+    policies.check_can_review_request(request)
+    policies.check_can_review_file_on_request(request, relpath)
+
+
+def user_can_review_file(
+    user: User, request: "ReleaseRequest", relpath: UrlPath
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_review_file(user, request, relpath)
+    except exceptions.RequestReviewDenied:
+        return False
+    return True
+
+
+def check_user_can_reset_file_review(
+    user: User, request: "ReleaseRequest", relpath: UrlPath
+):
+    check_user_can_review_file(user, request, relpath)
+    if user.username in request.submitted_reviews:
+        raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
+
+
+def user_can_reset_file_review(
+    user: User, request: "ReleaseRequest", relpath: UrlPath
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_reset_file_review(user, request, relpath)
+    except exceptions.RequestReviewDenied:
+        return False
+    return True
+
+
+def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
+    policies.check_can_review_request(request)
+    check_user_can_review_request(user, request)
+    if not request.all_files_reviewed_by_reviewer(user):
+        raise exceptions.RequestReviewDenied(
+            "You must review all files to submit your review"
+        )
+
+    if user.username in request.submitted_reviews:
+        raise exceptions.RequestReviewDenied(
+            "You have already submitted your review of this request"
+        )
+
+
+def user_can_submit_review(
+    user: User, request: "ReleaseRequest"
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_submit_review(user, request)
+    except exceptions.RequestReviewDenied:
+        return False
+    return True

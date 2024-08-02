@@ -68,3 +68,23 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
         raise exceptions.RequestPermissionDenied(
             "Cannot update file in request if it is not updated on disk"
         )
+
+
+def check_can_review_request(request: "ReleaseRequest"):
+    """
+    This request is in a reviewable state
+    """
+    if not request.is_under_review():
+        raise exceptions.RequestReviewDenied(
+            f"cannot review request in state {request.status.name}"
+        )
+
+
+def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath):
+    """
+    This file is reviewable; i.e. it is on the request, and it is an output file.
+    """
+    if relpath not in request.output_files():
+        raise exceptions.RequestReviewDenied(
+            "file is not an output file on this request"
+        )
