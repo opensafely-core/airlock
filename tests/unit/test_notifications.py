@@ -2,7 +2,8 @@ import json
 
 import requests
 
-from airlock.business_logic import BusinessLogicLayer, RequestStatus
+from airlock.business_logic import BusinessLogicLayer
+from airlock.enums import RequestStatus
 from airlock.notifications import send_notification_event
 
 

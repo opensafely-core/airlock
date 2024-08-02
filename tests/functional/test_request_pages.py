@@ -1,7 +1,7 @@
 import pytest
 from playwright.sync_api import expect
 
-from airlock.business_logic import RequestStatus
+from airlock.enums import RequestStatus
 from tests import factories
 from tests.functional.conftest import login_as_user
 

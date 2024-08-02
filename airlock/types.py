@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from enum import Enum
 from functools import cached_property
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
@@ -18,20 +17,6 @@ if TYPE_CHECKING:  # pragma: no cover
     class UrlPath(PurePosixPath): ...
 else:
     UrlPath = PurePosixPath
-
-
-class WorkspaceFileStatus(Enum):
-    """Possible states of a workspace file."""
-
-    # Workspace path states
-    UNRELEASED = "UNRELEASED"
-    UNDER_REVIEW = "UNDER_REVIEW"
-    RELEASED = "RELEASED"
-    CONTENT_UPDATED = "UPDATED"
-    WITHDRAWN = "WITHDRAWN"
-
-    def formatted(self):
-        return self.value.title().replace("_", " ")
 
 
 @dataclass

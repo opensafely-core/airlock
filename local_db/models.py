@@ -9,7 +9,7 @@ from django.utils import timezone
 # it's not really worth it
 from ulid import ulid  # type: ignore
 
-from airlock.business_logic import (
+from airlock.enums import (
     AuditEventType,
     RequestFileType,
     RequestFileVote,

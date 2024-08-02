@@ -1,8 +1,8 @@
 import pytest
 
 from airlock import exceptions
-from airlock.business_logic import (
-    AuditEvent,
+from airlock.business_logic import AuditEvent
+from airlock.enums import (
     AuditEventType,
     RequestStatus,
     Visibility,

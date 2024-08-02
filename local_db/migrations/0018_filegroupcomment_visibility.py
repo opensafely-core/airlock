@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import airlock.business_logic
+import airlock.enums
 import local_db.models
 
 
@@ -16,8 +16,8 @@ class Migration(migrations.Migration):
             model_name="filegroupcomment",
             name="visibility",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.Visibility.PUBLIC,
-                enum=airlock.business_logic.Visibility,
+                default=airlock.enums.Visibility.PUBLIC,
+                enum=airlock.enums.Visibility,
             ),
             preserve_default=False,
         ),

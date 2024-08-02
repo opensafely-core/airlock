@@ -4,9 +4,11 @@ from django.utils import timezone
 from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
-    AuditEventType,
     BusinessLogicLayer,
     DataAccessLayerProtocol,
+)
+from airlock.enums import (
+    AuditEventType,
     RequestFileType,
     RequestFileVote,
     RequestStatus,

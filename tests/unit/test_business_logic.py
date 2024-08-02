@@ -15,22 +15,25 @@ import old_api
 from airlock import exceptions
 from airlock.business_logic import (
     AuditEvent,
-    AuditEventType,
     BusinessLogicLayer,
     CodeRepo,
     Comment,
     DataAccessLayerProtocol,
-    NotificationEventType,
     ReleaseRequest,
+    Workspace,
+)
+from airlock.enums import (
+    AuditEventType,
+    NotificationEventType,
     RequestFileDecision,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     ReviewTurnPhase,
     Visibility,
-    Workspace,
+    WorkspaceFileStatus,
 )
-from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.types import UrlPath
 from airlock.users import User
 from tests import factories
 

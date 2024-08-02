@@ -4,7 +4,7 @@ import django.db.models.deletion
 import django.utils.timezone
 from django.db import migrations, models
 
-import airlock.business_logic
+import airlock.enums
 import local_db.models
 
 
@@ -30,9 +30,7 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     local_db.models.EnumField(
-                        default=airlock.business_logic.RequestFileVote[
-                            "CHANGES_REQUESTED"
-                        ]
+                        default=airlock.enums.RequestFileVote["CHANGES_REQUESTED"]
                     ),
                 ),
                 ("created_at", models.DateTimeField(default=django.utils.timezone.now)),

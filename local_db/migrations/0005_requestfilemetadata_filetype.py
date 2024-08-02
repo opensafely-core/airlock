@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import airlock.business_logic
+import airlock.enums
 import local_db.models
 
 
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="requestfilemetadata",
             name="filetype",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.RequestFileType["OUTPUT"]
+                default=airlock.enums.RequestFileType["OUTPUT"]
             ),
         ),
     ]

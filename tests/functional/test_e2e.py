@@ -2,7 +2,8 @@ import re
 
 from playwright.sync_api import expect
 
-from airlock.business_logic import RequestStatus, bll
+from airlock.business_logic import bll
+from airlock.enums import RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 

@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import airlock.business_logic
+import airlock.enums
 import local_db.models
 
 
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="requestmetadata",
             name="status",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.RequestStatus["PENDING"]
+                default=airlock.enums.RequestStatus["PENDING"]
             ),
         ),
     ]

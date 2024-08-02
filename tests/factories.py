@@ -16,11 +16,13 @@ from airlock.business_logic import (
     CodeRepo,
     ReleaseRequest,
     RequestFile,
+    Workspace,
+    bll,
+)
+from airlock.enums import (
     RequestFileType,
     RequestFileVote,
     RequestStatus,
-    Workspace,
-    bll,
 )
 from airlock.lib.git import ensure_git_init
 from airlock.types import UrlPath
