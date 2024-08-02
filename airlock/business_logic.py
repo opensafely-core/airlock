@@ -1957,15 +1957,7 @@ class BusinessLogicLayer:
         user: User,
     ):
         """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
-        if release_request.status != RequestStatus.RETURNED:
-            raise exceptions.RequestReviewDenied(
-                f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
-            )
-
-        if review.status != RequestFileVote.CHANGES_REQUESTED:
-            raise exceptions.RequestReviewDenied(
-                f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
-            )
+        policies.check_can_mark_file_undecided(release_request, review)
 
         audit = AuditEvent.from_request(
             request=release_request,

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
+from airlock.enums import RequestFileVote, RequestStatus
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 
@@ -26,7 +27,7 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.business_logic import ReleaseRequest, Workspace
+    from airlock.business_logic import FileReview, ReleaseRequest, Workspace
 
 
 def check_can_edit_request(request: "ReleaseRequest"):
@@ -102,4 +103,16 @@ def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath
     if relpath not in request.output_files():
         raise exceptions.RequestReviewDenied(
             "file is not an output file on this request"
+        )
+
+
+def check_can_mark_file_undecided(request: "ReleaseRequest", review: "FileReview"):
+    if request.status != RequestStatus.RETURNED:
+        raise exceptions.RequestReviewDenied(
+            f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
+        )
+
+    if review.status != RequestFileVote.CHANGES_REQUESTED:
+        raise exceptions.RequestReviewDenied(
+            f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
         )
