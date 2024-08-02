@@ -201,6 +201,15 @@ def workspace_multiselect(request, workspace_name: str):
         return response
 
 
+def _filetype_or_default(workspace, file):
+    state = workspace.get_workspace_file_status(UrlPath(file))
+    if state == WorkspaceFileStatus.CONTENT_UPDATED:
+        rfile = workspace.current_request.get_request_file_from_output_path(file)
+        return rfile.filetype
+    else:
+        return RequestFileType.OUTPUT
+
+
 def multiselect_add_files(request, multiform, workspace):
     files_to_add = []
     files_ignored = {}
@@ -225,7 +234,13 @@ def multiselect_add_files(request, multiform, workspace):
     )
 
     filetype_formset = FileTypeFormSet(
-        initial=[{"file": f} for f in files_to_add],
+        initial=[
+            {
+                "file": f,
+                "filetype": _filetype_or_default(workspace, f).name,
+            }
+            for f in files_to_add
+        ],
     )
 
     return TemplateResponse(
