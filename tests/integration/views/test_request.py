@@ -4,14 +4,14 @@ import pytest
 import requests
 
 from airlock import exceptions
-from airlock.business_logic import (
+from airlock.business_logic import bll
+from airlock.enums import (
     AuditEventType,
     RequestFileType,
     RequestFileVote,
     RequestStatus,
     RequestStatusOwner,
     Visibility,
-    bll,
 )
 from airlock.types import UrlPath
 from tests import factories

@@ -3,11 +3,8 @@ from django.contrib import messages
 from django.contrib.messages.api import get_messages
 from django.urls import reverse
 
-from airlock.business_logic import (
-    Project,
-    RequestFileType,
-    RequestStatus,
-)
+from airlock.business_logic import Project
+from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace

@@ -1,7 +1,7 @@
 import pytest
 
 from airlock import exceptions, permissions
-from airlock.business_logic import RequestStatus
+from airlock.enums import RequestStatus
 from tests import factories
 
 

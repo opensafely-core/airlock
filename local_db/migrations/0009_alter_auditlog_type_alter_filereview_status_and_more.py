@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-import airlock.business_logic
+import airlock.enums
 import local_db.models
 
 
@@ -15,22 +15,22 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="auditlog",
             name="type",
-            field=local_db.models.EnumField(enum=airlock.business_logic.AuditEventType),
+            field=local_db.models.EnumField(enum=airlock.enums.AuditEventType),
         ),
         migrations.AlterField(
             model_name="filereview",
             name="status",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.RequestFileVote["CHANGES_REQUESTED"],
-                enum=airlock.business_logic.RequestFileVote,
+                default=airlock.enums.RequestFileVote["CHANGES_REQUESTED"],
+                enum=airlock.enums.RequestFileVote,
             ),
         ),
         migrations.AlterField(
             model_name="requestfilemetadata",
             name="filetype",
             field=local_db.models.EnumField(
-                default=airlock.business_logic.RequestFileType["OUTPUT"],
-                enum=airlock.business_logic.RequestFileType,
+                default=airlock.enums.RequestFileType["OUTPUT"],
+                enum=airlock.enums.RequestFileType,
             ),
         ),
     ]

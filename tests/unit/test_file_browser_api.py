@@ -3,18 +3,19 @@ import textwrap
 import pytest
 from django.template.loader import render_to_string
 
-from airlock.business_logic import (
+from airlock.enums import (
+    PathType,
     RequestFileDecision,
     RequestFileVote,
     RequestStatus,
+    WorkspaceFileStatus,
 )
 from airlock.file_browser_api import (
-    PathType,
     get_code_tree,
     get_request_tree,
     get_workspace_tree,
 )
-from airlock.types import UrlPath, WorkspaceFileStatus
+from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
 

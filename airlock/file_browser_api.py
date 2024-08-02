@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
 from pathlib import Path
 
 from airlock.business_logic import (
@@ -12,24 +11,13 @@ from airlock.business_logic import (
     CodeRepo,
     ReleaseRequest,
     RequestFileStatus,
-    RequestFileType,
     Workspace,
 )
-from airlock.types import FileMetadata, UrlPath, WorkspaceFileStatus
+from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
+from airlock.types import FileMetadata, UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 from services.tracing import instrument
-
-
-class PathType(Enum):
-    """Types of PathItems in a tree."""
-
-    FILE = "file"
-    DIR = "directory"
-    WORKSPACE = "workspace"
-    REQUEST = "request"
-    FILEGROUP = "filegroup"
-    REPO = "repo"
 
 
 @dataclass
