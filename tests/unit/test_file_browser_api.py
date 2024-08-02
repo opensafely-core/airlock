@@ -167,7 +167,9 @@ def test_get_request_tree_general(release_request):
 
 
 def test_get_request_tree_status(bll):
-    author = factories.create_user("author", output_checker=True)
+    author = factories.create_user(
+        "author", output_checker=True, workspaces=["workspace"]
+    )
     checker1 = factories.create_user("checker1", [], True)
     checker2 = factories.create_user("checker2", [], True)
 
