@@ -36,7 +36,7 @@ def check_can_edit_request(request: "ReleaseRequest"):
     """
     if not request.is_editing():
         raise exceptions.RequestPermissionDenied(
-            f"cannot modify files in request that is in state {request.status.name}"
+            f"cannot edit request that is in state {request.status.name}"
         )
 
 
@@ -115,4 +115,18 @@ def check_can_mark_file_undecided(request: "ReleaseRequest", review: "FileReview
     if review.status != RequestFileVote.CHANGES_REQUESTED:
         raise exceptions.RequestReviewDenied(
             f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
+        )
+
+
+def check_can_modify_request(request: "ReleaseRequest"):
+    """
+    This request can be modified i.e. it is in, or can be moved to, a
+    status in which files can be added/withdrawn/reviewed.
+    These are statuses that are considered "final" and system-owned,
+    plus the APPROVED status, in which the only allowed modification
+    is to move the request to RELEASED.
+    """
+    if request.is_final() or request.status == RequestStatus.APPROVED:
+        raise exceptions.RequestPermissionDenied(
+            "This request can no longer be modified."
         )

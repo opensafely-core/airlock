@@ -18,7 +18,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
 
 import old_api
-from airlock import exceptions, permissions, renderers
+from airlock import exceptions, permissions, policies, renderers
 from airlock.enums import (
     AuditEventType,
     NotificationEventType,
@@ -1979,15 +1979,7 @@ class BusinessLogicLayer:
         controls: str,
         user: User,
     ):
-        if release_request.author != user.username:
-            raise exceptions.RequestPermissionDenied(
-                "Only request author can edit the request"
-            )
-
-        if release_request.is_final():
-            raise exceptions.RequestPermissionDenied(
-                "This request is no longer editable"
-            )
+        permissions.check_user_can_edit_request(user, release_request)
 
         audit = AuditEvent.from_request(
             request=release_request,
@@ -2008,10 +2000,7 @@ class BusinessLogicLayer:
         visibility: Visibility,
         user: User,
     ):
-        if not user.output_checker and release_request.workspace not in user.workspaces:
-            raise exceptions.RequestPermissionDenied(
-                f"User {user.username} does not have permission to comment"
-            )
+        permissions.check_user_can_comment_on_group(user, release_request)
 
         audit = AuditEvent.from_request(
             request=release_request,
@@ -2047,10 +2036,7 @@ class BusinessLogicLayer:
         if not comment:
             raise exceptions.FileNotFound(f"Comment {comment_id} not found")
 
-        if not user.username == comment.author:
-            raise exceptions.RequestPermissionDenied(
-                f"User {user.username} is not the author of this comment, so cannot delete"
-            )
+        permissions.check_user_can_delete_comment(user, comment)
 
         audit = AuditEvent.from_request(
             request=release_request,
