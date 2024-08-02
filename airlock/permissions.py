@@ -163,7 +163,6 @@ def user_can_update_file_on_request(
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_update_file_on_request(user, request, workspace, relpath)
-
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -193,7 +192,6 @@ def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: U
         check_user_can_review_request(user, request)
     except exceptions.RequestPermissionDenied as exc:
         raise exceptions.RequestReviewDenied(str(exc))
-    policies.check_can_review_request(request)
     policies.check_can_review_file_on_request(request, relpath)
 
 

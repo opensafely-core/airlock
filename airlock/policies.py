@@ -84,6 +84,7 @@ def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath
     """
     This file is reviewable; i.e. it is on the request, and it is an output file.
     """
+    check_can_review_request(request)
     if relpath not in request.output_files():
         raise exceptions.RequestReviewDenied(
             "file is not an output file on this request"

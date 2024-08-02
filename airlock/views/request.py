@@ -509,7 +509,7 @@ def file_approve(request, request_id, path: str):
 
     try:
         bll.approve_file(release_request, request_file, request.user)
-    except exceptions.ApprovalPermissionDenied as exc:
+    except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
@@ -527,7 +527,7 @@ def file_request_changes(request, request_id, path: str):
 
     try:
         bll.request_changes_to_file(release_request, request_file, request.user)
-    except exceptions.ApprovalPermissionDenied as exc:
+    except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
@@ -545,7 +545,7 @@ def file_reset_review(request, request_id, path: str):
 
     try:
         bll.reset_review_file(release_request, relpath, request.user)
-    except exceptions.ApprovalPermissionDenied as exc:
+    except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
     except exceptions.FileReviewNotFound:
         raise Http404()
