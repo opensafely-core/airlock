@@ -2760,7 +2760,7 @@ def test_approve_file_not_submitted(bll):
     bll.add_file_to_request(release_request, path, author)
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -2783,7 +2783,7 @@ def test_approve_file_not_your_own(bll):
     )
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.approve_file(release_request, request_file, author)
 
     rfile = _get_request_file(release_request, path)
@@ -2807,7 +2807,7 @@ def test_approve_file_not_checker(bll):
     )
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.approve_file(release_request, request_file, author2)
 
     rfile = _get_request_file(release_request, path)
@@ -2830,7 +2830,7 @@ def test_approve_file_not_part_of_request(bll):
     bad_path = Path("path/file2.txt")
     bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
 
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.approve_file(release_request, bad_request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -2851,7 +2851,7 @@ def test_approve_supporting_file(bll):
     checker = factories.create_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
 
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.approve_file(release_request, request_file, checker)
 
     rfile = _get_request_file(release_request, path)
@@ -3111,7 +3111,7 @@ def test_reset_review_file_after_review_submitted(bll):
 
     # After submitting a review, the user can't reset it
     rfile = _get_request_file(release_request, path)
-    with pytest.raises(exceptions.ApprovalPermissionDenied):
+    with pytest.raises(exceptions.RequestReviewDenied):
         bll.reset_review_file(release_request, path, checker)
     assert rfile.get_file_vote_for_user(checker) is RequestFileVote.APPROVED
 
@@ -3230,7 +3230,7 @@ def test_mark_file_undecided_permission_errors(
     if allowed:
         bll.mark_file_undecided(release_request, review, path, checkers[0])
     else:
-        with pytest.raises(exceptions.ApprovalPermissionDenied):
+        with pytest.raises(exceptions.RequestReviewDenied):
             bll.mark_file_undecided(release_request, review, path, checkers[0])
 
 
@@ -3287,8 +3287,8 @@ def test_review_request_non_submitted_status(bll):
         ],
     )
     with pytest.raises(
-        exceptions.RequestPermissionDenied,
-        match="Cannot review request in state WITHDRAWN",
+        exceptions.RequestReviewDenied,
+        match="cannot review request in state WITHDRAWN",
     ):
         bll.review_request(release_request, checker)
 
@@ -3304,7 +3304,7 @@ def test_review_request_non_output_checker(bll):
     )
     with pytest.raises(
         exceptions.RequestPermissionDenied,
-        match="Only an output checker can review a request",
+        match="You do not have permission to review this request",
     ):
         bll.review_request(release_request, user)
 

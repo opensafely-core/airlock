@@ -1973,29 +1973,6 @@ class BusinessLogicLayer:
         self.set_status(request, RequestStatus.SUBMITTED, user)
         self._dal.start_new_turn(request.id)
 
-    def _verify_permission_to_review_file(
-        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
-    ):
-        if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
-            raise exceptions.ApprovalPermissionDenied(
-                f"cannot review file from request in state {release_request.status.name}"
-            )
-
-        if user.username == release_request.author:
-            raise exceptions.ApprovalPermissionDenied(
-                "cannot review files in your own request"
-            )
-
-        if not user.output_checker:
-            raise exceptions.ApprovalPermissionDenied(
-                "only an output checker can review a file"
-            )
-
-        if relpath not in release_request.output_files():
-            raise exceptions.ApprovalPermissionDenied(
-                "file is not an output file on this request"
-            )
-
     def approve_file(
         self,
         release_request: ReleaseRequest,
@@ -2003,9 +1980,8 @@ class BusinessLogicLayer:
         user: User,
     ):
         """ "Approve a file"""
-
-        self._verify_permission_to_review_file(
-            release_request, request_file.relpath, user
+        permissions.check_user_can_review_file(
+            user, release_request, request_file.relpath
         )
 
         audit = AuditEvent.from_request(
@@ -2027,9 +2003,8 @@ class BusinessLogicLayer:
         user: User,
     ):
         """Request changes to a file"""
-
-        self._verify_permission_to_review_file(
-            release_request, request_file.relpath, user
+        permissions.check_user_can_review_file(
+            user, release_request, request_file.relpath
         )
 
         audit = AuditEvent.from_request(
@@ -2049,12 +2024,7 @@ class BusinessLogicLayer:
     ):
         """Reset a file to have no review from this user"""
 
-        self._verify_permission_to_review_file(release_request, relpath, user)
-
-        if user.username in release_request.submitted_reviews:
-            raise exceptions.ApprovalPermissionDenied(
-                "cannot reset file from submitted review"
-            )
+        permissions.check_user_can_reset_file_review(user, release_request, relpath)
 
         audit = AuditEvent.from_request(
             request=release_request,
@@ -2071,30 +2041,7 @@ class BusinessLogicLayer:
 
         Marking the request as either PARTIALLY_REVIEWED or REVIEWED, depending on whether this is the first or second review.
         """
-        if self.STATUS_OWNERS[release_request.status] != RequestStatusOwner.REVIEWER:
-            raise exceptions.RequestPermissionDenied(
-                f"Cannot review request in state {release_request.status.name}"
-            )
-
-        if user.username == release_request.author:
-            raise exceptions.RequestPermissionDenied(
-                "You cannot review your own request"
-            )
-
-        if not user.output_checker:
-            raise exceptions.RequestPermissionDenied(
-                "Only an output checker can review a request"
-            )
-
-        if not release_request.all_files_reviewed_by_reviewer(user):
-            raise exceptions.RequestReviewDenied(
-                "You must review all files to submit your review"
-            )
-
-        if user.username in release_request.submitted_reviews:
-            raise exceptions.RequestReviewDenied(
-                "You have already submitted your review of this request"
-            )
+        permissions.check_user_can_submit_review(user, release_request)
 
         self._dal.record_review(release_request.id, user.username)
 
@@ -2141,12 +2088,12 @@ class BusinessLogicLayer:
     ):
         """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
         if release_request.status != RequestStatus.RETURNED:
-            raise exceptions.ApprovalPermissionDenied(
+            raise exceptions.RequestReviewDenied(
                 f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
         if review.status != RequestFileVote.CHANGES_REQUESTED:
-            raise exceptions.ApprovalPermissionDenied(
+            raise exceptions.RequestReviewDenied(
                 f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {release_request.status.name}"
             )
 
