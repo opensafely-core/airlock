@@ -1,0 +1,36 @@
+<div class="{{ modal_container_class }}" id="{{ id }}-modal-container">
+  {% if custom_button %}
+    {{ custom_button }}
+  {% else %}
+    {% #button class=button_class|default:"flex-shrink-0" small=button_small|default:False variant=button_variant|default:"primary" data-modal=id %}
+      {{ button_text }}
+    {% /button %}
+  {% endif %}
+
+  <dialog class="max-w-lg w-full backdrop:bg-slate-900/25 backdrop:backdrop-blur {{ modal_class }}" id="{{ id }}">
+    {{ children }}
+  </dialog>
+</div>
+
+<script type="module" nonce="{{ request.csp_nonce }}">
+  const container = document.getElementById("{{ id }}-modal-container");
+  const modal = container.querySelector("dialog");
+  const triggerBtn = container.querySelector("[data-modal={{ id }}]");
+  const cancelBtn = container.querySelector('[type="cancel"]');
+
+  triggerBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    modal.showModal();
+  });
+
+  cancelBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    modal.close();
+  });
+
+  // useful for loading and imediately showing modals over htmx
+  {% if autoshow %}
+    modal.showModal();
+  {% endif %}
+
+</script>

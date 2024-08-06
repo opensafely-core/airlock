@@ -152,7 +152,6 @@ TEMPLATES = [
             ],
             "builtins": [
                 "slippers.templatetags.slippers",  # required for assets library
-                "airlock.templatetags.airlock_components",  # required for airlock custom components
             ],
             "debug": DEBUG,  # required for template coverage
         },
@@ -277,12 +276,8 @@ WHITENOISE_USE_FINDERS = True
 
 DJANGO_VITE = {
     "default": {
-        "dev_mode": False,
+        "dev_mode": env.bool("ASSETS_DEV_MODE", default=False),
         "manifest_path": BUILT_ASSETS / "manifest.json",
-    },
-    "job_server": {
-        # vite assumes collectstatic, so tell it where the manifest is directly
-        "manifest_path": ASSETS_DIST / ".vite/manifest.json",
     },
 }
 
