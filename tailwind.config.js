@@ -11,7 +11,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Public Sans", ...fontFamily.sans],
+        sans: ["Public Sans Variable", ...fontFamily.sans],
       },
       colors: {
         oxford: {
