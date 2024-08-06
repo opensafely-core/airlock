@@ -15,7 +15,7 @@ FROM ghcr.io/opensafely-core/base-docker:22.04 as base-python
 # docker clean up that deletes that cache on every apt install
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
 
-# use deadsnakes ppa to install a fully working base python installation 
+# use deadsnakes ppa to install a fully working base python installation
 # see: https://gist.github.com/tiran/2dec9e03c6f901814f6d1e8dad09528e
 # use space efficient utility from base image
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -45,7 +45,6 @@ RUN --mount=type=cache,target=/usr/src/app/.npm \
 # just copy in the files `npm run build` needs
 COPY vite.config.js tailwind.config.js postcss.config.js ./
 COPY airlock/templates ./airlock/templates
-COPY assets/templates ./assets/templates
 COPY assets/src ./assets/src
 
 RUN --mount=type=cache,target=./npm npm run build
@@ -183,7 +182,7 @@ ARG USERID=10000
 ARG GROUPID=10000
 
 # create workdir with permissions that the jobrunner user can access
-# this can be used for prod-like tests, but persistent storage should be 
+# this can be used for prod-like tests, but persistent storage should be
 # mounted for actual production
 RUN mkdir /workdir \
  && chown ${USERID}:${GROUPID} /workdir
@@ -206,7 +205,7 @@ COPY requirements.dev.txt /tmp/requirements.dev.txt
 RUN --mount=type=cache,target=/root/.cache \
     python -m pip install --require-hashes --requirement /tmp/requirements.dev.txt
 
-# Install playwright chromium dependencies. This needs to be done AFTER 
+# Install playwright chromium dependencies. This needs to be done AFTER
 # playwright is pip-installed. Although we don't use the default playwright
 # chromium browser, this gets us the system dependencies
 RUN playwright install-deps chromium

@@ -82,7 +82,6 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
     # our local applications
     "airlock",
-    "assets",
     "local_db",  # TODO: not include this application if we're not configured to use it?
     # "django.contrib.auth",
     # "django.contrib.contenttypes",

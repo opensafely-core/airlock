@@ -84,40 +84,6 @@ activating a virtual environment and running something like:
 set -a; source .env; set +a
 ```
 
-## Assets
-
-The asset build tooling and component library is currently extracted
-from job-server for use in airlock.
-
-We also add the components browser view at the /ui-components. This acts
-as a test to see everything works, and a helpful builtin reference for
-using the slippers components.
-
-To update the upstream assets, first remove any existing built assets:
-```bash
-just assets/clean
-```
-And then update with the latest upstream assets:
-```bash
-just assets/update
-```
-
-### Testing upstream assets locally
-
-By default, `just assets/update` with fetch the job-server repo from
-GitHub. You can optionally use a local job-server checkout. This is
-useful if you are making changes to the job-server assets and want to
-test how they will be applied in Airlock.
-
-```bash
-just assets/update /absolute/path/to/local/job-server
-```
-
-Note: do not commit assets updated using a local job-server checkout. Merge
-your job-server changes first, then run `just assets/update` to update from
-the upstream repo.
-
-
 ## Opentelemetry
 
 To log opentelemetry traces to the console in local environments,
