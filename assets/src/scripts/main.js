@@ -1,5 +1,6 @@
 // JavaScript
 import "vite/modulepreload-polyfill";
+import "./_alert";
 import "./_datatable";
 
 // Fonts
