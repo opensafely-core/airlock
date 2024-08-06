@@ -253,11 +253,9 @@ DOCS_DIR = BASE_DIR / "mkdocs_build"
 
 STATIC_URL = "static/"
 
-ASSETS_DIST = BASE_DIR / "assets/dist"
-
 BUILT_ASSETS = env.path("BUILT_ASSETS", default=BASE_DIR / "assets" / "out")
 
-STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR, BUILT_ASSETS]
+STATICFILES_DIRS = [DOCS_DIR, BUILT_ASSETS]
 
 # Sessions
 
