@@ -8,8 +8,7 @@
     {% vite_hmr_client %}
     {% vite_asset "assets/src/scripts/base.js" app="job_server" %}
     {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
-    <link rel="stylesheet" href="{% static 'assets/datatable.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/icons.css' %}">
+    {% vite_asset "assets/src/scripts/main.js" %}
   </head>
 
   <body>
