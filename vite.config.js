@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   base: "/static/",
@@ -14,4 +15,14 @@ export default defineConfig({
   server: {
     origin: "http://localhost:5173",
   },
+  plugins: [
+    viteStaticCopy({
+      targets: [
+        {
+          src: "./node_modules/htmx.org/dist/htmx.min.js",
+          dest: "vendor",
+        },
+      ],
+    }),
+  ],
 });
