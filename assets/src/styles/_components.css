@@ -46,9 +46,10 @@
 }
 
 .header__link {
+  @apply text-oxford-600;
+
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-oxford-600);
   text-decoration: underline;
 }
 
