@@ -6,11 +6,6 @@
 
 {% block metatitle %}{{ title }} |  Airlock{% endblock metatitle %}
 
-{% block extra_styles %}
-  <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
-  <link rel="stylesheet" href="{% static 'assets/file_browser/tree.css' %}">
-{% endblock extra_styles %}
-
 {% block content %}
   {% if context == "request" %}
     {% #airlock_header context=context release_request=release_request title=title workspace=workspace %}

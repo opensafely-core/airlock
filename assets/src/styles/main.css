@@ -1,6 +1,8 @@
 @import "_components.css";
 @import "_datatable.css";
 @import "_icons.css";
+@import "_file-browser.css";
+@import "_tree.css";
 
 @tailwind base;
 @tailwind components;
