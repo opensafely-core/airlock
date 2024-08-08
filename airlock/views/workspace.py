@@ -244,24 +244,13 @@ def multiselect_add_files(request, multiform, workspace):
     )
 
 
-@instrument(func_attributes={"workspace": "workspace_name"})
-@require_http_methods(["POST"])
-def workspace_add_file_to_request(request, workspace_name):
-    workspace = get_workspace_or_raise(request.user, workspace_name)
-    release_request = bll.get_or_create_current_request(workspace_name, request.user)
-    form = AddFileForm(request.POST, release_request=release_request)
-    formset = FileTypeFormSet(request.POST)
-
-    # default redirect in case of error
-    next_url = workspace.get_url()
+# also displays errors if present
+def add_or_update_forms_are_valid(request, form, formset):
     errors = False
 
     if not form.is_valid():
         display_form_errors(request, form.errors)
         errors = True
-
-    if "next_url" not in form.errors:
-        next_url = form.cleaned_data["next_url"]
 
     if not formset.is_valid():
         form_errors = [f.errors for f in formset]
@@ -271,17 +260,42 @@ def workspace_add_file_to_request(request, workspace_name):
         display_form_errors(request, *form_errors)
         errors = True
 
-    if errors:
-        # redirect back where we came from with errors
-        return redirect(next_url)
+    return errors
 
-    # check the files all exist
+
+def get_next_url(workspace, form):
+    if "next_url" not in form.errors:
+        return form.cleaned_data["next_url"]
+
+    # default redirect in case of error
+    return workspace.get_url()
+
+
+def check_all_files_exist(workspace, formset):
     try:
         for formset_form in formset:
             relpath = formset_form.cleaned_data["file"]
             workspace.abspath(relpath)
     except exceptions.FileNotFound:
         raise Http404(f"file {relpath} does not exist")
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["POST"])
+def workspace_add_file_to_request(request, workspace_name):
+    workspace = get_workspace_or_raise(request.user, workspace_name)
+    release_request = bll.get_or_create_current_request(workspace_name, request.user)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileTypeFormSet(request.POST)
+
+    errors = add_or_update_forms_are_valid(request, form, formset)
+    next_url = get_next_url(workspace, form)
+
+    if errors:
+        # redirect back where we came from with errors
+        return redirect(next_url)
+
+    check_all_files_exist(workspace, formset)
 
     group_name = (
         form.cleaned_data.get("new_filegroup")
