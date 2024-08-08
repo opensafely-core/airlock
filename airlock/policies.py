@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
+from airlock.enums import WorkspaceFileStatus
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 
@@ -39,6 +40,21 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
+def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+    try:
+        check_can_add_file_to_request(workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+VALID_WORKSPACEFILE_STATES_TO_ADD = [
+    WorkspaceFileStatus.UNRELEASED,
+    WorkspaceFileStatus.CONTENT_UPDATED,
+    WorkspaceFileStatus.WITHDRAWN,
+]
+
+
 def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     """
     This file can be added to the request.
@@ -52,6 +68,12 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     # The file hasn't already been released
     if workspace.file_has_been_released(relpath):
         raise exceptions.RequestPermissionDenied("Cannot add released file to request")
+
+    workspace_status = workspace.get_workspace_file_status(relpath)
+    if workspace_status not in VALID_WORKSPACEFILE_STATES_TO_ADD:
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot add file in status {workspace_status}"
+        )
 
 
 def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):

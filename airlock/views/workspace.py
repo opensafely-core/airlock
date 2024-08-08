@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions, permissions
+from airlock import exceptions, permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
 from airlock.file_browser_api import get_workspace_tree
@@ -30,12 +30,6 @@ from services.tracing import instrument
 
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
-
-VALID_WORKSPACEFILE_STATES_TO_ADD = [
-    WorkspaceFileStatus.UNRELEASED,
-    WorkspaceFileStatus.CONTENT_UPDATED,
-    WorkspaceFileStatus.WITHDRAWN,
-]
 
 
 def grouped_workspaces(workspaces):
@@ -95,12 +89,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     # Only show the add file form button if the multiselect_add condition is true,
     # and also this pathitem is a file that can be added to a request - i.e. it is a
-    # file and it's not already on the current request for the user
-    add_file = (
-        multiselect_add
-        and path_item.is_valid()
-        and workspace.get_workspace_file_status(path_item.relpath)
-        in VALID_WORKSPACEFILE_STATES_TO_ADD
+    # valid file and it's not already on the current request for the user
+    add_file = multiselect_add and policies.can_add_file_to_request(
+        workspace, path_item.relpath
     )
 
     project = workspace.project()
@@ -218,8 +209,9 @@ def multiselect_add_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        state = workspace.get_workspace_file_status(UrlPath(f))
-        if state in VALID_WORKSPACEFILE_STATES_TO_ADD:
+        relpath = UrlPath(f)
+        state = workspace.get_workspace_file_status(relpath)
+        if policies.can_add_file_to_request(workspace, relpath):
             files_to_add.append(f)
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"
