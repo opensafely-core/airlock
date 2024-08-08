@@ -165,9 +165,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 existing_file = RequestFileMetadata.objects.get(
                     request_id=request_id, relpath=relpath
                 )
-                # We should never be able to attempt to add a file to a request
-                # with a different filetype
-                assert existing_file.filetype == filetype
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
                 RequestFileMetadata.objects.create(
