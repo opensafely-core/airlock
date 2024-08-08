@@ -461,6 +461,7 @@ class Workspace:
     def file_has_been_released(self, relpath: UrlPath) -> bool:
         return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
 
+    # TODO: make more of a distinction between updated & adding withdrawn here
     def file_can_be_updated(self, relpath: UrlPath) -> bool:
         return self.get_workspace_file_status(relpath) in [
             WorkspaceFileStatus.CONTENT_UPDATED,

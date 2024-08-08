@@ -25,6 +25,7 @@ from .workspace import (
     workspace_contents,
     workspace_index,
     workspace_multiselect,
+    workspace_update_file_in_request,
     workspace_view,
 )
 
