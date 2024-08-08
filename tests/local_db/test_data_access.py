@@ -1,9 +1,10 @@
 import pytest
 
 from airlock import exceptions
-from airlock.business_logic import AuditEvent
+from airlock.business_logic import AuditEvent, store_file
 from airlock.enums import (
     AuditEventType,
+    RequestFileType,
     RequestStatus,
     Visibility,
 )
@@ -122,6 +123,43 @@ def test_withdraw_file_from_request_bad_state(status):
             UrlPath("foo"),
             AuditEvent.from_request(
                 release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
+            ),
+        )
+
+
+def test_add_file_to_request_bad_state():
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    request_file = factories.request_file()
+    relpath = request_file.path
+    factories.write_workspace_file(workspace, relpath, contents="1234")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[request_file],
+    )
+
+    src = workspace.abspath(relpath)
+    file_id = store_file(release_request, src)
+    manifest = workspace.get_manifest_for_file(relpath)
+
+    with pytest.raises(exceptions.APIException):
+        dal.add_file_to_request(
+            request_id=release_request.id,
+            group_name="group",
+            relpath=UrlPath(relpath),
+            file_id=file_id,
+            filetype=RequestFileType.OUTPUT,
+            timestamp=manifest["timestamp"],
+            commit=manifest["commit"],
+            repo=manifest["repo"],
+            size=manifest["size"],
+            job_id=manifest["job_id"],
+            row_count=manifest["row_count"],
+            col_count=manifest["col_count"],
+            audit=AuditEvent.from_request(
+                release_request, AuditEventType.REQUEST_FILE_ADD, user=author
             ),
         )
 
