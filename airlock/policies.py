@@ -39,6 +39,14 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
+def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+    try:
+        check_can_add_file_to_request(workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
 def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     """
     This file can be added to the request.
@@ -52,6 +60,12 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     # The file hasn't already been released
     if workspace.file_has_been_released(relpath):
         raise exceptions.RequestPermissionDenied("Cannot add released file to request")
+
+    if not workspace.file_can_be_added(relpath):
+        status = workspace.get_workspace_file_status(relpath)
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot add file to request if it is in status {status}"
+        )
 
 
 def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
