@@ -61,6 +61,11 @@ urlpatterns = [
         airlock.views.workspace_add_file_to_request,
         name="workspace_add_file",
     ),
+    path(
+        "workspaces/update-file-in-request/<str:workspace_name>",
+        airlock.views.workspace_update_file_in_request,
+        name="workspace_update_file",
+    ),
     # requests
     path(
         "requests/",

@@ -100,6 +100,14 @@ def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
         )
 
 
+def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
+    try:
+        check_can_update_file_on_request(workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
 def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
     """
     This file can be updated on the request.

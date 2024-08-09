@@ -15,6 +15,7 @@ from airlock.enums import RequestFileType, WorkspaceFileStatus
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import (
     AddFileForm,
+    FileFormSet,
     FileTypeFormSet,
     MultiselectForm,
 )
@@ -184,6 +185,8 @@ def workspace_multiselect(request, workspace_name: str):
 
         if action == "add_files":
             return multiselect_add_files(request, multiform, workspace)
+        if action == "update_files":
+            return multiselect_update_files(request, multiform, workspace)
         # TODO: withdraw action
         else:
             raise Http404(f"Invalid action {action}")
@@ -214,6 +217,8 @@ def multiselect_add_files(request, multiform, workspace):
         state = workspace.get_workspace_file_status(relpath)
         if policies.can_add_file_to_request(workspace, relpath):
             files_to_add.append(f)
+        elif state == WorkspaceFileStatus.CONTENT_UPDATED:
+            files_ignored[f] = "cannot update using the add dialogue"
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"
         else:
@@ -239,6 +244,45 @@ def multiselect_add_files(request, multiform, workspace):
             "no_valid_files": len(files_to_add) == 0,
             "add_file_url": reverse(
                 "workspace_add_file",
+                kwargs={"workspace_name": workspace.name},
+            ),
+        },
+    )
+
+
+def multiselect_update_files(request, multiform, workspace):
+    files_to_add = []
+    files_ignored = {}
+
+    # validate which files can be added
+    for f in multiform.cleaned_data["selected"]:
+        workspace.abspath(f)  # validate path
+
+        if policies.can_update_file_on_request(workspace, UrlPath(f)):
+            files_to_add.append(f)
+        else:
+            files_ignored[f] = "cannot add using the update dialogue"
+
+    add_file_form = AddFileForm(
+        release_request=workspace.current_request,
+        initial={"next_url": multiform.cleaned_data["next_url"]},
+    )
+
+    filetype_formset = FileFormSet(
+        initial=[{"file": f} for f in files_to_add],
+    )
+
+    return TemplateResponse(
+        request,
+        template="update_files.html",
+        context={
+            "form": add_file_form,
+            "formset": filetype_formset,
+            "files_ignored": files_ignored,
+            "no_valid_files": len(files_to_add) == 0,
+            # "update": True,
+            "add_file_url": reverse(
+                "workspace_update_file",
                 kwargs={"workspace_name": workspace.name},
             ),
         },
@@ -311,10 +355,7 @@ def workspace_add_file_to_request(request, workspace_name):
 
         status = workspace.get_workspace_file_status(UrlPath(relpath))
         try:
-            if status == WorkspaceFileStatus.CONTENT_UPDATED:
-                bll.update_file_in_request(release_request, relpath, request.user)
-                success_msg = "updated in request"
-            elif status == WorkspaceFileStatus.WITHDRAWN:
+            if status == WorkspaceFileStatus.WITHDRAWN:
                 bll.add_withdrawn_file_to_request(
                     release_request, relpath, request.user, group_name, filetype
                 )
@@ -332,6 +373,42 @@ def workspace_add_file_to_request(request, workspace_name):
             success_msgs.append(
                 f"{relpath}: {filetype.name.title()} file has been {success_msg}"
             )
+
+    display_multiple_messages(request, success_msgs, "success")
+    display_multiple_messages(request, error_msgs, "error")
+
+    # redirect back where we came from
+    return redirect(next_url)
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["POST"])
+def workspace_update_file_in_request(request, workspace_name):
+    workspace = get_workspace_or_raise(request.user, workspace_name)
+    release_request = bll.get_or_create_current_request(workspace_name, request.user)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileFormSet(request.POST)
+
+    errors = add_or_update_forms_are_valid(request, form, formset)
+    next_url = get_next_url(workspace, form)
+
+    if errors:
+        # redirect back where we came from with errors
+        return redirect(next_url)
+
+    check_all_files_exist(workspace, formset)
+
+    error_msgs = []
+    success_msgs = []
+    for formset_form in formset:
+        relpath = formset_form.cleaned_data["file"]
+
+        try:
+            bll.update_file_in_request(release_request, relpath, request.user)
+        except exceptions.APIException as err:
+            error_msgs.append(f"{relpath}: {err}")
+        else:
+            success_msgs.append(f"{relpath}: file has been updated in request")
 
     display_multiple_messages(request, success_msgs, "success")
     display_multiple_messages(request, error_msgs, "error")
