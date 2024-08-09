@@ -77,6 +77,8 @@ def get_path_item_from_tree_or_404(tree: PathItem, path: UrlPath | str):
 
 
 def display_multiple_messages(request, msgs, level="success"):
+    if not msgs:
+        return
     func = getattr(messages, level)
     func(request, mark_safe("<br/>".join(msgs)))
 

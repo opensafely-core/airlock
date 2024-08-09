@@ -296,8 +296,8 @@ def workspace_add_file_to_request(request, workspace_name):
         or form.cleaned_data.get("filegroup")
         or ""
     )
-    msgs = []
-    success = False
+    error_msgs = []
+    success_msgs = []
     for formset_form in formset:
         relpath = formset_form.cleaned_data["file"]
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
@@ -320,16 +320,14 @@ def workspace_add_file_to_request(request, workspace_name):
         except exceptions.APIException as err:
             # This exception can be raised if the file has already been added
             # (to any group on the request)
-            msgs.append(f"{relpath}: {err}")
+            error_msgs.append(f"{relpath}: {err}")
         else:
-            success = True
-            msgs.append(
+            success_msgs.append(
                 f"{relpath}: {filetype.name.title()} file has been {success_msg}"
             )
 
-    # if any succeeded, show as success
-    level = "success" if success else "error"
-    display_multiple_messages(request, msgs, level)
+    display_multiple_messages(request, success_msgs, "success")
+    display_multiple_messages(request, error_msgs, "error")
 
     # redirect back where we came from
     return redirect(next_url)

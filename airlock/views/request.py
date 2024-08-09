@@ -507,10 +507,8 @@ def request_multiselect(request, request_id: str):
             except exceptions.RequestPermissionDenied as exc:
                 errors.append(str(exc))
 
-        if errors:
-            display_multiple_messages(request, errors, "error")
-        if successes:
-            display_multiple_messages(request, successes, "success")
+        display_multiple_messages(request, errors, "error")
+        display_multiple_messages(request, successes, "success")
 
     url = multiform.cleaned_data["next_url"]
     return HttpResponse(headers={"HX-Redirect": url})
