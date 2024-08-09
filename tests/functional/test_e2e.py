@@ -509,11 +509,19 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
 
     login_as(live_server, page, "researcher")
 
-    # Withdraw files after they've been reviewd
+    # Withdraw file1 from the file page
     page.goto(live_server.url + release_request.get_url("default/subdir/file1.txt"))
     find_and_click(page.locator("#withdraw-file-button"))
-    page.goto(live_server.url + release_request.get_url("default/subdir/file2.txt"))
-    find_and_click(page.locator("#withdraw-file-button"))
+    expect(page.locator("body")).to_contain_text("has been withdrawn from the request")
+
+    # Withdraw file2 from the directory page
+    page.goto(live_server.url + release_request.get_url("default/subdir"))
+    expect(page.locator("#customTable.datatable-table")).to_be_visible()
+    find_and_click(
+        page.locator('input[name="selected"][value="default/subdir/file2.txt"]')
+    )
+    find_and_click(page.locator("button[value=withdraw_files]"))
+    expect(page.locator("body")).to_contain_text("has been withdrawn from the request")
 
     # Change our mind on file 2: go to file page and re-add it
     page.goto(live_server.url + workspace.get_url(path2))
