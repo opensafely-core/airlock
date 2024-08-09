@@ -127,18 +127,9 @@ def request_view(request, request_id: str, path: str = ""):
             + f"?return_url={release_request.get_url(path)}"
         )
 
-    group_edit_form = None
-    group_edit_url = None
-    comments = []
-    group_comment_form = None
-    group_comment_create_url = None
-    group_comment_delete_url = None
-
-    can_edit_group = permissions.user_can_edit_request(request.user, release_request)
-    can_comment = permissions.user_can_comment_on_group(request.user, release_request)
-
     activity = []
-    group_activity = []
+
+    group_context = None
 
     if relpath == ROOT_PATH:
         # viewing the root
@@ -147,44 +138,9 @@ def request_view(request, request_id: str, path: str = ""):
             request=release_request,
             exclude_readonly=True,
         )
-
-    # if we are viewing a group page, load the specific group data and forms
-    elif len(relpath.parts) == 1:
-        group = relpath.parts[0]
-        filegroup = release_request.filegroups.get(group)
-
-        # defense in depth: get_request_tree should prevent this branch, but
-        # just in case it changes.
-        if filegroup is None:  # pragma: no cover
-            raise Http404()
-
-        group_edit_form = GroupEditForm.from_filegroup(filegroup)
-        group_edit_url = reverse(
-            "group_edit",
-            kwargs={"request_id": request_id, "group": group},
-        )
-
-        comments = release_request.get_visible_comments_for_group(group, request.user)
-        visibilities = release_request.get_writable_comment_visibilities_for_user(
-            request.user
-        )
-        group_comment_form = GroupCommentForm(visibilities=visibilities)
-
-        group_comment_create_url = reverse(
-            "group_comment_create",
-            kwargs={"request_id": request_id, "group": group},
-        )
-        group_comment_delete_url = reverse(
-            "group_comment_delete",
-            kwargs={"request_id": request_id, "group": group},
-        )
-
-        group_activity = bll.get_request_audit_log(
-            user=request.user,
-            request=release_request,
-            group=group,
-            exclude_readonly=True,
-        )
+        group_context = None
+    else:
+        group_context = group_presenter(release_request, relpath, request)
 
     if not is_author:
         user_has_submitted_review = (
@@ -307,14 +263,7 @@ def request_view(request, request_id: str, path: str = ""):
         "user_has_submitted_review": user_has_submitted_review,
         "user_has_reviewed_all_files": user_has_reviewed_all_files,
         "activity": activity,
-        "group_edit_form": group_edit_form,
-        "group_edit_url": group_edit_url,
-        "group_comments": comments,
-        "group_comment_form": group_comment_form,
-        "group_comment_create_url": group_comment_create_url,
-        "group_readonly": not can_edit_group,
-        "can_comment": can_comment,
-        "group_activity": group_activity,
+        "group": group_context,
         "show_c3": settings.SHOW_C3,
         "request_action_required": request_action_required,
         "multiselect_url": reverse(
@@ -323,10 +272,56 @@ def request_view(request, request_id: str, path: str = ""):
         "multiselect_withdraw": release_request.is_editing(),
         "code_url": code_url,
         "return_url": "",
-        "group_comment_delete_url": group_comment_delete_url,
     }
 
     return TemplateResponse(request, template, context)
+
+
+def group_presenter(release_request, relpath, request):
+    """Present to build group template context, which is needed in most request views."""
+
+    assert relpath != ROOT_PATH
+
+    group = relpath.parts[0]
+    filegroup = release_request.filegroups.get(group)
+    visibilities = release_request.get_writable_comment_visibilities_for_user(
+        request.user
+    )
+
+    return {
+        "name": group,
+        # context/controls editing
+        "c2_readonly": not permissions.user_can_edit_request(
+            request.user, release_request
+        ),
+        "c2_edit_form": GroupEditForm.from_filegroup(filegroup),
+        "c2_edit_url": reverse(
+            "group_edit",
+            kwargs={"request_id": release_request.id, "group": group},
+        ),
+        # group comments
+        #  TODO: move this to BLL
+        "user_can_comment": permissions.user_can_comment_on_group(
+            request.user, release_request
+        ),
+        "comments": release_request.get_visible_comments_for_group(group, request.user),
+        "comment_form": GroupCommentForm(visibilities=visibilities),
+        "comment_create_url": reverse(
+            "group_comment_create",
+            kwargs={"request_id": release_request.id, "group": group},
+        ),
+        "comment_delete_url": reverse(
+            "group_comment_delete",
+            kwargs={"request_id": release_request.id, "group": group},
+        ),
+        # group activity
+        "activity": bll.get_request_audit_log(
+            user=request.user,
+            request=release_request,
+            group=group,
+            exclude_readonly=True,
+        ),
+    }
 
 
 @instrument(func_attributes={"release_request": "request_id"})
