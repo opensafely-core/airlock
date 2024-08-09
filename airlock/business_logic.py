@@ -467,6 +467,13 @@ class Workspace:
             WorkspaceFileStatus.WITHDRAWN,
         ]
 
+    def file_can_be_added(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) in [
+            WorkspaceFileStatus.UNRELEASED,
+            WorkspaceFileStatus.CONTENT_UPDATED,
+            WorkspaceFileStatus.WITHDRAWN,
+        ]
+
 
 @dataclass(frozen=True)
 class CodeRepo:
