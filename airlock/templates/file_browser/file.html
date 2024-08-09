@@ -8,13 +8,15 @@
           hx-target="#multiselect_modal"
           hx-swap="outerHtml"
         >
-          {% #button type="submit" name="action" value="add_files" variant="success" %}
-            {% if path_item.workspace_status.value == "UPDATED" %}
+          {% if path_item.workspace_status.value == "UPDATED" %}
+            {% #button type="submit" name="action" value="update_files" variant="success" %}
               Update File in Request
-            {% else %}
+            {% /button %}
+          {% else %}
+            {% #button type="submit" name="action" value="add_files" variant="success" %}
               Add File to Request
-            {% endif %}
-          {% /button %}
+            {% /button %}
+          {% endif %}
           <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
           <input type=hidden name="next_url" value="{{ request.path }}"/>
           {% csrf_token %}
