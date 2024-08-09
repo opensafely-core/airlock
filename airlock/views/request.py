@@ -18,12 +18,18 @@ from airlock import exceptions, permissions
 from airlock.business_logic import ROOT_PATH, bll
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
 from airlock.file_browser_api import get_request_tree
-from airlock.forms import GroupCommentDeleteForm, GroupCommentForm, GroupEditForm
+from airlock.forms import (
+    GroupCommentDeleteForm,
+    GroupCommentForm,
+    GroupEditForm,
+    MultiselectForm,
+)
 from airlock.types import UrlPath
 from services.tracing import instrument
 
 from .helpers import (
     display_form_errors,
+    display_multiple_messages,
     download_file,
     get_path_item_from_tree_or_404,
     get_release_request_or_raise,
@@ -335,8 +341,10 @@ def request_view(request, request_id: str, path: str = ""):
         "group_activity": group_activity,
         "show_c3": settings.SHOW_C3,
         "request_action_required": request_action_required,
-        # TODO, but for now stops template variable errors
-        "multiselect_url": "",
+        "multiselect_url": reverse(
+            "request_multiselect", kwargs={"request_id": request_id}
+        ),
+        "multiselect_withdraw": release_request.is_editing(),
         "code_url": code_url,
         "return_url": "",
         "group_comment_delete_url": group_comment_delete_url,
@@ -473,6 +481,39 @@ def file_withdraw(request, request_id, path: str):
 
     messages.error(request, f"The file {grouppath} has been withdrawn from the request")
     return redirect(redirect_url)
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def request_multiselect(request, request_id: str):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    multiform = MultiselectForm(request.POST)
+
+    if not multiform.is_valid():
+        display_form_errors(request, multiform.errors)
+    else:
+        action = multiform.cleaned_data["action"]
+        if action != "withdraw_files":
+            raise Http404(f"Invalid action {action}")
+
+        errors = []
+        successes = []
+        for path_str in multiform.cleaned_data["selected"]:
+            path = UrlPath(path_str)
+            try:
+                bll.withdraw_file_from_request(release_request, path, request.user)
+                successes.append(f"The file {path} has been withdrawn from the request")
+            except exceptions.RequestPermissionDenied as exc:
+                errors.append(str(exc))
+
+        if errors:
+            display_multiple_messages(request, errors, "error")
+        if successes:
+            display_multiple_messages(request, successes, "success")
+
+    url = multiform.cleaned_data["next_url"]
+    return HttpResponse(headers={"HX-Redirect": url})
 
 
 @instrument

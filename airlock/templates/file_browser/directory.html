@@ -40,6 +40,13 @@
         {% /button %}
       {% endif %}
     {% endif %}
+  {% elif context == "request" and multiselect_withdraw %}
+    <div class="div flex flex-col items-start gap-4">
+      <div class="flex items-center gap-2">
+        {% #button type="submit" name="action" value="withdraw_files" variant="warning" form="multiselect_form"%}Withdraw Files from Request{% /button %}
+      </div>
+      <div id="multiselect_modal"></div>
+    </div>
   {% endif %}
 {% endfragment %}
 
