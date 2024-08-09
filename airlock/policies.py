@@ -69,6 +69,37 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
         )
 
 
+def can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+    try:
+        check_can_replace_file_in_request(workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+    """
+    This file can replace an existing file in the request.
+    We expect that check_can_edit_request has already been called.
+    """
+    # The file is an allowed type
+    if not is_valid_file_type(Path(relpath)):
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot add file of type {relpath.suffix} to request"
+        )
+    # The file hasn't already been released
+    if workspace.file_has_been_released(relpath):
+        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
+
+    if not (
+        workspace.file_can_be_added(relpath) or workspace.file_can_be_updated(relpath)
+    ):
+        status = workspace.get_workspace_file_status(relpath)
+        raise exceptions.RequestPermissionDenied(
+            f"Cannot add or update file in request if it is in status {status}"
+        )
+
+
 def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
     """
     This file can be updated on the request.

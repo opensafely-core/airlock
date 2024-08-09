@@ -90,8 +90,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # Only show the add file form button if the multiselect_add condition is true,
     # and also this pathitem is a file that can be added to a request - i.e. it is a
     # valid file and it's not already on the current request for the user
-    add_file = multiselect_add and policies.can_add_file_to_request(
-        workspace, path_item.relpath
+    add_file = multiselect_add and (
+        policies.can_add_file_to_request(workspace, path_item.relpath)
+        or policies.can_replace_file_in_request(workspace, path_item.relpath)
     )
 
     project = workspace.project()

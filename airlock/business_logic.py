@@ -461,17 +461,15 @@ class Workspace:
     def file_has_been_released(self, relpath: UrlPath) -> bool:
         return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
 
-    def file_can_be_updated(self, relpath: UrlPath) -> bool:
-        return self.get_workspace_file_status(relpath) in [
-            WorkspaceFileStatus.CONTENT_UPDATED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]
-
     def file_can_be_added(self, relpath: UrlPath) -> bool:
         return self.get_workspace_file_status(relpath) in [
             WorkspaceFileStatus.UNRELEASED,
-            WorkspaceFileStatus.CONTENT_UPDATED,
             WorkspaceFileStatus.WITHDRAWN,
+        ]
+
+    def file_can_be_updated(self, relpath: UrlPath) -> bool:
+        return self.get_workspace_file_status(relpath) in [
+            WorkspaceFileStatus.CONTENT_UPDATED,
         ]
 
 
@@ -1640,6 +1638,12 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
     ) -> ReleaseRequest:
+        relpath = UrlPath(relpath)
+        workspace = self.get_workspace(release_request.workspace, user)
+        permissions.check_user_can_update_file_on_request(
+            user, release_request, workspace, relpath
+        )
+
         request_file = release_request.get_request_file_from_output_path(relpath)
         return self.replace_file_in_request(
             release_request, relpath, user, request_file.group, request_file.filetype
@@ -1653,6 +1657,12 @@ class BusinessLogicLayer:
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
+        relpath = UrlPath(relpath)
+        workspace = self.get_workspace(release_request.workspace, user)
+        permissions.check_user_can_add_file_to_request(
+            user, release_request, workspace, relpath
+        )
+
         return self.replace_file_in_request(
             release_request, relpath, user, group_name, filetype
         )
@@ -1667,7 +1677,7 @@ class BusinessLogicLayer:
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
-        permissions.check_user_can_update_file_on_request(
+        permissions.check_user_can_replace_file_in_request(
             user, release_request, workspace, relpath
         )
 
