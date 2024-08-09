@@ -102,10 +102,10 @@ check: devenv
 
     check "$BIN/ruff format --diff --quiet ."
     check "$BIN/ruff check --output-format=full ."
+    check "$BIN/mypy airlock/ local_db/"
     check "$BIN/djhtml --tabwidth 2 --check airlock/"
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
-    check "$BIN/mypy airlock/ local_db/"
     check "just state-diagram /tmp/airlock-states.md && diff -u /tmp/airlock-states.md docs/request-states.md"
 
     if [[ $failed > 0 ]]; then
