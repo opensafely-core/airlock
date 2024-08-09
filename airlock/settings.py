@@ -17,7 +17,11 @@ import warnings
 from pathlib import Path
 
 from django.contrib import messages
+from environs import Env
 
+
+env = Env()
+env.read_env()
 
 _missing_env_var_hint = """\
 If you are running commands locally outside of `just` then you should
@@ -252,7 +256,9 @@ STATIC_URL = "static/"
 
 ASSETS_DIST = BASE_DIR / "assets/dist"
 
-STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR]
+BUILT_ASSETS = env.path("BUILT_ASSETS", default=BASE_DIR / "assets" / "out")
+
+STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR, BUILT_ASSETS]
 
 # Sessions
 
@@ -271,6 +277,10 @@ WHITENOISE_USE_FINDERS = True
 
 DJANGO_VITE = {
     "default": {
+        "dev_mode": False,
+        "manifest_path": BUILT_ASSETS / "manifest.json",
+    },
+    "job_server": {
         # vite assumes collectstatic, so tell it where the manifest is directly
         "manifest_path": ASSETS_DIST / ".vite/manifest.json",
     },

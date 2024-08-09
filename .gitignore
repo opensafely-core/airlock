@@ -16,3 +16,7 @@ __pycache__/
 
 # docs
 /mkdocs_build/
+
+# Node.js
+node_modules/
+assets/out

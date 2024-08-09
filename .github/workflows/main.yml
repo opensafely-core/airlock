@@ -33,6 +33,20 @@ jobs:
         with:
           python-version: "3.11"
           install-just: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install node_modules
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
       - name: Set up development environment
         run: just devenv
 
