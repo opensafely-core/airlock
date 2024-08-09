@@ -2,6 +2,7 @@ from io import BytesIO
 
 import pytest
 import requests
+from django.contrib.messages import get_messages
 
 from airlock import exceptions
 from airlock.business_logic import bll
@@ -19,6 +20,10 @@ from tests.conftest import get_trace
 
 
 pytestmark = pytest.mark.django_db
+
+
+def get_messages_text(response):
+    return "\n".join(m.message for m in get_messages(response.wsgi_request))
 
 
 def test_request_index_no_user(airlock_client):
@@ -1317,6 +1322,118 @@ def test_file_withdraw_file_bad_request(airlock_client):
 
     response = airlock_client.post(
         "/requests/withdraw/bad_id/group/path/test.txt",
+    )
+    assert response.status_code == 404
+
+
+def test_request_multiselect_withdraw_files(airlock_client):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+            factories.request_file(group="group", path="file2.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "withdraw_files",
+            "selected": [
+                "group/file1.txt",
+                "group/file2.txt",
+            ],
+            "next_url": release_request.get_url(),
+        },
+    )
+    persisted_request = factories.refresh_release_request(release_request)
+    messages = get_messages_text(response)
+
+    for path in ["group/file1.txt", "group/file2.txt"]:
+        request_file = persisted_request.get_request_file_from_urlpath(path)
+        assert request_file.filetype == RequestFileType.WITHDRAWN
+        assert f"{path} has been withdrawn from the request" in messages
+
+
+def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+            factories.request_file(group="group", path="file2.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "withdraw_files",
+            "selected": [
+                "group/file1.txt",
+                "group/file2.txt",
+            ],
+            "next_url": release_request.get_url(),
+        },
+    )
+    persisted_request = factories.refresh_release_request(release_request)
+    messages = get_messages_text(response)
+    assert "Cannot withdraw file" in messages
+
+    for path in ["group/file1.txt", "group/file2.txt"]:
+        request_file = persisted_request.get_request_file_from_urlpath(path)
+        assert request_file.filetype != RequestFileType.WITHDRAWN
+
+
+def test_request_multiselect_withdraw_files_none_selected(airlock_client):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "withdraw_files",
+            "selected": [],
+            "next_url": release_request.get_url(),
+        },
+    )
+    assert "You must select at least one file" in get_messages_text(response)
+
+
+def test_request_multiselect_withdraw_files_invalid_action(airlock_client):
+    user = factories.create_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "prorogate_files",
+            "selected": ["group/file1.txt"],
+            "next_url": release_request.get_url(),
+        },
     )
     assert response.status_code == 404
 
