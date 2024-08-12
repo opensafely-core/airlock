@@ -2036,7 +2036,7 @@ class BusinessLogicLayer:
         if not comment:
             raise exceptions.FileNotFound(f"Comment {comment_id} not found")
 
-        permissions.check_user_can_delete_comment(user, comment)
+        permissions.check_user_can_delete_comment(user, release_request, comment)
 
         audit = AuditEvent.from_request(
             request=release_request,
