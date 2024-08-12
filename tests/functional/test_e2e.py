@@ -287,6 +287,7 @@ def test_e2e_release_files(
     find_and_click(save_button)
 
     # Submit request
+    find_and_click(page.locator("#request-home-button"))
     submit_button = page.locator("button[data-modal=submitRequest]")
     find_and_click(submit_button)
     confirm_button = page.locator("#submit-for-review-button")
@@ -339,10 +340,12 @@ def test_e2e_release_files(
     )
 
     # File is not yet approved, so the release button is disabled
+    find_and_click(page.locator("#request-home-button"))
     release_button = page.locator("#release-files-button")
     expect(release_button).to_be_disabled()
 
     # Request changes to the file
+    find_and_click(file_link)
     expect(page.locator("#file-request-changes-button")).to_have_attribute(
         "aria-pressed", "false"
     )
@@ -354,10 +357,12 @@ def test_e2e_release_files(
     expect(page.locator("#file-reset-button")).not_to_be_disabled()
 
     # output checker has now reviewed all output files
+    find_and_click(page.locator("#request-home-button"))
     expect(submit_review_button).to_be_visible()
     expect(submit_review_button).to_be_enabled()
 
     # Change our minds & remove the review
+    find_and_click(file_link)
     expect(page.locator("#file-reset-button")).to_have_attribute(
         "aria-pressed", "false"
     )
@@ -365,10 +370,12 @@ def test_e2e_release_files(
     expect(page.locator("#file-reset-button")).to_have_attribute("aria-pressed", "true")
 
     # submit review button disabled again
+    find_and_click(page.locator("#request-home-button"))
     expect(submit_review_button).to_be_visible()
     expect(submit_review_button).to_be_disabled()
 
     # Think some more & finally approve the file
+    find_and_click(file_link)
     expect(page.locator("#file-approve-button")).to_have_attribute(
         "aria-pressed", "false"
     )
@@ -378,8 +385,10 @@ def test_e2e_release_files(
     )
 
     # File is only approved once, so the release files button is still disabled
+    find_and_click(page.locator("#request-home-button"))
     expect(release_button).to_be_disabled()
 
+    find_and_click(file_link)
     find_and_click(page.locator("#file-button-more"))
 
     # Download the file
@@ -402,6 +411,7 @@ def test_e2e_release_files(
     expect(page.locator("#file-reset-button")).not_to_be_visible()
 
     # submit review for this output-checker
+    find_and_click(page.locator("#request-home-button"))
     find_and_click(page.locator("#submit-review-button"))
 
     # After submitting the review, the output-checker can change their vote, but can't reset it
@@ -422,6 +432,7 @@ def test_e2e_release_files(
 
     # The file has 2 approvals, but the release files button is not yet enabled until this
     # reviewer submits their review
+    find_and_click(page.locator("#request-home-button"))
     expect(release_button).to_be_disabled()
 
     # submit review
