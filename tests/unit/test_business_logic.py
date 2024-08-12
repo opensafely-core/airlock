@@ -1207,7 +1207,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     ],
 )
 def test_set_status(current, future, valid_author, valid_checker, withdrawn_after, bll):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_user("author", ["workspace1", "workspace2"], False)
     checker = factories.create_user(output_checker=True)
     file_reviewers = [checker, factories.create_user("checker1", [], True)]
     audit_type = bll.STATUS_AUDIT_EVENT[future]
@@ -1421,7 +1421,9 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
 
 
 def test_set_status_cannot_action_own_request(bll):
-    user = factories.create_user(output_checker=True)
+    user = factories.create_user(
+        output_checker=True, workspaces=["workspace1", "workspace2"]
+    )
     release_request1 = factories.create_request_at_status(
         "workspace", author=user, status=RequestStatus.SUBMITTED
     )
