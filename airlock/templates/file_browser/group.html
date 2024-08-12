@@ -7,7 +7,7 @@
     background-color: darkgrey;
   }
 </style>
-{% #card title=path_item.name container=True %}
+{% #card title=group.title|default_if_none:path_item.name container=True class="group_modal" %}
   <form action="{{ group.c2_edit_url }}" method="POST" aria-label="group-edit-form">
     {% csrf_token %}
     <div style="display: flex; flex-direction: row; width: 100%; flex-wrap: wrap; gap: 1rem;">
@@ -65,7 +65,7 @@
             {% endif %}
           {% /list_group_rich_item %}
         {% endfor %}
-        {% if group.user_can_comment %}
+        {% if group.user_can_comment and not group.inline %}
           {% #list_group_item %}
             <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
               {% csrf_token %}
@@ -95,6 +95,12 @@
     </div>
   {% endif %}
 
-  {% include "activity.html" with activity=group.activity %}
+  {% if not group.inline %}
+    {% include "activity.html" with activity=group.activity %}
+  {% else %}
+    {% #card_footer no_container=False %}
+      {% #button variant="primary" class="action-button" small=True type="cancel" %}Close{% /button %}
+    {% /card_footer %}
+  {% endif %}
 
 {% /card %}

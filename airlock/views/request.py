@@ -129,8 +129,6 @@ def request_view(request, request_id: str, path: str = ""):
 
     activity = []
 
-    group_context = None
-
     if relpath == ROOT_PATH:
         # viewing the root
         activity = bll.get_request_audit_log(
@@ -287,13 +285,23 @@ def group_presenter(release_request, relpath, request):
     visibilities = release_request.get_writable_comment_visibilities_for_user(
         request.user
     )
+    # are we on the group page?
+    if len(relpath.parts) == 1:
+        inline = False
+    else:
+        inline = True
+
+    # are comments readonly?
+    c2_readonly = inline or not permissions.user_can_edit_request(
+        request.user, release_request
+    )
 
     return {
         "name": group,
+        "title": f"{group} group",
+        "inline": inline,
         # context/controls editing
-        "c2_readonly": not permissions.user_can_edit_request(
-            request.user, release_request
-        ),
+        "c2_readonly": c2_readonly,
         "c2_edit_form": GroupEditForm.from_filegroup(filegroup),
         "c2_edit_url": reverse(
             "group_edit",
