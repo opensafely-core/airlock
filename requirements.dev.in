@@ -10,7 +10,7 @@ pip-tools
 pytest
 pytest-cov
 pytest-django
-pytest-freezegun
+pytest-freezer
 pytest-playwright
 responses
 # Currently using our fork of django_coverage_plugin, pending
