@@ -1077,7 +1077,6 @@ class DataAccessLayerProtocol(Protocol):
         author: str,
         status: RequestStatus,
         audit: AuditEvent,
-        id: str | None = None,  # noqa: A002
     ):
         raise NotImplementedError()
 
@@ -1273,19 +1272,18 @@ class BusinessLogicLayer:
         workspace: str,
         author: User,
         status: RequestStatus = RequestStatus.PENDING,
-        id: str | None = None,  # noqa: A002
     ) -> ReleaseRequest:
         """Factory function to create a release_request.
 
         Is private because it is meant to be used directly by our test factories
         to set up state - it is not part of the public API.
         """
-        # id is used to set specific ids in tests. We should probably not allow this.
         audit = AuditEvent(
             type=self.STATUS_AUDIT_EVENT[status],
             user=author.username,
             workspace=workspace,
-            # DAL will set request id once its created
+            # for this specific audit, the DAL will set request id once its
+            # created, as we do not know it yet
         )
         return ReleaseRequest.from_dict(
             self._dal.create_release_request(
@@ -1293,7 +1291,6 @@ class BusinessLogicLayer:
                 author=author.username,
                 status=status,
                 audit=audit,
-                id=id,
             )
         )
 
