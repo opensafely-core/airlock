@@ -163,9 +163,7 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 
 DATABASES = {
     "default": {
-        # Backports features from the upcoming Django 5.1 release. When we upgrade to
-        # Django 5.1 this can be replaced with the usual `django.db.backends.sqlite3`
-        "ENGINE": "django_sqlite3_backport",
+        "ENGINE": "django.db.backends.sqlite3",
         "NAME": WORK_DIR / "db.sqlite3",
         "OPTIONS": {
             # For details on these pragmas see: https://www.sqlite.org/pragma.html
