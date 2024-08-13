@@ -30,32 +30,42 @@ from airlock.users import User
 
 
 def create_user(
-    username="testuser", workspaces=None, output_checker=False, last_refresh=None
+    username="testuser",
+    workspaces: list[str] | None = None,
+    output_checker=False,
+    last_refresh=None,
 ):
     """Factory to create a user.
 
-    For ease of use, workspaces can either be a list of workspaces, which is
-    converted into an appropriate dict. Or it can be an explicit dict, but must
-    include all expected dict parameters.
+    For ease of use, workspaces is just a flat list of workspace name, which is
+    converted into an appropriate dict with all the right keys.
+
+    If you need to create a more complex workspace dict, you can call
+    create_user_from_dict directly.
     """
-    if isinstance(workspaces, dict):
-        # TODO check this dict is valid?
-        workspaces_dict = workspaces
-    else:
-        if workspaces is None:
-            # default to usual workspace
-            workspaces = ["workspace"]
+    if workspaces is None:
+        # default to usual workspace
+        workspaces = ["workspace"]
 
-        workspaces_dict = {
-            workspace: {
-                "project_details": {"name": "project", "ongoing": True},
-                "archived": False,
-            }
-            for workspace in workspaces
+    workspaces_dict = {
+        workspace: {
+            "project_details": {"name": "project", "ongoing": True},
+            "archived": False,
         }
+        for workspace in workspaces
+    }
 
+    return create_user_from_dict(
+        username, workspaces_dict, output_checker, last_refresh
+    )
+
+
+def create_user_from_dict(
+    username, workspaces_dict, output_checker=False, last_refresh=None
+):
     if last_refresh is None:
         last_refresh = time.time()
+
     return User(username, workspaces_dict, output_checker, last_refresh)
 
 

@@ -21,14 +21,17 @@ def test_home_redirects(airlock_client):
 
 
 def test_workspace_view_summary(airlock_client):
-    airlock_client.login(
-        workspaces={
+    user = factories.create_user_from_dict(
+        username="testuser",
+        workspaces_dict={
             "workspace": {
                 "project_details": {"name": "TESTPROJECT", "ongoing": True},
                 "archived": False,
             }
-        }
+        },
     )
+
+    airlock_client.login_with_user(user)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt")
 
@@ -39,14 +42,17 @@ def test_workspace_view_summary(airlock_client):
 
 
 def test_workspace_view_archived_inactive(airlock_client):
-    airlock_client.login(
-        workspaces={
+    user = factories.create_user_from_dict(
+        username="testuser",
+        workspaces_dict={
             "workspace-abc": {
                 "project_details": {"name": "TESTPROJECT", "ongoing": False},
                 "archived": True,
             }
-        }
+        },
     )
+
+    airlock_client.login_with_user(user)
     workspace = factories.create_workspace("workspace-abc")
     factories.write_workspace_file(workspace, "file.txt")
 
@@ -461,8 +467,9 @@ def test_workspaces_index_no_user(airlock_client):
 
 
 def test_workspaces_index_user_permitted_workspaces(airlock_client):
-    airlock_client.login(
-        workspaces={
+    user = factories.create_user_from_dict(
+        username="testuser",
+        workspaces_dict={
             "test1a": {
                 "project_details": {"name": "Project 1", "ongoing": True},
                 "archived": True,
@@ -487,8 +494,10 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
                 "project_details": {"name": "Project 3", "ongoing": True},
                 "archived": False,
             },
-        }
+        },
     )
+
+    airlock_client.login_with_user(user)
     factories.create_workspace("test1a")
     factories.create_workspace("test1b")
     factories.create_workspace("test1c")

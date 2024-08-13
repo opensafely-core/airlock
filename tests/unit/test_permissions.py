@@ -97,7 +97,9 @@ def _details(archived=False, ongoing=True):
 def test_session_user_can_action_request(
     output_checker, workspaces, can_action_request, expected_reason
 ):
-    user = factories.create_user("test", workspaces, output_checker=output_checker)
+    user = factories.create_user_from_dict(
+        "test", workspaces, output_checker=output_checker
+    )
     assert (
         permissions.user_can_action_request_for_workspace(user, "test")
         == can_action_request
