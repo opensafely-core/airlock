@@ -30,12 +30,16 @@ virtualenv:
     fi
 
 
-# run pip-compile with our standard settings
-pip-compile *args: devenv
+# compile all requirements.in files (by default only adds/removes packages; `-U` upgrades all; `-P <package>` upgrades one)
+compile-reqs *ARGS: devenv
     #!/usr/bin/env bash
     set -euo pipefail
 
-    $BIN/pip-compile --allow-unsafe --generate-hashes --strip-extras {{ args }}
+    command="pip-compile --quiet --allow-unsafe --generate-hashes --strip-extras"
+    for req_file in requirements.prod.in requirements.dev.in; do
+      echo $command "$req_file" "$@"
+      $BIN/$command "$req_file" "$@"
+    done
 
 
 # create a valid .env if none exists
