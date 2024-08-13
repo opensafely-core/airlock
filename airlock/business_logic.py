@@ -1267,33 +1267,6 @@ class BusinessLogicLayer:
 
         return workspaces
 
-    def _create_release_request(
-        self,
-        workspace: str,
-        author: User,
-        status: RequestStatus = RequestStatus.PENDING,
-    ) -> ReleaseRequest:
-        """Factory function to create a release_request.
-
-        Is private because it is meant to be used directly by our test factories
-        to set up state - it is not part of the public API.
-        """
-        audit = AuditEvent(
-            type=self.STATUS_AUDIT_EVENT[status],
-            user=author.username,
-            workspace=workspace,
-            # for this specific audit, the DAL will set request id once its
-            # created, as we do not know it yet
-        )
-        return ReleaseRequest.from_dict(
-            self._dal.create_release_request(
-                workspace=workspace,
-                author=author.username,
-                status=status,
-                audit=audit,
-            )
-        )
-
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
 
@@ -1337,11 +1310,28 @@ class BusinessLogicLayer:
 
         # requests for output-checkers, and for archived workspaces and inactive
         # projects are still viewable, check if user has permission to create one
+        # Note: we check this here, as this function is only used when we are
+        # about to modify a request, so do a look ahead check to make sure we can
         permissions.check_user_can_action_request_for_workspace(user, workspace)
 
         if request is not None:
             return request
-        return self._create_release_request(workspace, user)
+
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace,
+            # for this specific audit, the DAL will set request id once its
+            # created, as we do not know it yet
+        )
+        return ReleaseRequest.from_dict(
+            self._dal.create_release_request(
+                workspace=workspace,
+                author=user.username,
+                status=RequestStatus.PENDING,
+                audit=audit,
+            )
+        )
 
     def get_requests_for_workspace(
         self, workspace: str, user: User

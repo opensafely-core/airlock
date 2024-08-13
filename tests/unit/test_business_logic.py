@@ -170,13 +170,13 @@ def test_get_file_metadata():
 
 
 def test_workspace_get_workspace_archived_ongoing(bll):
-    factories.create_workspace("workspace")
+    factories.create_workspace("normal_workspace")
     factories.create_workspace("archived_workspace")
     factories.create_workspace("not_ongoing")
     user = factories.create_user(
         "user",
         workspaces={
-            "workspace": {
+            "normal_workspace": {
                 "project": "project-1",
                 "project_details": {"name": "project-1", "ongoing": True},
                 "archived": False,
@@ -195,13 +195,13 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     )
     checker = factories.create_user("checker", output_checker=True)
 
-    active_workspace = bll.get_workspace("workspace", user)
+    active_workspace = bll.get_workspace("normal_workspace", user)
     archived_workspace = bll.get_workspace("archived_workspace", user)
     inactive_project = bll.get_workspace("not_ongoing", user)
     assert not active_workspace.is_archived()
     assert active_workspace.project().is_ongoing
     assert active_workspace.is_active()
-    assert active_workspace.display_name() == "workspace"
+    assert active_workspace.display_name() == "normal_workspace"
     assert active_workspace.project().display_name() == "project-1"
 
     assert archived_workspace.is_archived()
@@ -216,7 +216,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     assert inactive_project.display_name() == "not_ongoing"
     assert inactive_project.project().display_name() == "project-2 (INACTIVE)"
 
-    for workspace_name in ["workspace", "archived_workspace", "not_ongoing"]:
+    for workspace_name in ["normal_workspace", "archived_workspace", "not_ongoing"]:
         workspace = bll.get_workspace(workspace_name, checker)
         assert workspace.is_archived() is None
         assert bll.get_workspace(workspace_name, checker).project().is_ongoing
@@ -956,7 +956,16 @@ def test_provider_get_or_create_current_request_for_user(bll):
     ]
 
     # reach around an simulate 2 active requests for same user
-    bll._create_release_request(author=user, workspace="workspace")
+    bll._dal.create_release_request(
+        workspace="workspace",
+        author=user.username,
+        status=RequestStatus.PENDING,
+        audit=AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace,
+        ),
+    )
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", user)
@@ -1356,7 +1365,7 @@ def test_notification_updates(
     bll, mock_notifications, updates, success, expected_error
 ):
     author = factories.create_user()
-    release_request = factories.create_release_request("test", author)
+    release_request = factories.create_release_request("workspace", author)
     if success:
         bll.send_notification(
             release_request, NotificationEventType.REQUEST_SUBMITTED, author, updates
@@ -1417,7 +1426,7 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
 
 def test_set_status_cannot_action_own_request(bll):
     user = factories.create_user(
-        output_checker=True, workspaces=["workspace1", "workspace2"]
+        workspaces=["workspace", "workspace1"], output_checker=True
     )
     release_request1 = factories.create_request_at_status(
         "workspace", author=user, status=RequestStatus.SUBMITTED

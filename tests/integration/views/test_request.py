@@ -672,6 +672,7 @@ def test_request_index_user_output_checker(airlock_client):
     other = factories.create_user(
         "other",
         workspaces=[
+            "test_workspace",
             "other_workspace",
             "other_other_workspace",
             "other_other1_workspace",
@@ -875,7 +876,7 @@ def test_request_withdraw_author(airlock_client):
 
 def test_request_withdraw_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_author = factories.create_user("other", [], False)
+    other_author = factories.create_user("other", ["test1"], False)
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
@@ -1508,7 +1509,7 @@ def test_request_release_files_success_htmx(
 
 
 def test_requests_release_workspace_403(airlock_client):
-    airlock_client.login("checker", output_checker=False)
+    airlock_client.login("checker", workspaces=[], output_checker=False)
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,

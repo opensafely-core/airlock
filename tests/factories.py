@@ -35,13 +35,17 @@ def create_user(
     """Factory to create a user.
 
     For ease of use, workspaces can either be a list of workspaces, which is
-    converted into an appropriate dict. Or it can be an explicit dict.
+    converted into an appropriate dict. Or it can be an explicit dict, but must
+    include all expected dict parameters.
     """
-    if workspaces is None:
-        workspaces_dict = {}
-    elif isinstance(workspaces, dict):
+    if isinstance(workspaces, dict):
+        # TODO check this dict is valid?
         workspaces_dict = workspaces
     else:
+        if workspaces is None:
+            # default to usual workspace
+            workspaces = ["workspace"]
+
         workspaces_dict = {
             workspace: {
                 "project_details": {"name": "project", "ongoing": True},
@@ -248,18 +252,19 @@ def create_repo(workspace, files=None, temporary=True):
     return CodeRepo.from_workspace(workspace, commit)
 
 
-def create_release_request(workspace, user=None, **kwargs):
-    assert (
-        kwargs.get("status", RequestStatus.PENDING) == RequestStatus.PENDING
-    ), "Use create_request_at_status to create a release request with a state other than PENDING"
+def create_release_request(workspace, user=None, status=None, **kwargs):
+    if status:
+        assert (
+            status == RequestStatus.PENDING
+        ), "Use create_request_at_status to create a release request with a state other than PENDING"
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace
     if user is None:
         user = create_user("author", workspaces=[workspace.name])
 
-    release_request = bll._create_release_request(
-        workspace=workspace.name, author=user, **kwargs
+    release_request = bll.get_or_create_current_request(
+        workspace=workspace.name, user=user, **kwargs
     )
     release_request.root().mkdir(parents=True, exist_ok=True)
     return release_request
@@ -323,9 +328,7 @@ def create_request_at_status(
         file_reviewers = get_default_output_checkers()
         checker = file_reviewers[0]
 
-    request = create_release_request(
-        workspace, author, status=RequestStatus.PENDING, **kwargs
-    )
+    request = create_release_request(workspace, author, **kwargs)
 
     # add all files
     if files:

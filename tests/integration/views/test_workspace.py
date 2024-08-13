@@ -116,7 +116,7 @@ def test_workspace_directory_and_request_can_multiselect_add(
 ):
     users = {
         "author": factories.create_user("author", workspaces=["workspace"]),
-        "checker": factories.create_user("checker", output_checker=True),
+        "checker": factories.create_user("checker", workspaces=[], output_checker=True),
     }
     airlock_client.login_with_user(users[login_as])
     factories.create_request_at_status(
