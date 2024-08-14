@@ -290,7 +290,7 @@ def multiselect_update_files(request, multiform, workspace):
 
 
 # also displays errors if present
-def add_or_update_forms_are_valid(request, form, formset):
+def add_or_update_form_is_valid(request, form, formset):
     errors = False
 
     if not form.is_valid():
@@ -333,7 +333,7 @@ def workspace_add_file_to_request(request, workspace_name):
     form = AddFileForm(request.POST, release_request=release_request)
     formset = FileTypeFormSet(request.POST)
 
-    errors = add_or_update_forms_are_valid(request, form, formset)
+    errors = add_or_update_form_is_valid(request, form, formset)
     next_url = get_next_url(workspace, form)
 
     if errors:
@@ -389,7 +389,7 @@ def workspace_update_file_in_request(request, workspace_name):
     form = AddFileForm(request.POST, release_request=release_request)
     formset = FileFormSet(request.POST)
 
-    errors = add_or_update_forms_are_valid(request, form, formset)
+    errors = add_or_update_form_is_valid(request, form, formset)
     next_url = get_next_url(workspace, form)
 
     if errors:
