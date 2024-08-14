@@ -81,9 +81,6 @@ class FileForm(forms.Form):
     )
 
 
-FileFormSet = formset_factory(FileForm, extra=0)
-
-
 class FileTypeForm(forms.Form):
     FILETYPE_CHOICES = [
         (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
@@ -123,6 +120,7 @@ class RequiredOneBaseFormSet(BaseFormSet):  # type: ignore
 
 
 FileTypeFormSet = formset_factory(FileTypeForm, extra=0, formset=RequiredOneBaseFormSet)
+FileFormSet = formset_factory(FileForm, extra=0, formset=RequiredOneBaseFormSet)
 
 
 class GroupEditForm(forms.Form):

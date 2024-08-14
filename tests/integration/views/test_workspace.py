@@ -1095,6 +1095,29 @@ def test_workspace_request_update_file_invalid_formset(airlock_client, bll):
     assert "file: This field is required" in message.message
 
 
+def test_workspace_request_update_file_empty_formset(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    response = airlock_client.post(
+        "/workspaces/update-file-in-request/test1",
+        data={
+            "form-TOTAL_FORMS": "0",
+            "form-INITIAL_FORMS": "0",
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+        follow=True,
+    )
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "At least one form must be completed." in message.message
+
+
 @pytest.mark.parametrize(
     "urlpath,post_data",
     [
