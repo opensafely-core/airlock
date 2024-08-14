@@ -46,3 +46,4 @@ access (workspaces for which they have the Project Developer role) via Airlock i
     from a browser in the chosen backend)
 * The backend has Airlock installed and running.
 
+---8<-- 'reference/glossary.md'
