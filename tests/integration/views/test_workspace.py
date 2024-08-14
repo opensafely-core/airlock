@@ -700,10 +700,7 @@ def test_workspace_multiselect_update_files(
     assert response.status_code == 200
     assert "test/path1.txt" in response.rendered_content
     assert "test/path2.txt" in response.rendered_content
-    assert (
-        response.rendered_content.count("cannot add using the update dialogue")
-        == ignored_count
-    )
+    assert response.rendered_content.count("file cannot be updated") == ignored_count
 
 
 def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):

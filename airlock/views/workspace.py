@@ -261,7 +261,7 @@ def multiselect_update_files(request, multiform, workspace):
         if policies.can_update_file_on_request(workspace, UrlPath(f)):
             files_to_add.append(f)
         else:
-            files_ignored[f] = "cannot add using the update dialogue"
+            files_ignored[f] = "file cannot be updated"
 
     add_file_form = AddFileForm(
         release_request=workspace.current_request,
