@@ -132,9 +132,7 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
 
     status = workspace.get_workspace_file_status(relpath)
 
-    if status not in [
-        WorkspaceFileStatus.CONTENT_UPDATED,
-    ]:
+    if status != WorkspaceFileStatus.CONTENT_UPDATED:
         raise exceptions.RequestPermissionDenied(
             "Cannot update file in request if it is not updated on disk"
         )
