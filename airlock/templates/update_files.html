@@ -1,10 +1,6 @@
 {# hide default button, as we are going to autoshow the modal anyway #}
 {% fragment as button %}
 {% endfragment %}
-<style>
-  div.filetype-radio div { display: hidden; }
-  div.filetype-radio label { display: hidden; }
-</style>
 {% #modal id="updateRequestFile" custom_button=button autoshow=True %}
   {% #card container=True title="Update Files in Request" %}
     <form action="{{ add_file_url }}" method="POST" aria-label="add-file-form">
