@@ -31,7 +31,7 @@
         <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
         {% if workspace.is_active and multiselect_add %}
           <td>
-            {% if not path.is_directory and not path.is_updated %}
+            {% if not path.is_directory %}
               {% form_checkbox name="selected" value=path.relpath custom_field=True %}
             {% endif %}
           </td>
