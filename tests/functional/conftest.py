@@ -88,7 +88,7 @@ def researcher_user(live_server, context):
             "username": "test_researcher",
             "workspaces": {
                 "test-dir1": {
-                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "project_details": {"name": "Test Project", "ongoing": True},
                     "archived": False,
                 }
             },
@@ -133,7 +133,7 @@ def dev_users(tmp_path, settings):
                         "workspaces": {
                             "test-workspace": {
                                 "project_details": {
-                                    "name": "Project 1",
+                                    "name": "Test Project",
                                     "ongoing": True,
                                 },
                                 "archived": False,
