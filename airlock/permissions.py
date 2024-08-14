@@ -162,7 +162,7 @@ def user_can_replace_file_in_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_update_file_on_request(user, request, workspace, relpath)
+        check_user_can_replace_file_in_request(user, request, workspace, relpath)
     except exceptions.RequestPermissionDenied:
         return False
     return True
