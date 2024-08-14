@@ -15,7 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.business_logic import ReleaseRequest, Workspace
+    from airlock.business_logic import Comment, ReleaseRequest, Workspace
 
 
 def check_user_can_view_workspace(user: User | None, workspace_name: str):
@@ -120,7 +120,7 @@ def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
     """
     if user.username != request.author:
         raise exceptions.RequestPermissionDenied(
-            f"only author {request.author} can modify the files in this request"
+            f"only author {request.author} can edit this request"
         )
     check_user_can_action_request_for_workspace(user, request.workspace)
     policies.check_can_edit_request(request)
@@ -243,5 +243,66 @@ def user_can_submit_review(
     try:
         check_user_can_submit_review(user, request)
     except exceptions.RequestReviewDenied:
+        return False
+    return True
+
+
+def check_user_can_comment_on_group(user: User, request: "ReleaseRequest"):
+    # Users with no permission to view workspace can never comment
+    if not user_can_view_workspace(user, request.workspace):
+        raise exceptions.RequestPermissionDenied(
+            f"User {user.username} does not have permission to comment"
+        )
+
+    if not user_has_role_on_workspace(user, request.workspace):
+        # if user does not have a role on the workspace, they are an output-checker
+        # and can only comment if the request is in under review status
+        try:
+            policies.check_can_review_request(request)
+        except exceptions.RequestReviewDenied:
+            raise exceptions.RequestPermissionDenied(
+                f"User {user.username} does not have permission to comment on request in {request.status.name} status"
+            )
+    else:
+        # if user has a role on the workspace (even if not the author), they are allowed
+        # to comment on behalf of the author.
+        if not user_can_review_request(user, request):
+            # non-output-checkers and author can only comment in editable status
+            policies.check_can_edit_request(request)
+        else:
+            # output-checkers who have access to the workspace can comment in both
+            # editable and reviewable status, as they could be commenting as either
+            # checker or collaborator
+            policies.check_can_modify_request(request)
+
+
+def user_can_comment_on_group(user: User, request: "ReleaseRequest"):
+    try:
+        check_user_can_comment_on_group(user, request)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+def check_user_can_delete_comment(
+    user: User, request: "ReleaseRequest", comment: "Comment"
+):
+    # Only the author of a comment can delete it
+    if not user.username == comment.author:
+        raise exceptions.RequestPermissionDenied(
+            f"User {user.username} is not the author of this comment, so cannot delete"
+        )
+    # Restrictions on deleting comments are the same as for creating them. This
+    # means that comments can't be changed once a user has completed their turn, and
+    # comments can't be deleted at all after a request has moved into a final state
+    check_user_can_comment_on_group(user, request)
+
+
+def user_can_delete_comment(
+    user: User, request: "ReleaseRequest", comment: "Comment"
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_delete_comment(user, request, comment)
+    except exceptions.RequestPermissionDenied:
         return False
     return True

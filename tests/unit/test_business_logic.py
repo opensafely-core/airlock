@@ -1207,7 +1207,7 @@ def test_provider_get_current_request_for_user_output_checker(bll):
     ],
 )
 def test_set_status(current, future, valid_author, valid_checker, withdrawn_after, bll):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_user("author", ["workspace1", "workspace2"], False)
     checker = factories.create_user(output_checker=True)
     file_reviewers = [checker, factories.create_user("checker1", [], True)]
     audit_type = bll.STATUS_AUDIT_EVENT[future]
@@ -1421,7 +1421,9 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
 
 
 def test_set_status_cannot_action_own_request(bll):
-    user = factories.create_user(output_checker=True)
+    user = factories.create_user(
+        output_checker=True, workspaces=["workspace1", "workspace2"]
+    )
     release_request1 = factories.create_request_at_status(
         "workspace", author=user, status=RequestStatus.SUBMITTED
     )
@@ -3497,7 +3499,7 @@ def test_group_edit_not_author(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.PENDING,
         files=[factories.request_file("group", "test/file.txt")],
     )
 
@@ -3506,9 +3508,17 @@ def test_group_edit_not_author(bll):
 
 
 @pytest.mark.parametrize(
-    "status", [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.WITHDRAWN]
+    "status",
+    [
+        RequestStatus.SUBMITTED,
+        RequestStatus.PARTIALLY_REVIEWED,
+        RequestStatus.REVIEWED,
+        RequestStatus.APPROVED,
+        RequestStatus.REJECTED,
+        RequestStatus.WITHDRAWN,
+    ],
 )
-def test_group_edit_not_editable(bll, status):
+def test_group_edit_not_editable_by_author(bll, status):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3527,7 +3537,7 @@ def test_group_edit_bad_group(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.PENDING,
         files=[factories.request_file("group", "test/file.txt")],
     )
 
@@ -3552,19 +3562,26 @@ def test_group_comment_create_success(
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=status,
+        status=RequestStatus.PENDING,
         files=[factories.request_file("group", "test/file.txt")],
     )
 
     assert release_request.filegroups["group"].comments == []
 
+    # add author comment while request is PENDING (author can't comment in SUBMITTED)
+    bll.group_comment_create(
+        release_request, "group", "public", Visibility.PUBLIC, author
+    )
+
+    # move to submitted if necessary
+    if status == RequestStatus.SUBMITTED:
+        bll.set_status(release_request, status, author)
+
     # check all visibilities
     bll.group_comment_create(
         release_request, "group", "private", Visibility.PRIVATE, checker
     )
-    bll.group_comment_create(
-        release_request, "group", "public", Visibility.PUBLIC, author
-    )
+
     release_request = factories.refresh_release_request(release_request)
 
     notification_responses = parse_notification_responses(mock_notifications)
@@ -3576,34 +3593,43 @@ def test_group_comment_create_success(
         )
 
     comments = release_request.filegroups["group"].comments
-    assert comments[0].comment == "private"
-    assert comments[0].visibility == Visibility.PRIVATE
-    assert comments[0].author == "checker"
-
-    assert comments[1].comment == "public"
-    assert comments[1].visibility == Visibility.PUBLIC
-    assert comments[1].author == "author"
+    assert comments[0].comment == "public"
+    assert comments[0].visibility == Visibility.PUBLIC
+    assert comments[0].author == "author"
+    assert comments[1].comment == "private"
+    assert comments[1].visibility == Visibility.PRIVATE
+    assert comments[1].author == "checker"
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
 
-    assert audit_log[1].request == release_request.id
-    assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[1].user == checker.username
-    assert audit_log[1].extra["group"] == "group"
-    assert audit_log[1].extra["comment"] == "private"
+    if status == RequestStatus.PENDING:
+        author_log = audit_log[0]
+        checker_log = audit_log[1]
+    else:
+        author_log = audit_log[0]
+        checker_log = audit_log[2]
 
-    assert audit_log[0].request == release_request.id
-    assert audit_log[0].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[0].user == "author"
-    assert audit_log[0].extra["group"] == "group"
-    assert audit_log[0].extra["comment"] == "public"
+    assert author_log.request == release_request.id
+    assert author_log.type == AuditEventType.REQUEST_COMMENT
+    assert author_log.user == checker.username
+    assert author_log.extra["group"] == "group"
+    assert author_log.extra["comment"] == "private"
+
+    assert checker_log.request == release_request.id
+    assert checker_log.type == AuditEventType.REQUEST_COMMENT
+    assert checker_log.user == "author"
+    assert checker_log.extra["group"] == "group"
+    assert checker_log.extra["comment"] == "public"
 
 
-def test_group_comment_create_permissions(bll):
+def test_group_comment_create_permissions_pending_request(bll):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
     checker = factories.create_user("checker", ["other"], True)
+    collaborator_checker = factories.create_user(
+        "collaborator_checker", ["workspace"], True
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3614,24 +3640,49 @@ def test_group_comment_create_permissions(bll):
 
     assert len(release_request.filegroups["group"].comments) == 0
 
+    # other user with no access to workspace can never comment
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.group_comment_create(
             release_request, "group", "question?", Visibility.PUBLIC, other
         )
 
+    # output-checker with no access to workspace can only comment in review statuses
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.group_comment_create(
+            release_request, "group", "checker", Visibility.PUBLIC, checker
+        )
+
+    # author can comment
     bll.group_comment_create(
-        release_request, "group", "collaborator", Visibility.PUBLIC, collaborator
+        release_request, "group", "author comment", Visibility.PUBLIC, author
     )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 1
 
+    # collaborator can comment as if author
     bll.group_comment_create(
-        release_request, "group", "checker", Visibility.PUBLIC, checker
+        release_request,
+        "group",
+        "collaborator comment",
+        Visibility.PUBLIC,
+        collaborator,
     )
     release_request = factories.refresh_release_request(release_request)
 
     assert len(release_request.filegroups["group"].comments) == 2
+
+    # collaborator checker can comment as if author
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "collaborator comment",
+        Visibility.PUBLIC,
+        collaborator_checker,
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    assert len(release_request.filegroups["group"].comments) == 3
 
 
 def test_group_comment_delete_success(bll):
@@ -3640,7 +3691,7 @@ def test_group_comment_delete_success(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.PENDING,
         files=[factories.request_file("group", "test/file.txt")],
     )
 
@@ -3691,60 +3742,93 @@ def test_group_comment_delete_success(bll):
     assert audit_log[0].extra["comment"] == "typo comment"
 
 
-def test_group_comment_delete_permissions(bll):
+@pytest.mark.parametrize(
+    "status,author_can_delete,checker_can_delete",
+    [
+        (RequestStatus.PENDING, True, False),
+        (RequestStatus.SUBMITTED, False, True),
+        (RequestStatus.PARTIALLY_REVIEWED, False, True),
+        (RequestStatus.REVIEWED, False, True),
+        (RequestStatus.RETURNED, True, False),
+        (RequestStatus.APPROVED, False, False),
+        (RequestStatus.WITHDRAWN, False, False),
+        (RequestStatus.REJECTED, False, False),
+    ],
+)
+def test_group_comment_delete_permissions(
+    bll, status, author_can_delete, checker_can_delete
+):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
     other = factories.create_user("other", ["other"], False)
     # checker who does not have access to workspace
     checker = factories.create_user("checker", [], True)
 
+    # users can never delete someone else's comment
+    not_permitted_to_delete_author = [collaborator, other, checker]
+    not_permitted_to_delete_checker = [author, collaborator, other]
+    # depending on status, user may not be able to delete their own
+    if not author_can_delete:
+        not_permitted_to_delete_author.append(author)
+    if not checker_can_delete:
+        not_permitted_to_delete_checker.append(checker)
+
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
-        files=[factories.request_file("group", "test/file.txt")],
+        status=status,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        withdrawn_after=RequestStatus.PENDING,
     )
+    # patch the comment creation permissions so we can set up comments for both
+    # author and checker
+    with patch("airlock.business_logic.permissions.check_user_can_comment_on_group"):
+        bll.group_comment_create(
+            release_request, "group", "author comment", Visibility.PUBLIC, author
+        )
+        bll.group_comment_create(
+            release_request, "group", "checker comment", Visibility.PUBLIC, checker
+        )
 
-    bll.group_comment_create(
-        release_request, "group", "author comment", Visibility.PUBLIC, author
-    )
-    bll.group_comment_create(
-        release_request, "group", "checker comment", Visibility.PUBLIC, checker
-    )
     release_request = factories.refresh_release_request(release_request)
+    test_comment, checker_comment = release_request.filegroups["group"].comments
 
-    assert len(release_request.filegroups["group"].comments) == 2
-    test_comment = release_request.filegroups["group"].comments[0]
-    checker_comment = release_request.filegroups["group"].comments[1]
-
-    for user in [collaborator, other, checker]:
+    for user in not_permitted_to_delete_author:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.group_comment_delete(release_request, "group", test_comment.id, user)
-
-    for user in [collaborator, author, other]:
-        with pytest.raises(exceptions.RequestPermissionDenied):
-            bll.group_comment_delete(release_request, "group", checker_comment.id, user)
-
+    release_request = factories.refresh_release_request(release_request)
     assert len(release_request.filegroups["group"].comments) == 2
 
-    # users can delete their own comments
-    bll.group_comment_delete(release_request, "group", test_comment.id, author)
-    bll.group_comment_delete(release_request, "group", checker_comment.id, checker)
+    for user in not_permitted_to_delete_checker:
+        with pytest.raises(exceptions.RequestPermissionDenied):
+            bll.group_comment_delete(release_request, "group", checker_comment.id, user)
     release_request = factories.refresh_release_request(release_request)
-    assert len(release_request.filegroups["group"].comments) == 0
+    comment_count = len(release_request.filegroups["group"].comments)
+    assert comment_count == 2
+
+    if author_can_delete:
+        bll.group_comment_delete(release_request, "group", test_comment.id, author)
+        release_request = factories.refresh_release_request(release_request)
+        assert len(release_request.filegroups["group"].comments) == comment_count - 1
+        comment_count -= 1
+
+    if checker_can_delete:
+        bll.group_comment_delete(release_request, "group", checker_comment.id, checker)
+        release_request = factories.refresh_release_request(release_request)
+        assert len(release_request.filegroups["group"].comments) == comment_count - 1
 
 
-def test_group_comment_create_invalid_params(bll):
+def test_group_comment_delete_invalid_params(bll):
     author = factories.create_user("author", ["workspace"], False)
-    collaborator = factories.create_user("collaborator", ["workspace"], False)
 
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.PENDING,
         files=[factories.request_file("group", "test/file.txt")],
     )
 
+    # delete a comment that doesn't exist yet
     with pytest.raises(exceptions.APIException):
         bll.group_comment_delete(release_request, "group", 1, author)
 
@@ -3756,10 +3840,9 @@ def test_group_comment_create_invalid_params(bll):
     assert len(release_request.filegroups["group"].comments) == 1
     test_comment = release_request.filegroups["group"].comments[0]
 
+    # delete a comment with a bad group
     with pytest.raises(exceptions.APIException):
-        bll.group_comment_delete(
-            release_request, "badgroup", test_comment.id, collaborator
-        )
+        bll.group_comment_delete(release_request, "badgroup", test_comment.id, author)
 
     assert len(release_request.filegroups["group"].comments) == 1
 

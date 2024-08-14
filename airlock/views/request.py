@@ -134,32 +134,8 @@ def request_view(request, request_id: str, path: str = ""):
     group_comment_create_url = None
     group_comment_delete_url = None
 
-    can_edit_group = (
-        # no-one can edit context/controls for final requests
-        not release_request.is_final()
-        # only authors can edit context/controls
-        and is_author
-        # and only if the request is in draft i.e. in an author-owned turn
-        and release_request.is_editing()
-    )
-
-    can_comment = (
-        # no-one can comment on final requests
-        not release_request.is_final()
-        # user who can review can comment if the request is under review
-        and (
-            permissions.user_can_review_request(request.user, release_request)
-            and release_request.is_under_review()
-        )
-        or
-        # any user with access to the workspace can comment if the request is in draft
-        (
-            permissions.user_has_role_on_workspace(
-                request.user, release_request.workspace
-            )
-            and release_request.is_editing()
-        )
-    )
+    can_edit_group = permissions.user_can_edit_request(request.user, release_request)
+    can_comment = permissions.user_can_comment_on_group(request.user, release_request)
 
     activity = []
     group_activity = []
