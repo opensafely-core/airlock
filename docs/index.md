@@ -51,12 +51,13 @@ Refer to the [reference documentation on Airlock workflow and permissions](refer
 
 ## Using the documentation
 
-Airlock's documentation has two main sections:
+Airlock's documentation has three main sections:
 
-The [how-to guides][how-to/index.md] provide practical steps for working with Airlock to create and process release requests. These are additionally subdivided into guides for researchers and guides for output checkers.
+The [how-to guides](how-to/index.md) provide practical steps for working with Airlock to create and process release requests. These are additionally subdivided into guides for researchers and guides for output checkers.
 
-The [reference](reference/index.md) provides background information about Airlock .
+The [explanation](explanation/index.md) section provides background information about Airlock and its features.
 
+The [reference](reference/index.md) section provides background information about working with Airlock.
 
 
 ---8<-- 'reference/glossary.md'

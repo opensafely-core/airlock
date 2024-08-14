@@ -75,3 +75,16 @@ from the request, and add the new version of the file.
     This means that if a request is in the Submitted or Reviewed states, the output
     checking team must return the request to the author in order for files to be updated.
     Updating a file will reset any reviews associated with that file.
+
+
+## Submitting a request
+
+Once the researcher has finished working on the release request, the next step is to
+submit it for a review by an output checker. Researchers should view the current request
+and click "Submit For Review".
+
+The status of the release request will transition to "Submitted".
+
+A GitHub issue will be automatically created and output-checkers will be notified
+in Slack of the new release request.
+
