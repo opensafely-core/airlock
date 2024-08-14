@@ -1,5 +1,6 @@
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
@@ -454,7 +455,11 @@ def test_e2e_release_files(
     expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
 
 
-def test_e2e_update_file(page, live_server, dev_users):
+@pytest.mark.parametrize(
+    "multiselect",
+    [True, False],
+)
+def test_e2e_update_file(page, live_server, dev_users, multiselect):
     """
     Test researcher updates a modified file in a returned request
     """
@@ -471,23 +476,26 @@ def test_e2e_update_file(page, live_server, dev_users):
         ],
     )
 
-    # change the file on disk
-    workspace = bll.get_workspace("test-workspace", author)
-    factories.write_workspace_file(workspace, path, contents="changed")
-
     # Log in as researcher
     login_as(live_server, page, "researcher")
 
-    page.goto(live_server.url + workspace.get_url("subdir/"))
+    workspace = bll.get_workspace("test-workspace", author)
 
-    # click on the multi-select checkbox
-    find_and_click(page.locator('input[name="selected"]'))
+    # change the file on disk
+    factories.write_workspace_file(workspace, path, contents="changed")
 
-    # Update file in request
+    if multiselect:
+        page.goto(live_server.url + workspace.get_url("subdir/"))
+
+        # click on the multi-select checkbox
+        find_and_click(page.locator('input[name="selected"]'))
+    else:
+        page.goto(live_server.url + workspace.get_url("subdir/file.txt"))
+
     # Find the add file button and click on it to open the modal
     find_and_click(page.locator("button[value=update_files]"))
 
-    # Click the button to add the file to a release request
+    # Click the button to update the file in the release request
     find_and_click(page.get_by_role("form").locator("#update-file-button"))
 
     expect(page.locator("body")).to_contain_text("file has been updated in request")
