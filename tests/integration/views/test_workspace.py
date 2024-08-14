@@ -3,8 +3,9 @@ from django.contrib import messages
 from django.contrib.messages.api import get_messages
 from django.urls import reverse
 
+from airlock import policies
 from airlock.business_logic import Project
-from airlock.enums import RequestFileType, RequestStatus
+from airlock.enums import RequestFileType, RequestStatus, WorkspaceFileStatus
 from airlock.types import UrlPath
 from tests import factories
 from tests.conftest import get_trace
@@ -605,6 +606,103 @@ def test_workspace_multiselect_add_files_none_valid(airlock_client, bll):
     assert 'name="filegroup"' not in response.rendered_content
 
 
+def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path1.txt")
+    factories.write_workspace_file(workspace, "test/path2.txt")
+    release_request = factories.create_release_request(
+        workspace, user=airlock_client.user
+    )
+    factories.add_request_file(release_request, "group1", "test/path1.txt")
+    factories.add_request_file(release_request, "group1", "test/path2.txt")
+
+    factories.write_workspace_file(workspace, "test/path1.txt", "changed1")
+    # refresh workspace
+    workspace = bll.get_workspace("test1", airlock_client.user)
+    policies.check_can_update_file_on_request(workspace, "test/path1.txt")
+
+    response = airlock_client.post(
+        "/workspaces/multiselect/test1",
+        data={
+            "action": "add_files",
+            "selected": [
+                "test/path1.txt",
+                "test/path2.txt",
+            ],
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "test/path1.txt" in response.rendered_content
+    assert "test/path2.txt" in response.rendered_content
+    assert response.rendered_content.count("cannot update using the add dialogue") == 1
+    assert response.rendered_content.count("already in group") == 1
+    assert 'name="filegroup"' not in response.rendered_content
+
+
+@pytest.mark.parametrize(
+    "path1_updated,path2_updated,ignored_count",
+    [
+        (True, True, 0),
+        (True, False, 1),
+        (False, False, 2),
+    ],
+)
+def test_workspace_multiselect_update_files(
+    airlock_client, bll, path1_updated, path2_updated, ignored_count
+):
+    author = factories.create_user("author", workspaces=["test1"])
+    airlock_client.login_with_user(author)
+
+    workspace = factories.create_workspace("test1")
+    path1 = "test/path1.txt"
+    path2 = "test/path2.txt"
+
+    factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(path=path1, group="default", changes_requested=True),
+            factories.request_file(path=path2, group="default", changes_requested=True),
+        ],
+    )
+
+    assert workspace.get_workspace_file_status(path1) == WorkspaceFileStatus.UNRELEASED
+    assert workspace.get_workspace_file_status(path2) == WorkspaceFileStatus.UNRELEASED
+
+    if path1_updated:
+        factories.write_workspace_file(workspace, path1, "changed1")
+        # refresh workspace
+        workspace = bll.get_workspace("test1", airlock_client.user)
+        policies.check_can_update_file_on_request(workspace, path1)
+
+    if path2_updated:
+        factories.write_workspace_file(workspace, path2, "changed1")
+        # refresh workspace
+        workspace = bll.get_workspace("test1", airlock_client.user)
+        policies.check_can_update_file_on_request(workspace, path2)
+
+    response = airlock_client.post(
+        "/workspaces/multiselect/test1",
+        data={
+            "action": "update_files",
+            "selected": [
+                "test/path1.txt",
+                "test/path2.txt",
+            ],
+            "next_url": workspace.get_url("test/path1.txt"),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "test/path1.txt" in response.rendered_content
+    assert "test/path2.txt" in response.rendered_content
+    assert response.rendered_content.count("file cannot be updated") == ignored_count
+
+
 def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
@@ -928,6 +1026,96 @@ def test_workspace_request_file_invalid_formset(airlock_client, bll):
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "At least one form must be completed" in message.message
+
+
+def test_workspace_request_update_file_invalid_status(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    assert bll.get_current_request(workspace.name, airlock_client.user) is None
+    response = airlock_client.post(
+        "/workspaces/update-file-in-request/test1",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert (
+        "Cannot update file in request if it is not updated on disk" in message.message
+    )
+
+
+def test_workspace_request_update_file_request_path_does_not_exist(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+
+    response = airlock_client.post(
+        "/workspaces/update-file-in-request/test1",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+    )
+
+    assert response.status_code == 404
+
+
+def test_workspace_request_update_file_invalid_formset(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    response = airlock_client.post(
+        "/workspaces/update-file-in-request/test1",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+        follow=True,
+    )
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "file: This field is required" in message.message
+
+
+def test_workspace_request_update_file_empty_formset(airlock_client, bll):
+    airlock_client.login(workspaces=["test1"])
+
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt")
+
+    response = airlock_client.post(
+        "/workspaces/update-file-in-request/test1",
+        data={
+            "form-TOTAL_FORMS": "0",
+            "form-INITIAL_FORMS": "0",
+            "next_url": workspace.get_url("test/path.txt"),
+        },
+        follow=True,
+    )
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "At least one form must be completed." in message.message
 
 
 @pytest.mark.parametrize(

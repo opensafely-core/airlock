@@ -1,0 +1,37 @@
+{# hide default button, as we are going to autoshow the modal anyway #}
+{% fragment as button %}
+{% endfragment %}
+{% #modal id="updateRequestFile" custom_button=button autoshow=True %}
+  {% #card container=True title="Update Files in Request" %}
+    <form action="{{ add_file_url }}" method="POST" aria-label="add-file-form">
+      {% csrf_token %}
+      {{ form.next_url }}
+      {{ formset.management_form }}
+      {% #list_group %}
+        {% for name, reason in files_ignored.items %}
+          {% #list_group_item %}
+            <div class="flex items-center gap-2 justify-between">
+              <span>{{ name }}</span>
+              <span class="flex flex-row">{{ reason }}</span>
+            </div>
+          {% /list_group_item %}
+        {% endfor %}
+        {% for formset_form in formset %}
+          {% #list_group_item %}
+            <div class="flex items-center gap-2 justify-between">
+              <span>{{ formset_form.file.value }}</span>
+              {{ formset_form.file }}
+            </div>
+          {% /list_group_item %}
+        {% endfor %}
+      {% /list_group %}
+
+      <div class="mt-2">
+        {% #button type="submit" variant="success" id="update-file-button" disabled=no_valid_files %}
+          Update Files in Request
+        {% /button %}
+        {% #button variant="danger" type="cancel" %}Cancel{% /button %}
+      </div>
+    </form>
+  {% /card %}
+{% /modal %}

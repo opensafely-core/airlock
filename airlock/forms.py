@@ -74,6 +74,13 @@ class AddFileForm(forms.Form):
             return new_filegroup
 
 
+class FileForm(forms.Form):
+    file = forms.CharField(
+        required=True,
+        widget=forms.HiddenInput(),
+    )
+
+
 class FileTypeForm(forms.Form):
     FILETYPE_CHOICES = [
         (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
@@ -113,6 +120,7 @@ class RequiredOneBaseFormSet(BaseFormSet):  # type: ignore
 
 
 FileTypeFormSet = formset_factory(FileTypeForm, extra=0, formset=RequiredOneBaseFormSet)
+FileFormSet = formset_factory(FileForm, extra=0, formset=RequiredOneBaseFormSet)
 
 
 class GroupEditForm(forms.Form):

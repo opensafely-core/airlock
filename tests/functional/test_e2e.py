@@ -482,20 +482,12 @@ def test_e2e_update_file(page, live_server, dev_users):
 
     # Update file in request
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("button[value=add_files]"))
-
-    # By default, the selected filetype is OUTPUT
-    expect(page.locator("input[name=form-0-filetype][value=OUTPUT]")).to_be_checked()
-    expect(
-        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
-    ).not_to_be_checked()
+    find_and_click(page.locator("button[value=update_files]"))
 
     # Click the button to add the file to a release request
-    find_and_click(page.get_by_role("form").locator("#add-file-button"))
+    find_and_click(page.get_by_role("form").locator("#update-file-button"))
 
-    expect(page.locator("body")).to_contain_text(
-        "Output file has been updated in request"
-    )
+    expect(page.locator("body")).to_contain_text("file has been updated in request")
 
 
 def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
