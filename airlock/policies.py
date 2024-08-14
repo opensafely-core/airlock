@@ -79,7 +79,10 @@ def can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
 
 def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
     """
-    This file can replace an existing file in the request.
+    This file can replace an existing file in the request, which currently happens
+    in two scenarios:
+    * when a file on a request is updated;
+    * or when a file on a request in the withdrawn state is re-added.
     We expect that check_can_edit_request has already been called.
     """
     # The file is an allowed type
