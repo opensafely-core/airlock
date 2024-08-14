@@ -637,8 +637,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
     assert response.status_code == 200
     assert "test/path1.txt" in response.rendered_content
     assert "test/path2.txt" in response.rendered_content
-    assert response.rendered_content.count("cannot update using the add dialogue") == 1
-    assert response.rendered_content.count("already in group") == 1
+    assert response.rendered_content.count("already in group") == 2
     assert 'name="filegroup"' not in response.rendered_content
 
 
