@@ -458,20 +458,6 @@ class Workspace:
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
 
-    def file_has_been_released(self, relpath: UrlPath) -> bool:
-        return self.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
-
-    def file_can_be_added(self, relpath: UrlPath) -> bool:
-        return self.get_workspace_file_status(relpath) in [
-            WorkspaceFileStatus.UNRELEASED,
-            WorkspaceFileStatus.WITHDRAWN,
-        ]
-
-    def file_can_be_updated(self, relpath: UrlPath) -> bool:
-        return self.get_workspace_file_status(relpath) in [
-            WorkspaceFileStatus.CONTENT_UPDATED,
-        ]
-
 
 @dataclass(frozen=True)
 class CodeRepo:

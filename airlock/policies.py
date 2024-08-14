@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
-from airlock.enums import RequestFileVote, RequestStatus
+from airlock.enums import RequestFileVote, RequestStatus, WorkspaceFileStatus
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 
@@ -58,12 +58,17 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
         raise exceptions.RequestPermissionDenied(
             f"Cannot add file of type {relpath.suffix} to request"
         )
+
+    status = workspace.get_workspace_file_status(relpath)
+
     # The file hasn't already been released
-    if workspace.file_has_been_released(relpath):
+    if status == WorkspaceFileStatus.RELEASED:
         raise exceptions.RequestPermissionDenied("Cannot add released file to request")
 
-    if not workspace.file_can_be_added(relpath):
-        status = workspace.get_workspace_file_status(relpath)
+    if status not in [
+        WorkspaceFileStatus.UNRELEASED,
+        WorkspaceFileStatus.WITHDRAWN,
+    ]:
         raise exceptions.RequestPermissionDenied(
             f"Cannot add file to request if it is in status {status}"
         )
@@ -90,13 +95,17 @@ def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
         raise exceptions.RequestPermissionDenied(
             f"Cannot add file of type {relpath.suffix} to request"
         )
+
+    status = workspace.get_workspace_file_status(relpath)
+
     # The file hasn't already been released
-    if workspace.file_has_been_released(relpath):
+    if status == WorkspaceFileStatus.RELEASED:
         raise exceptions.RequestPermissionDenied("Cannot add released file to request")
 
-    if not (
-        workspace.file_can_be_added(relpath) or workspace.file_can_be_updated(relpath)
-    ):
+    if status not in [
+        WorkspaceFileStatus.WITHDRAWN,
+        WorkspaceFileStatus.CONTENT_UPDATED,
+    ]:
         status = workspace.get_workspace_file_status(relpath)
         raise exceptions.RequestPermissionDenied(
             f"Cannot add or update file in request if it is in status {status}"
@@ -121,7 +130,11 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
             f"Cannot update file of type {relpath.suffix} in request"
         )
 
-    if not workspace.file_can_be_updated(relpath):
+    status = workspace.get_workspace_file_status(relpath)
+
+    if status not in [
+        WorkspaceFileStatus.CONTENT_UPDATED,
+    ]:
         raise exceptions.RequestPermissionDenied(
             "Cannot update file in request if it is not updated on disk"
         )
