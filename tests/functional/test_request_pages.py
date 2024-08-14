@@ -50,6 +50,40 @@ def test_request_file_withdraw(live_server, context, page, bll):
     expect(page.locator("#withdraw-file-button")).not_to_be_visible()
 
 
+def test_request_file_group_context_modal(live_server, context, page):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": ["workspace"],
+        },
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(group="group", path="file1.txt"),
+            factories.request_file(group="group", path="file2.txt"),
+        ],
+    )
+
+    page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+
+    modal_button = page.locator("button[data-modal=group-context]")
+    modal_button.click()
+
+    dialog = page.locator("dialog#group-context")
+    expect(dialog).to_be_visible()
+    expect(dialog).to_contain_text("This is some testing context")
+    expect(dialog).to_contain_text("I got rid of all the small numbers")
+
+    dialog.locator("button[type=cancel]").click()
+    expect(dialog).not_to_be_visible()
+
+
 def test_request_group_edit_comment_for_author(
     live_server, context, page, bll, settings
 ):
