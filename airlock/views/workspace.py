@@ -217,8 +217,6 @@ def multiselect_add_files(request, multiform, workspace):
         state = workspace.get_workspace_file_status(relpath)
         if policies.can_add_file_to_request(workspace, relpath):
             files_to_add.append(f)
-        elif state == WorkspaceFileStatus.CONTENT_UPDATED:
-            files_ignored[f] = "cannot update using the add dialogue"
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"
         else:

@@ -26,7 +26,12 @@
       {% if multiselect_add %}
         <div class="div flex flex-col items-start gap-4">
           <div class="flex items-center gap-2">
-            {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form"%}Add Files to Request{% /button %}
+            {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form"%}
+              Add Files to Request
+            {% /button %}
+            {% #button type="submit" name="action" value="update_files" variant="success" form="multiselect_form"%}
+              Update Files in Request
+            {% /button %}
           </div>
           <div id="multiselect_modal"></div>
         </div>
