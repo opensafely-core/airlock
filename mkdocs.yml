@@ -19,6 +19,7 @@ nav:
   - Releasing files: releasing.md
   - Reference: 
     - reference/glossary.md
+    - request-states.md
 
 watch:
   - docs
