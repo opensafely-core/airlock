@@ -1604,7 +1604,8 @@ def test_requests_release_jobserver_403_with_debug(
 
     response = requests.Response()
     response.status_code = 403
-    response.headers = {"Content-Type": content_type}
+    response.headers = requests.structures.CaseInsensitiveDict()
+    response.headers["Content-Type"] = content_type
     response.raw = BytesIO(content)
     api403 = requests.HTTPError(response=response)
     release_files_stubber(release_request, body=api403)
