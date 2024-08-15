@@ -37,6 +37,7 @@ def test_renderers_get_renderer_workspace(
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
 
     if template_path:
+        assert isinstance(renderer.template, renderers.RendererTemplate)
         template_cache_id = renderers.filesystem_key(renderer.template.path.stat())
         assert renderer.cache_id == f"{content_cache_id}-{template_cache_id}"
     else:
@@ -77,6 +78,7 @@ def test_renderers_get_renderer_request(
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
 
     if template_path:
+        assert isinstance(renderer.template, renderers.RendererTemplate)
         template_cache_id = renderers.filesystem_key(renderer.template.path.stat())
         assert renderer.cache_id == f"{request_file.file_id}-{template_cache_id}"
     else:

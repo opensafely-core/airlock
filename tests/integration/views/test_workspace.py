@@ -629,7 +629,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
     factories.write_workspace_file(workspace, "test/path1.txt", "changed1")
     # refresh workspace
     workspace = bll.get_workspace("test1", airlock_client.user)
-    policies.check_can_update_file_on_request(workspace, "test/path1.txt")
+    policies.check_can_update_file_on_request(workspace, UrlPath("test/path1.txt"))
 
     response = airlock_client.post(
         "/workspaces/multiselect/test1",
@@ -685,13 +685,13 @@ def test_workspace_multiselect_update_files(
         factories.write_workspace_file(workspace, path1, "changed1")
         # refresh workspace
         workspace = bll.get_workspace("test1", airlock_client.user)
-        policies.check_can_update_file_on_request(workspace, path1)
+        policies.check_can_update_file_on_request(workspace, UrlPath(path1))
 
     if path2_updated:
         factories.write_workspace_file(workspace, path2, "changed1")
         # refresh workspace
         workspace = bll.get_workspace("test1", airlock_client.user)
-        policies.check_can_update_file_on_request(workspace, path2)
+        policies.check_can_update_file_on_request(workspace, UrlPath(path2))
 
     response = airlock_client.post(
         "/workspaces/multiselect/test1",

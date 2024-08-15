@@ -175,7 +175,10 @@ def test_e2e_release_files(
     url_regex = re.compile(rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)/")
     expect(page).to_have_url(url_regex)
     # get the request ID for the just-created request, for later reference
-    request_id = url_regex.match(page.url).groups()[0]
+    matches = url_regex.match(page.url)
+    # tell mypy that we are sure to find a match
+    assert isinstance(matches, re.Match)
+    request_id = matches.groups()[0]
     release_request = bll.get_release_request(request_id, admin_user)
 
     # Find the filegroup in the tree
@@ -485,12 +488,12 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     factories.write_workspace_file(workspace, path, contents="changed")
 
     if multiselect:
-        page.goto(live_server.url + workspace.get_url("subdir/"))
+        page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
 
         # click on the multi-select checkbox
         find_and_click(page.locator('input[name="selected"]'))
     else:
-        page.goto(live_server.url + workspace.get_url("subdir/file.txt"))
+        page.goto(live_server.url + workspace.get_url(UrlPath("subdir/file.txt")))
 
     # Find the add file button and click on it to open the modal
     find_and_click(page.locator("button[value=update_files]"))
@@ -538,7 +541,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     expect(page.locator("body")).to_contain_text("has been withdrawn from the request")
 
     # Change our mind on file 2: go to file page and re-add it
-    page.goto(live_server.url + workspace.get_url(path2))
+    page.goto(live_server.url + workspace.get_url(UrlPath(path2)))
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
@@ -548,7 +551,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     )
 
     # Change our mind on file 1: go to *workspace* page and re-add it
-    page.goto(live_server.url + workspace.get_url("subdir/"))
+    page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
     # We have to wait for the datatable to finish rendering before we interact with the
     # checkboxes otherwise the wrong thing gets selected
     expect(page.locator("#customTable.datatable-table")).to_be_visible()

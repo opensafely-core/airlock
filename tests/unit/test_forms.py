@@ -1,4 +1,5 @@
 import pytest
+from django import forms
 
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from tests import factories
@@ -9,6 +10,8 @@ pytestmark = pytest.mark.django_db
 
 def test_add_files_form_no_release_request():
     form = AddFileForm(release_request=None)
+    # Use type narrowing to persuade mypy this has a `choices` attr
+    assert isinstance(form.fields["filegroup"], forms.ChoiceField)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
@@ -34,6 +37,8 @@ def test_filetype_formset():
 def test_add_files_form_empty_release_request():
     release_request = factories.create_release_request("workspace")
     form = AddFileForm(release_request=release_request)
+    # Use type narrowing to persuade mypy this has a `choices` attr
+    assert isinstance(form.fields["filegroup"], forms.ChoiceField)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
@@ -47,6 +52,8 @@ def test_add_files_form_filegroup_choices():
     factories.create_filegroup(other_release_request, "other_group")
 
     form = AddFileForm(release_request=release_request)
+    # Use type narrowing to persuade mypy this has a `choices` attr
+    assert isinstance(form.fields["filegroup"], forms.ChoiceField)
     # default group is always first, other choices are sorted
     assert form.fields["filegroup"].choices == [
         ("default", "default"),
