@@ -102,7 +102,7 @@ check: devenv
 
     check "$BIN/ruff format --diff --quiet ."
     check "$BIN/ruff check --output-format=full ."
-    check "$BIN/mypy airlock/ local_db/"
+    check "$BIN/mypy airlock/ local_db/ tests/"
     check "$BIN/djhtml --tabwidth 2 --check airlock/"
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
@@ -118,7 +118,7 @@ check: devenv
 
 # run mypy type checker
 mypy *ARGS: devenv
-    $BIN/mypy airlock/ local_db/ "$@"
+    $BIN/mypy airlock/ local_db/ tests/ "$@"
 
 
 # fix the things we can automate: linting, formatting, import sorting, diagrams
