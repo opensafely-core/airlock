@@ -175,7 +175,10 @@ def test_e2e_release_files(
     url_regex = re.compile(rf"{live_server.url}\/requests\/view\/([A-Z0-9].+)/")
     expect(page).to_have_url(url_regex)
     # get the request ID for the just-created request, for later reference
-    request_id = url_regex.match(page.url).groups()[0]
+    matches = url_regex.match(page.url)
+    # tell mypy that we are sure to find a match
+    assert isinstance(matches, re.Match)
+    request_id = matches.groups()[0]
     release_request = bll.get_release_request(request_id, admin_user)
 
     # Find the filegroup in the tree
