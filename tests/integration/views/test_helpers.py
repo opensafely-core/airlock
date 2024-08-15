@@ -41,7 +41,7 @@ def test_display_form_errors():
     request = RequestFactory().get("/")
     request.session = SessionStore()
     messages = SessionStorage(request)
-    request._messages = messages
+    request._messages = messages  # type: ignore
 
     form = forms.TokenLoginForm(request.POST)
     form.is_valid()

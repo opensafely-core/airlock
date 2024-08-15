@@ -590,7 +590,7 @@ def create_filegroup(release_request, group_name, filepaths=None):
     user = create_user(release_request.author, [release_request.workspace])
     for filepath in filepaths or []:  # pragma: nocover
         bll.add_file_to_request(release_request, filepath, user, group_name)
-    return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)
+    return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)  # type: ignore
 
 
 def refresh_release_request(release_request, user=None) -> ReleaseRequest:
