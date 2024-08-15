@@ -501,7 +501,9 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
             "archived": False,
         },
     }
-    user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
+    user = factories.create_user_from_dict(
+        username="testuser", workspaces_dict=workspaces, output_checker=output_checker
+    )
 
     assert bll.get_workspaces_for_user(user) == [
         bll.get_workspace("foo", user),
