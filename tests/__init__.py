@@ -3,7 +3,7 @@ import sys
 
 import pytest
 import pytest_playwright  # type: ignore
-from pytest_playwright.pytest_playwright import (  #type: ignore
+from pytest_playwright.pytest_playwright import (  # type: ignore
     VSCODE_PYTHON_EXTENSION_ID,
     _is_debugger_attached,
 )
