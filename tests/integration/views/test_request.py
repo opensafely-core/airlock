@@ -904,9 +904,7 @@ def test_request_return_author(airlock_client):
     response = airlock_client.post(f"/requests/return/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.bll.get_release_request(
-        release_request.id, airlock_client.user
-    )
+    persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
     assert persisted_request.status == RequestStatus.REVIEWED
 
 
@@ -1233,9 +1231,7 @@ def test_request_reject_not_output_checker(airlock_client):
     response = airlock_client.post(f"/requests/reject/{release_request.id}")
 
     assert response.status_code == 403
-    persisted_request = factories.bll.get_release_request(
-        release_request.id, airlock_client.user
-    )
+    persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
     assert persisted_request.status == RequestStatus.REVIEWED
 
 
