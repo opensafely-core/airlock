@@ -144,7 +144,14 @@
           </div>
         {% endif %}
       {% endif %}
+
+      {% #modal id="group-context" button_text="View Context" %}
+        {% include "file_browser/group.html" %}
+      {% /modal %}
     {% endif %}
+
+
+
 
     <details-utils close-click-outside close-esc>
       <details class="more-dropdown">
