@@ -593,7 +593,7 @@ def create_filegroup(release_request, group_name, filepaths=None):
     return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)
 
 
-def refresh_release_request(release_request, user=None):
+def refresh_release_request(release_request, user=None) -> ReleaseRequest:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
         user = create_user("author", workspaces=[release_request.workspace])
