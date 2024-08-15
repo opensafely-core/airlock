@@ -227,7 +227,7 @@ def create_repo(workspace, files=None, temporary=True):
                     p.write_text(content)
 
         env["GIT_WORK_TREE"] = str(repo_content_dir)
-        response = subprocess.run(
+        response: subprocess.CompletedProcess[typing.Any] = subprocess.run(
             ["git", "add", "."], capture_output=True, check=True, env=env
         )
         if b"nothing to commit" not in response.stdout:  # pragma: nocover
