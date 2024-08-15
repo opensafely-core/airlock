@@ -597,7 +597,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     bll.set_status(release_request, RequestStatus.APPROVED, checkers[0])
     release_request = factories.refresh_release_request(release_request)
 
-    relpath = Path("test/file.txt")
+    relpath = UrlPath("test/file.txt")
     abspath = release_request.abspath("group" / relpath)
 
     freezer.move_to("2022-01-01T12:34:56")
@@ -1854,8 +1854,8 @@ def test_update_file_to_request_states(
 
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path1 = Path("path/file1.txt")
-    path2 = Path("path/file2.txt")
+    path1 = UrlPath("path/file1.txt")
+    path2 = UrlPath("path/file2.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1900,7 +1900,7 @@ def test_withdraw_file_from_request_pending(bll):
 
 def test_withdraw_file_from_request_returned(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path1 = Path("path/file1.txt")
+    path1 = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1940,7 +1940,7 @@ def test_withdraw_file_from_request_returned(bll):
 
 def test_readd_withdrawn_file_to_request_returned(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1971,7 +1971,7 @@ def test_readd_withdrawn_file_to_request_returned(bll):
 
 def test_readd_withdrawn_file_to_request_returned_new_group(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2093,8 +2093,8 @@ def test_withdraw_file_from_request_not_author(bll, status):
 
 def test_request_all_files_by_name(bll):
     author = factories.create_user(username="author", workspaces=["workspace"])
-    path = Path("path/file.txt")
-    supporting_path = Path("path/supporting_file.txt")
+    path = UrlPath("path/file.txt")
+    supporting_path = UrlPath("path/supporting_file.txt")
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2783,7 +2783,7 @@ def test_approve_file_not_checker(bll):
 
 
 def test_approve_file_not_part_of_request(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2791,7 +2791,7 @@ def test_approve_file_not_part_of_request(bll):
     )
     checker = factories.create_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
-    bad_path = Path("path/file2.txt")
+    bad_path = UrlPath("path/file2.txt")
     bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
 
     with pytest.raises(exceptions.RequestReviewDenied):
@@ -2806,7 +2806,7 @@ def test_approve_file_not_part_of_request(bll):
 
 
 def test_approve_supporting_file(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2827,7 +2827,7 @@ def test_approve_supporting_file(bll):
 
 
 def test_approve_file(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2865,7 +2865,7 @@ def test_approve_file(bll):
 
 
 def test_approve_file_requires_two_plus_submitted_reviews(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2907,7 +2907,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
 
 
 def test_request_changes_to_file(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2945,7 +2945,7 @@ def test_request_changes_to_file(bll):
 
 
 def test_approve_then_request_changes_to_file(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2984,7 +2984,7 @@ def test_approve_then_request_changes_to_file(bll):
     "review", [RequestFileVote.APPROVED, RequestFileVote.CHANGES_REQUESTED]
 )
 def test_review_then_reset_review_file(bll, review):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -3025,7 +3025,7 @@ def test_review_then_reset_review_file(bll, review):
 
 
 def test_reset_review_file_no_reviews(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -3052,7 +3052,7 @@ def test_reset_review_file_no_reviews(bll):
 
 
 def test_reset_review_file_after_review_submitted(bll):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -3094,7 +3094,7 @@ def test_reset_review_file_after_review_submitted(bll):
     ],
 )
 def test_request_file_status_decision(bll, votes, decision):
-    path = Path("path/file1.txt")
+    path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
