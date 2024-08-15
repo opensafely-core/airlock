@@ -2209,7 +2209,7 @@ class VisibleItemsHelper:
     user, and store them to make assertions about.
     """
 
-    comments: list[Comment]
+    comments: list[tuple[Comment, str]]
     audits: list[AuditEvent]
 
     @classmethod
