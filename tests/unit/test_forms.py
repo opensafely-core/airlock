@@ -1,4 +1,5 @@
 import pytest
+from django import forms
 
 from airlock.forms import AddFileForm, FileTypeFormSet, MultiselectForm
 from tests import factories
@@ -9,6 +10,8 @@ pytestmark = pytest.mark.django_db
 
 def test_add_files_form_no_release_request():
     form = AddFileForm(release_request=None)
+    # Use type narrowing to persuade mpy this has a `choices` attr
+    assert isinstance(form.fields["filegroup"], forms.ChoiceField)
     assert form.fields["filegroup"].choices == [("default", "default")]
 
 
