@@ -10,5 +10,6 @@ def test_enum_field():
         models.RequestMetadata.objects.create(
             workspace="workspace",
             author="user",
+            # type: ignore
             status="unknown",
         )
