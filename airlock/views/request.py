@@ -291,7 +291,7 @@ def group_presenter(release_request, relpath, request):
     else:
         inline = True
 
-    # are comments readonly?
+    # are context and controls readonly?
     c2_readonly = inline or not permissions.user_can_edit_request(
         request.user, release_request
     )
@@ -308,7 +308,6 @@ def group_presenter(release_request, relpath, request):
             kwargs={"request_id": release_request.id, "group": group},
         ),
         # group comments
-        #  TODO: move this to BLL
         "user_can_comment": permissions.user_can_comment_on_group(
             request.user, release_request
         ),

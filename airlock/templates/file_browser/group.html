@@ -7,7 +7,7 @@
     background-color: darkgrey;
   }
 </style>
-{% #card title=group.title|default_if_none:path_item.name container=True class="group_modal" %}
+{% #card title=group.title container=True class="group_modal" %}
   <form action="{{ group.c2_edit_url }}" method="POST" aria-label="group-edit-form">
     {% csrf_token %}
     <div style="display: flex; flex-direction: row; width: 100%; flex-wrap: wrap; gap: 1rem;">
