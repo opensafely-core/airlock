@@ -30,28 +30,42 @@ from airlock.users import User
 
 
 def create_user(
-    username="testuser", workspaces=None, output_checker=False, last_refresh=None
+    username="testuser",
+    workspaces: list[str] | None = None,
+    output_checker=False,
+    last_refresh=None,
 ):
     """Factory to create a user.
 
-    For ease of use, workspaces can either be a list of workspaces, which is
-    converted into an appropriate dict. Or it can be an explicit dict.
+    For ease of use, workspaces is just a flat list of workspace name, which is
+    converted into an appropriate dict with all the right keys.
+
+    If you need to create a more complex workspace dict, you can call
+    create_user_from_dict directly.
     """
     if workspaces is None:
-        workspaces_dict = {}
-    elif isinstance(workspaces, dict):
-        workspaces_dict = workspaces
-    else:
-        workspaces_dict = {
-            workspace: {
-                "project_details": {"name": "project", "ongoing": True},
-                "archived": False,
-            }
-            for workspace in workspaces
-        }
+        # default to usual workspace
+        workspaces = ["workspace"]
 
+    workspaces_dict = {
+        workspace: {
+            "project_details": {"name": "project", "ongoing": True},
+            "archived": False,
+        }
+        for workspace in workspaces
+    }
+
+    return create_user_from_dict(
+        username, workspaces_dict, output_checker, last_refresh
+    )
+
+
+def create_user_from_dict(
+    username, workspaces_dict, output_checker=False, last_refresh=None
+):
     if last_refresh is None:
         last_refresh = time.time()
+
     return User(username, workspaces_dict, output_checker, last_refresh)
 
 
@@ -248,18 +262,19 @@ def create_repo(workspace, files=None, temporary=True):
     return CodeRepo.from_workspace(workspace, commit)
 
 
-def create_release_request(workspace, user=None, **kwargs):
-    assert (
-        kwargs.get("status", RequestStatus.PENDING) == RequestStatus.PENDING
-    ), "Use create_request_at_status to create a release request with a state other than PENDING"
+def create_release_request(workspace, user=None, status=None, **kwargs):
+    if status:
+        assert (
+            status == RequestStatus.PENDING
+        ), "Use create_request_at_status to create a release request with a state other than PENDING"
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace
     if user is None:
         user = create_user("author", workspaces=[workspace.name])
 
-    release_request = bll._create_release_request(
-        workspace=workspace.name, author=user, **kwargs
+    release_request = bll.get_or_create_current_request(
+        workspace=workspace.name, user=user, **kwargs
     )
     release_request.root().mkdir(parents=True, exist_ok=True)
     return release_request
@@ -323,9 +338,7 @@ def create_request_at_status(
         file_reviewers = get_default_output_checkers()
         checker = file_reviewers[0]
 
-    request = create_release_request(
-        workspace, author, status=RequestStatus.PENDING, **kwargs
-    )
+    request = create_release_request(workspace, author, **kwargs)
 
     # add all files
     if files:

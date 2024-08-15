@@ -1061,7 +1061,6 @@ class DataAccessLayerProtocol(Protocol):
         author: str,
         status: RequestStatus,
         audit: AuditEvent,
-        id: str | None = None,  # noqa: A002
     ):
         raise NotImplementedError()
 
@@ -1252,35 +1251,6 @@ class BusinessLogicLayer:
 
         return workspaces
 
-    def _create_release_request(
-        self,
-        workspace: str,
-        author: User,
-        status: RequestStatus = RequestStatus.PENDING,
-        id: str | None = None,  # noqa: A002
-    ) -> ReleaseRequest:
-        """Factory function to create a release_request.
-
-        Is private because it is meant to be used directly by our test factories
-        to set up state - it is not part of the public API.
-        """
-        # id is used to set specific ids in tests. We should probably not allow this.
-        audit = AuditEvent(
-            type=self.STATUS_AUDIT_EVENT[status],
-            user=author.username,
-            workspace=workspace,
-            # DAL will set request id once its created
-        )
-        return ReleaseRequest.from_dict(
-            self._dal.create_release_request(
-                workspace=workspace,
-                author=author.username,
-                status=status,
-                audit=audit,
-                id=id,
-            )
-        )
-
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
 
@@ -1322,13 +1292,27 @@ class BusinessLogicLayer:
         # and is not an output-cheker
         request = self.get_current_request(workspace, user)
 
-        # requests for output-checkers, and for archived workspaces and inactive
-        # projects are still viewable, check if user has permission to create one
-        permissions.check_user_can_action_request_for_workspace(user, workspace)
-
         if request is not None:
             return request
-        return self._create_release_request(workspace, user)
+
+        # check if user has permission to create one
+        permissions.check_user_can_action_request_for_workspace(user, workspace)
+
+        audit = AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace,
+            # for this specific audit, the DAL will set request id once its
+            # created, as we do not know it yet
+        )
+        return ReleaseRequest.from_dict(
+            self._dal.create_release_request(
+                workspace=workspace,
+                author=user.username,
+                status=RequestStatus.PENDING,
+                audit=audit,
+            )
+        )
 
     def get_requests_for_workspace(
         self, workspace: str, user: User

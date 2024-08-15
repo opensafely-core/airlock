@@ -68,18 +68,18 @@ def bll(monkeypatch):
 
 @pytest.fixture
 def release_files_stubber(responses):
-    def release_files(request, jobserver_id="jobserver-id", body=None):
+    def release_files(request, body=None):
         responses.post(
             f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{request.workspace}",
             status=201,
-            headers={"Release-Id": jobserver_id},
+            headers={"Release-Id": request.id},
             body=body,
         )
 
         if not isinstance(body, Exception):
             for _ in request.get_output_file_paths():
                 responses.post(
-                    f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{jobserver_id}",
+                    f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{request.id}",
                     status=201,
                 )
 

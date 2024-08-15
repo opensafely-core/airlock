@@ -501,9 +501,11 @@ def test_request_view_redirects_to_file(airlock_client):
 
 def test_request_contents_file(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_release_request("workspace", id="id")
+    release_request = factories.create_release_request("workspace")
     factories.add_request_file(release_request, "default", "file.txt", contents="test")
-    response = airlock_client.get("/requests/content/id/default/file.txt")
+    response = airlock_client.get(
+        f"/requests/content/{release_request.id}/default/file.txt"
+    )
     assert response.status_code == 200
     assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
     audit_log = bll.get_request_audit_log(
@@ -517,42 +519,44 @@ def test_request_contents_file(airlock_client):
 
 def test_request_contents_dir(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_release_request("workspace", id="id")
+    release_request = factories.create_release_request("workspace")
     factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
-    response = airlock_client.get("/requests/content/id/default/foo")
+    response = airlock_client.get(f"/requests/content/{release_request.id}/default/foo")
     assert response.status_code == 404
 
 
 def test_request_contents_file_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_release_request("workspace", id="id")
+    release_request = factories.create_release_request("workspace")
     factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
-    response = airlock_client.get("/requests/content/id/default/notexists.txt")
+    response = airlock_client.get(
+        f"/requests/content/{release_request.id}/default/notexists.txt"
+    )
     assert response.status_code == 404
 
 
 def test_request_contents_group_not_exists(airlock_client):
     airlock_client.login(output_checker=True)
-    release_request = factories.create_release_request("workspace", id="id")
+    release_request = factories.create_release_request("workspace")
     factories.add_request_file(
         release_request, "default", "foo/file.txt", contents="test"
     )
-    response = airlock_client.get("/requests/content/id/notexist/")
+    response = airlock_client.get(f"/requests/content/{release_request.id}/notexist/")
     assert response.status_code == 404
 
 
 def test_request_download_file(airlock_client):
     airlock_client.login("reviewer", output_checker=True)
     author = factories.create_user("author", ["workspace"])
-    release_request = factories.create_release_request(
-        "workspace", id="id", user=author
-    )
+    release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "default", "file.txt", contents="test")
-    response = airlock_client.get("/requests/content/id/default/file.txt?download")
+    response = airlock_client.get(
+        f"/requests/content/{release_request.id}/default/file.txt?download"
+    )
     assert response.status_code == 200
     assert response.as_attachment
     assert list(response.streaming_content) == [b"test"]
@@ -628,13 +632,13 @@ def test_request_download_file_permissions(
 ):
     airlock_client.login(**user)
     author = factories.create_user(**request_author)
-    release_request = factories.create_release_request(
-        "workspace", id="id", user=author
-    )
+    release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(
         release_request, "default", "file.txt", contents="test", user=author
     )
-    response = airlock_client.get("/requests/content/id/default/file.txt?download")
+    response = airlock_client.get(
+        f"/requests/content/{release_request.id}/default/file.txt?download"
+    )
     if can_download:
         assert response.status_code == 200
         assert response.as_attachment
@@ -668,6 +672,7 @@ def test_request_index_user_output_checker(airlock_client):
     other = factories.create_user(
         "other",
         workspaces=[
+            "test_workspace",
             "other_workspace",
             "other_other_workspace",
             "other_other1_workspace",
@@ -871,7 +876,7 @@ def test_request_withdraw_author(airlock_client):
 
 def test_request_withdraw_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_author = factories.create_user("other", [], False)
+    other_author = factories.create_user("other", ["test1"], False)
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
@@ -1461,7 +1466,6 @@ def test_request_release_files_success(airlock_client, release_files_stubber, st
     airlock_client.login(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=status,
         files=[
             factories.request_file(path="file.txt", contents="test1", approved=True),
@@ -1470,8 +1474,8 @@ def test_request_release_files_success(airlock_client, release_files_stubber, st
     )
 
     api_responses = release_files_stubber(release_request)
-    response = airlock_client.post("/requests/release/request_id")
-    assert response.url == "/requests/view/request_id/"
+    response = airlock_client.post(f"/requests/release/{release_request.id}")
+    assert response.url == f"/requests/view/{release_request.id}/"
     assert response.status_code == 302
 
     assert api_responses.calls[1].request.body.read() == b"test1"
@@ -1485,7 +1489,6 @@ def test_request_release_files_success_htmx(
     airlock_client.login(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=status,
         files=[
             factories.request_file(path="file.txt", contents="test1", approved=True),
@@ -1494,11 +1497,11 @@ def test_request_release_files_success_htmx(
     )
     api_responses = release_files_stubber(release_request)
     response = airlock_client.post(
-        "/requests/release/request_id",
+        f"/requests/release/{release_request.id}",
         headers={"HX-Request": "true"},
     )
 
-    assert response.headers["HX-Redirect"] == "/requests/view/request_id/"
+    assert response.headers["HX-Redirect"] == f"/requests/view/{release_request.id}/"
     assert response.status_code == 200
 
     assert api_responses.calls[1].request.body.read() == b"test1"
@@ -1506,30 +1509,30 @@ def test_request_release_files_success_htmx(
 
 
 def test_requests_release_workspace_403(airlock_client):
-    airlock_client.login("checker", output_checker=False)
-    factories.create_request_at_status(
+    airlock_client.login("checker", workspaces=[], output_checker=False)
+    release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=RequestStatus.SUBMITTED,
         files=[
             factories.request_file("group", "path/test.txt", approved=True),
         ],
     )
 
-    response = airlock_client.post("/requests/release/request_id")
+    response = airlock_client.post(f"/requests/release/{release_request.id}")
     assert response.status_code == 403
 
 
 def test_requests_release_author_403(airlock_client):
     airlock_client.login(output_checker=True, workspaces=["workspace"])
-    factories.create_request_at_status(
+    release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         author=airlock_client.user,
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(approved=True)],
     )
-    response = airlock_client.post("/requests/release/request_id", follow=True)
+    response = airlock_client.post(
+        f"/requests/release/{release_request.id}", follow=True
+    )
     assert response.status_code == 200
     assert (
         list(response.context["messages"])[0].message
@@ -1539,13 +1542,14 @@ def test_requests_release_author_403(airlock_client):
 
 def test_requests_release_invalid_state_transition_403(airlock_client):
     airlock_client.login("checker", output_checker=True)
-    factories.create_request_at_status(
+    release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=RequestStatus.RETURNED,
         files=[factories.request_file(approved=True)],
     )
-    response = airlock_client.post("/requests/release/request_id", follow=True)
+    response = airlock_client.post(
+        f"/requests/release/{release_request.id}", follow=True
+    )
     assert response.status_code == 200
     assert (
         list(response.context["messages"])[0].message
@@ -1557,7 +1561,6 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
     airlock_client.login("checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(approved=True)],
     )
@@ -1568,7 +1571,9 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
     release_files_stubber(release_request, body=api403)
 
     # test 403 is handled
-    response = airlock_client.post("/requests/release/request_id", follow=True)
+    response = airlock_client.post(
+        f"/requests/release/{release_request.id}", follow=True
+    )
     assert response.status_code == 200
     assert (
         list(response.context["messages"])[0].message
@@ -1595,7 +1600,6 @@ def test_requests_release_jobserver_403_with_debug(
     settings.DEBUG = True
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(approved=True)],
     )
@@ -1608,7 +1612,9 @@ def test_requests_release_jobserver_403_with_debug(
     release_files_stubber(release_request, body=api403)
 
     # test 403 is handled
-    response = airlock_client.post("/requests/release/request_id", follow=True)
+    response = airlock_client.post(
+        f"/requests/release/{release_request.id}", follow=True
+    )
     # DEBUG is on, so we return the job-server error
     assert response.status_code == 200
     error_message = list(response.context["messages"])[0].message
@@ -1620,7 +1626,6 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
     airlock_client.login("checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(approved=True)],
     )
@@ -1630,7 +1635,9 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
     api404 = requests.HTTPError(response=response)
     release_files_stubber(release_request, body=api404)
 
-    response = airlock_client.post("/requests/release/request_id", follow=True)
+    response = airlock_client.post(
+        f"/requests/release/{release_request.id}", follow=True
+    )
     assert response.status_code == 200
     assert (
         list(response.context["messages"])[0].message
@@ -1642,36 +1649,36 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
     "urlpath,post_data,login_as,status,stub",
     [
         (
-            "/requests/view/request-id/default/",
+            "/requests/view/{request.id}/default/",
             None,
             "output_checker",
             RequestStatus.PENDING,
             False,
         ),
         (
-            "/requests/view/request-id/default/file.txt",
+            "/requests/view/{request.id}/default/file.txt",
             None,
             "output_checker",
             RequestStatus.PENDING,
             False,
         ),
         (
-            "/requests/content/request-id/default/file.txt",
+            "/requests/content/{request.id}/default/file.txt",
             None,
             "output_checker",
             RequestStatus.PENDING,
             False,
         ),
-        ("/requests/submit/request-id", {}, "author", RequestStatus.PENDING, False),
+        ("/requests/submit/{request.id}", {}, "author", RequestStatus.PENDING, False),
         (
-            "/requests/reject/request-id",
+            "/requests/reject/{request.id}",
             {},
             "output_checker",
             RequestStatus.REVIEWED,
             False,
         ),
         (
-            "/requests/release/request-id",
+            "/requests/release/{request.id}",
             {},
             "output_checker",
             RequestStatus.REVIEWED,
@@ -1690,7 +1697,6 @@ def test_request_view_tracing_with_request_attribute(
         "test-workspace",
         status=status,
         author=author,
-        id="request-id",
         files=[
             factories.request_file(
                 "default",
@@ -1701,16 +1707,19 @@ def test_request_view_tracing_with_request_attribute(
         ],
     )
 
+    # inject request id
+    url = urlpath.format(request=release_request)
+
     if stub:
         release_files_stubber(release_request)
 
     if post_data is not None:
-        airlock_client.post(urlpath, post_data)
+        airlock_client.post(url, post_data)
     else:
-        airlock_client.get(urlpath)
+        airlock_client.get(url)
     traces = get_trace()
     last_trace = traces[-1]
-    assert last_trace.attributes == {"release_request": "request-id"}
+    assert last_trace.attributes == {"release_request": release_request.id}
 
 
 def test_group_edit_success(airlock_client):

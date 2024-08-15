@@ -97,7 +97,9 @@ def _details(archived=False, ongoing=True):
 def test_session_user_can_action_request(
     output_checker, workspaces, can_action_request, expected_reason
 ):
-    user = factories.create_user("test", workspaces, output_checker=output_checker)
+    user = factories.create_user_from_dict(
+        "test", workspaces, output_checker=output_checker
+    )
     assert (
         permissions.user_can_action_request_for_workspace(user, "test")
         == can_action_request
@@ -111,18 +113,18 @@ def test_session_user_can_action_request(
     "output_checker,author,workspaces,can_review",
     [
         # output checker with no access to workspace can review
-        (True, "other", {}, True),
+        (True, "other", [], True),
         # output checker who is also author cannot review
-        (True, "user", {"test": {}}, False),
+        (True, "user", ["test"], False),
         # non-output-checker cannot review
-        (False, "other", {"test": {}}, False),
+        (False, "other", ["test"], False),
     ],
 )
 def test_user_can_review_request(output_checker, author, workspaces, can_review):
     user = factories.create_user("user", workspaces, output_checker=output_checker)
     users = {
         "user": user,
-        "other": factories.create_user("other", {"test": {}}, output_checker=False),
+        "other": factories.create_user("other", ["test"], output_checker=False),
     }
     release_request = factories.create_request_at_status(
         "test", RequestStatus.SUBMITTED, author=users[author]

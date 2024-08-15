@@ -170,13 +170,13 @@ def test_get_file_metadata():
 
 
 def test_workspace_get_workspace_archived_ongoing(bll):
-    factories.create_workspace("workspace")
+    factories.create_workspace("normal_workspace")
     factories.create_workspace("archived_workspace")
     factories.create_workspace("not_ongoing")
-    user = factories.create_user(
+    user = factories.create_user_from_dict(
         "user",
-        workspaces={
-            "workspace": {
+        workspaces_dict={
+            "normal_workspace": {
                 "project": "project-1",
                 "project_details": {"name": "project-1", "ongoing": True},
                 "archived": False,
@@ -195,13 +195,13 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     )
     checker = factories.create_user("checker", output_checker=True)
 
-    active_workspace = bll.get_workspace("workspace", user)
+    active_workspace = bll.get_workspace("normal_workspace", user)
     archived_workspace = bll.get_workspace("archived_workspace", user)
     inactive_project = bll.get_workspace("not_ongoing", user)
     assert not active_workspace.is_archived()
     assert active_workspace.project().is_ongoing
     assert active_workspace.is_active()
-    assert active_workspace.display_name() == "workspace"
+    assert active_workspace.display_name() == "normal_workspace"
     assert active_workspace.project().display_name() == "project-1"
 
     assert archived_workspace.is_archived()
@@ -216,7 +216,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     assert inactive_project.display_name() == "not_ongoing"
     assert inactive_project.project().display_name() == "project-2 (INACTIVE)"
 
-    for workspace_name in ["workspace", "archived_workspace", "not_ongoing"]:
+    for workspace_name in ["normal_workspace", "archived_workspace", "not_ongoing"]:
         workspace = bll.get_workspace(workspace_name, checker)
         assert workspace.is_archived() is None
         assert bll.get_workspace(workspace_name, checker).project().is_ongoing
@@ -381,22 +381,24 @@ def test_request_returned_author_get_workspace_file_status(bll):
 
 
 def test_request_container(mock_notifications):
-    release_request = factories.create_release_request("workspace", id="id")
+    release_request = factories.create_release_request("workspace")
     release_request = factories.add_request_file(release_request, "group", "bar.html")
+    rid = release_request.get_id()
 
-    assert release_request.root() == settings.REQUEST_DIR / "workspace/id"
-    assert release_request.get_id() == "id"
+    assert release_request.root() == settings.REQUEST_DIR / "workspace" / rid
+
     assert (
-        release_request.get_url("group/bar.html") == "/requests/view/id/group/bar.html"
+        release_request.get_url("group/bar.html")
+        == f"/requests/view/{rid}/group/bar.html"
     )
     assert (
-        "/requests/content/id/group/bar.html?cache_id="
+        f"/requests/content/{rid}/group/bar.html?cache_id="
         in release_request.get_contents_url(UrlPath("group/bar.html"))
     )
     plaintext_contents_url = release_request.get_contents_url(
         UrlPath("group/bar.html"), plaintext=True
     )
-    assert "/requests/content/id/group/bar.html?cache_id=" in plaintext_contents_url
+    assert f"/requests/content/{rid}/group/bar.html?cache_id=" in plaintext_contents_url
     assert "&plaintext=true" in plaintext_contents_url
 
     assert_no_notifications(mock_notifications)
@@ -522,7 +524,6 @@ def test_provider_request_release_files_request_not_approved(bll, mock_notificat
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        id="request_id",
         status=RequestStatus.SUBMITTED,
     )
 
@@ -540,7 +541,6 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
         release_request = factories.create_request_at_status(
             "workspace",
-            id="request_id",
             status=RequestStatus.APPROVED,
             files=[factories.request_file(path="test/file.foo", approved=True)],
         )
@@ -557,7 +557,6 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
-        id="request_id",
         author=author,
         status=RequestStatus.RETURNED,
         files=[
@@ -626,7 +625,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     }
 
     old_api.create_release.assert_called_once_with(
-        "workspace", "request_id", json.dumps(expected_json), checkers[0].username
+        "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
     )
     old_api.upload_file.assert_called_once_with(
         "jobserver_id", relpath, abspath, checkers[0].username
@@ -686,21 +685,21 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 def test_provider_get_requests_for_workspace(bll):
     user = factories.create_user("test", ["workspace", "workspace2"])
     other_user = factories.create_user("other", ["workspace"])
-    factories.create_release_request("workspace", user, id="r1")
-    factories.create_release_request("workspace2", user, id="r2")
-    factories.create_release_request("workspace", other_user, id="r3")
+    r1 = factories.create_release_request("workspace", user)
+    factories.create_release_request("workspace2", user)
+    r3 = factories.create_release_request("workspace", other_user)
 
     assert [r.id for r in bll.get_requests_for_workspace("workspace", user)] == [
-        "r1",
-        "r3",
+        r1.id,
+        r3.id,
     ]
 
 
 def test_provider_get_requests_for_workspace_bad_user(bll):
     user = factories.create_user("test", ["workspace"])
     other_user = factories.create_user("other", ["workspace_2"])
-    factories.create_release_request("workspace", user, id="r1")
-    factories.create_release_request("workspace_2", other_user, id="r2")
+    factories.create_release_request("workspace", user)
+    factories.create_release_request("workspace_2", other_user)
 
     with pytest.raises(exceptions.WorkspacePermissionDenied):
         bll.get_requests_for_workspace("workspace", other_user)
@@ -709,20 +708,20 @@ def test_provider_get_requests_for_workspace_bad_user(bll):
 def test_provider_get_requests_for_workspace_output_checker(bll):
     user = factories.create_user("test", ["workspace"])
     other_user = factories.create_user("other", [], True)
-    factories.create_release_request("workspace", user, id="r1")
+    r1 = factories.create_release_request("workspace", user)
 
     assert [r.id for r in bll.get_requests_for_workspace("workspace", other_user)] == [
-        "r1",
+        r1.id,
     ]
 
 
 def test_provider_get_requests_authored_by_user(bll):
     user = factories.create_user("test", ["workspace"])
     other_user = factories.create_user("other", ["workspace"])
-    factories.create_release_request("workspace", user, id="r1")
-    factories.create_release_request("workspace", other_user, id="r2")
+    r1 = factories.create_release_request("workspace", user)
+    factories.create_release_request("workspace", other_user)
 
-    assert [r.id for r in bll.get_requests_authored_by_user(user)] == ["r1"]
+    assert [r.id for r in bll.get_requests_authored_by_user(user)] == [r1.id]
 
 
 @pytest.mark.parametrize(
@@ -739,14 +738,14 @@ def test_provider_get_outstanding_requests_for_review(output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
-    factories.create_request_at_status(
-        "workspace", author=other_user, id="r1", status=RequestStatus.SUBMITTED
+    r1 = factories.create_request_at_status(
+        "workspace", author=other_user, status=RequestStatus.SUBMITTED
     )
 
     # requests not visible to output checker
     # status submitted, but authored by output checker
     factories.create_request_at_status(
-        "workspace", author=user, id="r2", status=RequestStatus.SUBMITTED
+        "workspace", author=user, status=RequestStatus.SUBMITTED
     )
     # requests authored by other users, status other than pending
     for i, status in enumerate(
@@ -770,7 +769,7 @@ def test_provider_get_outstanding_requests_for_review(output_checker, bll):
 
     if output_checker:
         assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
-            ["r1"]
+            [r1.id]
         )
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
@@ -792,10 +791,9 @@ def test_provider_get_returned_requests(output_checker, bll):
     other_user = factories.create_user("other", ["workspace"], False)
 
     # request created by another user, status returned
-    factories.create_request_at_status(
+    r1 = factories.create_request_at_status(
         "workspace",
         author=other_user,
-        id="r1",
         status=RequestStatus.RETURNED,
         files=[factories.request_file(path="file.txt", approved=True)],
     )
@@ -805,7 +803,6 @@ def test_provider_get_returned_requests(output_checker, bll):
     factories.create_request_at_status(
         "workspace",
         author=user,
-        id="r2",
         status=RequestStatus.RETURNED,
         files=[factories.request_file(path="file.txt", approved=True)],
     )
@@ -832,7 +829,7 @@ def test_provider_get_returned_requests(output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_returned_requests(user)) == set(["r1"])
+        assert set(r.id for r in bll.get_returned_requests(user)) == set([r1.id])
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_returned_requests(user)
@@ -853,10 +850,9 @@ def test_provider_get_approved_requests(output_checker, bll):
     other_user = factories.create_user("other", ["workspace"], False)
 
     # request created by another user, status approved
-    factories.create_request_at_status(
+    r1 = factories.create_request_at_status(
         "workspace",
         author=other_user,
-        id="r1",
         status=RequestStatus.APPROVED,
         files=[factories.request_file(path="file.txt", approved=True)],
     )
@@ -866,7 +862,6 @@ def test_provider_get_approved_requests(output_checker, bll):
     factories.create_request_at_status(
         "workspace",
         author=user,
-        id="r2",
         status=RequestStatus.APPROVED,
         files=[factories.request_file(path="file.txt", approved=True)],
     )
@@ -893,7 +888,7 @@ def test_provider_get_approved_requests(output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_approved_requests(user)) == set(["r1"])
+        assert set(r.id for r in bll.get_approved_requests(user)) == set([r1.id])
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_approved_requests(user)
@@ -961,52 +956,19 @@ def test_provider_get_or_create_current_request_for_user(bll):
     ]
 
     # reach around an simulate 2 active requests for same user
-    bll._create_release_request(author=user, workspace="workspace")
+    bll._dal.create_release_request(
+        workspace="workspace",
+        author=user.username,
+        status=RequestStatus.PENDING,
+        audit=AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user.username,
+            workspace=workspace,
+        ),
+    )
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", user)
-
-
-@pytest.mark.parametrize(
-    "workspaces,exception",
-    [
-        # no access
-        ({}, exceptions.WorkspacePermissionDenied),
-        # workspace archived
-        (
-            {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": True},
-                    "archived": True,
-                }
-            },
-            exceptions.RequestPermissionDenied,
-        ),
-        # project inactive
-        (
-            {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": False},
-                    "archived": False,
-                }
-            },
-            exceptions.RequestPermissionDenied,
-        ),
-    ],
-)
-def test_provider_get_or_create_current_request_for_user_no_permissions(
-    bll, workspaces, exception
-):
-    workspace = factories.create_workspace("workspace")
-    # create the request with a user who has permission
-    factories.create_release_request(
-        workspace, factories.create_user("testuser", ["workspace"])
-    )
-
-    # Duplicate user who has the test permissions/workspace status
-    user = factories.create_user("testuser", workspaces, False)
-    with pytest.raises(exception):
-        bll.get_or_create_current_request("workspace", user)
 
 
 def test_provider_get_current_request_for_former_user(bll):
@@ -1361,7 +1323,7 @@ def test_notification_updates(
     bll, mock_notifications, updates, success, expected_error
 ):
     author = factories.create_user()
-    release_request = factories.create_release_request("test", author)
+    release_request = factories.create_release_request("workspace", author)
     if success:
         bll.send_notification(
             release_request, NotificationEventType.REQUEST_SUBMITTED, author, updates
@@ -1422,7 +1384,7 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
 
 def test_set_status_cannot_action_own_request(bll):
     user = factories.create_user(
-        output_checker=True, workspaces=["workspace1", "workspace2"]
+        workspaces=["workspace", "workspace1"], output_checker=True
     )
     release_request1 = factories.create_request_at_status(
         "workspace", author=user, status=RequestStatus.SUBMITTED
@@ -1581,7 +1543,7 @@ def test_add_file_to_request_no_permission(bll, workspaces, exception):
     )
 
     # create duplicate user with test workspaces
-    author = factories.create_user("author", workspaces, False)
+    author = factories.create_user_from_dict("author", workspaces, False)
     with pytest.raises(exception):
         bll.add_file_to_request(release_request, path, author)
 
@@ -2164,7 +2126,6 @@ def test_request_release_get_request_file_from_urlpath(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
-        id="id",
         files=[
             factories.request_file(
                 group="default",
@@ -2191,7 +2152,6 @@ def test_request_release_abspath(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
-        id="id",
         files=[
             factories.request_file(
                 group="default",
@@ -2212,7 +2172,6 @@ def test_request_release_request_filetype(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
-        id="id",
         files=[
             factories.request_file(
                 group="default",

@@ -37,7 +37,6 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         author: str,
         status: RequestStatus,
         audit: AuditEvent,
-        id: str | None = None,  # noqa: A002
     ):
         # Note: id is created automatically, but can be set manually if needed
         with transaction.atomic():
@@ -45,9 +44,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 workspace=workspace,
                 author=author,
                 status=status,
-                id=id,  # noqa: A002
             )
-            # ensure correct id
+            # special case: ensure audit has correct id now that we know it
             audit.request = metadata.id
             self._create_audit_log(audit)
 
