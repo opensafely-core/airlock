@@ -4,7 +4,6 @@ import json
 from dataclasses import dataclass
 from hashlib import file_digest
 from io import BytesIO
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
