@@ -553,7 +553,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
 
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
-    old_api.create_release.return_value = "jobserver_id"
+    old_api.create_release.return_value = "jobserver_id"  # type: ignore
     author = factories.create_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
@@ -625,10 +625,10 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "review": None,
     }
 
-    old_api.create_release.assert_called_once_with(
+    old_api.create_release.assert_called_once_with(  # type: ignore
         "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
     )
-    old_api.upload_file.assert_called_once_with(
+    old_api.upload_file.assert_called_once_with(  # type: ignore
         "jobserver_id", relpath, abspath, checkers[0].username
     )
 
