@@ -1308,14 +1308,11 @@ class BusinessLogicLayer:
         # and is not an output-cheker
         request = self.get_current_request(workspace, user)
 
-        # requests for output-checkers, and for archived workspaces and inactive
-        # projects are still viewable, check if user has permission to create one
-        # Note: we check this here, as this function is only used when we are
-        # about to modify a request, so do a look ahead check to make sure we can
-        permissions.check_user_can_action_request_for_workspace(user, workspace)
-
         if request is not None:
             return request
+
+        # check if user has permission to create one
+        permissions.check_user_can_action_request_for_workspace(user, workspace)
 
         audit = AuditEvent(
             type=AuditEventType.REQUEST_CREATE,

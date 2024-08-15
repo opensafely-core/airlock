@@ -971,48 +971,6 @@ def test_provider_get_or_create_current_request_for_user(bll):
         bll.get_current_request("workspace", user)
 
 
-@pytest.mark.parametrize(
-    "workspaces,exception",
-    [
-        # no access
-        ({}, exceptions.WorkspacePermissionDenied),
-        # workspace archived
-        (
-            {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": True},
-                    "archived": True,
-                }
-            },
-            exceptions.RequestPermissionDenied,
-        ),
-        # project inactive
-        (
-            {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": False},
-                    "archived": False,
-                }
-            },
-            exceptions.RequestPermissionDenied,
-        ),
-    ],
-)
-def test_provider_get_or_create_current_request_for_user_no_permissions(
-    bll, workspaces, exception
-):
-    workspace = factories.create_workspace("workspace")
-    # create the request with a user who has permission
-    factories.create_release_request(
-        workspace, factories.create_user("testuser", ["workspace"])
-    )
-
-    # Duplicate user who has the test permissions/workspace status
-    user = factories.create_user_from_dict("testuser", workspaces, False)
-    with pytest.raises(exception):
-        bll.get_or_create_current_request("workspace", user)
-
-
 def test_provider_get_current_request_for_former_user(bll):
     factories.create_workspace("workspace")
     user = factories.create_user("testuser", ["workspace"], False)
