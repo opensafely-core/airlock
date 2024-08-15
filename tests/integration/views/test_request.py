@@ -3,6 +3,7 @@ from io import BytesIO
 import pytest
 import requests
 from django.contrib.messages import get_messages
+from django.template.response import TemplateResponse
 
 from airlock import exceptions
 from airlock.business_logic import bll
@@ -1571,6 +1572,7 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
         f"/requests/release/{release_request.id}", follow=True
     )
     assert response.status_code == 200
+    assert isinstance(response, TemplateResponse)
     assert (
         list(response.context["messages"])[0].message
         == "Error releasing files: Permission denied"
@@ -1613,6 +1615,7 @@ def test_requests_release_jobserver_403_with_debug(
     )
     # DEBUG is on, so we return the job-server error
     assert response.status_code == 200
+    assert isinstance(response, TemplateResponse)
     error_message = list(response.context["messages"])[0].message
     assert "An error from job-server" in error_message
     assert f"Type: {content_type}" in error_message
@@ -1635,6 +1638,7 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
         f"/requests/release/{release_request.id}", follow=True
     )
     assert response.status_code == 200
+    assert isinstance(response, TemplateResponse)
     assert (
         list(response.context["messages"])[0].message
         == "Error releasing files; please contact tech-support."
