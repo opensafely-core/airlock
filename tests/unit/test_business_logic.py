@@ -3773,6 +3773,61 @@ def test_group_comment_visibility_public_success(bll):
 
 
 @pytest.mark.parametrize(
+    "status,checker_can_change_visibility",
+    [
+        (RequestStatus.PENDING, False),
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, True),
+        (RequestStatus.REVIEWED, True),
+        (RequestStatus.RETURNED, False),
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.WITHDRAWN, False),
+        (RequestStatus.REJECTED, False),
+    ],
+)
+def test_group_comment_visibility_public_permissions(
+    bll, status, checker_can_change_visibility
+):
+    author = factories.create_user("author", ["workspace"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker1", [], True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=status,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+        withdrawn_after=RequestStatus.PENDING,
+    )
+
+    if not release_request.filegroups["group"].comments:
+        # there is no comment as it's not possible for an output checker to have
+        # commented yet
+        return
+
+    checker_comment = release_request.filegroups["group"].comments[0]
+
+    release_request = factories.refresh_release_request(release_request)
+
+    if checker_can_change_visibility:
+        bll.group_comment_visibility_public(
+            release_request, "group", checker_comment.id, checker
+        )
+        release_request = factories.refresh_release_request(release_request)
+        assert (
+            release_request.filegroups["group"].comments[0].visibility
+            == Visibility.PUBLIC
+        )
+    else:
+        with pytest.raises(exceptions.RequestPermissionDenied):
+            bll.group_comment_visibility_public(
+                release_request, "group", checker_comment.id, checker
+            )
+
+
+@pytest.mark.parametrize(
     "status,author_can_delete,checker_can_delete",
     [
         (RequestStatus.PENDING, True, False),
