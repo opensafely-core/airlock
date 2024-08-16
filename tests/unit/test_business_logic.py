@@ -3227,7 +3227,7 @@ def test_review_request(bll):
 
     # approved second file
     factories.review_file(
-        release_request, "test1.txt", RequestFileVote.APPROVED, checker
+        release_request, UrlPath("test1.txt"), RequestFileVote.APPROVED, checker
     )
     release_request = factories.refresh_release_request(release_request)
     bll.review_request(release_request, checker)

@@ -461,7 +461,7 @@ def add_request_file(
     return refresh_release_request(request)
 
 
-def create_request_file_bad_path(request_file, bad_path):
+def create_request_file_bad_path(request_file: RequestFile, bad_path) -> RequestFile:
     bad_request_file_dict = {
         "relpath": bad_path,
         "group": request_file.group,
@@ -484,13 +484,12 @@ def get_default_output_checkers():
     ]
 
 
-def review_file(request, relpath, status, *users):
+def review_file(request: ReleaseRequest, relpath: UrlPath, status, *users):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
 
     request = refresh_release_request(request)
 
-    relpath = UrlPath(relpath)
     for user in users:
         if status == RequestFileVote.APPROVED:
             bll.approve_file(
