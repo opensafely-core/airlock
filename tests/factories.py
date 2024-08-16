@@ -197,7 +197,7 @@ def write_workspace_file(workspace, path, contents="", manifest=True):
         update_manifest(workspace, [path])
 
 
-def create_repo(workspace, files=None, temporary=True):
+def create_repo(workspace, files=None, temporary=True) -> CodeRepo:
     workspace = ensure_workspace(workspace)
     repo_dir = settings.GIT_REPO_DIR / workspace.name
 

@@ -475,7 +475,7 @@ class CodeRepo:
         pass
 
     @classmethod
-    def from_workspace(cls, workspace: Workspace, commit: str):
+    def from_workspace(cls, workspace: Workspace, commit: str) -> CodeRepo:
         try:
             repo = list(workspace.manifest["outputs"].values())[0]["repo"]
         except (exceptions.ManifestFileError, IndexError, KeyError) as exc:

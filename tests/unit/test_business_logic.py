@@ -482,7 +482,7 @@ def test_code_repo_container():
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert repo.request_filetype("path") == RequestFileType.CODE
+    assert repo.request_filetype(UrlPath("path")) == RequestFileType.CODE
 
 
 @pytest.mark.parametrize("output_checker", [False, True])
