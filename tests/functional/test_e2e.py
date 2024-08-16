@@ -151,13 +151,17 @@ def test_e2e_release_files(
     add_file_button = page.locator("#add-file-modal-button-disabled")
     expect(add_file_button).to_be_disabled()
 
+    # Click on directory so we can screenshot it
+    page.goto(f"{live_server.url}/workspaces/view/test-workspace/subdir")
+    page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_directory_view.png")
+
     # Get and click on the valid file
     find_and_click(page.get_by_role("link", name="file.csv").first)
     expect(page.locator("iframe")).to_have_attribute(
         "src", workspace.get_contents_url(UrlPath("subdir/file.csv"))
     )
     # wait briefly for the table to load before screenshotting
-    page.wait_for_timeout(20)
+    page.wait_for_timeout(30)
     page.screenshot(
         full_page=True, path=settings.SCREENSHOT_DIR / "workspace_file_view.png"
     )
