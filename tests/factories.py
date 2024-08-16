@@ -484,7 +484,9 @@ def get_default_output_checkers():
     ]
 
 
-def review_file(request: ReleaseRequest, relpath: UrlPath, status, *users):
+def review_file(
+    request: ReleaseRequest, relpath: UrlPath, status: RequestFileVote, *users
+):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
 
