@@ -2055,7 +2055,9 @@ class BusinessLogicLayer:
         if not comment:
             raise exceptions.FileNotFound(f"Comment {comment_id} not found")
 
-        permissions.check_user_can_comment_on_group(user, release_request)
+        permissions.check_user_can_make_comment_publicly_visible(
+            user, release_request, comment
+        )
 
         audit = AuditEvent.from_request(
             request=release_request,

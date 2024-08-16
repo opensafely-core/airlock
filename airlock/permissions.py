@@ -323,3 +323,28 @@ def user_can_delete_comment(
     except exceptions.RequestPermissionDenied:
         return False
     return True
+
+
+def user_can_make_comment_publicly_visible(
+    user: User, request: "ReleaseRequest", comment: "Comment"
+):  # pragma: no cover; not currently used
+    try:
+        check_user_can_make_comment_publicly_visible(user, request, comment)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+def check_user_can_make_comment_publicly_visible(
+    user: User, request: "ReleaseRequest", comment: "Comment"
+):
+    # Only the author of a comment can make it public
+    if not user.username == comment.author:
+        raise exceptions.RequestPermissionDenied(
+            f"User {user.username} is not the author of this comment, so cannot delete"
+        )
+    # Restrictions on making comments public are the same as for creating them. This
+    # means that comments can't be changed once a user has completed their turn, and
+    # comments can't be modified at all after a request has moved into a final state
+    check_user_can_comment_on_group(user, request)
+    policies.check_can_make_comment_publicly_visible(request, comment)

@@ -183,3 +183,9 @@ def check_can_modify_request(request: "ReleaseRequest"):
         raise exceptions.RequestPermissionDenied(
             "This request can no longer be modified."
         )
+
+def check_can_make_comment_publicly_visible(request: "ReleaseRequest", comment: "Comment"):
+    if not request.review_turn == comment.review_turn:
+        raise exceptions.RequestPermissionDenied(
+            "Comments visibility cannot be changed after a round finishes"
+        )
