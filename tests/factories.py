@@ -30,11 +30,11 @@ from airlock.users import User
 
 
 def create_user(
-    username="testuser",
+    username: str="testuser",
     workspaces: list[str] | None = None,
-    output_checker=False,
+    output_checker: bool=False,
     last_refresh=None,
-):
+) -> User:
     """Factory to create a user.
 
     For ease of use, workspaces is just a flat list of workspace name, which is
@@ -62,7 +62,7 @@ def create_user(
 
 def create_user_from_dict(
     username, workspaces_dict, output_checker=False, last_refresh=None
-):
+) -> User:
     if last_refresh is None:
         last_refresh = time.time()
 
@@ -262,7 +262,9 @@ def create_repo(workspace, files=None, temporary=True):
     return CodeRepo.from_workspace(workspace, commit)
 
 
-def create_release_request(workspace, user=None, status=None, **kwargs) -> ReleaseRequest:
+def create_release_request(
+    workspace, user=None, status=None, **kwargs
+) -> ReleaseRequest:
     if status:
         assert (
             status == RequestStatus.PENDING
