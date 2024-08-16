@@ -262,7 +262,7 @@ def create_repo(workspace, files=None, temporary=True):
     return CodeRepo.from_workspace(workspace, commit)
 
 
-def create_release_request(workspace, user=None, status=None, **kwargs):
+def create_release_request(workspace, user=None, status=None, **kwargs) -> ReleaseRequest:
     if status:
         assert (
             status == RequestStatus.PENDING
@@ -288,7 +288,7 @@ def create_request_at_status(
     checker=None,
     withdrawn_after=None,
     **kwargs,
-):
+) -> ReleaseRequest:
     """
     Create a valid request at the given status.
 

@@ -19,6 +19,7 @@ from airlock.business_logic import (
     Comment,
     DataAccessLayerProtocol,
     ReleaseRequest,
+    RequestFileStatus,
     Workspace,
 )
 from airlock.enums import (
@@ -1802,9 +1803,11 @@ def test_update_file_to_request_states(
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
     status1 = release_request.get_request_file_status("group" / path, checkers[0])
+    assert isinstance(status1, RequestFileStatus)
     assert status1.vote is None
     assert status1.decision == RequestFileDecision.INCOMPLETE
     status2 = release_request.get_request_file_status("group" / path, checkers[1])
+    assert isinstance(status2, RequestFileStatus)
     assert status2.vote is None
     assert status2.decision == RequestFileDecision.INCOMPLETE
 
