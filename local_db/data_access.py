@@ -474,16 +474,21 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             comment = FileGroupComment.objects.get(
                 id=comment_id,
             )
+            release_request = RequestMetadata.objects.get(
+                id=request_id,
+            )
             # but let's verify we're looking at the right thing
             if not (
                 comment.author == username
                 and comment.filegroup.name == group
                 and comment.filegroup.request.id == request_id
+                and release_request.review_turn == comment.review_turn
             ):
                 raise exceptions.APIException(
                     "Comment for deletion has inconsistent attributes "
                     f"(in file group '{comment.filegroup.name}')"
                 )
+
             comment.visibility = Visibility.PUBLIC
             comment.save()
 
