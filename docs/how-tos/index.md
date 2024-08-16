@@ -1,6 +1,6 @@
 The how-to guides provide practical steps for working with Airlock.
 
-* [How to access and log in Airlock](accessing-airlock.md)
+* [How to access and log in Airlock](access-airlock.md)
 
 
 For researchers:
@@ -20,8 +20,6 @@ For output checkers:
 * [Review a request](review-a-request.md)
 * [View code underlying an output file in a request](view-request-code.md)
 * [Download a file](download-file.md)
-* [Comment on a request](comment-on-request.md)
-* [Complete a turn](complete-turn.md)
 * [Reject a request](reject-request.md)
 * [Release files](release-files.md)
 
