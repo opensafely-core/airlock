@@ -435,7 +435,7 @@ def add_request_file(
     group,
     path,
     contents="",
-    user=None,
+    user: User | None = None,
     filetype=RequestFileType.OUTPUT,
     workspace=None,
 ) -> ReleaseRequest:
@@ -519,7 +519,7 @@ class TestRequestFile:
 
     group: str
     path: UrlPath
-    user: User
+    user: User | None
     contents: str = ""
     filetype: RequestFileType = RequestFileType.OUTPUT
     workspace: str | None = None
@@ -555,7 +555,7 @@ def request_file(
     path: UrlPath | str = "test/file.txt",
     contents="",
     filetype=RequestFileType.OUTPUT,
-    user=None,
+    user: User | None = None,
     approved=False,
     changes_requested=False,
     checkers=None,
