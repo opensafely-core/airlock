@@ -30,9 +30,9 @@ from airlock.users import User
 
 
 def create_user(
-    username: str="testuser",
+    username: str = "testuser",
     workspaces: list[str] | None = None,
-    output_checker: bool=False,
+    output_checker: bool = False,
     last_refresh=None,
 ) -> User:
     """Factory to create a user.
