@@ -17,3 +17,7 @@ of the file will be displayed.
 
 ![Workspaces view](../screenshots/workspace_file_view.png)
 
+---
+
+* Previous: [Accessing Airlock](access-airlock.md)
+* Next: [Alternative ways to view files](view-files-alt.md)
