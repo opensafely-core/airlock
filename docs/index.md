@@ -20,16 +20,9 @@ Airlock allows us to enforce some safety controls and policies automatically. Th
     Please ensure you use Chrome when accessing Airlock. Features
     may not work as expected in other browsers.
 
-To access the Airlock system:
-
-1. Outside of Level 4 [Obtain a Single Use Token via the
-    Jobs website](https://docs.opensafely.org/jobs-site/#viewing-analysis-outputs-on-the-server). 
-1. Log into Level 4 and navigate to Airlock in Chrome. Airlock is
-    accessed at `https://<backend>.backends.opensafely.org`. e.g. on
-    the TPP backend, go to `https://tpp.backends.opensafely.org`.
-1. Log in using your GitHub username or email and the single use token. 
-
-(Note: Airlock is not supported on browsers other than Chrome.)
+To access the Airlock system, you will need to [obtain a single user token via the
+Jobs site](https://docs.opensafely.org/jobs-site/#viewing-analysis-outputs-on-the-server),
+which you can use to login in Airlock in Chrome in the relevant backend.
 
 For more details, see the section on [how to access Airlock](how-tos/access-airlock.md)
 

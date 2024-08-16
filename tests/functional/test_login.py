@@ -20,7 +20,7 @@ def test_login(requests_post, settings, page, live_server):
 
     page.goto(live_server.url + "/login/?next=/")
     page.locator("#id_user").fill("test_user")
-    page.locator("#id_token").fill("foo bar baz")
+    page.locator("#id_token").fill("dummy test token")
 
     # Scroll the button into view before screenshotting the form
     submit_button = page.locator("button[type=submit]")
@@ -33,7 +33,7 @@ def test_login(requests_post, settings, page, live_server):
     requests_post.assert_called_with(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
         headers={"Authorization": "test_api_token"},
-        json={"user": "test_user", "token": "foo bar baz"},
+        json={"user": "test_user", "token": "dummy test token"},
     )
 
     expect(page).to_have_url(live_server.url + "/workspaces/")
