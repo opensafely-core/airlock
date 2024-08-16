@@ -32,7 +32,7 @@ from airlock.enums import (
     Visibility,
     WorkspaceFileStatus,
 )
-from airlock.types import UrlPath
+from airlock.types import FileMetadata, UrlPath
 from airlock.users import User
 from tests import factories
 
@@ -65,25 +65,25 @@ def test_workspace_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.html")
 
+    foo_bar_relpath = UrlPath("foo/bar.html")
+
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
     assert workspace.released_files == set()
     assert (
-        workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
+        workspace.get_url(foo_bar_relpath) == "/workspaces/view/workspace/foo/bar.html"
     )
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id="
-        in workspace.get_contents_url(UrlPath("foo/bar.html"))
+        in workspace.get_contents_url(foo_bar_relpath)
     )
-    plaintext_contents_url = workspace.get_contents_url(
-        UrlPath("foo/bar.html"), plaintext=True
-    )
+    plaintext_contents_url = workspace.get_contents_url(foo_bar_relpath, plaintext=True)
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id=" in plaintext_contents_url
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert workspace.request_filetype("path") is None
+    assert workspace.request_filetype(UrlPath("path")) is None  # type: ignore
 
 
 def test_workspace_from_directory_errors():
@@ -104,7 +104,7 @@ def test_workspace_from_directory_errors():
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
-    assert workspace.request_filetype("foo/bar.txt") is None
+    assert workspace.request_filetype(UrlPath("foo/bar.txt")) is None  # type: ignore
 
 
 def test_workspace_manifest_for_file():
@@ -149,6 +149,7 @@ def test_get_file_metadata():
     )
 
     from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    assert isinstance(from_file, FileMetadata)
     assert from_file.size == 3
     assert from_file.timestamp is not None
     assert from_file.content_hash == hashlib.sha256(b"foo").hexdigest()
@@ -160,6 +161,7 @@ def test_get_file_metadata():
     )
 
     from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
+    assert isinstance(from_metadata, FileMetadata)
     assert from_metadata.size == len(contents)
     assert from_metadata.timestamp is not None
     assert (
@@ -964,7 +966,7 @@ def test_provider_get_or_create_current_request_for_user(bll):
         audit=AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
             user=user.username,
-            workspace=workspace,
+            workspace=workspace.name,
         ),
     )
 

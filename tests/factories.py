@@ -69,7 +69,7 @@ def create_user_from_dict(
     return User(username, workspaces_dict, output_checker, last_refresh)
 
 
-def ensure_workspace(workspace_or_name):
+def ensure_workspace(workspace_or_name) -> Workspace:
     if isinstance(workspace_or_name, str):
         return create_workspace(workspace_or_name)
     elif isinstance(workspace_or_name, Workspace):
@@ -175,7 +175,7 @@ def update_manifest(workspace: Workspace | str, files=None):
         workspace.manifest = manifest
 
 
-def create_workspace(name, user=None):
+def create_workspace(name, user=None) -> Workspace:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
         user = create_user("author", workspaces=[name])
@@ -515,7 +515,7 @@ class TestRequestFile:
     """
 
     group: str
-    path: UrlPath | str
+    path: UrlPath
     user: User
     contents: str = ""
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -549,7 +549,7 @@ class TestRequestFile:
 
 def request_file(
     group="group",
-    path="test/file.txt",
+    path: UrlPath | str = "test/file.txt",
     contents="",
     filetype=RequestFileType.OUTPUT,
     user=None,
@@ -565,7 +565,7 @@ def request_file(
     """
     return TestRequestFile(
         group=group,
-        path=path,
+        path=UrlPath(path),
         contents=contents,
         filetype=filetype,
         user=user,

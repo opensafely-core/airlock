@@ -131,7 +131,7 @@ def test_add_file_to_request_bad_state():
     workspace = factories.create_workspace("workspace")
     author = factories.create_user(username="author", workspaces=["workspace"])
     request_file = factories.request_file()
-    relpath = request_file.path
+    relpath = UrlPath(request_file.path)
     factories.write_workspace_file(workspace, relpath, contents="1234")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -148,7 +148,7 @@ def test_add_file_to_request_bad_state():
         dal.add_file_to_request(
             request_id=release_request.id,
             group_name="group",
-            relpath=UrlPath(relpath),
+            relpath=relpath,
             file_id=file_id,
             filetype=RequestFileType.OUTPUT,
             timestamp=manifest["timestamp"],
