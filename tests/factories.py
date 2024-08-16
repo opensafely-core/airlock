@@ -289,6 +289,7 @@ def create_request_at_status(
     files=None,
     checker=None,
     withdrawn_after=None,
+    checker_comments=None,
     **kwargs,
 ) -> ReleaseRequest:
     """
@@ -365,6 +366,14 @@ def create_request_at_status(
         return refresh_release_request(request)
 
     bll.submit_request(request, author)
+
+    request = refresh_release_request(request)
+
+    if checker_comments:
+        # create comments
+        for group, comment, visibility in checker_comments:
+            bll.group_comment_create(request, "group", comment, visibility, checker)
+
     request = refresh_release_request(request)
 
     if files:
