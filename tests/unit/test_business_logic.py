@@ -3772,6 +3772,28 @@ def test_group_comment_visibility_public_success(bll):
     assert audit_log[0].extra["comment"] == "to-be-public comment"
 
 
+def test_group_comment_visibility_public_bad_user(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker1", [], True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+        withdrawn_after=RequestStatus.PENDING,
+    )
+
+    checker_comment = release_request.filegroups["group"].comments[0]
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.group_comment_visibility_public(
+            release_request, "group", checker_comment.id, author
+        )
+
+
 @pytest.mark.parametrize(
     "status,checker_can_change_visibility",
     [
