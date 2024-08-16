@@ -16,21 +16,23 @@ nav:
   - How-to guides:
     - how-tos/index.md
     - How to access and log in Airlock: how-tos/access-airlock.md
-    - View output files in a workspace: how-tos/view-workspace-files.md
-    - Alternative ways to view files: how-tos/view-files-alt.md
-    - View code underlying an output: how-tos/view-workspace-code.md
-    - Create and submit a release request: how-tos/create-and-submit-a-release-request.md
-    - Respond to a returned request: how-tos/respond-to-returned-request.md
-    - Update a file on a request: how-tos/update-file-on-request.md
-    - Withdraw a file from a request: how-tos/withdraw-file.md
-    - Withdraw a request: how-tos/withdraw-request.md
-    - Review a request: how-tos/review-a-request.md
-    - View code underlying an output file in a request: how-tos/view-request-code.md
-    - Download a file: how-tos/download-file.md
-    - Comment on a request: how-tos/comment-on-request.md
-    - Complete a turn: how-tos/complete-turn.md
-    - Reject a request: how-tos/reject-request.md
-    - Release files: how-tos/release-files.md
+    - For researchers:
+      - View output files in a workspace: how-tos/view-workspace-files.md
+      - Alternative ways to view files: how-tos/view-files-alt.md
+      - View code underlying an output: how-tos/view-workspace-code.md
+      - Create and submit a release request: how-tos/create-and-submit-a-release-request.md
+      - Respond to a returned request: how-tos/respond-to-returned-request.md
+      - Update a file on a request: how-tos/update-file-on-request.md
+      - Withdraw a file from a request: how-tos/withdraw-file.md
+      - Withdraw a request: how-tos/withdraw-request.md
+    - For output checkers:
+      - Review a request: how-tos/review-a-request.md
+      - View code underlying an output file in a request: how-tos/view-request-code.md
+      - Download a file: how-tos/download-file.md
+      - Comment on a request: how-tos/comment-on-request.md
+      - Complete a turn: how-tos/complete-turn.md
+      - Reject a request: how-tos/reject-request.md
+      - Release files: how-tos/release-files.md
   - Explanation: 
     - explanation/index.md
     - Why Airlock?: explanation/why-airlock.md
