@@ -1,3 +1,6 @@
+!!! note
+    This page is out of date
+
 After logging into Airlock, researchers can view files in workspaces that they
 have permission to access.
 

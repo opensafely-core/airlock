@@ -1,3 +1,6 @@
+!!! note
+    This page is out of date
+
 Two output checkers independently review each file and record their decisions using the buttons within Airlock.
 Whilst viewing a file in an Airlock release request, they have the option of: 
 

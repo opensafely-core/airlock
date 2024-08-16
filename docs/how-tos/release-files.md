@@ -1,3 +1,6 @@
+!!! note
+    This page is out of date
+
 When all output files in a release request have either been approved by two separate
 output checkers or withdrawn, the request can be released to the jobs site.
 
