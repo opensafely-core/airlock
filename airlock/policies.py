@@ -27,7 +27,7 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.business_logic import FileReview, ReleaseRequest, Workspace
+    from airlock.business_logic import Comment, FileReview, ReleaseRequest, Workspace
 
 
 def check_can_edit_request(request: "ReleaseRequest"):
@@ -184,7 +184,10 @@ def check_can_modify_request(request: "ReleaseRequest"):
             "This request can no longer be modified."
         )
 
-def check_can_make_comment_publicly_visible(request: "ReleaseRequest", comment: "Comment"):
+
+def check_can_make_comment_publicly_visible(
+    request: "ReleaseRequest", comment: "Comment"
+):
     if not request.review_turn == comment.review_turn:
         raise exceptions.RequestPermissionDenied(
             "Comments visibility cannot be changed after a round finishes"

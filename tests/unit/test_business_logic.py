@@ -3707,6 +3707,71 @@ def test_group_comment_delete_success(bll):
     assert audit_log[0].extra["comment"] == "typo comment"
 
 
+def test_group_comment_visibility_public_success(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    output_checker = factories.create_user("checker", [], True)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
+    )
+
+    assert release_request.filegroups["group"].comments == []
+
+    bll.group_comment_create(
+        release_request, "group", "private comment", Visibility.PRIVATE, output_checker
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "to-be-public comment",
+        Visibility.PRIVATE,
+        output_checker,
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    private_comment = release_request.filegroups["group"].comments[0]
+    public_comment = release_request.filegroups["group"].comments[1]
+
+    assert private_comment.comment == "private comment"
+    assert private_comment.author == "checker"
+    assert public_comment.comment == "to-be-public comment"
+    assert public_comment.author == "checker"
+
+    bll.group_comment_visibility_public(
+        release_request, "group", public_comment.id, output_checker
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    current_comments = release_request.filegroups["group"].comments
+    assert current_comments[0].comment == "private comment"
+    assert current_comments[0].visibility == Visibility.PRIVATE
+    assert current_comments[1].comment == "to-be-public comment"
+    assert current_comments[1].visibility == Visibility.PUBLIC
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[2].request == release_request.id
+    assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[2].user == output_checker.username
+    assert audit_log[2].extra["group"] == "group"
+    assert audit_log[2].extra["comment"] == "private comment"
+
+    assert audit_log[1].request == release_request.id
+    assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[1].user == output_checker.username
+    assert audit_log[1].extra["group"] == "group"
+    assert audit_log[1].extra["comment"] == "to-be-public comment"
+
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].type == AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC
+    assert audit_log[0].user == output_checker.username
+    assert audit_log[0].extra["group"] == "group"
+    assert audit_log[0].extra["comment"] == "to-be-public comment"
+
+
 @pytest.mark.parametrize(
     "status,author_can_delete,checker_can_delete",
     [
