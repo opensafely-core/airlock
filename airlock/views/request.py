@@ -321,6 +321,10 @@ def group_presenter(release_request, relpath, request):
             "group_comment_delete",
             kwargs={"request_id": release_request.id, "group": group},
         ),
+        "comment_visibility_public_url": reverse(
+            "group_comment_visibility_public",
+            kwargs={"request_id": release_request.id, "group": group},
+        ),
         # group activity
         "activity": bll.get_request_audit_log(
             user=request.user,
@@ -716,6 +720,41 @@ def group_comment_delete(request, request_id, group):
             )
         else:
             messages.success(request, "Comment deleted")
+
+    else:
+        for field, error_list in form.errors.items():
+            for error in error_list:
+                messages.error(request, f"{field}: {error}")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_comment_visibility_public(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+
+    form = GroupCommentDeleteForm(request.POST)
+
+    if form.is_valid():
+        comment_id = form.cleaned_data["comment_id"]
+        try:
+            bll.group_comment_visibility_public(
+                release_request,
+                group=group,
+                comment_id=comment_id,
+                user=request.user,
+            )
+        except exceptions.RequestPermissionDenied as exc:  # pragma: nocover
+            # currently, we can't hit this because of get_release_request_or_raise above.
+            # However, that may change, so handle it anyway.
+            raise PermissionDenied(str(exc))
+        except exceptions.FileNotFound:
+            raise Http404(
+                request, f"Comment not found in group {group} with id {comment_id}"
+            )
+        else:
+            messages.success(request, "Comment made public")
 
     else:
         for field, error_list in form.errors.items():

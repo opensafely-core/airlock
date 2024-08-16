@@ -79,6 +79,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
+    AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC: "Private comment made public",
     AuditEventType.REQUEST_FILE_ADD: "Added file",
     AuditEventType.REQUEST_FILE_UPDATE: "Updated file",
     AuditEventType.REQUEST_FILE_WITHDRAW: "Withdrew file from group",
@@ -1193,6 +1194,16 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def group_comment_visibility_public(
+        self,
+        request_id: str,
+        group: str,
+        comment_id: str,
+        username: str,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
 
 class BusinessLogicLayer:
     """
@@ -2027,6 +2038,34 @@ class BusinessLogicLayer:
         )
 
         self._dal.group_comment_delete(
+            release_request.id, group, comment_id, user.username, audit
+        )
+
+    def group_comment_visibility_public(
+        self, release_request: ReleaseRequest, group: str, comment_id: str, user: User
+    ):
+        filegroup = release_request.filegroups.get(group)
+        if not filegroup:
+            raise exceptions.FileNotFound(f"Filegroup {group} not found")
+
+        comment = next(
+            (c for c in filegroup.comments if c.id == comment_id),
+            None,
+        )
+        if not comment:
+            raise exceptions.FileNotFound(f"Comment {comment_id} not found")
+
+        permissions.check_user_can_comment_on_group(user, release_request)
+
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC,
+            user=user,
+            group=group,
+            comment=comment.comment,
+        )
+
+        self._dal.group_comment_visibility_public(
             release_request.id, group, comment_id, user.username, audit
         )
 

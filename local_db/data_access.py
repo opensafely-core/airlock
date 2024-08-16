@@ -460,3 +460,31 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             comment.delete()
 
             self._create_audit_log(audit)
+
+    def group_comment_visibility_public(
+        self,
+        request_id: str,
+        group: str,
+        comment_id: str,
+        username: str,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            # we can just get the comment directly by id
+            comment = FileGroupComment.objects.get(
+                id=comment_id,
+            )
+            # but let's verify we're looking at the right thing
+            if not (
+                comment.author == username
+                and comment.filegroup.name == group
+                and comment.filegroup.request.id == request_id
+            ):
+                raise exceptions.APIException(
+                    "Comment for deletion has inconsistent attributes "
+                    f"(in file group '{comment.filegroup.name}')"
+                )
+            comment.visibility = Visibility.PUBLIC
+            comment.save()
+
+            self._create_audit_log(audit)
