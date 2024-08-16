@@ -131,7 +131,7 @@ def test_add_file_to_request_bad_state():
     workspace = factories.create_workspace("workspace")
     author = factories.create_user(username="author", workspaces=["workspace"])
     request_file = factories.request_file()
-    relpath = request_file.path
+    relpath = UrlPath(request_file.path)
     factories.write_workspace_file(workspace, relpath, contents="1234")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -148,7 +148,7 @@ def test_add_file_to_request_bad_state():
         dal.add_file_to_request(
             request_id=release_request.id,
             group_name="group",
-            relpath=UrlPath(relpath),
+            relpath=relpath,
             file_id=file_id,
             filetype=RequestFileType.OUTPUT,
             timestamp=manifest["timestamp"],
@@ -206,7 +206,7 @@ def test_group_comment_delete_bad_params():
         "author comment",
         Visibility.PUBLIC,
         release_request.review_turn,
-        author,
+        author.username,
         audit,
     )
 
@@ -218,7 +218,9 @@ def test_group_comment_delete_bad_params():
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        dal.group_comment_delete(release_request.id, "badgroup", "1", author, audit)
+        dal.group_comment_delete(
+            release_request.id, "badgroup", "1", author.username, audit
+        )
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -228,7 +230,9 @@ def test_group_comment_delete_bad_params():
         comment="other comment",
     )
     with pytest.raises(models.FileGroupComment.DoesNotExist):
-        dal.group_comment_delete(release_request.id, "group", "50", author, audit)
+        dal.group_comment_delete(
+            release_request.id, "group", "50", author.username, audit
+        )
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -238,4 +242,6 @@ def test_group_comment_delete_bad_params():
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        dal.group_comment_delete(release_request.id, "group", "1", other, audit)
+        dal.group_comment_delete(
+            release_request.id, "group", "1", other.username, audit
+        )

@@ -72,15 +72,15 @@ def test_not_instrument_decorator():
 def test_instrument_decorator():
     current_span = trace.get_current_span()
     assert current_span.is_recording() is True
-    assert current_span.name == "test_instrument_decorator"
+    assert current_span.name == "test_instrument_decorator"  # type: ignore
 
 
 @instrument(span_name="testing", attributes={"foo": "bar"})
 def test_instrument_decorator_with_name_and_attributes():
     current_span = trace.get_current_span()
     assert current_span.is_recording() is True
-    assert current_span.name == "testing"
-    assert current_span.attributes == {"foo": "bar"}
+    assert current_span.name == "testing"  # type: ignore
+    assert current_span.attributes == {"foo": "bar"}  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,7 @@ def test_instrument_decorator_with_function_attributes(
     @instrument(**func_attributes)
     def assert_function_kwarg_attributes(num, string="Foo"):
         current_span = trace.get_current_span()
-        assert current_span.attributes == expected_attributes
+        assert current_span.attributes == expected_attributes  # type: ignore
         return num, string
 
     assert_function_kwarg_attributes(*func_args, **func_kwargs)
@@ -139,7 +139,7 @@ def test_instrument_decorator_with_unnamed_kwargs(func_kwargs, expect_ok):
     @instrument(func_attributes={"foo": "bar"})
     def decorated_function(**kwargs):
         current_span = trace.get_current_span()
-        assert current_span.attributes == {"foo": str(kwargs["bar"])}
+        assert current_span.attributes == {"foo": str(kwargs["bar"])}  # type: ignore
 
     if expect_ok:
         decorated_function(**func_kwargs)
@@ -163,7 +163,7 @@ def test_instrument_decorator_on_class_method(instance_kwargs, function_arg, exp
         @instrument(func_attributes={"foo": "bar", "foo1": "baz"})
         def decorated_method(self, bar):
             current_span = trace.get_current_span()
-            assert current_span.attributes == expected
+            assert current_span.attributes == expected  # type: ignore
 
     instance = Decorated(**instance_kwargs)
     instance.decorated_method(function_arg)

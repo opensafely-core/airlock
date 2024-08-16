@@ -2,8 +2,8 @@ import os
 import sys
 
 import pytest
-import pytest_playwright
-from pytest_playwright.pytest_playwright import (
+import pytest_playwright  # type: ignore
+from pytest_playwright.pytest_playwright import (  # type: ignore
     VSCODE_PYTHON_EXTENSION_ID,
     _is_debugger_attached,
 )
@@ -24,10 +24,10 @@ def browser_type_launch_args_with_browser_executable(pytestconfig):  # pragma: n
     # https://github.com/microsoft/playwright-pytest/blob/v0.4.4/pytest_playwright/pytest_playwright.py#L128
     headed_option = pytestconfig.getoption("--headed")
     if headed_option:
-        launch_options["headless"] = False
+        launch_options["headless"] = False  # type: ignore
     elif VSCODE_PYTHON_EXTENSION_ID in sys.argv[0] and _is_debugger_attached():
         # When the VSCode debugger is attached, then launch the browser headed by default
-        launch_options["headless"] = False
+        launch_options["headless"] = False  # type: ignore
 
     browser_channel_option = pytestconfig.getoption("--browser-channel")
     if browser_channel_option:

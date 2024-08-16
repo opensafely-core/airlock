@@ -19,6 +19,7 @@ from airlock.business_logic import (
     Comment,
     DataAccessLayerProtocol,
     ReleaseRequest,
+    RequestFileStatus,
     Workspace,
 )
 from airlock.enums import (
@@ -32,7 +33,7 @@ from airlock.enums import (
     Visibility,
     WorkspaceFileStatus,
 )
-from airlock.types import UrlPath
+from airlock.types import FileMetadata, UrlPath
 from airlock.users import User
 from tests import factories
 
@@ -65,25 +66,25 @@ def test_workspace_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.html")
 
+    foo_bar_relpath = UrlPath("foo/bar.html")
+
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
     assert workspace.released_files == set()
     assert (
-        workspace.get_url("foo/bar.html") == "/workspaces/view/workspace/foo/bar.html"
+        workspace.get_url(foo_bar_relpath) == "/workspaces/view/workspace/foo/bar.html"
     )
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id="
-        in workspace.get_contents_url(UrlPath("foo/bar.html"))
+        in workspace.get_contents_url(foo_bar_relpath)
     )
-    plaintext_contents_url = workspace.get_contents_url(
-        UrlPath("foo/bar.html"), plaintext=True
-    )
+    plaintext_contents_url = workspace.get_contents_url(foo_bar_relpath, plaintext=True)
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id=" in plaintext_contents_url
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert workspace.request_filetype("path") is None
+    assert workspace.request_filetype(UrlPath("path")) is None  # type: ignore
 
 
 def test_workspace_from_directory_errors():
@@ -104,7 +105,7 @@ def test_workspace_from_directory_errors():
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
-    assert workspace.request_filetype("foo/bar.txt") is None
+    assert workspace.request_filetype(UrlPath("foo/bar.txt")) is None  # type: ignore
 
 
 def test_workspace_manifest_for_file():
@@ -149,6 +150,7 @@ def test_get_file_metadata():
     )
 
     from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    assert isinstance(from_file, FileMetadata)
     assert from_file.size == 3
     assert from_file.timestamp is not None
     assert from_file.content_hash == hashlib.sha256(b"foo").hexdigest()
@@ -160,6 +162,7 @@ def test_get_file_metadata():
     )
 
     from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
+    assert isinstance(from_metadata, FileMetadata)
     assert from_metadata.size == len(contents)
     assert from_metadata.timestamp is not None
     assert (
@@ -479,7 +482,7 @@ def test_code_repo_container():
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert repo.request_filetype("path") == RequestFileType.CODE
+    assert repo.request_filetype(UrlPath("path")) == RequestFileType.CODE
 
 
 @pytest.mark.parametrize("output_checker", [False, True])
@@ -501,7 +504,9 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
             "archived": False,
         },
     }
-    user = factories.create_user(workspaces=workspaces, output_checker=output_checker)
+    user = factories.create_user_from_dict(
+        username="testuser", workspaces_dict=workspaces, output_checker=output_checker
+    )
 
     assert bll.get_workspaces_for_user(user) == [
         bll.get_workspace("foo", user),
@@ -551,7 +556,7 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
 
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
-    old_api.create_release.return_value = "jobserver_id"
+    old_api.create_release.return_value = "jobserver_id"  # type: ignore
     author = factories.create_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
@@ -623,10 +628,10 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "review": None,
     }
 
-    old_api.create_release.assert_called_once_with(
+    old_api.create_release.assert_called_once_with(  # type: ignore
         "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
     )
-    old_api.upload_file.assert_called_once_with(
+    old_api.upload_file.assert_called_once_with(  # type: ignore
         "jobserver_id", relpath, abspath, checkers[0].username
     )
 
@@ -962,7 +967,7 @@ def test_provider_get_or_create_current_request_for_user(bll):
         audit=AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
             user=user.username,
-            workspace=workspace,
+            workspace=workspace.name,
         ),
     )
 
@@ -1798,9 +1803,11 @@ def test_update_file_to_request_states(
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
     status1 = release_request.get_request_file_status("group" / path, checkers[0])
+    assert isinstance(status1, RequestFileStatus)
     assert status1.vote is None
     assert status1.decision == RequestFileDecision.INCOMPLETE
     status2 = release_request.get_request_file_status("group" / path, checkers[1])
+    assert isinstance(status2, RequestFileStatus)
     assert status2.vote is None
     assert status2.decision == RequestFileDecision.INCOMPLETE
 
@@ -3220,7 +3227,7 @@ def test_review_request(bll):
 
     # approved second file
     factories.review_file(
-        release_request, "test1.txt", RequestFileVote.APPROVED, checker
+        release_request, UrlPath("test1.txt"), RequestFileVote.APPROVED, checker
     )
     release_request = factories.refresh_release_request(release_request)
     bll.review_request(release_request, checker)

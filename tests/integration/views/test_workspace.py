@@ -544,7 +544,7 @@ def test_workspace_multiselect_add_files_all_valid(airlock_client, bll):
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -573,7 +573,7 @@ def test_workspace_multiselect_add_files_one_valid(airlock_client, bll):
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -603,7 +603,7 @@ def test_workspace_multiselect_add_files_none_valid(airlock_client, bll):
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -639,7 +639,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -665,8 +665,8 @@ def test_workspace_multiselect_update_files(
     airlock_client.login_with_user(author)
 
     workspace = factories.create_workspace("test1")
-    path1 = "test/path1.txt"
-    path2 = "test/path2.txt"
+    path1 = UrlPath("test/path1.txt")
+    path2 = UrlPath("test/path2.txt")
 
     factories.create_request_at_status(
         "test1",
@@ -701,7 +701,7 @@ def test_workspace_multiselect_update_files(
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path1.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path1.txt")),
         },
     )
 
@@ -738,7 +738,7 @@ def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):
                 "test/path1.txt",
                 "test/path2.txt",
             ],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -758,7 +758,7 @@ def test_workspace_multiselect_bad_action(airlock_client, bll):
         data={
             "action": "bad",
             "selected": ["foo"],
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -815,11 +815,11 @@ def test_workspace_request_file_creates(airlock_client, bll, filetype):
             "form-0-file": "test/path.txt",
             "form-0-filetype": filetype,
             "filegroup": "default",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
     assert response.status_code == 302
-    assert workspace.get_url("test/path.txt") in response.headers["Location"]
+    assert workspace.get_url(UrlPath("test/path.txt")) in response.headers["Location"]
 
     release_request = bll.get_current_request(workspace.name, airlock_client.user)
     filegroup = release_request.filegroups["default"]
@@ -846,11 +846,11 @@ def test_workspace_request_file_request_already_exists(airlock_client, bll):
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
             "filegroup": "default",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
     assert response.status_code == 302
-    assert workspace.get_url("test/path.txt") in response.headers["Location"]
+    assert workspace.get_url(UrlPath("test/path.txt")) in response.headers["Location"]
 
     current_release_request = bll.get_current_request(
         workspace.name, airlock_client.user
@@ -876,14 +876,14 @@ def test_workspace_request_file_with_new_filegroup(airlock_client, bll):
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             # new filegroup overrides a selected existing one (or the default)
             "filegroup": "default",
             "new_filegroup": "new_group",
         },
     )
     assert response.status_code == 302
-    assert workspace.get_url("test/path.txt") in response.headers["Location"]
+    assert workspace.get_url(UrlPath("test/path.txt")) in response.headers["Location"]
 
     release_request = bll.get_current_request(workspace.name, airlock_client.user)
     filegroup = release_request.filegroups["new_group"]
@@ -907,7 +907,7 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             "filegroup": "default",
         },
     )
@@ -923,12 +923,12 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             "filegroup": "default",
         },
     )
     assert response.status_code == 302
-    assert workspace.get_url("test/path.txt") in response.headers["Location"]
+    assert workspace.get_url(UrlPath("test/path.txt")) in response.headers["Location"]
 
     # No new file created
     assert filegroupmetadata.request_files.count() == 1
@@ -946,7 +946,7 @@ def test_workspace_request_file_request_path_does_not_exist(airlock_client):
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             "filegroup": "default",
         },
     )
@@ -970,7 +970,7 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
             "form-0-filetype": "OUTPUT",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             "filegroup": "default",
             "new_filegroup": "test_group",
         },
@@ -978,7 +978,7 @@ def test_workspace_request_file_invalid_new_filegroup(airlock_client, bll):
     )
 
     assert not filegroupmetadata.request_files.exists()
-    assert response.request["PATH_INFO"] == workspace.get_url("test/path.txt")
+    assert response.request["PATH_INFO"] == workspace.get_url(UrlPath("test/path.txt"))
 
     all_messages = [msg for msg in response.context["messages"]]
     assert len(all_messages) == 1
@@ -1022,7 +1022,7 @@ def test_workspace_request_file_invalid_formset(airlock_client, bll):
     response = airlock_client.post(
         "/workspaces/add-file-to-request/test1",
         data={
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
             "filegroup": "default",
             "new_filegroup": "test_group",
         },
@@ -1048,7 +1048,7 @@ def test_workspace_request_update_file_invalid_status(airlock_client, bll):
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
         follow=True,
     )
@@ -1073,7 +1073,7 @@ def test_workspace_request_update_file_request_path_does_not_exist(airlock_clien
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
             "form-0-file": "test/path.txt",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
     )
 
@@ -1091,7 +1091,7 @@ def test_workspace_request_update_file_invalid_formset(airlock_client, bll):
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
         follow=True,
     )
@@ -1114,7 +1114,7 @@ def test_workspace_request_update_file_empty_formset(airlock_client, bll):
         data={
             "form-TOTAL_FORMS": "0",
             "form-INITIAL_FORMS": "0",
-            "next_url": workspace.get_url("test/path.txt"),
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
         },
         follow=True,
     )

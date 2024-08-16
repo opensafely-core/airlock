@@ -1,6 +1,7 @@
 import pytest
 from django.core.management import call_command
 
+from airlock.types import UrlPath
 from local_db.models import RequestFileMetadata
 from tests import factories
 
@@ -26,7 +27,7 @@ def test_command(bll):
     workspace = bll.get_workspace(
         "workspace", factories.create_user(workspaces=["workspace"])
     )
-    manifest = workspace.get_manifest_for_file(file_meta.relpath)
+    manifest = workspace.get_manifest_for_file(UrlPath(file_meta.relpath))
     for attr in ["commit", "size", "job_id", "timestamp", "repo"]:
         assert getattr(file_meta, attr) != manifest[attr]
 

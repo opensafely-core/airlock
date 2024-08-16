@@ -30,11 +30,11 @@ from airlock.users import User
 
 
 def create_user(
-    username="testuser",
+    username: str = "testuser",
     workspaces: list[str] | None = None,
-    output_checker=False,
+    output_checker: bool = False,
     last_refresh=None,
-):
+) -> User:
     """Factory to create a user.
 
     For ease of use, workspaces is just a flat list of workspace name, which is
@@ -62,14 +62,14 @@ def create_user(
 
 def create_user_from_dict(
     username, workspaces_dict, output_checker=False, last_refresh=None
-):
+) -> User:
     if last_refresh is None:
         last_refresh = time.time()
 
     return User(username, workspaces_dict, output_checker, last_refresh)
 
 
-def ensure_workspace(workspace_or_name):
+def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
     if isinstance(workspace_or_name, str):
         return create_workspace(workspace_or_name)
     elif isinstance(workspace_or_name, Workspace):
@@ -175,7 +175,7 @@ def update_manifest(workspace: Workspace | str, files=None):
         workspace.manifest = manifest
 
 
-def create_workspace(name, user=None):
+def create_workspace(name: str, user=None) -> Workspace:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
         user = create_user("author", workspaces=[name])
@@ -188,7 +188,7 @@ def create_workspace(name, user=None):
     return bll.get_workspace(name, user)
 
 
-def write_workspace_file(workspace, path, contents="", manifest=True):
+def write_workspace_file(workspace: Workspace | str, path, contents="", manifest=True):
     workspace = ensure_workspace(workspace)
     abspath = workspace.root() / path
     abspath.parent.mkdir(parents=True, exist_ok=True)
@@ -197,7 +197,7 @@ def write_workspace_file(workspace, path, contents="", manifest=True):
         update_manifest(workspace, [path])
 
 
-def create_repo(workspace, files=None, temporary=True):
+def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeRepo:
     workspace = ensure_workspace(workspace)
     repo_dir = settings.GIT_REPO_DIR / workspace.name
 
@@ -227,7 +227,7 @@ def create_repo(workspace, files=None, temporary=True):
                     p.write_text(content)
 
         env["GIT_WORK_TREE"] = str(repo_content_dir)
-        response = subprocess.run(
+        response: subprocess.CompletedProcess[typing.Any] = subprocess.run(
             ["git", "add", "."], capture_output=True, check=True, env=env
         )
         if b"nothing to commit" not in response.stdout:  # pragma: nocover
@@ -262,7 +262,9 @@ def create_repo(workspace, files=None, temporary=True):
     return CodeRepo.from_workspace(workspace, commit)
 
 
-def create_release_request(workspace, user=None, status=None, **kwargs):
+def create_release_request(
+    workspace: Workspace | str, user=None, status=None, **kwargs
+) -> ReleaseRequest:
     if status:
         assert (
             status == RequestStatus.PENDING
@@ -281,14 +283,14 @@ def create_release_request(workspace, user=None, status=None, **kwargs):
 
 
 def create_request_at_status(
-    workspace,
+    workspace: Workspace | str,
     status,
     author=None,
     files=None,
     checker=None,
     withdrawn_after=None,
     **kwargs,
-):
+) -> ReleaseRequest:
     """
     Create a valid request at the given status.
 
@@ -433,9 +435,9 @@ def add_request_file(
     group,
     path,
     contents="",
-    user=None,
+    user: User | None = None,
     filetype=RequestFileType.OUTPUT,
-    workspace=None,
+    workspace: Workspace | str | None = None,
 ) -> ReleaseRequest:
     request = refresh_release_request(request)
     # if ensure_workspace is passed a string, it will always create a
@@ -459,7 +461,7 @@ def add_request_file(
     return refresh_release_request(request)
 
 
-def create_request_file_bad_path(request_file, bad_path):
+def create_request_file_bad_path(request_file: RequestFile, bad_path) -> RequestFile:
     bad_request_file_dict = {
         "relpath": bad_path,
         "group": request_file.group,
@@ -482,13 +484,14 @@ def get_default_output_checkers():
     ]
 
 
-def review_file(request, relpath, status, *users):
+def review_file(
+    request: ReleaseRequest, relpath: UrlPath, status: RequestFileVote, *users
+):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
 
     request = refresh_release_request(request)
 
-    relpath = UrlPath(relpath)
     for user in users:
         if status == RequestFileVote.APPROVED:
             bll.approve_file(
@@ -515,8 +518,8 @@ class TestRequestFile:
     """
 
     group: str
-    path: UrlPath | str
-    user: User
+    path: UrlPath
+    user: User | None
     contents: str = ""
     filetype: RequestFileType = RequestFileType.OUTPUT
     workspace: str | None = None
@@ -549,10 +552,10 @@ class TestRequestFile:
 
 def request_file(
     group="group",
-    path="test/file.txt",
+    path: UrlPath | str = "test/file.txt",
     contents="",
     filetype=RequestFileType.OUTPUT,
-    user=None,
+    user: User | None = None,
     approved=False,
     changes_requested=False,
     checkers=None,
@@ -565,7 +568,7 @@ def request_file(
     """
     return TestRequestFile(
         group=group,
-        path=path,
+        path=UrlPath(path),
         contents=contents,
         filetype=filetype,
         user=user,
@@ -590,10 +593,10 @@ def create_filegroup(release_request, group_name, filepaths=None):
     user = create_user(release_request.author, [release_request.workspace])
     for filepath in filepaths or []:  # pragma: nocover
         bll.add_file_to_request(release_request, filepath, user, group_name)
-    return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)
+    return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)  # type: ignore
 
 
-def refresh_release_request(release_request, user=None):
+def refresh_release_request(release_request, user=None) -> ReleaseRequest:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
         user = create_user("author", workspaces=[release_request.workspace])
@@ -603,7 +606,7 @@ def refresh_release_request(release_request, user=None):
 def create_audit_event(
     type_,
     user="user",
-    workspace="workspace",
+    workspace: str = "workspace",
     request="request",
     path=UrlPath("foo/bar"),
     extra={"foo": "bar"},

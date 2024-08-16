@@ -1,3 +1,5 @@
+from typing import Any
+
 from airlock.users import User
 
 
@@ -51,6 +53,6 @@ def test_session_user_with_defaults():
 
 
 def test_session_user_no_user_set():
-    mock_session = {}
+    mock_session: dict[str, Any] = {}
     user = User.from_session(mock_session)
     assert user is None
