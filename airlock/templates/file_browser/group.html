@@ -55,6 +55,15 @@
           {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
             {{ comment.comment }}
             {% if request.user.username == comment.author %}
+              {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
+                <div>
+                  <form action="{{ group.comment_visibility_public_url }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                    {% #button variant="danger" type="cancel" %}Make comment visible to all users{% /button %}
+                  </form>
+                </div>
+              {% endif %}
               <div>
                 <form action="{{ group.comment_delete_url }}" method="POST">
                   {% csrf_token %}

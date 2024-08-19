@@ -1,7 +1,7 @@
 import pytest
 from playwright.sync_api import expect
 
-from airlock.enums import RequestStatus
+from airlock.enums import RequestStatus, Visibility
 from tests import factories
 from tests.functional.conftest import login_as_user
 
@@ -210,6 +210,40 @@ def test_request_group_edit_comment_for_checker(
     expect(group_save_button).not_to_be_visible()
     # in pending status, output-checker cannot comment
     expect(comment_button).not_to_be_visible()
+
+
+def test_request_group_comment_visibility_public_for_checker(
+    live_server, context, page, bll, settings
+):
+    settings.SHOW_C3 = True
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "checker",
+            "workspaces": {},
+            "output_checker": True,
+        },
+    )
+    checker = factories.create_user("checker", [], True)
+
+    submitted_release_request = factories.create_request_at_status(
+        "workspace",
+        files=[factories.request_file(group="group")],
+        status=RequestStatus.SUBMITTED,
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+    )
+
+    page.goto(live_server.url + submitted_release_request.get_url("group"))
+
+    comment_button = page.get_by_role("button", name="Make comment visible to all")
+    expect(comment_button).to_be_visible()
+    comment_button.click()
+
+    release_request = factories.refresh_release_request(submitted_release_request)
+    checker_comment = release_request.filegroups["group"].comments[0]
+    assert checker_comment.visibility == Visibility.PUBLIC
 
 
 def _workspace_dict():

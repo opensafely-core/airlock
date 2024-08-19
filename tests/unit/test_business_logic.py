@@ -3707,6 +3707,177 @@ def test_group_comment_delete_success(bll):
     assert audit_log[0].extra["comment"] == "typo comment"
 
 
+def test_group_comment_visibility_public_success(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    output_checker = factories.create_user("checker", [], True)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
+    )
+
+    assert release_request.filegroups["group"].comments == []
+
+    bll.group_comment_create(
+        release_request, "group", "private comment", Visibility.PRIVATE, output_checker
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "to-be-public comment",
+        Visibility.PRIVATE,
+        output_checker,
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    private_comment = release_request.filegroups["group"].comments[0]
+    public_comment = release_request.filegroups["group"].comments[1]
+
+    assert private_comment.comment == "private comment"
+    assert private_comment.author == "checker"
+    assert public_comment.comment == "to-be-public comment"
+    assert public_comment.author == "checker"
+
+    bll.group_comment_visibility_public(
+        release_request, "group", public_comment.id, output_checker
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    current_comments = release_request.filegroups["group"].comments
+    assert current_comments[0].comment == "private comment"
+    assert current_comments[0].visibility == Visibility.PRIVATE
+    assert current_comments[1].comment == "to-be-public comment"
+    assert current_comments[1].visibility == Visibility.PUBLIC
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[2].request == release_request.id
+    assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[2].user == output_checker.username
+    assert audit_log[2].extra["group"] == "group"
+    assert audit_log[2].extra["comment"] == "private comment"
+
+    assert audit_log[1].request == release_request.id
+    assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
+    assert audit_log[1].user == output_checker.username
+    assert audit_log[1].extra["group"] == "group"
+    assert audit_log[1].extra["comment"] == "to-be-public comment"
+
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].type == AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC
+    assert audit_log[0].user == output_checker.username
+    assert audit_log[0].extra["group"] == "group"
+    assert audit_log[0].extra["comment"] == "to-be-public comment"
+
+
+def test_group_comment_visibility_public_bad_user(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker1", [], True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+        withdrawn_after=RequestStatus.PENDING,
+    )
+
+    checker_comment = release_request.filegroups["group"].comments[0]
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.group_comment_visibility_public(
+            release_request, "group", checker_comment.id, author
+        )
+
+
+def test_group_comment_visibility_public_bad_round(bll):
+    author = factories.create_user("author", ["workspace"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker1", [], True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+        withdrawn_after=RequestStatus.PENDING,
+    )
+
+    assert release_request.review_turn == 1
+    bll.submit_request(release_request, author)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.review_turn == 2
+
+    checker_comment = release_request.filegroups["group"].comments[0]
+    assert checker_comment.review_turn == 1
+
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.group_comment_visibility_public(
+            release_request, "group", checker_comment.id, checker
+        )
+
+
+@pytest.mark.parametrize(
+    "status,checker_can_change_visibility",
+    [
+        (RequestStatus.PENDING, False),
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, True),
+        (RequestStatus.REVIEWED, True),
+        (RequestStatus.RETURNED, False),
+        (RequestStatus.APPROVED, False),
+        (RequestStatus.WITHDRAWN, False),
+        (RequestStatus.REJECTED, False),
+    ],
+)
+def test_group_comment_visibility_public_permissions(
+    bll, status, checker_can_change_visibility
+):
+    author = factories.create_user("author", ["workspace"], False)
+    # checker who does not have access to workspace
+    checker = factories.create_user("checker1", [], True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=status,
+        files=[factories.request_file("group", "test/file.txt", approved=True)],
+        checker=checker,
+        checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
+        withdrawn_after=RequestStatus.PENDING,
+    )
+
+    if not release_request.filegroups["group"].comments:
+        # there is no comment as it's not possible for an output checker to have
+        # commented yet
+        return
+
+    checker_comment = release_request.filegroups["group"].comments[0]
+
+    release_request = factories.refresh_release_request(release_request)
+
+    if checker_can_change_visibility:
+        bll.group_comment_visibility_public(
+            release_request, "group", checker_comment.id, checker
+        )
+        release_request = factories.refresh_release_request(release_request)
+        assert (
+            release_request.filegroups["group"].comments[0].visibility
+            == Visibility.PUBLIC
+        )
+    else:
+        with pytest.raises(exceptions.RequestPermissionDenied):
+            bll.group_comment_visibility_public(
+                release_request, "group", checker_comment.id, checker
+            )
+
+
 @pytest.mark.parametrize(
     "status,author_can_delete,checker_can_delete",
     [

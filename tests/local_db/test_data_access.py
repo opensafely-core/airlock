@@ -182,7 +182,17 @@ def test_delete_file_from_request_bad_path():
         dal.delete_file_from_request(release_request.id, UrlPath("bad_path"), audit)
 
 
-def test_group_comment_delete_bad_params():
+@pytest.mark.parametrize(
+    "comment_modify_function,audit_event",
+    [
+        (dal.group_comment_delete, AuditEventType.REQUEST_COMMENT_DELETE),
+        (
+            dal.group_comment_visibility_public,
+            AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC,
+        ),
+    ],
+)
+def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
     author = factories.create_user("author", ["workspace"], False)
     other = factories.create_user("other", ["other-workspace"], False)
 
@@ -212,36 +222,34 @@ def test_group_comment_delete_bad_params():
 
     audit = AuditEvent.from_request(
         request=release_request,
-        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        type=audit_event,
         user=author,
         group="badgroup",
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        dal.group_comment_delete(
+        comment_modify_function(
             release_request.id, "badgroup", "1", author.username, audit
         )
 
     audit = AuditEvent.from_request(
         request=release_request,
-        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        type=audit_event,
         user=author,
         group="group",
         comment="other comment",
     )
     with pytest.raises(models.FileGroupComment.DoesNotExist):
-        dal.group_comment_delete(
+        comment_modify_function(
             release_request.id, "group", "50", author.username, audit
         )
 
     audit = AuditEvent.from_request(
         request=release_request,
-        type=AuditEventType.REQUEST_COMMENT_DELETE,
+        type=audit_event,
         user=author,
         group="group",
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        dal.group_comment_delete(
-            release_request.id, "group", "1", other.username, audit
-        )
+        comment_modify_function(release_request.id, "group", "1", other.username, audit)

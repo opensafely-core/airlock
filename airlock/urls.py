@@ -164,6 +164,11 @@ urlpatterns = [
         name="group_comment_delete",
     ),
     path(
+        "requests/comment/visibility_public/<str:request_id>/<str:group>",
+        airlock.views.group_comment_visibility_public,
+        name="group_comment_visibility_public",
+    ),
+    path(
         "code/view/<str:workspace_name>/<str:commit>/",
         airlock.views.code.view,
         name="code_view",
