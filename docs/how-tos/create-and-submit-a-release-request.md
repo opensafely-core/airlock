@@ -1,93 +1,76 @@
-!!! note
-    This page is out of date
-
-After logging into Airlock, researchers can view files in workspaces that they
-have permission to access.
-
-Researchers populate a release request by adding, and if necessary withdrawing
+Researchers construct a release request by adding, and if necessary, withdrawing
 files.
 
 ## Adding files
 
-To add a file, researchers select the relevant workspace, navigate to view the file, and
-use "Add File to Request". Airlock will ask the researcher to specify the type of
-file and the file group that the file should be added to.
+While [navigating a workspace](view-workspace-files.md), files can be added to a request in
+two ways:
 
-### File types
+- individual files can be added while viewing the workspace file
+- Multiple files can be added while viewing the directory containing the files
 
-When adding a file, researchers should choose one of these two options:
+From a file view, click on the "Add file to Request" button.
 
-- **Output** Files of this type contain the data the researcher wishes to be
-  released. These files will ultimately be released if approved.
-- **Supporting** Files of this type contain supplementary data to support the
-  review of "output" type files in the release request, e.g. the underlying data used to generate a figure. These files will ultimately not be released.
+![Add file to request button](../screenshots/add_file_button.png)
 
-### File groups
+From a directory view, select the files you wish to add and click the "Add files to Request" button.
 
-File groups allow the researcher to group the various files in a release request
-into logical groups, in order to help the output checker understand the request.
-Supporting files should be placed in the same file group as the Output file they support. 
+![Add files with multiselect](../screenshots/multiselect_add.png)
 
-## Adding context and controls
+In the dialogue that opens, specify the file group you wish to add the file(s) to, and
+select the type of file (output file or supporting file).
 
-Context and controls should be added to each file group. These allow researchers to
-provide information about the files requested for release. Files should be organised
-into groups that share the same context and controls so that this information only
-needs to be provided once per group of files.
+![Add file form](../screenshots/add_file_modal.png)
 
-* Context: infomation about what data is contained in the files in the file group.
-* Controls: information about what disclosure controls (e.g. rounding/suppression) have been applied.
+!!! note
+    You can only have one active release request for a workspace at any one time. If you
+    already have an active release request, file will be added to it. If you do not have
+    an active release request, a new one will be created.
 
-To add context and controls to a group, the researcher should navigate to the current
-release request and click on the name of the relevant group. This will open a page with
-options to enter context and control information.
+If you added a file that you did not intend to, you can [withdraw the file](withdraw-file.md)
+prior to submitting the release request.
 
-## Withdrawing files
+## Navigating the request
 
-To withdraw a file, researchers select the current release request, navigate to view the file,
-and use "Withdraw from Request".
+After your request has been created, you will see a link to the current request in the
+workspace header. Click on this to access the request.
 
-!!!info "Withdrawing files"
-    Files can only be withdrawn whilst a release request is in the Pending or Returned states.
-    If a request is in the Submitted or Reviewed state, it should first be returned to
-    the author in order to withdraw a file.
-    Once a request reaches the Approved, Released, Rejected, or Withdrawn states,
-    files can no longer be withdrawn through this mechanism. If it is necessary
-    to withdraw a file in this case, please refer to the documentation for
-    [reporting a data breach](https://docs.opensafely.org/releasing-files/#reporting-a-data-breach).
+Alternatively, use the link in the navigation bar to view a list of all your requests.
 
+Files in a request are organised in a tree structure within each file group, similarly
+to workspaces, and can be navigated in the same way.
 
-## Updating files
+## Add context and controls
 
-When a file is added to a release request, a copy is taken of the current contents
-of that file. This is deliberate, and ensures that a file added to a request
-does not change during the review process.
+Context and controls must be added to each file group before the release request
+can be submitted.
 
-If a subsequent job is run within that workspace which changes the file,
-the workspace view will show the new file contents and the release request view
-will continue to show the old file contents from the time that it was added to
-the request.
+To add context and controls to a group, navigate to the current release request and click
+on the name of the relevant group. 
 
-To update a file, select the workspace, navigate to view the file,
-and use "Add file to request" as usual. This will remove the old version of the file
-from the request, and add the new version of the file.
+![Add context and controls to a file group](../screenshots/context_and_controls.png)
 
-!!!info "Updating files"
-    Files can only be updated by the author of the request, and only during the Pending
-    or Returned states.
-    This means that if a request is in the Submitted or Reviewed states, the output
-    checking team must return the request to the author in order for files to be updated.
-    Updating a file will reset any reviews associated with that file.
+Enter your context and controls in the text boxes and click Save. 
 
 
-## Submitting a request
+## Submit the request
 
-Once the researcher has finished working on the release request, the next step is to
-submit it for a review by an output checker. Researchers should view the current request
-and click "Submit For Review".
+Navigate to the request overview by clicking the link in the header or by clicking on the
+root of the file browser tree.
 
-The status of the release request will transition to "Submitted".
+Click on the "Submit for review" button. You will need to read and confirm that you have
+met the conditions for submission before completing the submission.
 
-A GitHub issue will be automatically created and output-checkers will be notified
-in Slack of the new release request.
+![Submit request button](../screenshots/submit_request.png)
 
+Your release request's status will transition to "Submitted", and you will no longer be
+able to edit it. Output checkers will be [automatically notified](../explanation/notifications.md) that the request is ready for review.
+
+![Submitted request](../screenshots/submitted_request.png)
+
+---
+
+* Previous: [View workspace files](view-workspace-files.md)
+* Next: [Withdraw a file from a request](withdraw-file.md)
+
+---8<-- 'airlock-includes/glossary.md'

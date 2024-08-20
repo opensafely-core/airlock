@@ -179,7 +179,10 @@ def test_e2e_release_files(
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("button[value=add_files]"))
+    add_file_button = page.locator("button[value=add_files]")
+    screenshot_element_with_padding(page, add_file_button, "add_file_button.png")
+
+    find_and_click(add_file_button)
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
 
@@ -315,6 +318,7 @@ def test_e2e_release_files(
     # Add context & controls to the filegroup
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     find_and_click(filegroup_link)
+    page.screenshot(path=settings.SCREENSHOT_DIR / "context_and_controls.png")
 
     context_input = page.locator("#id_context")
     find_and_click(context_input)
@@ -332,11 +336,13 @@ def test_e2e_release_files(
     submit_button = page.locator("button[data-modal=submitRequest]")
     find_and_click(submit_button)
     confirm_button = page.locator("#submit-for-review-button")
+    page.screenshot(path=settings.SCREENSHOT_DIR / "submit_request.png")
     find_and_click(confirm_button)
     expect(page.locator("body")).to_contain_text("SUBMITTED")
     # After the request is submitted, the submit button is no longer visible
     expect(submit_button).not_to_be_visible()
 
+    page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_request.png")
     # Before we log the researcher out and continue, let's just check
     # their requests
     find_and_click(page.get_by_test_id("nav-requests"))
@@ -595,7 +601,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
 
     content = page.locator("#selected-contents")
-    content.screenshot(path=settings.SCREENSHOT_DIR / "multiselect-add.png")
+    content.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_add.png")
 
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))

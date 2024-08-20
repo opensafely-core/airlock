@@ -17,20 +17,26 @@ A request is also represented in Airlock as a directory of file groups and the f
 
 ## Output File
 
-A file that has been added to a release request and is to be released.
+Files of this type contain the data the researcher wishes to be released. These files will ultimately be released if approved.
+
 
 ## Supporting File
 
-A file that has been added to a release request for additional information or context, and will
-not be released.
+A file that has been added to a release request for additional information or context. Files of this type contain supplementary data to support the review of output files in the release request, e.g. the underlying data used to generate a figure. These files will ultimately not be released.
 
 ## File Group
 
 A collection of files that share the same context and disclosure control information.
 
-## Context
+File groups allow the researcher to group the various files in a release request
+into logical groups, in order to help the output checker understand the request.
 
-Contextual description of the output files within a file group explaining e.g.:
+Supporting files should be placed in the same file group as the output file they support.
+
+
+## Context
+Contextual description of what data is contained in the output files within a file group
+explaining e.g.:
 
 - why these files are requested for release
 - variable descriptions
@@ -41,7 +47,8 @@ Contextual description of the output files within a file group explaining e.g.:
 
 ## Controls
 
-Description of statistical disclosure control measures that have been applied to the files within a file group. 
+Description of statistical disclosure control measures (e.g. rounding/suppression) that have been
+applied to the files within a file group.
 
 ## Turn
 
