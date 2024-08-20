@@ -8,101 +8,102 @@
   }
 </style>
 {% #card title=group.title container=True class="group_modal" %}
-  <form action="{{ group.c2_edit_url }}" method="POST" aria-label="group-edit-form">
-    {% csrf_token %}
-    <div style="display: flex; flex-direction: row; width: 100%; flex-wrap: wrap; gap: 1rem;">
-      <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1;">
-        {% form_textarea field=group.c2_edit_form.context show_placeholder=True resize=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+  <div data-testid="c3">
+    <form action="{{ group.c2_edit_url }}" method="POST" aria-label="group-edit-form">
+      {% csrf_token %}
+      <div style="display: flex; flex-direction: row; width: 100%; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1;">
+          {% form_textarea field=group.c2_edit_form.context show_placeholder=True resize=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+        </div>
+        <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1; gap: 1rem;">
+          {% form_textarea field=group.c2_edit_form.controls resize=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+        </div>
       </div>
-      <div style="display: flex: flex-direction: column; flex-basis: 100%; flex: 1; gap: 1rem;">
-        {% form_textarea field=group.c2_edit_form.controls resize=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
-      </div>
-    </div>
-    {% if not group.c2_readonly %}
-      <div class="mt-2">
-        {% #button type="submit" variant="success" id="edit-group-button" disabled=group.c2_readonly %}Save{% /button %}
-      </div>
-    {% endif %}
-  </form>
+      {% if not group.c2_readonly %}
+        <div class="mt-2">
+          {% #button type="submit" variant="success" id="edit-group-button" disabled=group.c2_readonly %}Save{% /button %}
+        </div>
+      {% endif %}
+    </form>
 
-  <div class="comments" style="margin-top: 1rem;">
-    {% #list_group %}
-      {% for comment, comment_class in group.comments %}
+    <div class="comments" style="margin-top: 1rem;">
+      {% #list_group %}
+        {% for comment, comment_class in group.comments %}
 
-        {% fragment as comment_status %}
-          <span>
-            {% if request.user.output_checker %}
-              {% if release_request.get_turn_phase.name == "INDEPENDENT" and comment.review_turn == release_request.review_turn %}
-                {% #pill variant="info" text="Blinded" class="group" %}
+          {% fragment as comment_status %}
+            <span>
+              {% if request.user.output_checker %}
+                {% if release_request.get_turn_phase.name == "INDEPENDENT" and comment.review_turn == release_request.review_turn %}
+                  {% #pill variant="info" text="Blinded" class="group" %}
                   {% comment%}
                     TODO: get tooltips working for pills
                     {% tooltip content=comment.visibility.blinded_description %}
                   {% endcomment%}
-                {% /pill%}
-              {% endif %}
-              {% #pill variant="info" class="group" text=comment.visibility.name.title %}
+                  {% /pill%}
+                {% endif %}
+                {% #pill variant="info" class="group" text=comment.visibility.name.title %}
                 {% comment%}
                   TODO: get tooltips working for pills
                   {%tooltip content=comment.visibility.description %}
                 {% endcomment%}
-              {% /pill%}
+                {% /pill%}
+              {% endif %}
+              {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+            </span>
+          {% endfragment %}
+          {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
+            {{ comment.comment }}
+            {% if request.user.username == comment.author %}
+              {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
+                <div>
+                  <form action="{{ group.comment_visibility_public_url }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                    {% #button variant="danger" type="submit" %}Make comment visible to all users{% /button %}
+                  </form>
+                </div>
+              {% endif %}
+              {% if group.user_can_comment %}
+                <div>
+                  <form action="{{ group.comment_delete_url }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                    {% #button variant="danger" type="submit" %}Delete comment{% /button %}
+                  </form>
+                </div>
+              {% endif %}
             {% endif %}
-            {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
-          </span>
-        {% endfragment %}
-        {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
-          {{ comment.comment }}
-          {% if request.user.username == comment.author %}
-            {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
-              <div>
-                <form action="{{ group.comment_visibility_public_url }}" method="POST">
-                  {% csrf_token %}
-                  <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                  {% #button variant="danger" type="cancel" %}Make comment visible to all users{% /button %}
-                </form>
-              </div>
-            {% endif %}
-            {% if group.user_can_comment %}
-              <div>
-                <form action="{{ group.comment_delete_url }}" method="POST">
-                  {% csrf_token %}
-                  <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                  {% #button variant="danger" type="submit" %}Delete comment{% /button %}
-                </form>
-              </div>
-            {% endif %}
-          {% endif %}
-        {% /list_group_rich_item %}
-      {% endfor %}
-      {% if group.user_can_comment and not group.inline %}
-        {% #list_group_item %}
-          <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
-            {% csrf_token %}
-            {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
-              {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
-                Only you will see this comment until two independent reviews have been submitted
-              {% /alert %}
-            {% else %}
-              {% #alert variant="info" title="Comments are pending" no_icon=True %}
-                Any comments will be shown to other users once you submit or return a request
-              {% /alert %}
-            {% endif %}
+          {% /list_group_rich_item %}
+        {% endfor %}
+        {% if group.user_can_comment and not group.inline %}
+          {% #list_group_item %}
+            <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
+              {% csrf_token %}
+              {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
+                {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
+                  Only you will see this comment until two independent reviews have been submitted
+                {% /alert %}
+              {% else %}
+                {% #alert variant="info" title="Comments are pending" no_icon=True %}
+                  Any comments will be shown to other users once you submit or return a request
+                {% /alert %}
+              {% endif %}
 
-            {% form_textarea field=group.comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
-            {% if group.comment_form.visibility.field.choices|length == 1 %}
-              <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
-            {% else %}
-              {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
-            {% endif%}
-            <div class="mt-2">
-              {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
-            </div>
-          </form>
-        {% /list_group_item %}
-      {% endif %}
-    {% /list_group %}
+              {% form_textarea field=group.comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
+              {% if group.comment_form.visibility.field.choices|length == 1 %}
+                <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
+              {% else %}
+                {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
+              {% endif%}
+              <div class="mt-2">
+                {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
+              </div>
+            </form>
+          {% /list_group_item %}
+        {% endif %}
+      {% /list_group %}
+    </div>
   </div>
-
   {% if not group.inline %}
     {% include "activity.html" with activity=group.activity %}
   {% else %}

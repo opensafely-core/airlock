@@ -1,11 +1,12 @@
 import re
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
-from airlock.enums import RequestStatus
+from airlock.enums import RequestStatus, Visibility
 from airlock.types import UrlPath
 from tests import factories
 
@@ -511,9 +512,11 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     """
     # set up a returned file & request
     author = factories.create_user("researcher", ["test-workspace"], False)
+    checker = factories.create_user("output-checker", [], True)
+
     path = "subdir/file.txt"
 
-    factories.create_request_at_status(
+    release_request = factories.create_request_at_status(
         "test-workspace",
         author=author,
         status=RequestStatus.RETURNED,
@@ -522,8 +525,32 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
         ],
     )
 
+    # Patch permissions so we can create some comments by output checkers
+    with patch("airlock.business_logic.permissions.check_user_can_comment_on_group"):
+        release_request.review_turn -= 1
+        bll.group_comment_create(
+            release_request,
+            "default",
+            "Has small number supression been applied?",
+            Visibility.PUBLIC,
+            checker,
+        )
+        bll.group_comment_create(
+            release_request,
+            "default",
+            "Please update file.txt with more descriptive variable names",
+            Visibility.PUBLIC,
+            checker,
+        )
+        release_request.review_turn += 1
+
     # Log in as researcher
     login_as(live_server, page, "researcher")
+
+    page.goto(live_server.url + release_request.get_url("default"))
+    page.get_by_test_id("c3").screenshot(
+        path=settings.SCREENSHOT_DIR / "returned_request_comments.png"
+    )
 
     workspace = bll.get_workspace("test-workspace", author)
 
