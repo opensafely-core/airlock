@@ -573,6 +573,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     page.goto(live_server.url + release_request.get_url("default/subdir/file1.txt"))
     find_and_click(page.locator("#withdraw-file-button"))
     expect(page.locator("body")).to_contain_text("has been withdrawn from the request")
+    page.screenshot(path=settings.SCREENSHOT_DIR / "withdrawn_file.png")
 
     # Withdraw file2 from the directory page
     page.goto(live_server.url + release_request.get_url("default/subdir"))

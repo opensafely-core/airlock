@@ -20,8 +20,8 @@ nav:
       - View output files in a workspace: how-tos/view-workspace-files.md
       - Create and submit a release request: how-tos/create-and-submit-a-release-request.md
       - Respond to a returned request: how-tos/respond-to-returned-request.md
-      - Update a file on a request: how-tos/update-file-on-request.md
       - Withdraw a file from a request: how-tos/withdraw-file.md
+      - Update a file on a request: how-tos/update-file-on-request.md
       - Withdraw a request: how-tos/withdraw-request.md
     - For output checkers:
       - Review a request: how-tos/review-a-request.md
