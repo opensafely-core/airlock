@@ -53,4 +53,4 @@ The [explanation](explanation/index.md) section provides background information 
 The [reference](reference/index.md) section provides background information about working with Airlock.
 
 
----8<-- 'reference/glossary.md'
+---8<-- 'airlock-includes/glossary.md'

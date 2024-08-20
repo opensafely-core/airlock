@@ -20,3 +20,4 @@ For output checkers:
 * [Reject a request](reject-request.md)
 * [Release files](release-files.md)
 
+---8<-- 'airlock-includes/glossary.md'

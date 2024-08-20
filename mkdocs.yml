@@ -35,7 +35,7 @@ nav:
     - Notifications: explanation/notifications.md
   - Reference:
     - reference/index.md
-    - reference/glossary.md
+    - reference/terms-and-definitions.md
     - Alternative ways to view files: reference/view-files-alt.md
     - Viewing underlying source code: reference/view-source-code.md
     - Request state diagram: reference/request-states.md
@@ -91,4 +91,7 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      check_paths: true
+      base_path: # base paths will be checked in order for matching snippets
+        - docs

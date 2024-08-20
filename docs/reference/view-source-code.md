@@ -12,6 +12,4 @@ workspace is connected to.
     The version of the repo files corresponds to the state of the repo
     *at the commit when the job was run*. 
 
-
-
-
+---8<-- 'airlock-includes/glossary.md'
