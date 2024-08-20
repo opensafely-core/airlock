@@ -18,8 +18,6 @@ nav:
     - How to access and log in Airlock: how-tos/access-airlock.md
     - For researchers:
       - View output files in a workspace: how-tos/view-workspace-files.md
-      - Alternative ways to view files: how-tos/view-files-alt.md
-      - View code underlying an output: how-tos/view-workspace-code.md
       - Create and submit a release request: how-tos/create-and-submit-a-release-request.md
       - Respond to a returned request: how-tos/respond-to-returned-request.md
       - Update a file on a request: how-tos/update-file-on-request.md
@@ -27,7 +25,6 @@ nav:
       - Withdraw a request: how-tos/withdraw-request.md
     - For output checkers:
       - Review a request: how-tos/review-a-request.md
-      - View code underlying an output file in a request: how-tos/view-request-code.md
       - Download a file: how-tos/download-file.md
       - Reject a request: how-tos/reject-request.md
       - Release files: how-tos/release-files.md
@@ -39,6 +36,8 @@ nav:
   - Reference:
     - reference/index.md
     - reference/glossary.md
+    - Alternative ways to view files: reference/view-files-alt.md
+    - Viewing underlying source code: reference/view-source-code.md
     - Request state diagram: reference/request-states.md
 
 watch:

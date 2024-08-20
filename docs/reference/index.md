@@ -1,4 +1,6 @@
 The reference provides background knowledge for working with Airlock.
 
 * [Glossary](glossary.md)
+* [Alternative ways to view files](view-files-alt.md)
+* [Viewing underlying source code](view-source-code.md)
 * [Request state diagram](request-states.md)

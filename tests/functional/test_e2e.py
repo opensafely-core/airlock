@@ -165,6 +165,17 @@ def test_e2e_release_files(
     page.screenshot(
         full_page=True, path=settings.SCREENSHOT_DIR / "workspace_file_view.png"
     )
+    more_locator = page.locator("#file-button-more")
+    find_and_click(more_locator)
+    # Screenshot both the full page and the element; these will be used in different
+    # places in the docs
+    page.screenshot(path=settings.SCREENSHOT_DIR / "more_dropdown.png")
+    screenshot_element_with_padding(
+        page,
+        more_locator,
+        "more_dropdown_el.png",
+        extra={"x": -180, "width": 180, "height": 120},
+    )
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal

@@ -39,14 +39,14 @@ files. They may then return the request to the researcher with comments.  At thi
 request can now be edited by the researcher, and the output checkers no longer have
 permission to change their decisions on files or to add comments.
 
-Refer to the [reference documentation on Airlock workflow and permissions](reference/workflow-and-permissions) for a more detailed description.
+Refer to the [reference documentation on Airlock workflow and permissions](explanation/workflow-and-permissions.md) for a more detailed description.
 
 
 ## Using the documentation
 
 Airlock's documentation has three main sections:
 
-The [how-to guides](how-to/index.md) provide practical steps for working with Airlock to create and process release requests. These are additionally subdivided into guides for researchers and guides for output checkers.
+The [how-to guides](how-tos/index.md) provide practical steps for working with Airlock to create and process release requests. These are additionally subdivided into guides for researchers and guides for output checkers.
 
 The [explanation](explanation/index.md) section provides background information about Airlock and its features.
 

@@ -1,6 +1,7 @@
 from urllib.parse import urlsplit
 
 import pytest
+from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.enums import RequestStatus
@@ -55,6 +56,9 @@ def test_code_from_workspace(live_server, page, context):
     return_button = new_page.locator("#return-button")
 
     expect(new_page.locator("body")).to_contain_text("project.yaml")
+
+    page.screenshot(path=settings.SCREENSHOT_DIR / "code_view.png")
+
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)
 

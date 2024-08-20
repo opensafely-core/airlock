@@ -15,9 +15,15 @@ about the file, such as size, type and last modified date.
 To view a specific file, click on it in the directory view, or in the file tree. The contents
 of the file will be displayed.
 
-![Workspaces view](../screenshots/workspace_file_view.png)
+![Workspace file view](../screenshots/workspace_file_view.png)
+
+From the file view, the `More` dropdown also allows you to [view the file in alternative ways](../reference/view-files-alt.md), or to [view the source code](../reference/view-source-code.md) underlying
+the file.
+
+![More dropdown](../screenshots/more_dropdown_el.png)
+
 
 ---
 
 * Previous: [Accessing Airlock](access-airlock.md)
-* Next: [Alternative ways to view files](view-files-alt.md)
+* Next: [Create and submit a release request](create-and-submit-a-release-request.md)
