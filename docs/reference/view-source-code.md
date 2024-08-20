@@ -6,7 +6,7 @@ view.
 Clicking on`View code` opens a new tab with a view of the files in the GitHub repo that the
 workspace is connected to. 
 
-![More dropdown](../screenshots/code_view.png)
+![More dropdown](../screenshots/manual/code_view.png)
 
 !!! note
     The version of the repo files corresponds to the state of the repo

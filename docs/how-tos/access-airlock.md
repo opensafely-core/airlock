@@ -15,9 +15,9 @@ server to log in to Airlock.
 
 **Before logging into the secure server**, visit https://jobs.opensafely.org/settings/, and click on "Generate a Single Use Token". This will be 3 english words, which you can memorize or write down. This token can be used to log in as you, but is only valid for a short time, and only works once.
 
-![Generate Single Use Token on Jobs site](../screenshots/job-server-token-form.png)
+![Generate Single Use Token on Jobs site](../screenshots/manual/job-server-token-form.png)
 
-![Single Use Token generated on Jobs site](../screenshots/job-server-token.png)
+![Single Use Token generated on Jobs site](../screenshots/manual/job-server-token.png)
 
 ## Log in to the secure server
 
