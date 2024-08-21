@@ -15,7 +15,7 @@ From a file view, click on the "Add file to Request" button.
 
 From a directory view, select the files you wish to add and click the "Add files to Request" button.
 
-![Add files with multiselect](../screenshots/multiselect_add.png)
+![Add files with multiselect](../screenshots/workspace_directory_content.png)
 
 In the dialogue that opens, specify the file group you wish to add the file(s) to, and
 select the type of file (output file or supporting file).
@@ -39,6 +39,10 @@ Alternatively, use the link in the navigation bar to view a list of all your req
 
 Files in a request are organised in a tree structure within each file group, similarly
 to workspaces, and can be navigated in the same way.
+
+![Request tree browser](../screenshots/request_tree.png)
+
+Output and supporting files are differentiated in the tree by colour and icon, as shown above.
 
 ## Add context and controls
 

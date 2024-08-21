@@ -5,8 +5,6 @@ from airlock.enums import RequestStatus, Visibility
 from tests import factories
 from tests.functional.conftest import login_as_user
 
-from .utils import screenshot_element_with_padding
-
 
 def test_request_file_withdraw(live_server, context, page, bll):
     author = login_as_user(
@@ -399,9 +397,6 @@ def test_request_returnable(
         expect(return_request_button).to_be_enabled()
         return_request_button.click()
         expect(return_request_button).not_to_be_visible()
-        screenshot_element_with_padding(
-            page, page.locator("#tree"), "returned_tree.png"
-        )
 
     elif login_as == "author":
         expect(return_request_button).not_to_be_visible()

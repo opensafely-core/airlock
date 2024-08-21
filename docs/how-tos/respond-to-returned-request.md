@@ -11,10 +11,9 @@ status **Returned**.
 In the file browser view, you can see the reviewed status of each of your output files.
 
 In the tree view, files are coloured according to status. This request has one approved
-file and one file with changes requested:
+file and two files with changes requested:
 
 ![Tree for a returned request](../screenshots/returned_tree.png)
-
 
 ## Comments
 

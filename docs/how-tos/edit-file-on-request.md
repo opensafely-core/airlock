@@ -34,9 +34,14 @@ in the dialogue that opens, there is no option to
 To withdraw a file, navigate to view the file within the release request,
 and use "Withdraw from Request".
 
-After the file has been withdrawn, the file will still be visible on the request, but marked
-as withdrawn. It can be [re-added](create-and-submit-a-release-request.md#adding-files)
-from the workspace view,.
+If the request is in Pending status, the file is removed from the request entirely.
+
+If the request is in Returned status, the file will still be visible on the request, but marked as withdrawn. 
+
+![Withdrawn file](../screenshots/withdrawn_file.png)
+
+In either case, the file can be [re-added](create-and-submit-a-release-request.md#adding-files) from the workspace view,.
+
 
 ## Change a file type
 

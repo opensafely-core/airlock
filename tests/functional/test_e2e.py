@@ -1,16 +1,12 @@
 import re
-from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
-from airlock.enums import RequestStatus, Visibility
+from airlock.enums import RequestStatus
 from airlock.types import UrlPath
 from tests import factories
-
-from .utils import screenshot_element_with_padding
 
 
 admin_user = factories.create_user("admin", output_checker=True)
@@ -100,13 +96,8 @@ def test_e2e_release_files(
     """
     # set up a workspace file in a subdirectory
     workspace = factories.create_workspace("test-workspace")
-    # factories.write_workspace_file(
-    #     workspace, "subdir/file.txt", "I am the file content"
-    # )
     factories.write_workspace_file(
-        workspace,
-        "subdir/file.csv",
-        "Age Band,Mean\n0-20,10\n21-40,20\n41-60,30\n60+,40",
+        workspace, "subdir/file.txt", "I am the file content"
     )
     factories.write_workspace_file(
         workspace, "subdir/file.foo", "I am an invalid file type"
@@ -124,18 +115,12 @@ def test_e2e_release_files(
     find_and_click(page.get_by_test_id("nav-workspaces"))
     expect(page.locator("body")).to_contain_text("Workspaces for researcher")
 
-    page.screenshot(
-        full_page=True, path=settings.SCREENSHOT_DIR / "workspaces_index.png"
-    )
-
     # Click on the workspace
     find_and_click(page.locator("#workspaces").get_by_role("link"))
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
-    assert page.get_by_role("link", name="file.csv").all() == []
+    assert page.get_by_role("link", name="file.txt").all() == []
     assert page.get_by_role("link", name="file.foo").all() == []
-
-    page.screenshot(full_page=True, path=settings.SCREENSHOT_DIR / "workspace_view.png")
 
     # Click on the subdir and then the file link to view in the workspace
     # There will be more than one link to the folder/file in the page,
@@ -152,37 +137,15 @@ def test_e2e_release_files(
     add_file_button = page.locator("#add-file-modal-button-disabled")
     expect(add_file_button).to_be_disabled()
 
-    # Click on directory so we can screenshot it
-    page.goto(f"{live_server.url}/workspaces/view/test-workspace/subdir")
-    page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_directory_view.png")
-
     # Get and click on the valid file
-    find_and_click(page.get_by_role("link", name="file.csv").first)
+    find_and_click(page.get_by_role("link", name="file.txt").first)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url(UrlPath("subdir/file.csv"))
-    )
-    # wait briefly for the table to load before screenshotting
-    page.wait_for_timeout(30)
-    page.screenshot(
-        full_page=True, path=settings.SCREENSHOT_DIR / "workspace_file_view.png"
-    )
-    more_locator = page.locator("#file-button-more")
-    find_and_click(more_locator)
-    # Screenshot both the full page and the element; these will be used in different
-    # places in the docs
-    page.screenshot(path=settings.SCREENSHOT_DIR / "more_dropdown.png")
-    screenshot_element_with_padding(
-        page,
-        more_locator,
-        "more_dropdown_el.png",
-        extra={"x": -180, "width": 180, "height": 120},
+        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
     )
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
     add_file_button = page.locator("button[value=add_files]")
-    screenshot_element_with_padding(page, add_file_button, "add_file_button.png")
-
     find_and_click(add_file_button)
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
@@ -194,16 +157,15 @@ def test_e2e_release_files(
     ).not_to_be_checked()
 
     form_element = page.get_by_role("form")
-    screenshot_element_with_padding(page, form_element, "add_file_modal.png")
 
     # Click the button to add the file to a release request
     find_and_click(form_element.locator("#add-file-button"))
 
     expect(page).to_have_url(
-        f"{live_server.url}/workspaces/view/test-workspace/subdir/file.csv"
+        f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
     expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url(UrlPath("subdir/file.csv"))
+        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
     )
 
     # The "Add file to request" button is disabled
@@ -234,7 +196,7 @@ def test_e2e_release_files(
     # the request, there will be 2 files that match .locator(".file:scope")
     file_link = (
         page.locator("#tree")
-        .get_by_role("link", name="file.csv")
+        .get_by_role("link", name="file.txt")
         .locator(".file:scope")
     )
 
@@ -244,12 +206,12 @@ def test_e2e_release_files(
     # Click on the output directory to ensure that renders correctly.
     subdir_link = page.get_by_role("link").locator(".directory:scope")
     find_and_click(subdir_link)
-    expect(page.locator("#selected-contents")).to_contain_text("file.csv")
+    expect(page.locator("#selected-contents")).to_contain_text("file.txt")
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.csv"))
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Go back to the Workspace view so we can add a supporting file
@@ -287,7 +249,7 @@ def test_e2e_release_files(
     find_and_click(subdir_link)
     # subdir link is shown as selected
     assert_tree_element_is_selected(subdir_link)
-    expect(page.locator("#selected-contents")).to_contain_text("file.csv")
+    expect(page.locator("#selected-contents")).to_contain_text("file.txt")
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
@@ -295,7 +257,7 @@ def test_e2e_release_files(
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, subdir_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.csv"))
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Click on the supporting file link.
@@ -313,13 +275,12 @@ def test_e2e_release_files(
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, supporting_file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.csv"))
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # Add context & controls to the filegroup
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     find_and_click(filegroup_link)
-    page.screenshot(path=settings.SCREENSHOT_DIR / "context_and_controls.png")
 
     context_input = page.locator("#id_context")
     find_and_click(context_input)
@@ -337,13 +298,11 @@ def test_e2e_release_files(
     submit_button = page.locator("button[data-modal=submitRequest]")
     find_and_click(submit_button)
     confirm_button = page.locator("#submit-for-review-button")
-    page.screenshot(path=settings.SCREENSHOT_DIR / "submit_request.png")
     find_and_click(confirm_button)
     expect(page.locator("body")).to_contain_text("SUBMITTED")
     # After the request is submitted, the submit button is no longer visible
     expect(submit_button).not_to_be_visible()
 
-    page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_request.png")
     # Before we log the researcher out and continue, let's just check
     # their requests
     find_and_click(page.get_by_test_id("nav-requests"))
@@ -384,7 +343,7 @@ def test_e2e_release_files(
     find_and_click(filegroup_link)
     find_and_click(file_link)
     expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.csv"))
+        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
     )
 
     # File is not yet approved, so the release button is disabled
@@ -443,7 +402,7 @@ def test_e2e_release_files(
     with page.expect_download() as download_info:
         find_and_click(page.locator("#download-button"))
     download = download_info.value
-    assert download.suggested_filename == "file.csv"
+    assert download.suggested_filename == "file.txt"
 
     # Look at a supporting file & verify it can't be approved
     supporting_file_link = page.get_by_role("link", name="supporting.txt").locator(
@@ -475,7 +434,7 @@ def test_e2e_release_files(
     context.clear_cookies()
     login_as(live_server, page, "output_checker_1")
     # Approve the file
-    page.goto(live_server.url + release_request.get_url("my-new-group/subdir/file.csv"))
+    page.goto(live_server.url + release_request.get_url("my-new-group/subdir/file.txt"))
     find_and_click(page.locator("#file-approve-button"))
 
     # The file has 2 approvals, but the release files button is not yet enabled until this
@@ -512,7 +471,6 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     """
     # set up a returned file & request
     author = factories.create_user("researcher", ["test-workspace"], False)
-    checker = factories.create_user("output-checker", [], True)
 
     path = "subdir/file.txt"
 
@@ -525,32 +483,10 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
         ],
     )
 
-    # Patch permissions so we can create some comments by output checkers
-    with patch("airlock.business_logic.permissions.check_user_can_comment_on_group"):
-        release_request.review_turn -= 1
-        bll.group_comment_create(
-            release_request,
-            "default",
-            "Has small number supression been applied?",
-            Visibility.PUBLIC,
-            checker,
-        )
-        bll.group_comment_create(
-            release_request,
-            "default",
-            "Please update file.txt with more descriptive variable names",
-            Visibility.PUBLIC,
-            checker,
-        )
-        release_request.review_turn += 1
-
     # Log in as researcher
     login_as(live_server, page, "researcher")
 
     page.goto(live_server.url + release_request.get_url("default"))
-    page.get_by_test_id("c3").screenshot(
-        path=settings.SCREENSHOT_DIR / "returned_request_comments.png"
-    )
 
     workspace = bll.get_workspace("test-workspace", author)
 
@@ -559,21 +495,14 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
 
     if multiselect:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
-        page.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_update.png")
 
         # click on the multi-select checkbox
         find_and_click(page.locator('input[name="selected"]'))
     else:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/file.txt")))
-        # screenshot the tree icon (on the file page, there is only one link, in the tree)
-        page.get_by_role("link", name="file.txt").screenshot(
-            path=settings.SCREENSHOT_DIR / "changed_tree_file.png"
-        )
-        page.screenshot(path=settings.SCREENSHOT_DIR / "file_update.png")
 
     # Find the add file button and click on it to open the modal
     find_and_click(page.locator("button[value=update_files]"))
-    page.screenshot(path=settings.SCREENSHOT_DIR / "file_update_modal.png")
 
     # Click the button to update the file in the release request
     find_and_click(page.get_by_role("form").locator("#update-file-button"))
@@ -607,7 +536,6 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     page.goto(live_server.url + release_request.get_url("default/subdir/file1.txt"))
     find_and_click(page.locator("#withdraw-file-button"))
     expect(page.locator("body")).to_contain_text("has been withdrawn from the request")
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdrawn_file.png")
 
     # Withdraw file2 from the directory page
     page.goto(live_server.url + release_request.get_url("default/subdir"))
@@ -634,9 +562,6 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     # checkboxes otherwise the wrong thing gets selected
     expect(page.locator("#customTable.datatable-table")).to_be_visible()
     find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
-
-    content = page.locator("#selected-contents")
-    content.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_add.png")
 
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
@@ -693,10 +618,8 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
 
     # View submitted request
     page.goto(live_server.url + release_request.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request.png")
 
     find_and_click(page.locator("[data-modal=withdrawRequest]"))
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request_modal.png")
 
     find_and_click(page.locator("#withdraw-request-confirm"))
 
