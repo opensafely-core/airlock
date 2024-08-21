@@ -1,5 +1,7 @@
+import os
 import re
 
+import pytest
 from django.conf import settings
 from playwright.sync_api import expect
 
@@ -31,6 +33,10 @@ def get_user_data():
     return author, user_dicts
 
 
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
 def test_screenshot_from_creation_to_release(
     page, live_server, context, release_files_stubber
 ):
@@ -282,6 +288,10 @@ def test_screenshot_from_creation_to_release(
     page.screenshot(path=settings.SCREENSHOT_DIR / "files_released.png")
 
 
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
 def test_screenshot_withdraw_request(page, context, live_server):
     author, user_dicts = get_user_data()
 
