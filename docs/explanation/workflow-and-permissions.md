@@ -12,3 +12,11 @@ Once a request reaches the Approved, Released, Rejected, or Withdrawn states,
 files can no longer be withdrawn through this mechanism. If it is necessary
 to withdraw a file in this case, please refer to the documentation for
 [reporting a data breach](https://docs.opensafely.org/releasing-files/#reporting-a-data-breach).
+
+
+## Updating files
+Files can only be updated by the author of the request, and only during the Pending
+or Returned states.
+This means that if a request is in the Submitted or Reviewed states, the output
+checking team must return the request to the author in order for files to be updated.
+Updating a file will reset any reviews associated with that file.

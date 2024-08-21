@@ -8,8 +8,11 @@ For researchers:
 * [View output files in a workspace](view-workspace-files.md)
 * [Create and submit a release request](create-and-submit-a-release-request.md)
 * [Respond to a returned request](respond-to-returned-request.md)
-* [Update a file on a request](update-file-on-request.md)
-* [Withdraw a file from a request](withdraw-file.md)
+* [Edit a file on a request](edit-file-on-request.md)
+    * [Update a file](edit-file-on-request.md#update-a-file)
+    * [Withdraw a file](edit-file-on-request.md#withdraw-a-file)
+    * [Change a file's type](edit-file-on-request.md#change-a-file-type)
+    * [Move a file to a different group](edit-file-on-request.md#move-a-file-to-a-different-group)
 * [Withdraw a request](withdraw-request.md)
 
 

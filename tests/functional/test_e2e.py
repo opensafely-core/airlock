@@ -555,18 +555,25 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     workspace = bll.get_workspace("test-workspace", author)
 
     # change the file on disk
-    factories.write_workspace_file(workspace, path, contents="changed")
+    factories.write_workspace_file(workspace, path, contents="New file content.")
 
     if multiselect:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
+        page.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_update.png")
 
         # click on the multi-select checkbox
         find_and_click(page.locator('input[name="selected"]'))
     else:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/file.txt")))
+        # screenshot the tree icon (on the file page, there is only one link, in the tree)
+        page.get_by_role("link", name="file.txt").screenshot(
+            path=settings.SCREENSHOT_DIR / "changed_tree_file.png"
+        )
+        page.screenshot(path=settings.SCREENSHOT_DIR / "file_update.png")
 
     # Find the add file button and click on it to open the modal
     find_and_click(page.locator("button[value=update_files]"))
+    page.screenshot(path=settings.SCREENSHOT_DIR / "file_update_modal.png")
 
     # Click the button to update the file in the release request
     find_and_click(page.get_by_role("form").locator("#update-file-button"))

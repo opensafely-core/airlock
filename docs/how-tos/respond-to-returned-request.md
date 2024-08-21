@@ -29,8 +29,8 @@ not be visible to output checkers until you have submitted the request again for
 
 You can opt to respond to a request to change a file by:
 
-1. [Withdrawing the file](withdraw-file.md) (and potentially adding a different file or files)
-2. Re-running a job and [updating the file](update-file-on-request.md)
+1. [Withdrawing the file](edit-file-on-request.md#withdraw-a-file) (and potentially adding a different file or files)
+2. Re-running a job and [updating the file](edit-file-on-request.md#update-a-file)
 3. Leaving the file as is, and adding a comment to indicate why you have chosen to do so.
 
 ## Re-submitting the request
@@ -41,7 +41,7 @@ When you are happy that you have responded to feedback and questions,
 
 ---
 * Previous: [Create and submit a release request](create-and-submit-a-release-request.md)
-* Next: [Withdraw a file from a request](withdraw-file.md)
+* Next: [Edit a file on a request](edit-file-on-request.md)
 
 ---8<-- 'airlock-includes/glossary.md'
 

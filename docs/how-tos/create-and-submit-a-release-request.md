@@ -27,8 +27,8 @@ select the type of file (output file or supporting file).
     already have an active release request, file will be added to it. If you do not have
     an active release request, a new one will be created.
 
-If you added a file that you did not intend to, you can [withdraw the file](withdraw-file.md)
-prior to submitting the release request.
+If you added a file that you did not intend to, you can
+[withdraw the file](edit-file-on-request.md#withdraw-a-file) prior to submitting the release request.
 
 ## Navigating the request
 

@@ -20,8 +20,7 @@ nav:
       - View output files in a workspace: how-tos/view-workspace-files.md
       - Create and submit a release request: how-tos/create-and-submit-a-release-request.md
       - Respond to a returned request: how-tos/respond-to-returned-request.md
-      - Withdraw a file from a request: how-tos/withdraw-file.md
-      - Update a file on a request: how-tos/update-file-on-request.md
+      - Edit a file on a request: how-tos/edit-file-on-request.md
       - Withdraw a request: how-tos/withdraw-request.md
     - For output checkers:
       - Review a request: how-tos/review-a-request.md
@@ -31,6 +30,7 @@ nav:
   - Explanation: 
     - explanation/index.md
     - Why Airlock?: explanation/why-airlock.md
+    - How does a workspace file differ from a request file?: explanation/workspace-vs-request-files.md
     - Workflow and permissions: explanation/workflow-and-permissions.md
     - Notifications: explanation/notifications.md
   - Reference:
