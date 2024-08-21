@@ -693,8 +693,11 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
 
     # View submitted request
     page.goto(live_server.url + release_request.get_url())
+    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request.png")
 
     find_and_click(page.locator("[data-modal=withdrawRequest]"))
+    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request_modal.png")
+
     find_and_click(page.locator("#withdraw-request-confirm"))
 
     expect(page.locator("body")).to_contain_text("Request has been withdrawn")
