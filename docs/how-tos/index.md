@@ -22,5 +22,3 @@ For output checkers:
 * [Download a file](download-file.md)
 * [Reject a request](reject-request.md)
 * [Release files](release-files.md)
-
----8<-- 'airlock-includes/glossary.md'

@@ -39,6 +39,3 @@ You should be now logged in. This login will expire after two weeks of not being
 ---
 
 * Next: [View workspace files](view-workspace-files.md)
-
-
----8<-- 'airlock-includes/glossary.md'

@@ -51,6 +51,3 @@ The [how-to guides](how-tos/index.md) provide practical steps for working with A
 The [explanation](explanation/index.md) section provides background information about Airlock and its features.
 
 The [reference](reference/index.md) section provides background information about working with Airlock.
-
-
----8<-- 'airlock-includes/glossary.md'

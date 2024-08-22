@@ -76,5 +76,3 @@ able to edit it. Output checkers will be [automatically notified](../explanation
 
 * Previous: [View workspace files](view-workspace-files.md)
 * Next: [Respond to a returned request](respond-to-returned-request.md)
-
----8<-- 'airlock-includes/glossary.md'

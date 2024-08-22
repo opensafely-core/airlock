@@ -60,5 +60,3 @@ with the new file group.
 
 * Previous: [Respond to a returned request](respond-to-returned-request.md)
 * Next: [Withdraw a release request](withdraw-request.md)
-
----8<-- 'airlock-includes/glossary.md'

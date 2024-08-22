@@ -15,6 +15,3 @@ file content, with more space for viewing.
 Files in the Airlock file viewer are formatted according to their file type. For example, CSV
 files are displayed as a filterable and sortable table. If you wish, you can also view the
 file content in its raw form, by selecting "View as plain text" in the `More` dropdown.
-
-
----8<-- 'airlock-includes/glossary.md'

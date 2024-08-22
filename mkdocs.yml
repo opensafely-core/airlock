@@ -95,3 +95,5 @@ markdown_extensions:
       check_paths: true
       base_path: # base paths will be checked in order for matching snippets
         - docs
+      auto_append:
+        - airlock-includes/glossary.md

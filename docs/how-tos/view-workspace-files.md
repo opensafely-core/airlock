@@ -27,5 +27,3 @@ the file.
 
 * Previous: [Accessing Airlock](access-airlock.md)
 * Next: [Create and submit a release request](create-and-submit-a-release-request.md)
-
----8<-- 'airlock-includes/glossary.md'

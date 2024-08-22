@@ -41,6 +41,3 @@ When you are happy that you have responded to feedback and questions,
 ---
 * Previous: [Create and submit a release request](create-and-submit-a-release-request.md)
 * Next: [Edit a file on a request](edit-file-on-request.md)
-
----8<-- 'airlock-includes/glossary.md'
-

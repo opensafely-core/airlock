@@ -19,5 +19,3 @@ You will need to confirm that you really want to do this before proceeding.
 
 ---
 * Previous: [Edit a file on a request](edit-file-on-request.md)
-
----8<-- 'airlock-includes/glossary.md'
