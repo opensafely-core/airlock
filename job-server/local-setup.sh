@@ -36,10 +36,13 @@ fi
 
 # setup github social logins
 # this only needs to be done very rarely, and bw client is a faff, so add a check to only if needed
-if test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
+if test -n "${CI:-}"; then
+    echo "Skipping job-server SOCIAL_AUTH setup as it is CI"
+elif test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
     tmp=$(mktemp)
     if ! command -v bw > /dev/null; then
-        echo "bitwarden client bw not found"
+        echo "bitwarden cli client bw not found"
+        echo "We need it to automatically setup job-server's SOCIAL_AUTH_GITHUB_KEY as one time thing"
         exit 1
     fi
     if bw status | grep -q unauthenticated; then

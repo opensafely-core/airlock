@@ -15,11 +15,13 @@ check:
     test -f .env.jobserver || error
 
     . .env.jobserver
-    if test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
-         error "SOCIAL_AUTH_GITHUB_KEY not set properly"
-    fi
-    if test "$SOCIAL_AUTH_GITHUB_SECRET" = "test" -o -z "$SOCIAL_AUTH_GITHUB_SECRET"; then
-        error "SOCIAL_AUTH_GITHUB_SECRET not set properly"
+    if test -z "${CI:-}"; then
+        if test "$SOCIAL_AUTH_GITHUB_KEY" = "test" -o -z "$SOCIAL_AUTH_GITHUB_KEY"; then
+            error "SOCIAL_AUTH_GITHUB_KEY not set properly"
+        fi
+        if test "$SOCIAL_AUTH_GITHUB_SECRET" = "test" -o -z "$SOCIAL_AUTH_GITHUB_SECRET"; then
+            error "SOCIAL_AUTH_GITHUB_SECRET not set properly"
+        fi
     fi
 
 # enable local airlock config to point to local job-server

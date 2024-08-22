@@ -1,0 +1,38 @@
+---
+name: Local job-server setup CI
+
+on:
+  schedule: 
+    # every day at 2:37am
+    - cron: "37 2 * * *"
+
+jobs:
+  test-local-job-server:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          python-version: "3.11"
+          install-just: true
+ 
+      - name: "Test local job server setup"
+        # this should download, configure and successfully launch a local job-server
+        # we test it to make sure we catch breaking changes in job-server configuration we need to update.
+        run: |
+          just _dotenv  # we don't need a full devenv
+          just job-server/configure username
+          just job-server/create-workspace test-workspace
+
+      - name: "Notify Slack on Failure"
+        # TODO: 2024-08-27 this does not work, gives the error "not_in_channel", despite all our bots being in the channel
+        if: failure() && github.ref_name == 'main'
+        uses: zuplo/github-action-slack-notify-build@cf8e7e66a21d76a8125ea9648979c30920195552 # v2
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        with:
+          channel_id: "C069YDR4NCA"
+          status: "Airlock local job-server integration test failure"
+          color: danger
+
