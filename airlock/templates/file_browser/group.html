@@ -68,7 +68,7 @@
               <form action="{{ group.comment_delete_url }}" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                {% #button variant="danger" type="cancel" %}Delete comment{% /button %}
+                {% #button variant="danger" type="submit" %}Delete comment{% /button %}
               </form>
             </div>
           {% endif %}
