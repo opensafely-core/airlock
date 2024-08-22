@@ -164,14 +164,39 @@ def test_screenshot_from_creation_to_release(
             live_server.url
             + release_request.get_url(UrlPath("my-group/outputs/file1.csv"))
         )
+
+        if screenshot:
+            # Screenshot the request file page before voting
+            page.screenshot(path=settings.SCREENSHOT_DIR / "file_review.png")
+
         page.locator("#file-approve-button").click()
+
+        if screenshot:
+            # More dropdown (includes download file option)
+            more_locator = page.locator("#file-button-more")
+            more_locator.click()
+            screenshot_element_with_padding(
+                page,
+                more_locator,
+                "more_dropdown_el_request_file.png",
+                extra={"x": -180, "width": 180, "height": 160},
+            )
+
+            # Click to open the context modal
+            page.locator("button[data-modal=group-context]").click()
+            page.screenshot(path=settings.SCREENSHOT_DIR / "context_modal.png")
+            page.get_by_role("button", name="Close").click()
+
+        if screenshot:
+            # Screenshot the request file page after voting
+            page.screenshot(path=settings.SCREENSHOT_DIR / "file_approved.png")
+
         # Request changes on file2.csv
         page.goto(
             live_server.url
             + release_request.get_url(UrlPath("my-group/outputs/file2.csv"))
         )
-        if screenshot:
-            page.screenshot(path=settings.SCREENSHOT_DIR / "file_review.png")
+
         page.locator("#file-request-changes-button").click()
         # Request changes on summary.txt
         page.goto(
@@ -179,11 +204,23 @@ def test_screenshot_from_creation_to_release(
             + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
         )
         page.locator("#file-request-changes-button").click()
+
+        if screenshot:
+            # screenshot the tree after voting
+            page.locator("#tree").screenshot(
+                path=settings.SCREENSHOT_DIR / "request_tree_post_voting.png"
+            )
+
         # Submit independent review
         page.goto(live_server.url + release_request.get_url())
-        page.locator("#submit-review-button").click()
+        if screenshot:
+            page.screenshot(path=settings.SCREENSHOT_DIR / "submit_review.png")
 
-    # Review as each output checker
+        page.locator("#submit-review-button").click()
+        if screenshot:
+            page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_review.png")
+
+    # Login as output checker and visit pages
     login_as_user(live_server, context, user_dicts["checker1"])
     # Requests index
     page.goto(f"{live_server.url}/requests")
@@ -191,22 +228,33 @@ def test_screenshot_from_creation_to_release(
     # Request view
     page.goto(live_server.url + release_request.get_url())
     page.screenshot(path=settings.SCREENSHOT_DIR / "request_overview.png")
-    do_review()
+    # File group
+    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.screenshot(path=settings.SCREENSHOT_DIR / "file_group.png")
 
+    # Review as each output checker
+    do_review()
     login_as_user(live_server, context, user_dicts["checker2"])
     do_review(screenshot=False)
 
-    # Add public comments
+    # Add private comment
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
     comment_input = page.locator("#id_comment")
-    public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
-    public_visibility_radio.check()
+
     comment_input.fill("Please update file2.csv with more descriptive variable names")
+    page.get_by_test_id("c3").screenshot(
+        path=settings.SCREENSHOT_DIR / "reviewed_request_comment_in_progress.png"
+    )
     comment_button.click()
+    # Add public comment
+    public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
     public_visibility_radio.check()
     comment_input.fill("Is summmary.txt required for output?")
     comment_button.click()
+    page.get_by_test_id("c3").screenshot(
+        path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png"
+    )
 
     # Return to researcher
     page.goto(live_server.url + release_request.get_url())

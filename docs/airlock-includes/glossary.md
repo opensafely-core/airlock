@@ -8,3 +8,5 @@
 *[consolidation]: Phase after independent review, when output checkers can discuss and consolidate feedback
 *[context]: Contextual description of the output files within a file group
 *[controls]: Statistical disclosure control measures that have been applied to the files within a file group
+*[vote]: An individual output checker's review of a file (i.e. approve/request changed)
+*[decision]: The combined decision on the file, based on the submitted reviews from output checkers (approved, request changes, conflicted.)

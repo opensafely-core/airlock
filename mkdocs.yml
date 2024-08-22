@@ -24,8 +24,6 @@ nav:
       - Withdraw a request: how-tos/withdraw-request.md
     - For output checkers:
       - Review a request: how-tos/review-a-request.md
-      - Download a file: how-tos/download-file.md
-      - Reject a request: how-tos/reject-request.md
       - Release files: how-tos/release-files.md
   - Explanation: 
     - explanation/index.md
@@ -38,6 +36,7 @@ nav:
     - reference/terms-and-definitions.md
     - Alternative ways to view files: reference/view-files-alt.md
     - Viewing underlying source code: reference/view-source-code.md
+    - Downloading files: reference/downloading-files.md
     - Request state diagram: reference/request-states.md
 
 watch:

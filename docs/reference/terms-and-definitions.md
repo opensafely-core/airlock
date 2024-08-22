@@ -55,6 +55,18 @@ applied to the files within a file group.
 A stage of the release request process during which the request is considered to be "owned"
 by either the researcher (author) or the reviewer (output checker). 
 
+## Vote (on a request file)
+
+An individual output checker's review of a file. This can be Approved,
+Request changes or Undecided.
+
+## Decision (on a request file)
+
+The combined decision on a file, taking into account all submitted
+reviews from output checkers. This can be Approved or Request Changes
+(if output checkers agree) or Conflicted (if output checkers do not
+agree.)
+
 ## Independent Review
 
 Each time a release request is submitted for review, it is initially reviewed independently by two output checkers. At this stage, output checkers are not aware of the status of other 
@@ -66,3 +78,6 @@ After output checkers have both completed their independent review, there is a p
 consolidation, where they can collaborate and determine the questions and feedback that
 may be required from the researcher, prior to deciding whether this request is now ready
 for release.
+
+At this stage, any Conflicted decision can be discussed and output
+checkers can update their votes. 

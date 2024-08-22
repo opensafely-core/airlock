@@ -19,6 +19,4 @@ For researchers:
 For output checkers:
 
 * [Review a request](review-a-request.md)
-* [Download a file](download-file.md)
-* [Reject a request](reject-request.md)
 * [Release files](release-files.md)
