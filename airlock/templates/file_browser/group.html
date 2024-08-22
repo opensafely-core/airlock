@@ -32,17 +32,15 @@
         {% fragment as comment_status %}
           <span>
             {% if request.user.output_checker %}
-              {% if release_request.get_turn_phase.name == "INDEPENDENT" %}
+              {% if release_request.get_turn_phase.name == "INDEPENDENT" and comment.review_turn == release_request.review_turn %}
                 {% #pill variant="info" text="Blinded" class="group" %}
-                  Blinded
                   {% comment%}
                     TODO: get tooltips working for pills
                     {% tooltip content=comment.visibility.blinded_description %}
                   {% endcomment%}
                 {% /pill%}
               {% endif %}
-              {% #pill variant="info" class="group" %}
-                {{ comment.visibility.name.title }}
+              {% #pill variant="info" class="group" text=comment.visibility.name.title %}
                 {% comment%}
                   TODO: get tooltips working for pills
                   {%tooltip content=comment.visibility.description %}
