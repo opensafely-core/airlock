@@ -32,17 +32,15 @@
         {% fragment as comment_status %}
           <span>
             {% if request.user.output_checker %}
-              {% if release_request.get_turn_phase.name == "INDEPENDENT" %}
+              {% if release_request.get_turn_phase.name == "INDEPENDENT" and comment.review_turn == release_request.review_turn %}
                 {% #pill variant="info" text="Blinded" class="group" %}
-                  Blinded
                   {% comment%}
                     TODO: get tooltips working for pills
                     {% tooltip content=comment.visibility.blinded_description %}
                   {% endcomment%}
                 {% /pill%}
               {% endif %}
-              {% #pill variant="info" class="group" %}
-                {{ comment.visibility.name.title }}
+              {% #pill variant="info" class="group" text=comment.visibility.name.title %}
                 {% comment%}
                   TODO: get tooltips working for pills
                   {%tooltip content=comment.visibility.description %}
@@ -64,13 +62,15 @@
                 </form>
               </div>
             {% endif %}
-            <div>
-              <form action="{{ group.comment_delete_url }}" method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                {% #button variant="danger" type="cancel" %}Delete comment{% /button %}
-              </form>
-            </div>
+            {% if group.user_can_comment %}
+              <div>
+                <form action="{{ group.comment_delete_url }}" method="POST">
+                  {% csrf_token %}
+                  <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                  {% #button variant="danger" type="submit" %}Delete comment{% /button %}
+                </form>
+              </div>
+            {% endif %}
           {% endif %}
         {% /list_group_rich_item %}
       {% endfor %}
