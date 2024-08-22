@@ -104,12 +104,6 @@ def test_request_group_edit_comment_for_author(live_server, context, page, bll):
         },
     )
 
-    submitted_release_request = factories.create_request_at_status(
-        "workspace",
-        author=author,
-        files=[factories.request_file(group="group")],
-        status=RequestStatus.SUBMITTED,
-    )
     pending_release_request = factories.create_request_at_status(
         "pending",
         author=author,
@@ -144,12 +138,25 @@ def test_request_group_edit_comment_for_author(live_server, context, page, bll):
     comments_locator = contents.locator(".comments")
     expect(comments_locator).to_contain_text("test comment")
 
+    delete_comment_button = page.get_by_role("button", name="Delete comment")
+    expect(delete_comment_button).to_be_visible()
+
+    # submit the pending request
+    bll.submit_request(pending_release_request, author)
+
     # cannot edit context/controls for submitted request or add comment
-    page.goto(live_server.url + submitted_release_request.get_url("group"))
+    page.goto(live_server.url + pending_release_request.get_url("group"))
+
+    # comment is still visible
+    comments_locator = contents.locator(".comments")
+    expect(comments_locator).to_contain_text("test comment")
+    # context/controls and all buttons (including delete comment for comment made
+    # pre-submission) are not visible
     expect(context_locator).not_to_be_editable()
     expect(controls_locator).not_to_be_editable()
     expect(group_save_button).not_to_be_visible()
     expect(comment_button).not_to_be_visible()
+    expect(delete_comment_button).not_to_be_visible()
 
 
 def test_request_group_edit_comment_for_checker(
