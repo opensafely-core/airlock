@@ -262,7 +262,6 @@ def request_view(request, request_id: str, path: str = ""):
         "user_has_reviewed_all_files": user_has_reviewed_all_files,
         "activity": activity,
         "group": group_context,
-        "show_c3": settings.SHOW_C3,
         "request_action_required": request_action_required,
         "multiselect_url": reverse(
             "request_multiselect", kwargs={"request_id": request_id}

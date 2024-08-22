@@ -85,8 +85,7 @@ def test_request_view_root_summary(airlock_client):
     assert "audit_user" in response.rendered_content
 
 
-def test_request_view_root_group(airlock_client, settings):
-    settings.SHOW_C3 = True
+def test_request_view_root_group(airlock_client):
     airlock_client.login(output_checker=True)
     audit_user = factories.create_user("audit_user", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
