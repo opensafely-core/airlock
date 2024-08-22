@@ -428,5 +428,3 @@ LOGGING = {
         },
     },
 }
-
-SHOW_C3 = os.environ.get("AIRLOCK_SHOW_C3", "false") == "True"

@@ -24,85 +24,84 @@
       </div>
     {% endif %}
   </form>
-  {% if show_c3 %}
-    <div class="comments" style="margin-top: 1rem;">
-      {% #list_group %}
-        {% for comment, comment_class in group.comments %}
 
-          {% fragment as comment_status %}
-            <span>
-              {% if request.user.output_checker %}
-                {% if release_request.get_turn_phase.name == "INDEPENDENT" %}
-                  {% #pill variant="info" text="Blinded" class="group" %}
-                    Blinded
-                    {% comment%}
-                      TODO: get tooltips working for pills
-                      {% tooltip content=comment.visibility.blinded_description %}
-                    {% endcomment%}
-                  {% /pill%}
-                {% endif %}
-                {% #pill variant="info" class="group" %}
-                  {{ comment.visibility.name.title }}
+  <div class="comments" style="margin-top: 1rem;">
+    {% #list_group %}
+      {% for comment, comment_class in group.comments %}
+
+        {% fragment as comment_status %}
+          <span>
+            {% if request.user.output_checker %}
+              {% if release_request.get_turn_phase.name == "INDEPENDENT" %}
+                {% #pill variant="info" text="Blinded" class="group" %}
+                  Blinded
                   {% comment%}
                     TODO: get tooltips working for pills
-                    {%tooltip content=comment.visibility.description %}
+                    {% tooltip content=comment.visibility.blinded_description %}
                   {% endcomment%}
                 {% /pill%}
               {% endif %}
-              {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
-            </span>
-          {% endfragment %}
-          {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
-            {{ comment.comment }}
-            {% if request.user.username == comment.author %}
-              {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
-                <div>
-                  <form action="{{ group.comment_visibility_public_url }}" method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                    {% #button variant="danger" type="cancel" %}Make comment visible to all users{% /button %}
-                  </form>
-                </div>
-              {% endif %}
+              {% #pill variant="info" class="group" %}
+                {{ comment.visibility.name.title }}
+                {% comment%}
+                  TODO: get tooltips working for pills
+                  {%tooltip content=comment.visibility.description %}
+                {% endcomment%}
+              {% /pill%}
+            {% endif %}
+            {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+          </span>
+        {% endfragment %}
+        {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
+          {{ comment.comment }}
+          {% if request.user.username == comment.author %}
+            {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
               <div>
-                <form action="{{ group.comment_delete_url }}" method="POST">
+                <form action="{{ group.comment_visibility_public_url }}" method="POST">
                   {% csrf_token %}
                   <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                  {% #button variant="danger" type="cancel" %}Delete comment{% /button %}
+                  {% #button variant="danger" type="cancel" %}Make comment visible to all users{% /button %}
                 </form>
               </div>
             {% endif %}
-          {% /list_group_rich_item %}
-        {% endfor %}
-        {% if group.user_can_comment and not group.inline %}
-          {% #list_group_item %}
-            <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
-              {% csrf_token %}
-              {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
-                {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
-                  Only you will see this comment until two independent reviews have been submitted
-                {% /alert %}
-              {% else %}
-                {% #alert variant="info" title="Comments are pending" no_icon=True %}
-                  Any comments will be shown to other users once you submit or return a request
-                {% /alert %}
-              {% endif %}
+            <div>
+              <form action="{{ group.comment_delete_url }}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                {% #button variant="danger" type="cancel" %}Delete comment{% /button %}
+              </form>
+            </div>
+          {% endif %}
+        {% /list_group_rich_item %}
+      {% endfor %}
+      {% if group.user_can_comment and not group.inline %}
+        {% #list_group_item %}
+          <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
+            {% csrf_token %}
+            {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
+              {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
+                Only you will see this comment until two independent reviews have been submitted
+              {% /alert %}
+            {% else %}
+              {% #alert variant="info" title="Comments are pending" no_icon=True %}
+                Any comments will be shown to other users once you submit or return a request
+              {% /alert %}
+            {% endif %}
 
-              {% form_textarea field=group.comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
-              {% if group.comment_form.visibility.field.choices|length == 1 %}
-                <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
-              {% else %}
-                {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
-              {% endif%}
-              <div class="mt-2">
-                {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
-              </div>
-            </form>
-          {% /list_group_item %}
-        {% endif %}
-      {% /list_group %}
-    </div>
-  {% endif %}
+            {% form_textarea field=group.comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
+            {% if group.comment_form.visibility.field.choices|length == 1 %}
+              <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
+            {% else %}
+              {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
+            {% endif%}
+            <div class="mt-2">
+              {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
+            </div>
+          </form>
+        {% /list_group_item %}
+      {% endif %}
+    {% /list_group %}
+  </div>
 
   {% if not group.inline %}
     {% include "activity.html" with activity=group.activity %}

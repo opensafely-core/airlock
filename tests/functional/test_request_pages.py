@@ -84,10 +84,7 @@ def test_request_file_group_context_modal(live_server, context, page):
     expect(dialog).not_to_be_visible()
 
 
-def test_request_group_edit_comment_for_author(
-    live_server, context, page, bll, settings
-):
-    settings.SHOW_C3 = False  # context and controls visible, comments hidden
+def test_request_group_edit_comment_for_author(live_server, context, page, bll):
     author = login_as_user(
         live_server,
         context,
@@ -137,11 +134,6 @@ def test_request_group_edit_comment_for_author(
     expect(controls_locator).to_have_value("test controls")
 
     group_comment_locator = contents.get_by_role("form", name="group-comment-form")
-    expect(group_comment_locator).not_to_be_visible()
-
-    settings.SHOW_C3 = True
-    page.reload()
-
     expect(group_comment_locator).to_be_visible()
     comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
 
@@ -163,7 +155,6 @@ def test_request_group_edit_comment_for_author(
 def test_request_group_edit_comment_for_checker(
     live_server, context, page, bll, settings
 ):
-    settings.SHOW_C3 = True
     login_as_user(
         live_server,
         context,
@@ -213,9 +204,8 @@ def test_request_group_edit_comment_for_checker(
 
 
 def test_request_group_comment_visibility_public_for_checker(
-    live_server, context, page, bll, settings
+    live_server, context, page, bll
 ):
-    settings.SHOW_C3 = True
     login_as_user(
         live_server,
         context,
