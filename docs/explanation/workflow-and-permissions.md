@@ -34,16 +34,42 @@ We refer to the change from a researcher-owned status to an output checker-owned
 status (or vice versa) as a new turn.
 
 For example: a researcher creates a new request and adds files to it. The release request is in status PENDING. It is "owned" by the researcher, who can continue
-to edit it. The request turn is 0.
+to edit it.
 
 The researcher then submits the request.  The release request is now in status
-SUBMITTED. It is owned by the output checkers. The research can no longer add or
+SUBMITTED. It is owned by the output checkers. The researcher can no longer add or
 withdraw files, or comment on file groups. It is now the turn of the output checkers
 to work on the request, reviewing files and asking questions where necessary.
 
 The RELEASED, REJECTED and WITHDRAWN statuses are considered final states. When a
 release request is in one of these statuses, it cannot be edited by any user, and
 it cannot be moved into any other status.
+
+```mermaid
+flowchart TD
+    subgraph Status owner key
+    direction LR
+        1([Author]):::author
+        2([Output checker]):::checker
+        3(Final status)
+    end
+
+    subgraph Release Request Workflow
+        A([PENDING]):::author -- Adds files and submits --> B([SUBMITTED]):::checker
+        B -- 1st independent review --> C([PARTIALLY_REVIEWED]):::checker
+        C -- 2nd independent review --> D([REVIEWED]):::checker
+        D -- Consolidation --> E([RETURNED]):::author
+        E -- Updates and responds to questions --> B
+        D -- All files approved ----> F(RELEASED)
+        D -- Not approved ----> G(REJECTED)
+        A --> H(WITHDRAWN)
+        E --> H
+    end
+
+classDef author fill:#ff9,stroke:#333;
+classDef checker fill:#9ff,stroke:#333;
+
+```
 
 ### Withdrawing files
 
