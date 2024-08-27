@@ -250,7 +250,13 @@ STATIC_URL = "static/"
 
 ASSETS_DIST = BASE_DIR / "assets/dist"
 
-STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR]
+# HACK ALERT! I generally don't like supplying defaults like this: ideally, all config
+# would have to be explicitly defined in the environment but this is currently the only
+# way to get things to work with docker-compose. See:
+# https://github.com/opensafely-core/airlock/issues/634
+BUILT_ASSETS = BASE_DIR / os.environ.get("BUILT_ASSETS", "assets/out")
+
+STATICFILES_DIRS = [ASSETS_DIST, DOCS_DIR, BUILT_ASSETS]
 
 # Sessions
 
@@ -269,6 +275,10 @@ WHITENOISE_USE_FINDERS = True
 
 DJANGO_VITE = {
     "default": {
+        "dev_mode": False,
+        "manifest_path": BUILT_ASSETS / "manifest.json",
+    },
+    "job_server": {
         # vite assumes collectstatic, so tell it where the manifest is directly
         "manifest_path": ASSETS_DIST / ".vite/manifest.json",
     },

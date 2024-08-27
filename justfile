@@ -226,3 +226,59 @@ docs-serve *ARGS: devenv
 docs-build *ARGS: devenv
     "$BIN"/mkdocs build --clean {{ ARGS }}
 
+
+# Remove built assets and node_modules
+assets-clean:
+    rm -rf assets/out
+    rm -rf node_modules
+
+
+# Install the Node.js dependencies
+assets-install *args="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+
+    # exit if lock file has not changed since we installed them. -nt == "newer than",
+    # but we negate with || to avoid error exit code
+    test package-lock.json -nt node_modules/.written || exit 0
+
+    npm ci {{ args }}
+    touch node_modules/.written
+
+
+# Build the Node.js assets
+assets-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # find files which are newer than dist/.written in the src directory. grep
+    # will exit with 1 if there are no files in the result.  We negate this
+    # with || to avoid error exit code
+    # we wrap the find in an if in case dist/.written is missing so we don't
+    # trigger a failure prematurely
+    if test -f assets/out/.written; then
+        find assets/src -type f -newer assets/out/.written | grep -q . || exit 0
+    fi
+
+    npm run build
+    touch assets/out/.written
+
+
+# Install npm toolchain, build and collect assets
+assets: assets-install assets-build
+
+# Rebuild all npm/static assets
+assets-rebuild: assets-clean assets
+
+# Run the npm development server and watch for changes
+assets-run: assets-install
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ "$ASSETS_DEV_MODE" == "False" ]; then
+        echo "Set ASSETS_DEV_MODE to a truthy value to run this command"
+        exit 1
+    fi
+
+    npm run dev
