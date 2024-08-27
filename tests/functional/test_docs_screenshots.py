@@ -328,6 +328,8 @@ def test_screenshot_from_creation_to_release(
     release_request = factories.refresh_release_request(release_request)
     release_files_stubber(release_request)
     page.goto(live_server.url + release_request.get_url())
+
+    page.screenshot(path=settings.SCREENSHOT_DIR / "ready_to_release.png")
     page.locator("#release-files-button").click()
     # Make sure we've waited for the files to be released
     expect(page.locator("body")).to_contain_text(
