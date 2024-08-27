@@ -41,7 +41,7 @@ this request has not yet been reviewed.
 ![Request overview](../screenshots/request_overview.png)
 
 The files in a release request can be browsed in the file browser tree. The
-highlighted colour and icons illustrate the review state of the files.
+[highlighted colour and icons](../reference/file-icons.md) illustrate the review state of the files.
 This request has 3 output files, none of which have been reviewed yet, and
 one supporting file, all in a file group called "my-group".
 

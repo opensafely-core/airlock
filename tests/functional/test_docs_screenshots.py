@@ -5,6 +5,7 @@ import pytest
 from django.conf import settings
 from playwright.sync_api import expect
 
+from airlock.business_logic import bll
 from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
@@ -363,3 +364,202 @@ def test_screenshot_withdraw_request(page, context, live_server):
     page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request_modal.png")
 
     page.locator("#withdraw-request-confirm").click()
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
+def test_screenshot_request_partially_reviewed_icons(page, context, live_server):
+    author, user_dicts = get_user_data()
+    checker1 = factories.create_user(
+        username="checker1",
+        workspaces=[],
+        output_checker=True,
+    )
+    workspace = factories.create_workspace("my-workspace")
+    release_request = factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                path="approved.txt",
+                contents="approved",
+                approved=True,
+                checkers=[checker1],
+            ),
+            factories.request_file(
+                path="changes_requested.txt",
+                contents="changes",
+                changes_requested=True,
+                checkers=[checker1],
+            ),
+            factories.request_file(path="pending_review.txt", contents="pending"),
+            factories.request_file(
+                path="withdrawn.txt",
+                contents="withdrawn",
+                filetype=RequestFileType.WITHDRAWN,
+            ),
+            factories.request_file(
+                path="supporting.txt",
+                contents="supporting",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+
+    login_as_user(live_server, context, user_dicts["checker1"])
+
+    # View request
+    page.goto(live_server.url + release_request.get_url())
+
+    # screenshot the tree
+    page.locator("#tree").screenshot(
+        path=settings.SCREENSHOT_DIR / "request_independent_review_file_icons.png"
+    )
+
+    login_as_user(live_server, context, user_dicts["author"])
+
+    # View request
+    page.goto(live_server.url + release_request.get_url())
+
+    # screenshot the tree
+    page.locator("#tree").screenshot(
+        path=settings.SCREENSHOT_DIR
+        / "request_independent_review_researcher_file_icons.png"
+    )
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
+def test_screenshot_request_reviewed_icons(page, context, live_server):
+    author, user_dicts = get_user_data()
+    checker1 = factories.create_user(
+        username="checker1",
+        workspaces=[],
+        output_checker=True,
+    )
+    checker2 = factories.create_user(
+        username="checker2",
+        workspaces=[],
+        output_checker=True,
+    )
+    workspace = factories.create_workspace("my-workspace")
+    release_request = factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.REVIEWED,
+        files=[
+            factories.request_file(
+                path="approved.txt",
+                contents="approved",
+                approved=True,
+                checkers=[checker1, checker2],
+            ),
+            factories.request_file(
+                path="changes_requested.txt",
+                contents="changes",
+                changes_requested=True,
+                checkers=[checker1, checker2],
+            ),
+            factories.request_file(
+                path="conflicted.txt",
+                contents="conflicted",
+                approved=True,
+                checkers=[checker1, checker2],
+            ),
+            factories.request_file(
+                path="withdrawn.txt",
+                contents="withdrawn",
+                filetype=RequestFileType.WITHDRAWN,
+            ),
+            factories.request_file(
+                path="supporting.txt",
+                contents="supporting",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+    # change one of the votes to changes requested on the conflicted file
+    conflicted_file = release_request.get_request_file_from_output_path(
+        "conflicted.txt"
+    )
+    bll.request_changes_to_file(release_request, conflicted_file, checker1)
+
+    login_as_user(live_server, context, user_dicts["checker1"])
+
+    # View request
+    page.goto(live_server.url + release_request.get_url())
+
+    # screenshot the tree
+    page.locator("#tree").screenshot(
+        path=settings.SCREENSHOT_DIR / "request_reviewed_file_icons.png"
+    )
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
+def test_screenshot_workspace_icons(page, context, live_server):
+    author, user_dicts = get_user_data()
+    checker1 = factories.create_user(
+        username="checker1",
+        workspaces=[],
+        output_checker=True,
+    )
+    checker2 = factories.create_user(
+        username="checker2",
+        workspaces=[],
+        output_checker=True,
+    )
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(
+        workspace, path="not_added_to_request.txt", contents="not added"
+    )
+    factories.write_workspace_file(
+        workspace, path="already_released.txt", contents="released"
+    )
+    factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                path="already_released.txt", contents="released", approved=True
+            )
+        ],
+    )
+    factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(path="added_to_request.txt", contents="approved"),
+            factories.request_file(
+                path="updated.txt",
+                contents="updated",
+                changes_requested=True,
+                checkers=[checker1, checker2],
+            ),
+        ],
+    )
+
+    # update the contents of updated.txt on disk
+    factories.write_workspace_file(
+        workspace,
+        "updated.txt",
+        contents="new content",
+    )
+
+    login_as_user(live_server, context, user_dicts["author"])
+    # View workspace
+    page.goto(live_server.url + workspace.get_url())
+
+    # screenshot the tree
+    page.locator("#tree").screenshot(
+        path=settings.SCREENSHOT_DIR / "workspace_file_icons.png"
+    )

@@ -34,6 +34,7 @@ nav:
   - Reference:
     - reference/index.md
     - reference/terms-and-definitions.md
+    - File icons and colours: reference/file-icons.md
     - Alternative ways to view files: reference/view-files-alt.md
     - Viewing underlying source code: reference/view-source-code.md
     - Downloading files: reference/downloading-files.md

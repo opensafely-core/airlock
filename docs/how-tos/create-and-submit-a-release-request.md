@@ -42,7 +42,7 @@ to workspaces, and can be navigated in the same way.
 
 ![Request tree browser](../screenshots/request_tree.png)
 
-Output and supporting files are differentiated in the tree by colour and icon, as shown above.
+Output and supporting files are [differentiated in the tree by colour and icon](../reference/file-icons.md), as shown above.
 
 ## Add context and controls
 
