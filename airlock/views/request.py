@@ -84,11 +84,11 @@ def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     relpath = UrlPath(path)
-    template = "file_browser/index.html"
+    template = "file_browser/request/index.html"
     selected_only = False
 
     if request.htmx:
-        template = "file_browser/contents.html"
+        template = "file_browser/request/contents.html"
         selected_only = True
 
     tree = get_request_tree(release_request, request.user, relpath, selected_only)
