@@ -112,12 +112,6 @@
   white-space: nowrap;
 }
 
-.selected.tree__folder-link,
-.selected.tree__file {
-  --file-bg: var(--color-blue-50);
-  --file-border: var(--color-blue-50);
-}
-
 .tree__file-icon {
   background-image: var(--icon-url);
   background-size: 100%;
@@ -129,7 +123,7 @@
 
 .tree__file.workspace_under_review {
   --file-bg: var(--color-cyan-50);
-  --file-border: var(--color-cyan-500);
+  --file-border: var(--color-cyan-50);
   --file-name: var(--color-cyan-900);
   --icon-filter: invert(25%) sepia(27%) saturate(1303%) hue-rotate(151deg)
     brightness(91%) contrast(89%);
@@ -138,7 +132,7 @@
 
 .tree__file.workspace_updated {
   --file-bg: var(--color-violet-50);
-  --file-border: var(--color-violet-500);
+  --file-border: var(--color-violet-50);
   --file-name: var(--color-violet-900);
   --icon-filter: invert(10%) sepia(51%) saturate(6855%) hue-rotate(263deg)
     brightness(94%) contrast(94%);
@@ -147,7 +141,7 @@
 
 .tree__file.workspace_released {
   --file-bg: var(--color-zinc-100);
-  --file-border: var(--color-zinc-500);
+  --file-border: var(--color-zinc-100);
   --file-name: var(--color-zinc-900);
   --icon-filter: invert(10%) sepia(23%) saturate(3595%) hue-rotate(178deg)
     brightness(93%) contrast(85%);
@@ -156,7 +150,7 @@
 
 .tree__file.withdrawn {
   --file-bg: var(--color-orange-50) !important;
-  --file-border: var(--color-orange-700) !important;
+  --file-border: var(--color-orange-50) !important;
   --file-name: var(--color-orange-800) !important;
   --icon-filter: invert(25%) sepia(6%) saturate(7490%) hue-rotate(333deg)
     brightness(115%) contrast(111%) !important;
@@ -176,7 +170,7 @@
 .tree__file.user_undecided,
 .tree__file.output {
   --file-bg: var(--color-yellow-50);
-  --file-border: var(--color-yellow-500);
+  --file-border: var(--color-yellow-50);
   --file-name: var(--color-yellow-800);
   --icon-filter: invert(30%) sepia(79%) saturate(491%) hue-rotate(351deg)
     brightness(95%) contrast(99%);
@@ -186,17 +180,17 @@
 .tree__file.user_approved,
 .tree__file.request_approved {
   --file-bg: var(--color-emerald-50);
-  --file-border: var(--color-emerald-500);
+  --file-border: var(--color-emerald-50);
   --file-name: var(--color-emerald-800);
   --icon-filter: invert(18%) sepia(77%) saturate(1712%) hue-rotate(142deg)
     brightness(102%) contrast(95%);
   --icon-url: url("/static/icons/check_circle_outline.svg");
 }
 
-.tree__file.user_changes_requested, 
+.tree__file.user_changes_requested,
 .tree__file.request_changes_requested {
   --file-bg: var(--color-fuchsia-50);
-  --file-border: var(--color-fuchsia-500);
+  --file-border: var(--color-fuchsia-50);
   --file-name: var(--color-fuchsia-800);
   --icon-filter: invert(17%) sepia(40%) saturate(5736%) hue-rotate(284deg)
     brightness(89%) contrast(98%);
@@ -205,9 +199,18 @@
 
 .tree__file.request_conflicted {
   --file-bg: var(--color-violet-50);
-  --file-border: var(--color-violet-500);
+  --file-border: var(--color-violet-50);
   --file-name: var(--color-violet-900);
   --icon-filter: invert(10%) sepia(51%) saturate(6855%) hue-rotate(263deg)
     brightness(94%) contrast(94%);
   --icon-url: url("/static/icons/unknown.svg");
+}
+
+.selected.tree__folder-link,
+.selected.tree__file {
+  --file-bg: var(--color-blue-100);
+  --file-border: var(--color-blue-700);
+  --file-name: var(--color-blue-950);
+  --icon-filter: invert(10%) sepia(33%) saturate(4758%) hue-rotate(218deg)
+    brightness(94%) contrast(92%);
 }
