@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load django_vite %}
+{% load django_htmx %}
+
+{% block metatitle %}{{ title }} |  Airlock{% endblock metatitle %}
+
+{% block extra_styles %}
+  <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/file_browser/tree.css' %}">
+{% endblock extra_styles %}
+
+{% block content %}
+  {% if context == "request" %}
+    {% #airlock_header context=context release_request=release_request title=title workspace=workspace %}
+      <a class="header__link header__nav-link" href="{{ release_request.get_url }}" id="request-home-button">
+        &larr; Request overview
+      </a>
+    {% /airlock_header %}
+
+    {% if request_action_required %}
+      <div class="mt-4">
+        {% #alert variant="warning" title="Action required" dismissible=True %}
+          {{ request_action_required }}
+        {% /alert %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    {% #airlock_header context=context current_request=current_request title=title workspace=workspace return_url=return_url %}
+    {% /airlock_header %}
+  {% endif %}
+
+{% endblock content %}
+
+{% block full_width_content %}
+  <div class="browser">
+    <div class="browser__files">
+      <ul
+        class="tree root tree__root"
+        {% if is_output_checker %}data-output-checker="true"{% endif %}
+        {% if context == "request" %}
+          data-request="true"
+          {% if is_author %}data-author="true"{% endif %}
+          {% if release_request.status.name %}
+            data-request-status="{{ release_request.status.name }}"
+          {% endif %}
+          {% if user_has_reviewed_all_files %}
+            data-all-files-reviewed="true"
+          {% endif %}
+          {% if release_request.all_files_approved %}
+            data-all-files-approved="true"
+          {% endif %}
+        {% endif %}
+        {% if context != "request" %}data-workspace="true"{% endif %}
+        hx-boost="true"
+        hx-on:htmx:after-request="setTreeSelection(this, event)"
+        hx-push-url="true"
+        hx-select="#selected-contents"
+        hx-swap="outerHTML show:window:none"
+        hx-target="#selected-contents"
+        id="tree"
+      >
+        {% include "file_browser/tree.html" with path=root.fake_parent %}
+      </ul>
+    </div>
+    <div class="browser__content">
+      {% include "file_browser/contents.html" %}
+    </div>
+  </div>
+{% endblock full_width_content %}
+
+{% block extra_js %}
+  <script type="text/javascript" src="{% static 'htmx-1.9.10.min.js' %}"></script>
+  {% django_htmx_script %}
+  <script src="{% static 'assets/file_browser/index.js' %}"></script>
+{% endblock %}
