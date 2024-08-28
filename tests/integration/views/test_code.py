@@ -66,7 +66,7 @@ def test_code_view_file_htmx(airlock_client):
     )
 
     assert repo.get_contents_url(UrlPath("project.yaml")) in response.rendered_content
-    assert response.template_name == "file_browser/repo/contents.html"
+    assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
     assert "HX-Request" in response.headers["Vary"]
 

@@ -206,7 +206,7 @@ def test_workspace_view_with_file_htmx(airlock_client):
     )
     assert response.status_code == 200
     assert workspace.get_contents_url(UrlPath("file.txt")) in response.rendered_content
-    assert response.template_name == "file_browser/workspace/contents.html"
+    assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
     assert "HX-Request" in response.headers["Vary"]
 

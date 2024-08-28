@@ -84,11 +84,12 @@ def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     relpath = UrlPath(path)
-    template = "file_browser/request/index.html"
+    template_dir = "file_browser/request/"
+    template = template_dir + "index.html"
     selected_only = False
 
     if request.htmx:
-        template = "file_browser/request/contents.html"
+        template = "file_browser/contents.html"
         selected_only = True
 
     tree = get_request_tree(release_request, request.user, relpath, selected_only)
@@ -241,6 +242,7 @@ def request_view(request, request_id: str, path: str = ""):
         request_action_required = None
 
     context = {
+        "template_dir": template_dir,
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
         "root": tree,

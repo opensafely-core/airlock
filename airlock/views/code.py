@@ -45,11 +45,12 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         messages.error(request, str(e))
         return HttpResponseRedirect(return_url or workspace.get_url())
 
-    template = "file_browser/repo/index.html"
+    template_dir = "file_browser/repo/"
+    template = template_dir + "index.html"
     selected_only = False
 
     if request.htmx:
-        template = "file_browser/repo/contents.html"
+        template = "file_browser/contents.html"
         selected_only = True
 
     tree = get_code_tree(repo, UrlPath(path), selected_only)
@@ -66,6 +67,7 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         request,
         template,
         {
+            "template_dir": template_dir,
             "workspace": workspace,
             "repo": repo,
             "root": tree,

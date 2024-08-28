@@ -161,7 +161,7 @@ def test_request_view_with_file_htmx(airlock_client):
         release_request.get_contents_url(UrlPath("group/file.txt"))
         in response.rendered_content
     )
-    assert response.template_name == "file_browser/request/contents.html"
+    assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
 
 

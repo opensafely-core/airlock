@@ -1,47 +1,6 @@
-{% extends "base.html" %}
-
-{% load static %}
-{% load django_vite %}
-{% load django_htmx %}
-
-{% block metatitle %}{{ title }} |  Airlock{% endblock metatitle %}
-
-{% block extra_styles %}
-  <link rel="stylesheet" href="{% static 'assets/file_browser/index.css' %}">
-  <link rel="stylesheet" href="{% static 'assets/file_browser/tree.css' %}">
-{% endblock extra_styles %}
+{% extends "file_browser/index.html" %}
 
 {% block content %}
-
   {% #airlock_repo_header current_request=current_request title=title workspace=workspace return_url=return_url %}
   {% /airlock_repo_header %}
-
 {% endblock content %}
-
-{% block full_width_content %}
-  <div class="browser">
-    <div class="browser__files">
-      <ul
-        class="tree root tree__root"
-        hx-boost="true"
-        hx-on:htmx:after-request="setTreeSelection(this, event)"
-        hx-push-url="true"
-        hx-select="#selected-contents"
-        hx-swap="outerHTML show:window:none"
-        hx-target="#selected-contents"
-        id="tree"
-      >
-        {% include "file_browser/tree.html" with path=root.fake_parent %}
-      </ul>
-    </div>
-    <div class="browser__content">
-      {% include "file_browser/repo/contents.html" %}
-    </div>
-  </div>
-{% endblock full_width_content %}
-
-{% block extra_js %}
-  <script type="text/javascript" src="{% static 'htmx-1.9.10.min.js' %}"></script>
-  {% django_htmx_script %}
-  <script src="{% static 'assets/file_browser/index.js' %}"></script>
-{% endblock %}
