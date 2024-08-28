@@ -438,3 +438,5 @@ LOGGING = {
         },
     },
 }
+
+SCREENSHOT_DIR = BASE_DIR / "docs" / "screenshots"

@@ -52,7 +52,7 @@ jobs:
 
       - name: Run tests
         run: |
-          just test-all
+          RUN_SCREENSHOT_TESTS=True just test-all
 
       # not actually needed for tests, but we want to make sure the dev tooling
       # is still working

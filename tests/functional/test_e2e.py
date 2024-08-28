@@ -145,7 +145,8 @@ def test_e2e_release_files(
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
-    find_and_click(page.locator("button[value=add_files]"))
+    add_file_button = page.locator("button[value=add_files]")
+    find_and_click(add_file_button)
     # Fill in the form with a new group name
     page.locator("#id_new_filegroup").fill("my-new-group")
 
@@ -155,8 +156,10 @@ def test_e2e_release_files(
         page.locator("input[name=form-0-filetype][value=SUPPORTING]")
     ).not_to_be_checked()
 
+    form_element = page.get_by_role("form")
+
     # Click the button to add the file to a release request
-    find_and_click(page.get_by_role("form").locator("#add-file-button"))
+    find_and_click(form_element.locator("#add-file-button"))
 
     expect(page).to_have_url(
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
@@ -468,9 +471,10 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     """
     # set up a returned file & request
     author = factories.create_user("researcher", ["test-workspace"], False)
+
     path = "subdir/file.txt"
 
-    factories.create_request_at_status(
+    release_request = factories.create_request_at_status(
         "test-workspace",
         author=author,
         status=RequestStatus.RETURNED,
@@ -482,10 +486,12 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     # Log in as researcher
     login_as(live_server, page, "researcher")
 
+    page.goto(live_server.url + release_request.get_url("default"))
+
     workspace = bll.get_workspace("test-workspace", author)
 
     # change the file on disk
-    factories.write_workspace_file(workspace, path, contents="changed")
+    factories.write_workspace_file(workspace, path, contents="New file content.")
 
     if multiselect:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
@@ -556,6 +562,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     # checkboxes otherwise the wrong thing gets selected
     expect(page.locator("#customTable.datatable-table")).to_be_visible()
     find_and_click(page.locator(f'input[name="selected"][value="{path1}"]'))
+
     find_and_click(page.locator("button[value=add_files]"))
     find_and_click(page.get_by_role("form").locator("#add-file-button"))
 
@@ -613,6 +620,7 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     page.goto(live_server.url + release_request.get_url())
 
     find_and_click(page.locator("[data-modal=withdrawRequest]"))
+
     find_and_click(page.locator("#withdraw-request-confirm"))
 
     expect(page.locator("body")).to_contain_text("Request has been withdrawn")

@@ -397,6 +397,7 @@ def test_request_returnable(
         expect(return_request_button).to_be_enabled()
         return_request_button.click()
         expect(return_request_button).not_to_be_visible()
+
     elif login_as == "author":
         expect(return_request_button).not_to_be_visible()
     else:

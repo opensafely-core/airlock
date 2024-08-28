@@ -27,7 +27,7 @@
         <small><code>{{ dev_users_file }}</code></small>
       {% /alert %}
     {% endif %}
-    <form class="flex flex-col items-start gap-4" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" >
+    <form class="flex flex-col items-start gap-4" method="POST" action="{% url 'login' %}" onsubmit="showSpinner()" data-testid="loginform">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next_url }}" />
       {% form_input type="text" field=token_login_form.user required=True label="GitHub username or OpenSAFELY email address" placeholder="opensafely" class="w-full max-w-md" %}

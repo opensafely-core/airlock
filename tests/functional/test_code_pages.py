@@ -55,6 +55,7 @@ def test_code_from_workspace(live_server, page, context):
     return_button = new_page.locator("#return-button")
 
     expect(new_page.locator("body")).to_contain_text("project.yaml")
+
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)
 
