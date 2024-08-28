@@ -106,16 +106,24 @@ def test_screenshot_from_creation_to_release(
         "more_dropdown_el.png",
         extra={"x": -180, "width": 180, "height": 120},
     )
+    # Close the more dropdown and unfocus
+    page.keyboard.press("Escape")
+    more_locator.blur()
 
     # Add file button
     add_file_button = page.locator("button[value=add_files]")
-    screenshot_element_with_padding(page, add_file_button, "add_file_button.png")
+    content.screenshot(path=settings.SCREENSHOT_DIR / "add_file_button.png")
+    screenshot_element_with_padding(
+        page, content, "add_file_button.png", crop={"height": 0.25}
+    )
 
     # Click to add file and fill in the form with a new group name
     add_file_button.click()
     page.locator("#id_new_filegroup").fill("my-group")
     form_element = page.get_by_role("form")
-    screenshot_element_with_padding(page, form_element, "add_file_modal.png")
+    screenshot_element_with_padding(
+        page, form_element, "add_file_modal.png", crop={"height": 0.5}
+    )
 
     # create the release request outside of the browser so we can use its methods
     # and avoid clicking through all the files to add them
