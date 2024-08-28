@@ -1,0 +1,96 @@
+{% load django_vite %}
+{% load static %}
+
+<style>
+  #customTable thead {
+    position: sticky;
+    top: 0;
+    text-align: left;
+    background-color: rgba(248,250,252);
+  }
+
+  #customTable td.name a.directory {
+    background-image: url(/static/folder.png);
+    background-repeat: no-repeat;
+    background-size: 1.4rem;
+    background-position: left -0.2rem top 0;
+    padding-left: 1.1rem;
+  }
+
+</style>
+
+
+{% fragment as buttons %}
+  {% if context == "workspace" and workspace.is_active %}
+    {% if path_item.children %}
+      {% if multiselect_add %}
+        <div class="div flex flex-col items-start gap-4">
+          <div class="flex items-center gap-2">
+            {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form"%}
+              Add Files to Request
+            {% /button %}
+            {% #button type="submit" name="action" value="update_files" variant="success" form="multiselect_form"%}
+              Update Files in Request
+            {% /button %}
+          </div>
+          <div id="multiselect_modal"></div>
+        </div>
+      {% elif current_request and current_request.status_owner != "AUTHOR"  %}
+        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
+          Add Files to Request
+        {% /button %}
+      {% else %}
+        {% #button type="button" disabled=True tooltip="You do not have permission to add files to a request" id="add-file-modal-button-disabled" %}
+          Add Files to Request
+        {% /button %}
+      {% endif %}
+    {% endif %}
+  {% elif context == "request" and multiselect_withdraw %}
+    <div class="div flex flex-col items-start gap-4">
+      <div class="flex items-center gap-2">
+        {% #button type="submit" name="action" value="withdraw_files" variant="warning" form="multiselect_form"%}Withdraw Files from Request{% /button %}
+      </div>
+      <div id="multiselect_modal"></div>
+    </div>
+  {% endif %}
+{% endfragment %}
+
+
+{% #card title=path_item.name container=True custom_button=buttons %}
+  {% if not path_item.children %}
+    This directory is empty
+  {% else %}
+    <form id="multiselect_form"
+          method="POST"
+          hx-post="{{ multiselect_url }}"
+          hx-target="#multiselect_modal"
+          hx-swap="outerHtml"
+    >
+
+      {% csrf_token %}
+      <input type=hidden name="next_url" value="{{ request.path }}"/>
+
+      {% include "file_browser/_includes/directory_table/"|add:context|add:".html" %}
+
+    </form>
+
+    {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
+
+    <script type="text/javascript">
+      // ensure datatable is initialised when loading over HTMX
+      window.initCustomTable ? window.initCustomTable() : null;
+
+      // implement select all checkbox
+      function toggleSelectAll(elem, event) {
+        const form = document.querySelector("#multiselect_form");
+
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+
+        checkboxes.forEach(function(checkbox) {
+          checkbox.checked = elem.checked;
+        });
+      }
+    </script>
+
+  {% endif %}
+{% /card %}

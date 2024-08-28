@@ -1,0 +1,7 @@
+<div id="selected-contents" class="min-h-screen">
+  {% if path_item.type.name != "REPO" %}
+    {% with "file_browser/repo/"|add:path_item.type.name.lower|add:".html" as template %}
+      {% include template %}
+    {% endwith %}
+  {% endif %}
+</div>
