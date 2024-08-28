@@ -23,8 +23,6 @@
     <div class="browser__files">
       <ul
         class="tree root tree__root"
-        {% if is_output_checker %}data-output-checker="true"{% endif %}
-        data-workspace="true"
         hx-boost="true"
         hx-on:htmx:after-request="setTreeSelection(this, event)"
         hx-push-url="true"
