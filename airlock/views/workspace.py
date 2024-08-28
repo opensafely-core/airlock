@@ -57,11 +57,11 @@ def workspace_index(request):
 @instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-    template = "file_browser/index.html"
+    template = "file_browser/workspace/index.html"
     selected_only = False
 
     if request.htmx:
-        template = "file_browser/contents.html"
+        template = "file_browser/workspace/contents.html"
         selected_only = True
 
     tree = get_workspace_tree(workspace, path, selected_only)
