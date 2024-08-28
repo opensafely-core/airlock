@@ -1,0 +1,21 @@
+{% extends "../base.html" %}
+
+{% block content %}
+
+  {% if return_url %}
+    <a class="header__link header__nav-link" href="{{ return_url }}" id="return-button">
+      &larr; Back
+    </a>
+  {% else %}
+    {% if current_request.get_url %}
+      <a class="header__link header__nav-link" href="{{ current_request.get_url }}" id="current-request-button">
+        View current release request &rarr;
+      </a>
+    {% elif workspace.get_url %}
+      <a class="header__link header__nav-link" href="{{ workspace.get_url }}" id="workspace-home-button">
+        View workspace &rarr;
+      </a>
+    {% endif %}
+  {% endif %}
+
+{% endblock %}

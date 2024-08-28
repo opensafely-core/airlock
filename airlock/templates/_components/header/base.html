@@ -1,0 +1,13 @@
+<header class="header">
+  <h1 class="header__title">
+    {{ title }} {% block extra_title %}{% endblock %}
+  </h1>
+
+  {% block content %}{% endblock %}
+
+  {% if children %}
+    <div class="header__actions">
+      {{ children }}
+    </div>
+  {% endif %}
+</header>
