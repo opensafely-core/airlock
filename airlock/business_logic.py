@@ -1007,7 +1007,7 @@ class ReleaseRequest:
         return len(self.submitted_reviews)
 
     def status_owner(self) -> RequestStatusOwner:
-        return BusinessLogicLayer.STATUS_OWNERS[self.status]
+        return permissions.STATUS_OWNERS[self.status]
 
     def can_be_released(self) -> bool:
         return (
@@ -1016,19 +1016,13 @@ class ReleaseRequest:
         )
 
     def is_final(self):
-        return (
-            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.SYSTEM
-        )
+        return self.status_owner() == RequestStatusOwner.SYSTEM
 
     def is_under_review(self):
-        return (
-            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.REVIEWER
-        )
+        return self.status_owner() == RequestStatusOwner.REVIEWER
 
     def is_editing(self):
-        return (
-            BusinessLogicLayer.STATUS_OWNERS[self.status] == RequestStatusOwner.AUTHOR
-        )
+        return self.status_owner() == RequestStatusOwner.AUTHOR
 
 
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
@@ -1399,24 +1393,6 @@ class BusinessLogicLayer:
         RequestStatus.APPROVED: [
             RequestStatus.RELEASED,
         ],
-    }
-
-    # The following lists should a) include every status and b) be disjoint
-    # This is validated in tests
-    #
-    STATUS_OWNERS = {
-        # states where only the author can edit this request
-        RequestStatus.PENDING: RequestStatusOwner.AUTHOR,
-        RequestStatus.RETURNED: RequestStatusOwner.AUTHOR,
-        # states where only an output-checker can edit this request
-        RequestStatus.SUBMITTED: RequestStatusOwner.REVIEWER,
-        RequestStatus.PARTIALLY_REVIEWED: RequestStatusOwner.REVIEWER,
-        RequestStatus.REVIEWED: RequestStatusOwner.REVIEWER,
-        # states where no user can edit
-        RequestStatus.WITHDRAWN: RequestStatusOwner.SYSTEM,
-        RequestStatus.APPROVED: RequestStatusOwner.SYSTEM,
-        RequestStatus.REJECTED: RequestStatusOwner.SYSTEM,
-        RequestStatus.RELEASED: RequestStatusOwner.SYSTEM,
     }
 
     STATUS_AUDIT_EVENT = {

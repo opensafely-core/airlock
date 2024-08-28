@@ -5,6 +5,10 @@ Check if a user has permission to perfom an action.
 from typing import TYPE_CHECKING
 
 from airlock import exceptions, policies
+from airlock.enums import (
+    RequestStatus,
+    RequestStatusOwner,
+)
 from airlock.types import UrlPath
 from airlock.users import User
 
@@ -16,6 +20,24 @@ if TYPE_CHECKING:  # pragma: no cover
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
     from airlock.business_logic import Comment, ReleaseRequest, Workspace
+
+
+# The following lists should a) include every status and b) be disjoint
+# This is validated in tests
+STATUS_OWNERS = {
+    # states where only the author can edit this request
+    RequestStatus.PENDING: RequestStatusOwner.AUTHOR,
+    RequestStatus.RETURNED: RequestStatusOwner.AUTHOR,
+    # states where only an output-checker can edit this request
+    RequestStatus.SUBMITTED: RequestStatusOwner.REVIEWER,
+    RequestStatus.PARTIALLY_REVIEWED: RequestStatusOwner.REVIEWER,
+    RequestStatus.REVIEWED: RequestStatusOwner.REVIEWER,
+    # states where no user can edit
+    RequestStatus.WITHDRAWN: RequestStatusOwner.SYSTEM,
+    RequestStatus.APPROVED: RequestStatusOwner.SYSTEM,
+    RequestStatus.REJECTED: RequestStatusOwner.SYSTEM,
+    RequestStatus.RELEASED: RequestStatusOwner.SYSTEM,
+}
 
 
 def check_user_can_view_workspace(user: User | None, workspace_name: str):

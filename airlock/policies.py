@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
-from airlock.enums import RequestFileVote, RequestStatus, WorkspaceFileStatus
+from airlock.enums import (
+    RequestFileVote,
+    RequestStatus,
+    WorkspaceFileStatus,
+)
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 

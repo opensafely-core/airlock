@@ -11,7 +11,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import old_api
-from airlock import exceptions
+from airlock import exceptions, permissions
 from airlock.business_logic import (
     AuditEvent,
     BusinessLogicLayer,
@@ -1226,7 +1226,7 @@ def test_set_status(current, future, valid_author, valid_checker, withdrawn_afte
 
 def test_request_status_ownership(bll):
     """Test every RequestStatus has been assigned an ownership"""
-    missing_states = set(RequestStatus) - BusinessLogicLayer.STATUS_OWNERS.keys()
+    missing_states = set(RequestStatus) - permissions.STATUS_OWNERS.keys()
     assert missing_states == set()
 
 

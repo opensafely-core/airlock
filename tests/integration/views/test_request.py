@@ -5,7 +5,7 @@ import requests
 from django.contrib.messages import get_messages
 from django.template.response import TemplateResponse
 
-from airlock import exceptions
+from airlock import exceptions, permissions
 from airlock.business_logic import bll
 from airlock.enums import (
     AuditEventType,
@@ -361,7 +361,7 @@ def test_request_view_with_authored_request_file(airlock_client, status):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    can_withdraw = bll.STATUS_OWNERS[status] == RequestStatusOwner.AUTHOR
+    can_withdraw = permissions.STATUS_OWNERS[status] == RequestStatusOwner.AUTHOR
     assert ("Withdraw this file" in response.rendered_content) == can_withdraw
 
 
