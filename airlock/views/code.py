@@ -7,8 +7,9 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
 from airlock import exceptions
-from airlock.business_logic import CodeRepo, Workspace, bll
+from airlock.business_logic import bll
 from airlock.file_browser_api import get_code_tree
+from airlock.models import CodeRepo, Workspace
 from airlock.types import UrlPath
 from airlock.views.helpers import (
     get_path_item_from_tree_or_404,

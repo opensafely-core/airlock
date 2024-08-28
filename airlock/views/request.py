@@ -15,7 +15,7 @@ from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
 from airlock import exceptions, permissions
-from airlock.business_logic import ROOT_PATH, bll
+from airlock.business_logic import bll
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
@@ -24,7 +24,7 @@ from airlock.forms import (
     GroupEditForm,
     MultiselectForm,
 )
-from airlock.types import UrlPath
+from airlock.types import ROOT_PATH, UrlPath
 from services.tracing import instrument
 
 from .helpers import (

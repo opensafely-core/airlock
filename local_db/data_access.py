@@ -2,10 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from airlock import exceptions, permissions
-from airlock.business_logic import (
-    AuditEvent,
-    DataAccessLayerProtocol,
-)
+from airlock.business_logic import DataAccessLayerProtocol
 from airlock.enums import (
     AuditEventType,
     RequestFileType,
@@ -14,6 +11,7 @@ from airlock.enums import (
     RequestStatusOwner,
     Visibility,
 )
+from airlock.models import AuditEvent
 from airlock.types import UrlPath
 from local_db.models import (
     AuditLog,

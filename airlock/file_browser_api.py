@@ -7,14 +7,13 @@ from pathlib import Path
 from typing import Protocol
 
 from airlock import renderers
-from airlock.business_logic import (
-    ROOT_PATH,
+from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
+from airlock.models import (
     CodeRepo,
     ReleaseRequest,
     Workspace,
 )
-from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
-from airlock.types import FileMetadata, UrlPath
+from airlock.types import ROOT_PATH, FileMetadata, UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
 from airlock.visibility import RequestFileStatus

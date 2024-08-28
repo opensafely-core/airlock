@@ -1,17 +1,17 @@
 from dataclasses import dataclass
 
-from airlock.business_logic import (
-    AuditEvent,
-    BusinessLogicLayer,
-    Comment,
-    ReleaseRequest,
-)
+from airlock.business_logic import BusinessLogicLayer
 from airlock.enums import (
     AuditEventType,
     RequestFileVote,
     RequestStatus,
     ReviewTurnPhase,
     Visibility,
+)
+from airlock.models import (
+    AuditEvent,
+    Comment,
+    ReleaseRequest,
 )
 from airlock.users import User
 from tests import factories

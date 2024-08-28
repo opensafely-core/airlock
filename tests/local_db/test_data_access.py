@@ -1,13 +1,14 @@
 import pytest
 
 from airlock import exceptions
-from airlock.business_logic import AuditEvent, store_file
+from airlock.business_logic import store_file
 from airlock.enums import (
     AuditEventType,
     RequestFileType,
     RequestStatus,
     Visibility,
 )
+from airlock.models import AuditEvent
 from airlock.types import UrlPath
 from local_db import data_access, models
 from tests import factories

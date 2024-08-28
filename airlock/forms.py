@@ -1,8 +1,8 @@
 from django import forms
 from django.forms.formsets import BaseFormSet, formset_factory
 
-from airlock.business_logic import FileGroup
 from airlock.enums import RequestFileType, Visibility
+from airlock.models import FileGroup
 
 
 class ListField(forms.Field):

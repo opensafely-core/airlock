@@ -19,6 +19,9 @@ else:
     UrlPath = PurePosixPath
 
 
+ROOT_PATH = UrlPath()  # empty path
+
+
 @dataclass
 class FileMetadata:
     """Represents the base properties of file metadata.
