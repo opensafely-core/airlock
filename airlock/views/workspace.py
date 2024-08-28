@@ -138,9 +138,9 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "project": project,
             # for code button
             "code_url": code_url,
+            "include_code": code_url is not None,
             "return_url": "",
             "is_output_checker": request.user.output_checker,
-            # "is_author": False
         },
     )
 
