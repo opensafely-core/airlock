@@ -156,44 +156,6 @@ class AuditEvent:
             return Visibility.PUBLIC
 
 
-class AirlockContainer(Protocol):
-    """Structural typing class for a instance of a Workspace or ReleaseRequest
-
-    Provides a uniform interface for accessing information about the paths and files
-    contained within this instance.
-    """
-
-    def get_id(self) -> str:
-        """Get the human name for this container."""
-
-    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
-        """Get the url for the container object with path"""
-
-    def get_contents_url(
-        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
-    ) -> str:
-        """Get the url for the contents of the container object with path"""
-
-    def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
-        """What kind of file is this, e.g. output, supporting, etc."""
-
-    def get_renderer(
-        self, relpath: UrlPath, plaintext: bool = False
-    ) -> renderers.Renderer:
-        """Create and return the correct renderer for this path."""
-
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
-        """Get the file metadata"""
-
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        """Get workspace state of file."""
-
-    def get_request_file_status(
-        self, relpath: UrlPath, user: User
-    ) -> RequestFileStatus | None:
-        """Get request status of file."""
-
-
 @dataclass(frozen=True)
 class Project:
     name: str
