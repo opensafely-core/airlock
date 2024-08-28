@@ -10,13 +10,13 @@ from airlock.business_logic import (
     AirlockContainer,
     CodeRepo,
     ReleaseRequest,
-    RequestFileStatus,
     Workspace,
 )
 from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
 from airlock.types import FileMetadata, UrlPath
 from airlock.users import User
 from airlock.utils import is_valid_file_type
+from airlock.visibility import RequestFileStatus
 from services.tracing import instrument
 
 
