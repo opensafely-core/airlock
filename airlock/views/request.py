@@ -271,7 +271,6 @@ def request_view(request, request_id: str, path: str = ""):
         "code_url": code_url,
         "include_code": code_url is not None,
         "include_download": not is_author,
-        "return_url": "",
     }
 
     return TemplateResponse(request, template, context)
