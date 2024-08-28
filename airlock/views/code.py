@@ -73,7 +73,6 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
             "is_supporting_file": False,
             "is_author": False,
             "is_output_checker": False,
-            "context": "repo",
             "title": f"{repo.repo}@{commit[:7]}",
             "current_request": current_request,
             "return_url": return_url,
