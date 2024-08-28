@@ -1,156 +1,105 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
-    {% if context == "workspace" and workspace.is_active %}
-      {% if add_file %}
-        <form
-          method="POST"
-          hx-post="{{ multiselect_url }}"
-          hx-target="#multiselect_modal"
-          hx-swap="outerHtml"
-        >
-          {% if path_item.workspace_status.value == "UPDATED" %}
-            {% #button type="submit" name="action" value="update_files" variant="success" %}
-              Update File in Request
-            {% /button %}
-          {% else %}
-            {% #button type="submit" name="action" value="add_files" variant="success" %}
-              Add File to Request
-            {% /button %}
-          {% endif %}
-          <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
-          <input type=hidden name="next_url" value="{{ request.path }}"/>
-          {% csrf_token %}
-        </form>
-        <div id="multiselect_modal"></div>
-      {% elif path_item.workspace_status.value == "RELEASED" %}
-        {% #button type="button" disabled=True tooltip="This file has already been released" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif path_item.workspace_status.value == "UNDER_REVIEW" %}
-        {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif not path_item.is_valid %}
-        {% #button type="button" disabled=True tooltip="This file type cannot be added to a request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif current_request and not current_request.is_editing %}
-        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
-          {% if path_item.workspace_status.value == "UPDATED" %}
-            Update File in Request
-          {% else %}
-            Add File to Request
-          {% endif %}
-        {% /button %}
-      {% else %}
-        {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% endif %}
-    {% elif context == "request" %}
-      {% if path_item.is_supporting %}
-        <span class="file-type file-type--supporting relative group cursor-pointer">
-          <span class="file-type__icon"></span>
-          Supporting
-          {% tooltip content="This is a supporting file and will not be released." %}
-        </span>
-      {% elif path_item.is_withdrawn %}
-        <span class="file-type file-type--withdrawn relative group cursor-pointer">
-          <span class="file-type__icon"></span>
-          Withdrawn
-          {% tooltip content="This file has been withdrawn and will not be released." %}
-        </span>
-      {% endif %}
-
-      {% if path_item.is_output %}
-        {% with decision=path_item.request_status.decision %}
-          <div class="request-file-status">
-            <span>Decision:
-              <span class="file-status file-status--{{ decision.name.lower }}">
-                {{ decision.description }}
-              </span>
-            </span>
-          </div>
-        {% endwith %}
-      {% endif %}
-
-      {% if is_author %}
-        {% if workspace.is_active %}
-          {% if path_item.is_output and file_withdraw_url %}
-            <form action="{{ file_withdraw_url }}" method="POST">
-              {% csrf_token %}
-              <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-              {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
-            </form>
-          {% endif %}
-        {% endif %}
-      {% elif is_output_checker %}
-        {% if path_item.is_output %}
-          <div>
-            {% with vote=path_item.request_status.vote %}
-              {% if vote %}
-                <span>Your review:
-                  <span class="file-status file-status--{{ vote.name.lower }}">
-                    {{ vote.description }}
-                  </span>
-                </span>
-              {% endif %}
-            {% endwith %}
-          </div>
-        {% endif %}
-
-        {% if voting_buttons.show %}
-          <div class="btn-group">
-            {% if voting_buttons.approve.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-approve-button" disabled="true">
-                Approve file
-              </button>
-            {% else %}
-              <form action="{{ voting_buttons.approve.url }}" method="POST">
-                {% csrf_token %}
-                <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
-                  Approve file
-                </button>
-              </form>
-            {% endif %}
-
-
-            {% if voting_buttons.request_changes.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-request-changes-button" disabled="true">
-                Request changes
-              </button>
-            {% else %}
-              <form action="{{ voting_buttons.request_changes.url }}" method="POST">
-                {% csrf_token %}
-                <button aria-pressed="false" class="btn-group__btn" id="file-request-changes-button" type="submit">
-                  Request changes
-                </button>
-              </form>
-            {% endif %}
-
-            {% if voting_buttons.reset_review.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" disabled="true">
-                Undecided
-              </button>
-            {% else %}
-              <form action="{{ voting_buttons.reset_review.url }}" method="POST">
-                {% csrf_token %}
-                <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reset-button" type="submit">
-                  Undecided
-                </button>
-              </form>
-            {% endif %}
-
-          </div>
-        {% endif %}
-      {% endif %}
-
-      {% #modal id="group-context" button_text="View Context" %}
-        {% include "file_browser/request/filegroup.html" %}
-      {% /modal %}
+    {% if path_item.is_supporting %}
+      <span class="file-type file-type--supporting relative group cursor-pointer">
+        <span class="file-type__icon"></span>
+        Supporting
+        {% tooltip content="This is a supporting file and will not be released." %}
+      </span>
+    {% elif path_item.is_withdrawn %}
+      <span class="file-type file-type--withdrawn relative group cursor-pointer">
+        <span class="file-type__icon"></span>
+        Withdrawn
+        {% tooltip content="This file has been withdrawn and will not be released." %}
+      </span>
     {% endif %}
 
+    {% if path_item.is_output %}
+      {% with decision=path_item.request_status.decision %}
+        <div class="request-file-status">
+          <span>Decision:
+            <span class="file-status file-status--{{ decision.name.lower }}">
+              {{ decision.description }}
+            </span>
+          </span>
+        </div>
+      {% endwith %}
+    {% endif %}
 
+    {% if is_author %}
+      {% if workspace.is_active %}
+        {% if path_item.is_output and file_withdraw_url %}
+          <form action="{{ file_withdraw_url }}" method="POST">
+            {% csrf_token %}
+            <input type=hidden name="path" value="{{ path_item.relpath }}"/>
+            {% #button type="submit" id="withdraw-file-button" tooltip="Withdraw this file from this request" variant="warning" %}Withdraw from Request{% /button %}
+          </form>
+        {% endif %}
+      {% endif %}
+    {% elif is_output_checker %}
+      {% if path_item.is_output %}
+        <div>
+          {% with vote=path_item.request_status.vote %}
+            {% if vote %}
+              <span>Your review:
+                <span class="file-status file-status--{{ vote.name.lower }}">
+                  {{ vote.description }}
+                </span>
+              </span>
+            {% endif %}
+          {% endwith %}
+        </div>
+      {% endif %}
+
+      {% if voting_buttons.show %}
+        <div class="btn-group">
+          {% if voting_buttons.approve.disabled %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-approve-button" disabled="true">
+              Approve file
+            </button>
+          {% else %}
+            <form action="{{ voting_buttons.approve.url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
+                Approve file
+              </button>
+            </form>
+          {% endif %}
+
+
+          {% if voting_buttons.request_changes.disabled %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-request-changes-button" disabled="true">
+              Request changes
+            </button>
+          {% else %}
+            <form action="{{ voting_buttons.request_changes.url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="false" class="btn-group__btn" id="file-request-changes-button" type="submit">
+                Request changes
+              </button>
+            </form>
+          {% endif %}
+
+          {% if voting_buttons.reset_review.disabled %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" disabled="true">
+              Undecided
+            </button>
+          {% else %}
+            <form action="{{ voting_buttons.reset_review.url }}" method="POST">
+              {% csrf_token %}
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reset-button" type="submit">
+                Undecided
+              </button>
+            </form>
+          {% endif %}
+
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {% #modal id="group-context" button_text="View Context" %}
+      {% include "file_browser/request/filegroup.html" %}
+    {% /modal %}
 
 
     <details-utils close-click-outside close-esc>
@@ -163,7 +112,7 @@
           </span>
         </summary>
         <ul class="more-dropdown__nav">
-          {% if context == "request" and not is_author %}
+          {% if not is_author %}
             <li class="more-dropdown__item">
               <a href="{{ path_item.download_url }}" class="more-dropdown__link" id="download-button">
                 <img class="more-dropdown__icon" src="/static/icons/cloud_download.svg" alt="">
