@@ -56,7 +56,9 @@ exclude_also = [
 [tool.coverage.django_coverage_plugin]
 template_extensions = "html"
 exclude_blocks = [
-    "\\/\\w+"
+    # exclude block lines for end of slippers component (blocks that 
+    # start with \ e.g. {% \button %}
+    "^\\/\\w+",
 ]
 
 [tool.ruff.lint.per-file-ignores]
