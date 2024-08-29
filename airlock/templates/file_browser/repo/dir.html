@@ -1,20 +1,32 @@
 {% load django_vite %}
 {% load static %}
+{% load airlock %}
 
 {% block extra_styles %}
   <link rel="stylesheet" href="{% static 'assets/file_browser/dir.css' %}">
 {% endblock %}
 
 {% #card title=path_item.name container=True %}
-  {% if not path_item.children %}
-    This directory is empty
-  {% else %}
 
-    {% include "file_browser/_includes/directory_table/repo.html" %}
+  {% #table class="dir_table" id="customTable" %}
+    {% #table_head %}
+      <tr>
+        <th>
+          <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+        </th>
+      </tr>
+    {% /table_head %}
+    <tbody>
+      {% for path in path_item.children %}
+        <tr>
+          <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  {% /table %}
 
-    {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
+  {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
 
-    <script src="{% static 'assets/file_browser/dir.js' %}"></script>
+  <script src="{% static 'assets/file_browser/dir.js' %}"></script>
 
-  {% endif %}
 {% /card %}

@@ -1,5 +1,6 @@
 {% load django_vite %}
 {% load static %}
+{% load airlock %}
 
 {% block extra_styles %}
   <link rel="stylesheet" href="{% static 'assets/file_browser/dir.css' %}">
@@ -48,7 +49,47 @@
       {% csrf_token %}
       <input type=hidden name="next_url" value="{{ request.path }}"/>
 
-      {% include "file_browser/_includes/directory_table/workspace.html" %}
+      {% #table class="dir_table" id="customTable" %}
+        {% #table_head %}
+          <tr>
+            <th>
+              <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+            </th>
+            <th>
+              <div class="flex flex-row gap-2">Review State{% datatable_sort_icon %}</div>
+            </th>
+            <th>
+              <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
+            </th>
+            <th>
+              <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
+            </th>
+            {% if workspace.is_active and multiselect_add %}
+              <th data-searchable="false" data-sortable="false">
+                <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
+              </th>
+            {% endif %}
+          </tr>
+        {% /table_head %}
+        <tbody>
+          {% for path in path_item.children %}
+            <tr>
+              <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+              <td>{{ path.display_status }}</td>
+              <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+              <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
+              {% if workspace.is_active and multiselect_add %}
+                <td>
+                  {% if not path.is_directory %}
+                    {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      {% /table %}
+
 
     </form>
 
