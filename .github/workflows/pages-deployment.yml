@@ -25,7 +25,7 @@ jobs:
     
       - name: Check if docs have changed
         id: git_diff_docs
-        run: echo "changed=`git diff origin/main -s --exit-code mkdocs.yml docs || echo 1`" >> "$GITHUB_OUTPUT"
+        run: echo "changed=$(git diff origin/main -s --exit-code mkdocs.yml docs || echo 1)" >> "$GITHUB_OUTPUT"
 
   deploy:
 

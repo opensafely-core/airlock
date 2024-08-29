@@ -111,6 +111,7 @@ check: devenv
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
     check "just state-diagram /tmp/airlock-states.md && diff -u /tmp/airlock-states.md docs/reference/request-states.md"
+    check "docker run --rm -v $(pwd):/repo --workdir /repo rhysd/actionlint:1.7.1 -color"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
