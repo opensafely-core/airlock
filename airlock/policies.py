@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from airlock import exceptions
-from airlock.enums import RequestFileVote, RequestStatus, WorkspaceFileStatus
+from airlock.enums import (
+    RequestFileVote,
+    RequestStatus,
+    WorkspaceFileStatus,
+)
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
 
@@ -27,7 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.business_logic import Comment, FileReview, ReleaseRequest, Workspace
+    from airlock.models import Comment, FileReview, ReleaseRequest, Workspace
 
 
 def check_can_edit_request(request: "ReleaseRequest"):

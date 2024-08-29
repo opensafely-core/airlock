@@ -11,20 +11,20 @@ from pathlib import Path
 from django.conf import settings
 
 from airlock import exceptions
-from airlock.business_logic import (
-    AuditEvent,
-    CodeRepo,
-    ReleaseRequest,
-    RequestFile,
-    Workspace,
-    bll,
-)
+from airlock.business_logic import bll
 from airlock.enums import (
     RequestFileType,
     RequestFileVote,
     RequestStatus,
 )
 from airlock.lib.git import ensure_git_init
+from airlock.models import (
+    AuditEvent,
+    CodeRepo,
+    ReleaseRequest,
+    RequestFile,
+    Workspace,
+)
 from airlock.types import UrlPath
 from airlock.users import User
 

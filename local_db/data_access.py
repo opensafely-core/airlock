@@ -1,12 +1,8 @@
 from django.db import transaction
 from django.utils import timezone
 
-from airlock import exceptions
-from airlock.business_logic import (
-    AuditEvent,
-    BusinessLogicLayer,
-    DataAccessLayerProtocol,
-)
+from airlock import exceptions, permissions
+from airlock.business_logic import DataAccessLayerProtocol
 from airlock.enums import (
     AuditEventType,
     RequestFileType,
@@ -15,6 +11,7 @@ from airlock.enums import (
     RequestStatusOwner,
     Visibility,
 )
+from airlock.models import AuditEvent
 from airlock.types import UrlPath
 from local_db.models import (
     AuditLog,
@@ -72,7 +69,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         # author or a reviewer, and are considered active
         editable_status = [
             status
-            for status, owner in BusinessLogicLayer.STATUS_OWNERS.items()
+            for status, owner in permissions.STATUS_OWNERS.items()
             if owner != RequestStatusOwner.SYSTEM
         ]
         return [
@@ -202,8 +199,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             request = self._find_metadata(request_id)
 
             assert (
-                BusinessLogicLayer.STATUS_OWNERS[request.status]
-                == RequestStatusOwner.AUTHOR
+                permissions.STATUS_OWNERS[request.status] == RequestStatusOwner.AUTHOR
             )
 
             try:
