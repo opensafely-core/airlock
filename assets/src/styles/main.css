@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.tree__folder-name > .filegroup {
+  @apply
+    flex flex-row-reverse
+    font-semibold text-oxford-600 underline underline-offset-2 decoration-oxford-200
+    after:content-["Group:\00a0"] after:relative
+  ;
+}
+
+.tree__folder-name:has(.selected.filegroup) ~ .tree__child-list {
+  @apply border-solid border-l-oxford-700;
+}
