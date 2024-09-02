@@ -119,7 +119,7 @@ class Renderer:
 
 
 class CSVRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/csv.html")
+    template = RendererTemplate.from_name("file_browser/file_content/csv.html")
     is_text: ClassVar[bool] = True
 
     def context(self):
@@ -134,7 +134,7 @@ class CSVRenderer(Renderer):
 
 
 class TextRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/text.html")
+    template = RendererTemplate.from_name("file_browser/file_content/text.html")
     is_text: ClassVar[bool] = True
 
     def context(self):
@@ -145,11 +145,11 @@ class TextRenderer(Renderer):
 
 
 class PlainTextRenderer(TextRenderer):
-    template = RendererTemplate.from_name("file_browser/plaintext.html")
+    template = RendererTemplate.from_name("file_browser/file_content/plaintext.html")
 
 
 class InvalidFileRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/text.html")
+    template = RendererTemplate.from_name("file_browser/file_content/text.html")
 
     def context(self):
         return {

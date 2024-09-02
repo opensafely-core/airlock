@@ -128,6 +128,28 @@ def test_request_view_with_directory(airlock_client):
     assert "file.txt" in response.rendered_content
 
 
+def test_request_view_cannot_have_empty_directory(airlock_client):
+    author = factories.create_user("author", workspaces=["workspace"])
+    release_request = factories.create_release_request("workspace", author)
+    factories.add_request_file(release_request, "group", "some_dir/file.txt")
+
+    airlock_client.login(output_checker=True)
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/some_dir/"
+    )
+    assert response.status_code == 200
+
+    # Withdrawing the only file from a directory removes the directory as well as
+    # the file from the request
+    bll.withdraw_file_from_request(
+        release_request, UrlPath("group/some_dir/file.txt"), author
+    )
+    response = airlock_client.get(
+        f"/requests/view/{release_request.id}/group/some_dir/"
+    )
+    assert response.status_code == 404
+
+
 @pytest.mark.parametrize(
     "filetype", [RequestFileType.OUTPUT, RequestFileType.SUPPORTING]
 )
@@ -143,7 +165,7 @@ def test_request_view_with_file(airlock_client, filetype):
         release_request.get_contents_url(UrlPath("group/file.txt"))
         in response.rendered_content
     )
-    assert response.template_name == "file_browser/index.html"
+    assert response.template_name == "file_browser/request/index.html"
 
 
 def test_request_view_with_file_htmx(airlock_client):

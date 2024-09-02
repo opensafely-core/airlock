@@ -1,13 +1,7 @@
 <div id="selected-contents" class="min-h-screen">
-  {% if path_item.type.name == "FILEGROUP" %}
-    {% include "file_browser/group.html" with inline=False %}
-  {% elif path_item.type.name == "DIR" %}
-    {% include "file_browser/directory.html" %}
-  {% elif path_item.type.name == "FILE" %}
-    {% include "file_browser/file.html" %}
-  {% elif path_item.type.name == "WORKSPACE" %}
-    {% include "file_browser/workspace.html" %}
-  {% elif path_item.type.name == "REQUEST" %}
-    {% include "file_browser/request.html" %}
+  {% if path_item.type.name != "REPO" %}
+    {% with template_dir|add:path_item.type.name.lower|add:".html" as template %}
+      {% include template %}
+    {% endwith %}
   {% endif %}
 </div>

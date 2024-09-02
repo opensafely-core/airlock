@@ -57,7 +57,8 @@ def workspace_index(request):
 @instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-    template = "file_browser/index.html"
+    template_dir = "file_browser/workspace/"
+    template = template_dir + "index.html"
     selected_only = False
 
     if request.htmx:
@@ -117,11 +118,11 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         request,
         template,
         {
+            "template_dir": template_dir,
             "workspace": workspace,
             "root": tree,
             "path_item": path_item,
             "is_supporting_file": False,
-            "context": "workspace",
             "title": f"Files for workspace {workspace.display_name()}",
             "request_file_url": reverse(
                 "workspace_add_file",
@@ -139,9 +140,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "project": project,
             # for code button
             "code_url": code_url,
-            "return_url": "",
+            "include_code": code_url is not None,
             "is_output_checker": request.user.output_checker,
-            # "is_author": False
         },
     )
 

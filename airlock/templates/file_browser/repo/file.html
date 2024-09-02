@@ -1,0 +1,7 @@
+{% fragment as buttons %}
+  <div class="flex items-center gap-2">
+    {% include "file_browser/_includes/more_dropdown.html" with include_code=False include_download=False %}
+  </div>
+{% endfragment %}
+
+{% include "file_browser/_includes/file_content.html" %}

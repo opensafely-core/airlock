@@ -46,7 +46,8 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         messages.error(request, str(e))
         return HttpResponseRedirect(return_url or workspace.get_url())
 
-    template = "file_browser/index.html"
+    template_dir = "file_browser/repo/"
+    template = template_dir + "index.html"
     selected_only = False
 
     if request.htmx:
@@ -67,6 +68,7 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         request,
         template,
         {
+            "template_dir": template_dir,
             "workspace": workspace,
             "repo": repo,
             "root": tree,
@@ -74,13 +76,9 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
             "is_supporting_file": False,
             "is_author": False,
             "is_output_checker": False,
-            "context": "repo",
             "title": f"{repo.repo}@{commit[:7]}",
             "current_request": current_request,
             "return_url": return_url,
-            "code_url": "",
-            # TODO, but for now stops template variable errors
-            "multiselect_url": "",
         },
     )
 

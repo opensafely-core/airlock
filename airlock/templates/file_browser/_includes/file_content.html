@@ -1,0 +1,12 @@
+{% #card id="fileCard" title=path_item.name container=True custom_button=buttons %}
+  <div class="content">
+    <iframe src="{{ path_item.contents_url }}"
+            title="{{ path_item.relpath }}"
+            frameborder=0
+            height=1000
+            style="width: 100%;"
+            sandbox="{{ path_item.iframe_sandbox }} allow-same-origin"
+            id="content-iframe"
+    ></iframe>
+  </div>
+{% /card %}

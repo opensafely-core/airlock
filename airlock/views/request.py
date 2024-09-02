@@ -84,7 +84,8 @@ def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     relpath = UrlPath(path)
-    template = "file_browser/index.html"
+    template_dir = "file_browser/request/"
+    template = template_dir + "index.html"
     selected_only = False
 
     if request.htmx:
@@ -241,11 +242,11 @@ def request_view(request, request_id: str, path: str = ""):
         request_action_required = None
 
     context = {
+        "template_dir": template_dir,
         "workspace": bll.get_workspace(release_request.workspace, request.user),
         "release_request": release_request,
         "root": tree,
         "path_item": path_item,
-        "context": "request",
         "title": f"Request for {release_request.workspace} by {release_request.author}",
         # TODO file these in from user/models
         "is_author": is_author,
@@ -268,7 +269,8 @@ def request_view(request, request_id: str, path: str = ""):
         ),
         "multiselect_withdraw": release_request.is_editing(),
         "code_url": code_url,
-        "return_url": "",
+        "include_code": code_url is not None,
+        "include_download": not is_author,
     }
 
     return TemplateResponse(request, template, context)

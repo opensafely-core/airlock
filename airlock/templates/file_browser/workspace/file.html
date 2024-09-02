@@ -1,0 +1,57 @@
+{% fragment as buttons %}
+  <div class="flex items-center gap-2">
+    {% if workspace.is_active %}
+      {% if add_file %}
+        <form
+          method="POST"
+          hx-post="{{ multiselect_url }}"
+          hx-target="#multiselect_modal"
+          hx-swap="outerHtml"
+        >
+          {% if path_item.workspace_status.value == "UPDATED" %}
+            {% #button type="submit" name="action" value="update_files" variant="success" %}
+              Update File in Request
+            {% /button %}
+          {% else %}
+            {% #button type="submit" name="action" value="add_files" variant="success" %}
+              Add File to Request
+            {% /button %}
+          {% endif %}
+          <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+          <input type=hidden name="next_url" value="{{ request.path }}"/>
+          {% csrf_token %}
+        </form>
+        <div id="multiselect_modal"></div>
+      {% elif path_item.workspace_status.value == "RELEASED" %}
+        {% #button type="button" disabled=True tooltip="This file has already been released" id="add-file-modal-button-disabled" %}
+          Add File to Request
+        {% /button %}
+      {% elif path_item.workspace_status.value == "UNDER_REVIEW" %}
+        {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
+          Add File to Request
+        {% /button %}
+      {% elif not path_item.is_valid %}
+        {% #button type="button" disabled=True tooltip="This file type cannot be added to a request" id="add-file-modal-button-disabled" %}
+          Add File to Request
+        {% /button %}
+      {% elif current_request and not current_request.is_editing %}
+        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
+          {% if path_item.workspace_status.value == "UPDATED" %}
+            Update File in Request
+          {% else %}
+            Add File to Request
+          {% endif %}
+        {% /button %}
+      {% else %}
+        {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
+          Add File to Request
+        {% /button %}
+      {% endif %}
+    {% endif %}
+
+    {% include "file_browser/_includes/more_dropdown.html" with include_code=include_code include_download=False %}
+
+  </div>
+{% endfragment %}
+
+{% include "file_browser/_includes/file_content.html" %}

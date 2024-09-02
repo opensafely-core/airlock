@@ -1,0 +1,20 @@
+{% extends "../base.html" %}
+
+{% block content %}
+  {% if current_request.get_url %}
+    <a class="header__link header__nav-link" href="{{ current_request.get_url }}" id="current-request-button">
+      View current release request &rarr;
+    </a>
+  {% endif %}
+
+  <div class="header__subtitle">
+
+    {% if workspace.get_requests_url %}
+      <a class="header__link" href="{{ workspace.get_requests_url }}" id="requests-workspace-button">
+        View all release requests for workspace
+      </a>
+    {% endif %}
+
+  </div>
+
+{% endblock %}
