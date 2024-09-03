@@ -300,23 +300,7 @@ def request_view(request, request_id: str, path: str = ""):
     else:
         group_context = group_presenter(release_request, relpath, request)
 
-    if not is_author:
-        user_has_submitted_review = (
-            request.user.username in release_request.submitted_reviews
-        )
-        user_has_reviewed_all_files = (
-            release_request.output_files()
-            and release_request.all_files_reviewed_by_reviewer(request.user)
-        )
-    else:
-        user_has_submitted_review = False
-        user_has_reviewed_all_files = False
-
-    if (
-        release_request.is_under_review()
-        and user_has_reviewed_all_files
-        and not user_has_submitted_review
-    ):
+    if permissions.user_can_submit_review(request.user, release_request):
         request_action_required = (
             "You have reviewed all files. You can now submit your review."
         )
@@ -338,9 +322,6 @@ def request_view(request, request_id: str, path: str = ""):
         "root": tree,
         "path_item": path_item,
         "title": f"Request for {release_request.workspace} by {release_request.author}",
-        # TODO file these in from user/models
-        "is_author": is_author,
-        "is_output_checker": request.user.output_checker,
         "content_buttons": button_context,
         "activity": activity,
         "group": group_context,
