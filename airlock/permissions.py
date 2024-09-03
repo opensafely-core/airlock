@@ -135,6 +135,23 @@ def user_can_review_request(user: User, request: "ReleaseRequest"):
     return True
 
 
+def check_user_can_currently_review_request(user: User, request: "ReleaseRequest"):
+    """
+    This user can currently perform reviewer actions on the on this
+    request (vote on files, return, release, reject)
+    """
+    check_user_can_review_request(user, request)
+    policies.check_can_review_request(request)
+
+
+def user_can_currently_review_request(user: User, request: "ReleaseRequest"):
+    try:
+        check_user_can_currently_review_request(user, request)
+    except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied):
+        return False
+    return True
+
+
 def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
     """
     This user has permission to edit the request, AND the request is in an

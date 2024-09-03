@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from email.utils import parsedate
 
 from django.contrib import messages
@@ -13,6 +14,16 @@ from airlock.types import UrlPath
 
 class ServeFileException(Exception):
     pass
+
+
+@dataclass
+class ButtonContext:
+    """Holds information about the status of a button for template context"""
+
+    show: bool = False
+    disabled: bool = True
+    url: str = ""
+    tooltip: str = ""
 
 
 def login_exempt(view):
