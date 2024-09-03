@@ -229,7 +229,11 @@ def get_button_context(path_item, user, release_request, workspace):
                 "voting": voting_buttons,
             }
         case PathType.DIR:
-            ...
+            multiselect_withdraw_btn = get_default_context("request_multiselect")
+            if permissions.user_can_edit_request(user, release_request):
+                multiselect_withdraw_btn.show = True
+                multiselect_withdraw_btn.disabled = False
+            return {"multiselect_withdraw": multiselect_withdraw_btn}
         case _:
             return {}
 
@@ -326,10 +330,6 @@ def request_view(request, request_id: str, path: str = ""):
         "activity": activity,
         "group": group_context,
         "request_action_required": request_action_required,
-        "multiselect_url": reverse(
-            "request_multiselect", kwargs={"request_id": request_id}
-        ),
-        "multiselect_withdraw": release_request.is_editing(),
         "code_url": code_url,
         "include_code": code_url is not None,
         "include_download": not is_author,

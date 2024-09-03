@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% fragment as buttons %}
-  {% if multiselect_withdraw %}
+  {% if content_buttons.multiselect_withdraw.show %}
     <div class="div flex flex-col items-start gap-4">
       <div class="flex items-center gap-2">
         {% #button type="submit" name="action" value="withdraw_files" variant="warning" form="multiselect_form"%}Withdraw Files from Request{% /button %}
@@ -21,7 +21,7 @@
 {% #card title=path_item.name container=True custom_button=buttons %}
   <form id="multiselect_form"
         method="POST"
-        hx-post="{{ multiselect_url }}"
+        hx-post="{{ content_buttons.multiselect_withdraw.url }}"
         hx-target="#multiselect_modal"
         hx-swap="outerHtml"
   >
@@ -44,7 +44,7 @@
           <th>
             <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
           </th>
-          {% if multiselect_withdraw %}
+          {% if content_buttons.multiselect_withdraw.show %}
             <th data-searchable="false" data-sortable="false">
               <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
             </th>
@@ -58,7 +58,7 @@
             <td>{{ path.request_filetype.name|title }}</td>
             <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
             <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-            {% if multiselect_withdraw %}
+            {% if content_buttons.multiselect_withdraw.show %}
               <td>
                 {% if not path.is_directory %}
                   {% form_checkbox name="selected" value=path.relpath custom_field=True %}
