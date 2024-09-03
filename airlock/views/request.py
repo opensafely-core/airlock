@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -18,7 +16,6 @@ from airlock import exceptions, permissions
 from airlock.business_logic import bll
 from airlock.enums import (
     PathType,
-    RequestFileType,
     RequestFileVote,
     RequestStatus,
     Visibility,
@@ -83,19 +80,21 @@ def request_index(request):
     )
 
 
-def get_button_context(path_item_type, user, release_request, workspace):
+def get_button_context(path_item, user, release_request, workspace):
     """
     Return a context dict defining the status of the buttons
     shown at the top of the content panel
     """
-    match path_item_type:
+
+    def get_default_context(url_name, **extra_kwargs):
+        return ButtonContext(
+            url=reverse(
+                url_name, kwargs={"request_id": release_request.id, **extra_kwargs}
+            ),
+        )
+
+    match path_item.type:
         case PathType.REQUEST:
-
-            def get_default_context(url_name):
-                return ButtonContext(
-                    url=reverse(url_name, kwargs={"request_id": release_request.id}),
-                )
-
             # default context for request-level actions with everything hidden
             # author actions
             submit_btn = get_default_context("request_submit")
@@ -168,7 +167,67 @@ def get_button_context(path_item_type, user, release_request, workspace):
             }
 
         case PathType.FILE:
-            ...
+            request_file = release_request.get_request_file_from_urlpath(
+                path_item.relpath
+            )
+            # author buttons
+            withdraw_btn = get_default_context("file_withdraw", path=path_item.relpath)
+            # output-checker vote to display and buttons
+            user_vote = path_item.request_status.vote
+            voting_buttons = {
+                "approve": get_default_context("file_approve", path=path_item.relpath),
+                "request_changes": get_default_context(
+                    "file_request_changes", path=path_item.relpath
+                ),
+                "reset_review": get_default_context(
+                    "file_reset_review", path=path_item.relpath
+                ),
+            }
+
+            if permissions.user_can_withdraw_file_from_request(
+                user, release_request, workspace, request_file.relpath
+            ):
+                withdraw_btn.show = True
+                withdraw_btn.disabled = False
+                withdraw_btn.tooltip = "Withdraw this file from this request"
+
+            # Show the voting buttons for output files to any user who can review
+            # for requests in currently reviewable status
+            if (
+                permissions.user_can_currently_review_request(user, release_request)
+                and path_item.is_output()
+            ):
+                for button in voting_buttons.values():
+                    button.show = True
+            # Determine whether any of the voting buttons should be enabled
+            if permissions.user_can_review_file(
+                user, release_request, request_file.relpath
+            ):
+                # check what the current vote is, and enable the OTHER options
+                match user_vote:
+                    case RequestFileVote.APPROVED:
+                        voting_buttons["request_changes"].disabled = False
+                        voting_buttons["reset_review"].disabled = False
+                    case RequestFileVote.CHANGES_REQUESTED:
+                        voting_buttons["approve"].disabled = False
+                        voting_buttons["reset_review"].disabled = False
+                    case RequestFileVote.UNDECIDED | None:
+                        voting_buttons["approve"].disabled = False
+                        voting_buttons["request_changes"].disabled = False
+                    case _:  # pragma: no cover
+                        assert False, "Invalid RequestFileVote value"
+                # reset review has an extra check for whether the user has
+                # submitted their review
+                if not permissions.user_can_reset_file_review(
+                    user, release_request, request_file.relpath
+                ):
+                    voting_buttons["reset_review"].disabled = True
+
+            return {
+                "withdraw_file": withdraw_btn,
+                "user_vote": user_vote,
+                "voting": voting_buttons,
+            }
         case PathType.DIR:
             ...
         case _:
@@ -206,21 +265,12 @@ def request_view(request, request_id: str, path: str = ""):
     # Buttons differ depending on the type of path_item
     # FILE, DIR, REQUEST, FILEGROUP
     button_context = get_button_context(
-        path_item.type, request.user, release_request, workspace
+        path_item, request.user, release_request, workspace
     )
 
     is_author = release_request.author == request.user.username
 
-    file_withdraw_url = None
     code_url = None
-
-    if release_request.is_editing() and not is_directory_url:
-        # A file can only be withdrawn from a request that is currently
-        # editable by the author
-        file_withdraw_url = reverse(
-            "file_withdraw",
-            kwargs={"request_id": request_id, "path": path},
-        )
 
     if not is_directory_url:
         code_url = (
@@ -262,50 +312,6 @@ def request_view(request, request_id: str, path: str = ""):
         user_has_submitted_review = False
         user_has_reviewed_all_files = False
 
-    # set up the voting buttons, defaulting to hidden state
-    voting_buttons: Dict[str, Any] = {
-        "show": False,
-        "approve": {"url": None, "disabled": True},
-        "request_changes": {"url": None, "disabled": True},
-        "reset_review": {"url": None, "disabled": True},
-    }
-
-    # We can we show the buttons if:
-    # - the path is a file
-    # - this request can currently be reviewed
-    # - the file is an output file (we can't review supporting, withdrawn or code filetypes)
-    if (
-        not is_directory_url
-        and release_request.is_under_review()
-        and release_request.request_filetype(path) == RequestFileType.OUTPUT
-    ):
-        # show the buttons and add their respective URLs
-        voting_buttons["show"] = True
-        for vote in ["approve", "request_changes", "reset_review"]:
-            voting_buttons[vote] = {
-                "url": reverse(f"file_{vote}", args=(request_id, path)),
-                "disabled": False,
-            }
-
-        # Now determine whether any of the buttons should be disabled
-        # disable buttons for the current vote status
-        request_file = release_request.get_request_file_from_urlpath(relpath)
-        existing_review = request_file.reviews.get(request.user.username)
-        existing_review_status = existing_review.status if existing_review else None
-        match existing_review_status:
-            case RequestFileVote.APPROVED:
-                voting_buttons["approve"]["disabled"] = True
-            case RequestFileVote.CHANGES_REQUESTED:
-                voting_buttons["request_changes"]["disabled"] = True
-            case RequestFileVote.UNDECIDED | None:
-                voting_buttons["reset_review"]["disabled"] = True
-            case _:  # pragma: no cover
-                assert False, "Invalid RequestFileVote value"
-
-        # Disable reset button for already submitted review
-        if user_has_submitted_review:
-            voting_buttons["reset_review"]["disabled"] = True
-
     if (
         release_request.is_under_review()
         and user_has_reviewed_all_files
@@ -336,8 +342,6 @@ def request_view(request, request_id: str, path: str = ""):
         "is_author": is_author,
         "is_output_checker": request.user.output_checker,
         "content_buttons": button_context,
-        "voting_buttons": voting_buttons,
-        "file_withdraw_url": file_withdraw_url,
         "activity": activity,
         "group": group_context,
         "request_action_required": request_action_required,

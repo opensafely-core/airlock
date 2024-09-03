@@ -225,8 +225,9 @@ def user_can_update_file_on_request(
 
 
 def check_user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    policies.check_can_withdraw_file_from_request(workspace, relpath)
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
             f"Cannot withdraw file {relpath} from request"
@@ -234,10 +235,10 @@ def check_user_can_withdraw_file_from_request(
 
 
 def user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):
     try:
-        check_user_can_withdraw_file_from_request(user, request, relpath)
+        check_user_can_withdraw_file_from_request(user, request, workspace, relpath)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -251,9 +252,7 @@ def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: U
     policies.check_can_review_file_on_request(request, relpath)
 
 
-def user_can_review_file(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+def user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
     try:
         check_user_can_review_file(user, request, relpath)
     except exceptions.RequestReviewDenied:
@@ -269,9 +268,7 @@ def check_user_can_reset_file_review(
         raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
 
 
-def user_can_reset_file_review(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: UrlPath):
     try:
         check_user_can_reset_file_review(user, request, relpath)
     except exceptions.RequestReviewDenied:

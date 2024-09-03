@@ -141,6 +141,7 @@ def test_request_view_cannot_have_empty_directory(airlock_client):
 
     # Withdrawing the only file from a directory removes the directory as well as
     # the file from the request
+    release_request = factories.refresh_release_request(release_request)
     bll.withdraw_file_from_request(
         release_request, UrlPath("group/some_dir/file.txt"), author
     )

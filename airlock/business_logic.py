@@ -731,9 +731,11 @@ class BusinessLogicLayer:
     ):
         relpath = UrlPath(*group_path.parts[1:])
         permissions.check_user_can_withdraw_file_from_request(
-            user, release_request, relpath
+            user,
+            release_request,
+            self.get_workspace(release_request.workspace, user),
+            relpath,
         )
-
         group_name = group_path.parts[0]
         audit = AuditEvent.from_request(
             request=release_request,

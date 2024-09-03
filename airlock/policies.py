@@ -31,7 +31,12 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.models import Comment, FileReview, ReleaseRequest, Workspace
+    from airlock.models import (
+        Comment,
+        FileReview,
+        ReleaseRequest,
+        Workspace,
+    )
 
 
 def check_can_edit_request(request: "ReleaseRequest"):
@@ -139,6 +144,17 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
     if status != WorkspaceFileStatus.CONTENT_UPDATED:
         raise exceptions.RequestPermissionDenied(
             "Cannot update file in request if it is not updated on disk"
+        )
+
+
+def check_can_withdraw_file_from_request(workspace: "Workspace", relpath: UrlPath):
+    """
+    This file is withdrawable; i.e. it has not already been withdrawn
+    """
+    status = workspace.get_workspace_file_status(relpath)
+    if status == WorkspaceFileStatus.WITHDRAWN:
+        raise exceptions.RequestPermissionDenied(
+            "file has already been withdrawn from request"
         )
 
 
