@@ -109,12 +109,23 @@ def get_button_context(path_item, user, release_request, workspace):
             # Buttons shown to authors for requests in editable state
             if permissions.user_can_edit_request(user, release_request):
                 withdraw_btn.show = True
+
                 # we show the submit modal for initial submissions and
                 # just a submit button for re-submission
                 if release_request.status == RequestStatus.PENDING:
                     submit_btn.show = True
                 else:
                     resubmit_btn.show = True
+
+                try:
+                    permissions.check_user_can_submit_request(user, release_request)
+                except exceptions.RequestPermissionDenied as err:
+                    for button in submit_btn, resubmit_btn:
+                        button.tooltip = str(err)
+                else:
+                    for button in submit_btn, resubmit_btn:
+                        button.disabled = False
+
             # Buttons shown to output-checkers for requests in reviewable state
             elif permissions.user_can_currently_review_request(user, release_request):
                 # All output-checker actions are visible (but not necessarily enabled)

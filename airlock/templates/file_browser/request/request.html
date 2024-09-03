@@ -4,41 +4,55 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
     {% if content_buttons.submit.show %}
-      {% #modal id="submitRequest" button_small=True button_text="Submit for review" button_variant="success" %}
-        {% #card container=True title="Submit this request for review" %}
-          <form action="{{ content_buttons.submit.url }}" method="POST">
-            {% csrf_token %}
+      {% if content_buttons.submit.disabled %}
+        {% #button disabled=True class="relative group" small=True variant="success" id="submit-for-review-button" %}
+          Submit for review
+          {% tooltip class="airlock-tooltip" content=content_buttons.submit.tooltip %}
+        {% /button %}
+      {% else %}
+        {% #modal id="submitRequest" button_small=True button_text="Submit for review" button_variant="success" %}
+          {% #card container=True title="Submit this request for review" %}
+            <form action="{{ content_buttons.submit.url }}" method="POST">
+              {% csrf_token %}
 
-            <div class="pb-8">
-              Please confirm that you have read the OpenSAFELY
-              documentation on data release. In particular note that:
-              <blockquote style="margin-left: 1rem; margin-top: 1rem">
-                <p>
-                  All outputs from the NHS England OpenSAFELY COVID-19 service must be
-                  aggregated data with small number suppression applied. The service operates as
-                  a trusted research platform where no patient record level data is permitted to
-                  be extracted from the platform. You MUST NOT request the release of any
-                  information (e.g. name, listsize) that identifies, or could identify, ICBs,
-                  Local Authorities (including MSOA identifiers), Primary Care Networks (PCNs)
-                  and individual GP practices from the Level 4 results server. Please confirm and
-                  that your results are in line with this policy.
-                </p>
-              </blockquote>
-            </div>
-            {% #button type="submit" variant="success" class="action-button" small=True id="submit-for-review-button" %}
-              I confirm I have read the documentation
-            {% /button %}
-            {% #button variant="primary" class="action-button" small=True type="cancel" %}Cancel{% /button %}
-          </form>
-        {% /card %}
-      {% /modal %}
+              <div class="pb-8">
+                Please confirm that you have read the OpenSAFELY
+                documentation on data release. In particular note that:
+                <blockquote style="margin-left: 1rem; margin-top: 1rem">
+                  <p>
+                    All outputs from the NHS England OpenSAFELY COVID-19 service must be
+                    aggregated data with small number suppression applied. The service operates as
+                    a trusted research platform where no patient record level data is permitted to
+                    be extracted from the platform. You MUST NOT request the release of any
+                    information (e.g. name, listsize) that identifies, or could identify, ICBs,
+                    Local Authorities (including MSOA identifiers), Primary Care Networks (PCNs)
+                    and individual GP practices from the Level 4 results server. Please confirm and
+                    that your results are in line with this policy.
+                  </p>
+                </blockquote>
+              </div>
+              {% #button type="submit" variant="success" class="action-button" small=True id="submit-for-review-button" %}
+                I confirm I have read the documentation
+              {% /button %}
+              {% #button variant="primary" class="action-button" small=True type="cancel" %}Cancel{% /button %}
+            </form>
+          {% /card %}
+        {% /modal %}
+      {% endif %}
     {% endif %}
     {% if content_buttons.resubmit.show %}
+      {% if content_buttons.resubmit.disabled %}
+        {% #button disabled=True class="relative group" small=True variant="success" id="resubmit-for-review-button" %}
+          Submit for review
+          {% tooltip class="airlock-tooltip" content=content_buttons.resubmit.tooltip %}
+        {% /button %}
+      {% else %}
         {% comment %} Subsequent re-submission requires just a button press {% endcomment %}
-      <form action="{{ content_buttons.resubmit.url }}" method="POST">
-        {% csrf_token %}
-        {% #button type="submit" tooltip=content_buttons.resubmit.tooltip variant="success" class="action-button" small=True id="submit-for-review-button" %}Submit for review{% /button %}
-      </form>
+        <form action="{{ content_buttons.resubmit.url }}" method="POST">
+          {% csrf_token %}
+          {% #button type="submit" tooltip=content_buttons.resubmit.tooltip variant="success" class="action-button" small=True id="resubmit-for-review-button" %}Submit for review{% /button %}
+        </form>
+      {% endif %}
     {% endif %}
     {% if content_buttons.withdraw.show %}
       {% #modal id="withdrawRequest" button_small=True button_text="Withdraw this request" button_variant="warning" %}

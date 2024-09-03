@@ -106,6 +106,7 @@ def test_provider_request_release_files_request_not_approved(bll, mock_notificat
         "workspace",
         author=author,
         status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
 
     with pytest.raises(exceptions.InvalidStateTransition):
@@ -320,13 +321,19 @@ def test_provider_get_outstanding_requests_for_review(output_checker, bll):
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
     r1 = factories.create_request_at_status(
-        "workspace", author=other_user, status=RequestStatus.SUBMITTED
+        "workspace",
+        author=other_user,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
 
     # requests not visible to output checker
     # status submitted, but authored by output checker
     factories.create_request_at_status(
-        "workspace", author=user, status=RequestStatus.SUBMITTED
+        "workspace",
+        author=user,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
     # requests authored by other users, status other than pending
     for i, status in enumerate(
@@ -962,7 +969,10 @@ def test_set_status_cannot_action_own_request(bll):
         workspaces=["workspace", "workspace1"], output_checker=True
     )
     release_request1 = factories.create_request_at_status(
-        "workspace", author=user, status=RequestStatus.SUBMITTED
+        "workspace",
+        author=user,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
 
     with pytest.raises(exceptions.RequestPermissionDenied):
@@ -1746,7 +1756,10 @@ def test_approve_supporting_file(bll):
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
-        files=[factories.request_file(path=path, filetype=RequestFileType.SUPPORTING)],
+        files=[
+            factories.request_file(),
+            factories.request_file(path=path, filetype=RequestFileType.SUPPORTING),
+        ],
     )
     checker = factories.create_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
@@ -2172,11 +2185,11 @@ def test_review_request(bll):
         bll.review_request(release_request, checker)
 
 
-def test_review_request_no_output_files(bll):
+def test_submit_request_no_output_files(bll):
     checker = factories.create_user("checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        status=RequestStatus.SUBMITTED,
+        status=RequestStatus.PENDING,
         files=[
             factories.request_file(
                 path="test.txt", filetype=RequestFileType.SUPPORTING
@@ -2185,10 +2198,10 @@ def test_review_request_no_output_files(bll):
     )
     # first file already has changed requested, second file is not reviewed
     with pytest.raises(
-        exceptions.RequestReviewDenied,
-        match="cannot submit review for a request with no output files",
+        exceptions.RequestPermissionDenied,
+        match="Cannot submit request with no output files",
     ):
-        bll.review_request(release_request, checker)
+        bll.submit_request(release_request, checker)
 
 
 def test_review_request_non_submitted_status(bll):

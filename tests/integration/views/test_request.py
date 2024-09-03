@@ -191,7 +191,7 @@ def test_request_view_with_file_htmx(airlock_client):
 def test_request_view_with_submitted_request(airlock_client):
     airlock_client.login(output_checker=True)
     release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.SUBMITTED
+        "workspace", status=RequestStatus.SUBMITTED, files=[factories.request_file()]
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
     assert "Rejecting a request is disabled" in response.rendered_content
@@ -203,9 +203,7 @@ def test_request_view_with_submitted_request(airlock_client):
 @pytest.mark.parametrize(
     "files,has_message",
     [
-        ([], False),
         ([factories.request_file()], False),
-        ([factories.request_file(filetype=RequestFileType.SUPPORTING)], False),
         (
             [
                 factories.request_file(approved=True),
@@ -405,26 +403,6 @@ def test_request_view_with_submitted_file(airlock_client):
     assert "Remove this file" not in response.rendered_content
     assert "Approve file" in response.rendered_content
     assert "Request changes" in response.rendered_content
-
-
-def test_request_view_with_submitted_supporting_file(airlock_client):
-    airlock_client.login("checker", output_checker=True)
-    release_request = factories.create_request_at_status(
-        "workspace",
-        status=RequestStatus.SUBMITTED,
-        files=[
-            factories.request_file(
-                "group", "supporting_file.txt", filetype=RequestFileType.SUPPORTING
-            ),
-        ],
-    )
-    response = airlock_client.get(
-        f"/requests/view/{release_request.id}/group/supporting_file.txt", follow=True
-    )
-    assert "Remove this file" not in response.rendered_content
-    # these buttons currently exist but are both disabled
-    assert "Approve file" not in response.rendered_content
-    assert "Request changes" not in response.rendered_content
 
 
 def test_request_view_with_submitted_file_approved(airlock_client):
@@ -704,10 +682,16 @@ def test_request_index_user_output_checker(airlock_client):
         ],
     )
     r1 = factories.create_request_at_status(
-        "test_workspace", author=airlock_client.user, status=RequestStatus.SUBMITTED
+        "test_workspace",
+        author=airlock_client.user,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
     r2 = factories.create_request_at_status(
-        "other_workspace", author=other, status=RequestStatus.SUBMITTED
+        "other_workspace",
+        author=other,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
     )
     r3 = factories.create_request_at_status(
         "other_other_workspace",

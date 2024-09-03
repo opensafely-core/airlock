@@ -807,6 +807,7 @@ class BusinessLogicLayer:
         Change status to SUBMITTED. If the request is currently in
         RETURNED status, mark any changes-requested reviews as undecided.
         """
+        permissions.check_user_can_submit_request(user, request)
         self.check_status(request, RequestStatus.SUBMITTED, user)
 
         # reset any previous review data

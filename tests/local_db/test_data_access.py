@@ -87,7 +87,10 @@ def test_get_audit_log(test_audits, kwargs, expected_audits):
 def test_delete_file_from_request_bad_state():
     author = factories.create_user()
     release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.SUBMITTED, author=author
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file()],
     )
     audit = AuditEvent.from_request(
         release_request,

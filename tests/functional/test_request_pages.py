@@ -1,7 +1,8 @@
 import pytest
 from playwright.sync_api import expect
 
-from airlock.enums import RequestStatus, Visibility
+from airlock.enums import RequestFileType, RequestStatus, Visibility
+from airlock.types import UrlPath
 from tests import factories
 from tests.functional.conftest import login_as_user
 
@@ -344,6 +345,117 @@ def test_request_buttons(
 
 
 @pytest.mark.parametrize(
+    "files,submit_enabled",
+    [
+        # output file
+        ([factories.request_file(path="file.txt")], True),
+        # no files
+        ([], False),
+        # supporting file only
+        (
+            [
+                factories.request_file(
+                    path="file.txt", filetype=RequestFileType.SUPPORTING
+                )
+            ],
+            False,
+        ),
+        # withdrawn file only
+        (
+            [
+                factories.request_file(
+                    path="file.txt", filetype=RequestFileType.WITHDRAWN
+                )
+            ],
+            False,
+        ),
+    ],
+)
+def test_submit_button_visibility(
+    live_server,
+    context,
+    page,
+    files,
+    submit_enabled,
+):
+    user_data = dict(
+        username="researcher", workspaces=_workspace_dict(), output_checker=False
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_user(**user_data),
+        status=RequestStatus.PENDING,
+        files=files,
+    )
+
+    login_as_user(live_server, context, user_data)
+    page.goto(live_server.url + release_request.get_url())
+
+    # For an initial submission, we use the submit modal (to require
+    # agreement to the terms), which includes the submit button
+    submit_btn = page.locator("#submit-for-review-button")
+    submit_modal = page.locator("#submitRequest-modal-container")
+
+    # This is an initial submission so the resubmit button is hidden
+    expect(page.locator("#resubmit-for-review-button")).not_to_be_visible()
+
+    if submit_enabled:
+        # The submit button is inside the modal for a submittable request,
+        # so not visible
+        expect(submit_btn).not_to_be_visible()
+        expect(submit_modal).to_be_visible()
+    else:
+        # Request not submittable, so we show a disabled submit button
+        expect(submit_modal).not_to_be_visible()
+        expect(submit_btn).to_be_visible()
+        expect(submit_btn).to_be_disabled()
+
+
+def test_resubmit_button_visibility(
+    live_server,
+    context,
+    page,
+    bll,
+):
+    user_data = dict(
+        username="researcher", workspaces=_workspace_dict(), output_checker=False
+    )
+    author = factories.create_user(**user_data)
+    # Create a returned release request with one output file
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(path="file.txt", group="group", approved=True)],
+    )
+
+    login_as_user(live_server, context, user_data)
+    page.goto(live_server.url + release_request.get_url())
+
+    # For a resubmission, we just have a button, not the submit modal
+    submit_btn = page.locator("#submit-for-review-button")
+    submit_modal = page.locator("#submitRequest-modal-container")
+    resubmit_btn = page.locator("#resubmit-for-review-button")
+
+    # resubmit button is visible and enabled
+    expect(resubmit_btn).to_be_visible()
+    expect(resubmit_btn).to_be_enabled()
+    # submit modal and button is hidden
+    expect(submit_btn).not_to_be_visible()
+    expect(submit_modal).not_to_be_visible()
+
+    # withdraw the output file
+    bll.withdraw_file_from_request(release_request, UrlPath("group/file.txt"), author)
+    page.reload()
+    # resubmit button is visible but disabled
+    expect(resubmit_btn).to_be_visible()
+    expect(resubmit_btn).to_be_disabled()
+    # submit modal and button still hidden
+    expect(submit_btn).not_to_be_visible()
+    expect(submit_modal).not_to_be_visible()
+
+
+@pytest.mark.parametrize(
     "login_as,status,checkers, can_return",
     [
         ("author", RequestStatus.SUBMITTED, None, False),
@@ -441,7 +553,7 @@ def test_returned_request(live_server, context, page, bll):
     login_as_user(live_server, context, user_data["author"])
     page.goto(live_server.url + release_request.get_url())
     # Can re-submit a returned request
-    page.locator("#submit-for-review-button").click()
+    page.locator("#resubmit-for-review-button").click()
 
     # logout by clearing cookies
     context.clear_cookies()

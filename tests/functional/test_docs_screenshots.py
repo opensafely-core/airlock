@@ -313,7 +313,7 @@ def test_screenshot_from_creation_to_release(
 
     # resubmit
     page.goto(live_server.url + release_request.get_url())
-    page.locator("#submit-for-review-button").click()
+    page.locator("#resubmit-for-review-button").click()
 
     # checker 1 and 2 review, approve and release
     def do_review_and_approve(username):

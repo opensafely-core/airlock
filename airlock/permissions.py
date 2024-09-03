@@ -244,6 +244,21 @@ def user_can_withdraw_file_from_request(
     return True
 
 
+def check_user_can_submit_request(user: User, request: "ReleaseRequest"):
+    if not request.output_files():
+        raise exceptions.RequestPermissionDenied(
+            "Cannot submit request with no output files"
+        )
+
+
+def user_can_submit_request(user: User, request: "ReleaseRequest"):  # pragma: no cover
+    try:
+        check_user_can_submit_request(user, request)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
 def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
     try:
         check_user_can_review_request(user, request)
@@ -277,8 +292,7 @@ def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: U
 
 
 def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
-    policies.check_can_submit_review(request)
-    check_user_can_review_request(user, request)
+    check_user_can_currently_review_request(user, request)
     if not request.all_files_reviewed_by_reviewer(user):
         raise exceptions.RequestReviewDenied(
             "You must review all files to submit your review"
