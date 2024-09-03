@@ -3,7 +3,7 @@ from django.conf import settings
 
 def screenshot_element_with_padding(
     page, element_locator, filename, extra=None, crop=None
-):
+):  # pragma: no cover
     """
     Take a screenshot with 10px padding around an element.
 

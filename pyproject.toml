@@ -38,6 +38,7 @@ plugins = ["django_coverage_plugin"]
 omit = [
   "*/assets/*",
   "airlock/lib/git.py",
+  "tests/functional/test_docs_screenshots.py",
 ]
 
 
