@@ -347,7 +347,9 @@ def test_request_view_with_reviewed_request(airlock_client):
     # Login as 1st default output-checker
     airlock_client.login("output-checker-0", output_checker=True)
     release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.REVIEWED
+        "workspace",
+        status=RequestStatus.REVIEWED,
+        files=[factories.request_file(approved=True)],
     )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
 

@@ -277,7 +277,7 @@ def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: U
 
 
 def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
-    policies.check_can_review_request(request)
+    policies.check_can_submit_review(request)
     check_user_can_review_request(user, request)
     if not request.all_files_reviewed_by_reviewer(user):
         raise exceptions.RequestReviewDenied(
@@ -290,12 +290,10 @@ def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
         )
 
 
-def user_can_submit_review(
-    user: User, request: "ReleaseRequest"
-):  # pragma: no cover; not currently used
+def user_can_submit_review(user: User, request: "ReleaseRequest"):
     try:
         check_user_can_submit_review(user, request)
-    except exceptions.RequestReviewDenied:
+    except (exceptions.RequestReviewDenied, exceptions.RequestPermissionDenied):
         return False
     return True
 

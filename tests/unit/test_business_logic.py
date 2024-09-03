@@ -979,28 +979,6 @@ def test_set_status_cannot_action_own_request(bll):
         bll.set_status(release_request2, RequestStatus.RELEASED, user=user)
 
 
-def test_set_status_approved_no_files_denied(bll):
-    user = factories.create_user(output_checker=True)
-    release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.REVIEWED
-    )
-
-    with pytest.raises(exceptions.RequestPermissionDenied):
-        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
-
-
-def test_set_status_approved_only_supporting_file_denied(bll):
-    user = factories.create_user(output_checker=True)
-    release_request = factories.create_request_at_status(
-        "workspace",
-        status=RequestStatus.REVIEWED,
-        files=[factories.request_file(filetype=RequestFileType.SUPPORTING)],
-    )
-
-    with pytest.raises(exceptions.RequestPermissionDenied):
-        bll.set_status(release_request, RequestStatus.APPROVED, user=user)
-
-
 def test_submit_request(bll, mock_notifications):
     """
     From pending
@@ -2190,6 +2168,25 @@ def test_review_request(bll):
     # re-review
     with pytest.raises(
         exceptions.RequestReviewDenied, match="You have already submitted your review"
+    ):
+        bll.review_request(release_request, checker)
+
+
+def test_review_request_no_output_files(bll):
+    checker = factories.create_user("checker", output_checker=True)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                path="test.txt", filetype=RequestFileType.SUPPORTING
+            ),
+        ],
+    )
+    # first file already has changed requested, second file is not reviewed
+    with pytest.raises(
+        exceptions.RequestReviewDenied,
+        match="cannot submit review for a request with no output files",
     ):
         bll.review_request(release_request, checker)
 

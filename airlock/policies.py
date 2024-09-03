@@ -168,6 +168,18 @@ def check_can_review_request(request: "ReleaseRequest"):
         )
 
 
+def check_can_submit_review(request: "ReleaseRequest"):
+    """
+    Independent review can be submitted for this request; i.e. it
+    is in a reviewable state and it has output files.
+    """
+    check_can_review_request(request)
+    if not request.output_files():
+        raise exceptions.RequestReviewDenied(
+            "cannot submit review for a request with no output files"
+        )
+
+
 def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath):
     """
     This file is reviewable; i.e. it is on the request, and it is an output file.
