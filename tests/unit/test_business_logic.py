@@ -1656,6 +1656,28 @@ def test_withdraw_file_from_request_not_author(bll, status):
         )
 
 
+def test_withdraw_file_from_request_already_withdrawn(bll):
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="foo.txt", approved=True),
+            factories.request_file(
+                group="group", path="withdrawn.txt", filetype=RequestFileType.WITHDRAWN
+            ),
+        ],
+    )
+
+    with pytest.raises(
+        exceptions.RequestPermissionDenied, match="already been withdrawn"
+    ):
+        bll.withdraw_file_from_request(
+            release_request, UrlPath("group/withdrawn.txt"), user=author
+        )
+
+
 def _get_request_file(release_request, path):
     """Syntactic sugar to make the tests a little more readable"""
     # refresh
