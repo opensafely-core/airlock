@@ -29,7 +29,7 @@
 
     {% include '_includes/header.html' %}
 
-    <main class="min-h-[66vh] flex-grow pb-12 bg-slate-100">
+    <main class="max-h-full bg-slate-100 flex flex-col flex-1">
       <div class="container xl:max-w-screen-xl pt-4 pb-4" id="content">
         {% alerts messages=messages %}
         {% block content %}{% endblock %}

@@ -1,4 +1,4 @@
-<div id="selected-contents" class="min-h-screen">
+<div id="selected-contents" class="h-full">
   {% if path_item.type.name != "REPO" %}
     {% with template_dir|add:path_item.type.name.lower|add:".html" as template %}
       {% include template %}
