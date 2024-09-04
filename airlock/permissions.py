@@ -176,6 +176,7 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 def check_user_can_add_file_to_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_add_file_to_request(workspace, relpath)
 
@@ -193,6 +194,7 @@ def user_can_add_file_to_request(
 def check_user_can_replace_file_in_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_replace_file_in_request(workspace, relpath)
 
@@ -210,6 +212,7 @@ def user_can_replace_file_in_request(
 def check_user_can_update_file_on_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_update_file_on_request(workspace, relpath)
 
@@ -227,6 +230,7 @@ def user_can_update_file_on_request(
 def check_user_can_withdraw_file_from_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     policies.check_can_withdraw_file_from_request(workspace, relpath)
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
