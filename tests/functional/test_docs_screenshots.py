@@ -214,6 +214,9 @@ def test_screenshot_from_creation_to_release(
         )
         page.locator("#file-request-changes-button").click()
 
+        # return to request homepage
+        page.goto(live_server.url + release_request.get_url())
+
         if screenshot:
             # screenshot the tree after voting
             page.locator("#tree").screenshot(
@@ -221,7 +224,6 @@ def test_screenshot_from_creation_to_release(
             )
 
         # Submit independent review
-        page.goto(live_server.url + release_request.get_url())
         if screenshot:
             page.screenshot(path=settings.SCREENSHOT_DIR / "submit_review.png")
 
