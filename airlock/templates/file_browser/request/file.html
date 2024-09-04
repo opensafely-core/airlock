@@ -54,13 +54,13 @@
       {% if voting_buttons.show %}
         <div class="btn-group">
           {% if voting_buttons.approve.disabled %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active" id="file-approve-button" disabled="true">
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active whitespace-nowrap" id="file-approve-button" disabled="true">
               Approve file
             </button>
           {% else %}
             <form action="{{ voting_buttons.approve.url }}" method="POST">
               {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left" id="file-approve-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
                 Approve file
               </button>
             </form>
@@ -68,13 +68,13 @@
 
 
           {% if voting_buttons.request_changes.disabled %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--active" id="file-request-changes-button" disabled="true">
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--active whitespace-nowrap" id="file-request-changes-button" disabled="true">
               Request changes
             </button>
           {% else %}
             <form action="{{ voting_buttons.request_changes.url }}" method="POST">
               {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn" id="file-request-changes-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn whitespace-nowrap" id="file-request-changes-button" type="submit">
                 Request changes
               </button>
             </form>
@@ -97,7 +97,7 @@
       {% endif %}
     {% endif %}
 
-    {% #modal id="group-context" button_text="View Context" %}
+    {% #modal id="group-context" button_text="View&nbsp;Context" %}
       {% include "file_browser/request/filegroup.html" %}
     {% /modal %}
 
