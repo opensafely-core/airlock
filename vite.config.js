@@ -8,6 +8,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "assets/src/scripts/main.js",
+        resizer: "assets/src/scripts/resizer.js",
       },
     },
   },
