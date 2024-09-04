@@ -147,17 +147,6 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
         )
 
 
-def check_can_withdraw_file_from_request(workspace: "Workspace", relpath: UrlPath):
-    """
-    This file is withdrawable; i.e. it has not already been withdrawn
-    """
-    status = workspace.get_workspace_file_status(relpath)
-    if status == WorkspaceFileStatus.WITHDRAWN:
-        raise exceptions.RequestPermissionDenied(
-            "file has already been withdrawn from request"
-        )
-
-
 def check_can_review_request(request: "ReleaseRequest"):
     """
     This request is in a reviewable state

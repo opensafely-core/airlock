@@ -8,6 +8,7 @@ from airlock import exceptions, policies
 from airlock.enums import (
     RequestStatus,
     RequestStatusOwner,
+    WorkspaceFileStatus,
 )
 from airlock.types import UrlPath
 from airlock.users import User
@@ -231,10 +232,19 @@ def check_user_can_withdraw_file_from_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
     assert workspace.name == request.workspace
-    policies.check_can_withdraw_file_from_request(workspace, relpath)
+
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
             f"Cannot withdraw file {relpath} from request"
+        )
+
+    # If the user has permission to withdraw, check that the file
+    # is withdrawable; i.e. it has not already been withdrawn
+    # Note this is dependent on the user's current request
+    status = workspace.get_workspace_file_status(relpath)
+    if status == WorkspaceFileStatus.WITHDRAWN:
+        raise exceptions.RequestPermissionDenied(
+            "File has already been withdrawn from request"
         )
 
 
