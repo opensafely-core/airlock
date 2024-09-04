@@ -140,7 +140,7 @@ def test_withdraw_file_from_request_file_does_not_exist():
         files=[factories.request_file(changes_requested=True, path="foo.txt")],
     )
 
-    # foo.txt does not exist and can't be withdrawn
+    # bar.txt does not exist and can't be withdrawn
     with pytest.raises(exceptions.FileNotFound):
         dal.withdraw_file_from_request(
             release_request.id,

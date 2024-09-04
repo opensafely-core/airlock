@@ -138,7 +138,7 @@ def user_can_review_request(user: User, request: "ReleaseRequest"):
 
 def check_user_can_currently_review_request(user: User, request: "ReleaseRequest"):
     """
-    This user can currently perform reviewer actions on the on this
+    This user can currently perform reviewer actions on this
     request (vote on files, return, release, reject)
     """
     check_user_can_review_request(user, request)
