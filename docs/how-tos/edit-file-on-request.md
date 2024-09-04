@@ -17,7 +17,7 @@ metadata that it has been updated.
 ![Changed file directory view](../screenshots/multiselect_update.png)
 
 To update a file, [navigate to the workspace](view-workspace-files.md).
-Files can be updated from the file view or the directory view.
+Files can be updated from the file view or the directory view. Note that the updated file has changed colour in this tree view as it is now the selected file. 
 
 ![Changed file view](../screenshots/file_update.png)
 
