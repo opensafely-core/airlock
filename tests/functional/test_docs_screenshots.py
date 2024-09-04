@@ -301,12 +301,12 @@ def test_screenshot_from_creation_to_release(
     # multiselect view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
     page.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_update.png")
-    # file view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file2.csv")))
     # screenshot the tree icon and the page
-    page.get_by_role("link", name="file2.csv").screenshot(
+    page.locator("#tree").get_by_role("link", name="file2.csv").screenshot(
         path=settings.SCREENSHOT_DIR / "changed_tree_file.png"
     )
+    # file view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file2.csv")))
     page.screenshot(path=settings.SCREENSHOT_DIR / "file_update.png")
     page.locator("button[value=update_files]").click()
     page.screenshot(path=settings.SCREENSHOT_DIR / "file_update_modal.png")
