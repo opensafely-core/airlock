@@ -127,7 +127,10 @@ def test_user_can_review_request(output_checker, author, workspaces, can_review)
         "other": factories.create_user("other", ["test"], output_checker=False),
     }
     release_request = factories.create_request_at_status(
-        "test", RequestStatus.SUBMITTED, author=users[author]
+        "test",
+        RequestStatus.SUBMITTED,
+        author=users[author],
+        files=[factories.request_file()],
     )
     assert permissions.user_can_review_request(user, release_request) == can_review
 

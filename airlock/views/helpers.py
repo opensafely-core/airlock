@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from email.utils import parsedate
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseNotModified
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from airlock import exceptions
@@ -13,6 +15,24 @@ from airlock.types import UrlPath
 
 class ServeFileException(Exception):
     pass
+
+
+@dataclass
+class ButtonContext:
+    """Holds information about the status of a button for template context"""
+
+    show: bool = False
+    disabled: bool = True
+    url: str = ""
+    tooltip: str = ""
+
+    @classmethod
+    def with_request_defaults(cls, release_request_id, url_name, **extra_kwargs):
+        return cls(
+            url=reverse(
+                url_name, kwargs={"request_id": release_request_id, **extra_kwargs}
+            ),
+        )
 
 
 def login_exempt(view):

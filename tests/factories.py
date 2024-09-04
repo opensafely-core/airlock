@@ -344,7 +344,7 @@ def create_request_at_status(
     request = create_release_request(workspace, author, **kwargs)
 
     # add all files
-    if files:
+    if files:  # pragma: no cover
         for testfile in files:
             testfile.add(request)
 
@@ -372,29 +372,26 @@ def create_request_at_status(
     if checker_comments:
         # create comments
         for group, comment, visibility in checker_comments:
-            bll.group_comment_create(request, "group", comment, visibility, checker)
+            bll.group_comment_create(request, group, comment, visibility, checker)
 
     request = refresh_release_request(request)
 
-    if files:
-        # apply votes to files.
-        for testfile in files:
-            testfile.vote(request)
-        request = refresh_release_request(request)
+    # apply votes to files.
+    # Note: submitted requests must have at least one output file
+    for testfile in files:
+        testfile.vote(request)
+    request = refresh_release_request(request)
 
     if status == RequestStatus.SUBMITTED:
         return request
 
-    # If there are output files, get the usernames of all file reviewers
-    # so we can submit reviews with the correct checkers.
-    # Note that it is possible to review a request with no output files
-    # (potentially before returning it to the reviewer so they can add some).
-    # Approving or releasing requests with no output files is not allowed.
-    if request.output_files():
-        file_reviewers = [
-            User(username, output_checker=True)
-            for username in list(request.output_files().values())[0].reviews.keys()
-        ]
+    # Get the usernames of all file reviewers so we can submit reviews with
+    # the correct checkers.
+    # Submitting a release request with no output files is not allowed.
+    file_reviewers = [
+        User(username, output_checker=True)
+        for username in list(request.output_files().values())[0].reviews.keys()
+    ]
 
     if status == RequestStatus.PARTIALLY_REVIEWED:
         submit_independent_review(request, file_reviewers[0])

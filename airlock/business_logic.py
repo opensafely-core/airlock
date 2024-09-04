@@ -495,14 +495,6 @@ class BusinessLogicLayer:
                     f"Cannot set status to {to_status.name}; request has unapproved files."
                 )
 
-            if (
-                to_status == RequestStatus.APPROVED
-                and not release_request.output_files()
-            ):
-                raise exceptions.RequestPermissionDenied(
-                    f"Cannot set status to {to_status.name}; request contains no output files."
-                )
-
     def set_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
     ):
@@ -731,9 +723,11 @@ class BusinessLogicLayer:
     ):
         relpath = UrlPath(*group_path.parts[1:])
         permissions.check_user_can_withdraw_file_from_request(
-            user, release_request, relpath
+            user,
+            release_request,
+            self.get_workspace(release_request.workspace, user),
+            relpath,
         )
-
         group_name = group_path.parts[0]
         audit = AuditEvent.from_request(
             request=release_request,
@@ -813,6 +807,7 @@ class BusinessLogicLayer:
         Change status to SUBMITTED. If the request is currently in
         RETURNED status, mark any changes-requested reviews as undecided.
         """
+        permissions.check_user_can_submit_request(user, request)
         self.check_status(request, RequestStatus.SUBMITTED, user)
 
         # reset any previous review data

@@ -8,6 +8,7 @@ from airlock import exceptions, policies
 from airlock.enums import (
     RequestStatus,
     RequestStatusOwner,
+    WorkspaceFileStatus,
 )
 from airlock.types import UrlPath
 from airlock.users import User
@@ -135,6 +136,23 @@ def user_can_review_request(user: User, request: "ReleaseRequest"):
     return True
 
 
+def check_user_can_currently_review_request(user: User, request: "ReleaseRequest"):
+    """
+    This user can currently perform reviewer actions on this
+    request (vote on files, return, release, reject)
+    """
+    check_user_can_review_request(user, request)
+    policies.check_can_review_request(request)
+
+
+def user_can_currently_review_request(user: User, request: "ReleaseRequest"):
+    try:
+        check_user_can_currently_review_request(user, request)
+    except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied):
+        return False
+    return True
+
+
 def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
     """
     This user has permission to edit the request, AND the request is in an
@@ -159,6 +177,7 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 def check_user_can_add_file_to_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_add_file_to_request(workspace, relpath)
 
@@ -176,6 +195,7 @@ def user_can_add_file_to_request(
 def check_user_can_replace_file_in_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_replace_file_in_request(workspace, relpath)
 
@@ -193,6 +213,7 @@ def user_can_replace_file_in_request(
 def check_user_can_update_file_on_request(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
     policies.check_can_update_file_on_request(workspace, relpath)
 
@@ -208,19 +229,45 @@ def user_can_update_file_on_request(
 
 
 def check_user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
+    assert workspace.name == request.workspace
+
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
             f"Cannot withdraw file {relpath} from request"
         )
 
+    # If the user has permission to withdraw, check that the file
+    # is withdrawable; i.e. it has not already been withdrawn
+    # Note this is dependent on the user's current request
+    status = workspace.get_workspace_file_status(relpath)
+    if status == WorkspaceFileStatus.WITHDRAWN:
+        raise exceptions.RequestPermissionDenied(
+            "File has already been withdrawn from request"
+        )
+
 
 def user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+):
     try:
-        check_user_can_withdraw_file_from_request(user, request, relpath)
+        check_user_can_withdraw_file_from_request(user, request, workspace, relpath)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+def check_user_can_submit_request(user: User, request: "ReleaseRequest"):
+    if not request.output_files():
+        raise exceptions.RequestPermissionDenied(
+            "Cannot submit request with no output files"
+        )
+
+
+def user_can_submit_request(user: User, request: "ReleaseRequest"):  # pragma: no cover
+    try:
+        check_user_can_submit_request(user, request)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -234,9 +281,7 @@ def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: U
     policies.check_can_review_file_on_request(request, relpath)
 
 
-def user_can_review_file(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+def user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
     try:
         check_user_can_review_file(user, request, relpath)
     except exceptions.RequestReviewDenied:
@@ -252,9 +297,7 @@ def check_user_can_reset_file_review(
         raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
 
 
-def user_can_reset_file_review(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
-):  # pragma: no cover; not currently used
+def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: UrlPath):
     try:
         check_user_can_reset_file_review(user, request, relpath)
     except exceptions.RequestReviewDenied:
@@ -263,8 +306,7 @@ def user_can_reset_file_review(
 
 
 def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
-    policies.check_can_review_request(request)
-    check_user_can_review_request(user, request)
+    check_user_can_currently_review_request(user, request)
     if not request.all_files_reviewed_by_reviewer(user):
         raise exceptions.RequestReviewDenied(
             "You must review all files to submit your review"
@@ -276,12 +318,10 @@ def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
         )
 
 
-def user_can_submit_review(
-    user: User, request: "ReleaseRequest"
-):  # pragma: no cover; not currently used
+def user_can_submit_review(user: User, request: "ReleaseRequest"):
     try:
         check_user_can_submit_review(user, request)
-    except exceptions.RequestReviewDenied:
+    except (exceptions.RequestReviewDenied, exceptions.RequestPermissionDenied):
         return False
     return True
 

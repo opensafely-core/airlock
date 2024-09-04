@@ -87,7 +87,10 @@ def test_get_audit_log(test_audits, kwargs, expected_audits):
 def test_delete_file_from_request_bad_state():
     author = factories.create_user()
     release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.SUBMITTED, author=author
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file()],
     )
     audit = AuditEvent.from_request(
         release_request,
@@ -126,6 +129,34 @@ def test_withdraw_file_from_request_bad_state(status):
                 release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
             ),
         )
+
+
+def test_withdraw_file_from_request_file_does_not_exist():
+    author = factories.create_user(username="author", workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(changes_requested=True, path="foo.txt")],
+    )
+
+    # bar.txt does not exist and can't be withdrawn
+    with pytest.raises(exceptions.FileNotFound):
+        dal.withdraw_file_from_request(
+            release_request.id,
+            UrlPath("bar.txt"),
+            AuditEvent.from_request(
+                release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
+            ),
+        )
+    # foo.txt can be withdrawn
+    dal.withdraw_file_from_request(
+        release_request.id,
+        UrlPath("foo.txt"),
+        AuditEvent.from_request(
+            release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
+        ),
+    )
 
 
 def test_add_file_to_request_bad_state():

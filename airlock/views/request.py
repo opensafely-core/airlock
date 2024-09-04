@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -16,7 +14,12 @@ from opentelemetry import trace
 
 from airlock import exceptions, permissions
 from airlock.business_logic import bll
-from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
+from airlock.enums import (
+    PathType,
+    RequestFileVote,
+    RequestStatus,
+    Visibility,
+)
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
     GroupCommentDeleteForm,
@@ -28,6 +31,7 @@ from airlock.types import ROOT_PATH, UrlPath
 from services.tracing import instrument
 
 from .helpers import (
+    ButtonContext,
     display_form_errors,
     display_multiple_messages,
     download_file,
@@ -76,6 +80,185 @@ def request_index(request):
     )
 
 
+def _get_request_button_context(user, release_request):
+    # default context for request-level actions with everything hidden
+    # author actions
+    req_id = release_request.id
+    submit_btn = ButtonContext.with_request_defaults(req_id, "request_submit")
+    resubmit_btn = ButtonContext.with_request_defaults(req_id, "request_submit")
+    withdraw_btn = ButtonContext.with_request_defaults(req_id, "request_withdraw")
+    # output checker actions
+    submit_review_btn = ButtonContext.with_request_defaults(req_id, "request_review")
+    reject_btn = ButtonContext.with_request_defaults(req_id, "request_reject")
+    return_btn = ButtonContext.with_request_defaults(req_id, "request_return")
+    release_files_btn = ButtonContext.with_request_defaults(
+        req_id, "request_release_files"
+    )
+
+    # Buttons shown to authors for requests in editable state
+    if permissions.user_can_edit_request(user, release_request):
+        withdraw_btn.show = True
+
+        # we show the submit modal for initial submissions and
+        # just a submit button for re-submission
+        if release_request.status == RequestStatus.PENDING:
+            submit_btn.show = True
+        else:
+            resubmit_btn.show = True
+
+        try:
+            permissions.check_user_can_submit_request(user, release_request)
+        except exceptions.RequestPermissionDenied as err:
+            for button in submit_btn, resubmit_btn:
+                button.tooltip = str(err)
+        else:
+            for button in submit_btn, resubmit_btn:
+                button.disabled = False
+
+    # Buttons shown to output-checkers for requests in reviewable state
+    elif permissions.user_can_currently_review_request(user, release_request):
+        # All output-checker actions are visible (but not necessarily enabled)
+        for button in [
+            submit_review_btn,
+            reject_btn,
+            return_btn,
+            release_files_btn,
+        ]:
+            button.show = True
+
+        try:
+            permissions.check_user_can_submit_review(user, release_request)
+        except exceptions.RequestReviewDenied as err:
+            submit_review_btn.tooltip = str(err)
+        else:
+            submit_review_btn.disabled = False
+            submit_review_btn.tooltip = "Submit Review"
+
+        if release_request.status == RequestStatus.REVIEWED:
+            reject_btn.disabled = False
+            return_btn.disabled = False
+            return_btn.tooltip = "Return request for changes/clarification"
+        else:
+            reject_btn.tooltip = "Rejecting a request is disabled until review has been submitted by two reviewers"
+            return_btn.tooltip = "Returning a request is disabled until review has been submitted by two reviewers"
+
+        if not release_request.can_be_released():
+            release_files_btn.tooltip = "Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers"
+
+    # If a request is in APPROVED status, it isn't currently reviewable by a user,
+    # but it can be released by a user with permissions, so we need to show the
+    # release files button
+    if (
+        permissions.user_can_review_request(user, release_request)
+        and release_request.can_be_released()
+    ):
+        release_files_btn.show = True
+        release_files_btn.disabled = False
+        release_files_btn.tooltip = "Release files to jobs.opensafely.org"
+
+    return {
+        "submit": submit_btn,
+        "resubmit": resubmit_btn,
+        "withdraw": withdraw_btn,
+        "submit_review": submit_review_btn,
+        "reject": reject_btn,
+        "return": return_btn,
+        "release_files": release_files_btn,
+    }
+
+
+def _get_dir_button_context(user, release_request):
+    multiselect_withdraw_btn = ButtonContext.with_request_defaults(
+        release_request.id, "request_multiselect"
+    )
+    if permissions.user_can_edit_request(user, release_request):
+        multiselect_withdraw_btn.show = True
+        multiselect_withdraw_btn.disabled = False
+    return {"multiselect_withdraw": multiselect_withdraw_btn}
+
+
+def _get_file_button_context(user, release_request, workspace, path_item):
+    group_relpath = path_item.relpath
+    relpath = UrlPath(*group_relpath.parts[1:])
+
+    # author buttons
+    req_id = release_request.id
+    withdraw_btn = ButtonContext.with_request_defaults(
+        req_id, "file_withdraw", path=group_relpath
+    )
+    # output-checker vote to display and buttons
+    user_vote = path_item.request_status.vote
+    voting_buttons = {
+        "approve": ButtonContext.with_request_defaults(
+            req_id, "file_approve", path=group_relpath
+        ),
+        "request_changes": ButtonContext.with_request_defaults(
+            req_id, "file_request_changes", path=group_relpath
+        ),
+        "reset_review": ButtonContext.with_request_defaults(
+            req_id, "file_reset_review", path=group_relpath
+        ),
+    }
+
+    if permissions.user_can_withdraw_file_from_request(
+        user, release_request, workspace, relpath
+    ):
+        withdraw_btn.show = True
+        withdraw_btn.disabled = False
+        withdraw_btn.tooltip = "Withdraw this file from this request"
+
+    # Show the voting buttons for output files to any user who can review
+    # for requests in currently reviewable status
+    if (
+        permissions.user_can_currently_review_request(user, release_request)
+        and path_item.is_output()
+    ):
+        for button in voting_buttons.values():
+            button.show = True
+    # Determine whether any of the voting buttons should be enabled
+    if permissions.user_can_review_file(user, release_request, relpath):
+        # check what the current vote is, and enable the OTHER options
+        match user_vote:
+            case RequestFileVote.APPROVED:
+                voting_buttons["request_changes"].disabled = False
+                voting_buttons["reset_review"].disabled = False
+            case RequestFileVote.CHANGES_REQUESTED:
+                voting_buttons["approve"].disabled = False
+                voting_buttons["reset_review"].disabled = False
+            case RequestFileVote.UNDECIDED | None:
+                voting_buttons["approve"].disabled = False
+                voting_buttons["request_changes"].disabled = False
+            case _:  # pragma: no cover
+                assert False, "Invalid RequestFileVote value"
+        # reset review has an extra check for whether the user has
+        # submitted their review
+        if not permissions.user_can_reset_file_review(user, release_request, relpath):
+            voting_buttons["reset_review"].disabled = True
+
+    return {
+        "withdraw_file": withdraw_btn,
+        "user_vote": user_vote,
+        "voting": voting_buttons,
+    }
+
+
+def get_button_context(path_item, user, release_request, workspace):
+    """
+    Return a context dict defining the status of the buttons
+    shown at the top of the content panel
+    """
+    match path_item.type:
+        case PathType.REQUEST:
+            return _get_request_button_context(user, release_request)
+
+        case PathType.FILE:
+            return _get_file_button_context(user, release_request, workspace, path_item)
+        case PathType.DIR:
+            return _get_dir_button_context(user, release_request)
+        case _:
+            return {}
+
+
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 @require_http_methods(["GET"])
@@ -100,18 +283,19 @@ def request_view(request, request_id: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
+    workspace = bll.get_workspace(release_request.workspace, request.user)
+    # button context
+    # get the information that the template needs in order to
+    # generate the buttons shown at the top of the content panel
+    # Buttons differ depending on the type of path_item
+    # FILE, DIR, REQUEST, FILEGROUP
+    button_context = get_button_context(
+        path_item, request.user, release_request, workspace
+    )
+
     is_author = release_request.author == request.user.username
 
-    file_withdraw_url = None
     code_url = None
-
-    if release_request.is_editing() and not is_directory_url:
-        # A file can only be withdrawn from a request that is currently
-        # editable by the author
-        file_withdraw_url = reverse(
-            "file_withdraw",
-            kwargs={"request_id": request_id, "path": path},
-        )
 
     if not is_directory_url:
         code_url = (
@@ -141,92 +325,7 @@ def request_view(request, request_id: str, path: str = ""):
     else:
         group_context = group_presenter(release_request, relpath, request)
 
-    if not is_author:
-        user_has_submitted_review = (
-            request.user.username in release_request.submitted_reviews
-        )
-        user_has_reviewed_all_files = (
-            release_request.output_files()
-            and release_request.all_files_reviewed_by_reviewer(request.user)
-        )
-    else:
-        user_has_submitted_review = False
-        user_has_reviewed_all_files = False
-
-    request_submit_url = reverse(
-        "request_submit",
-        kwargs={"request_id": request_id},
-    )
-    request_review_url = reverse(
-        "request_review",
-        kwargs={"request_id": request_id},
-    )
-    request_withdraw_url = reverse(
-        "request_withdraw",
-        kwargs={"request_id": request_id},
-    )
-    request_reject_url = reverse(
-        "request_reject",
-        kwargs={"request_id": request_id},
-    )
-    request_return_url = reverse(
-        "request_return",
-        kwargs={"request_id": request_id},
-    )
-    release_files_url = reverse(
-        "request_release_files",
-        kwargs={"request_id": request_id},
-    )
-
-    # set up the voting buttons, defaulting to hidden state
-    voting_buttons: Dict[str, Any] = {
-        "show": False,
-        "approve": {"url": None, "disabled": True},
-        "request_changes": {"url": None, "disabled": True},
-        "reset_review": {"url": None, "disabled": True},
-    }
-
-    # We can we show the buttons if:
-    # - the path is a file
-    # - this request can currently be reviewed
-    # - the file is an output file (we can't review supporting, withdrawn or code filetypes)
-    if (
-        not is_directory_url
-        and release_request.is_under_review()
-        and release_request.request_filetype(path) == RequestFileType.OUTPUT
-    ):
-        # show the buttons and add their respective URLs
-        voting_buttons["show"] = True
-        for vote in ["approve", "request_changes", "reset_review"]:
-            voting_buttons[vote] = {
-                "url": reverse(f"file_{vote}", args=(request_id, path)),
-                "disabled": False,
-            }
-
-        # Now determine whether any of the buttons should be disabled
-        # disable buttons for the current vote status
-        request_file = release_request.get_request_file_from_urlpath(relpath)
-        existing_review = request_file.reviews.get(request.user.username)
-        existing_review_status = existing_review.status if existing_review else None
-        match existing_review_status:
-            case RequestFileVote.APPROVED:
-                voting_buttons["approve"]["disabled"] = True
-            case RequestFileVote.CHANGES_REQUESTED:
-                voting_buttons["request_changes"]["disabled"] = True
-            case RequestFileVote.UNDECIDED | None:
-                voting_buttons["reset_review"]["disabled"] = True
-            case _:  # pragma: no cover
-                assert False, "Invalid RequestFileVote value"
-
-        # Disable reset button for already submitted review
-        if user_has_submitted_review:
-            voting_buttons["reset_review"]["disabled"] = True
-
-    if (
-        release_request.is_under_review()
-        and user_has_reviewed_all_files
-        and not user_has_submitted_review
-    ):
+    if permissions.user_can_submit_review(request.user, release_request):
         request_action_required = (
             "You have reviewed all files. You can now submit your review."
         )
@@ -243,31 +342,15 @@ def request_view(request, request_id: str, path: str = ""):
 
     context = {
         "template_dir": template_dir,
-        "workspace": bll.get_workspace(release_request.workspace, request.user),
+        "workspace": workspace,
         "release_request": release_request,
         "root": tree,
         "path_item": path_item,
         "title": f"Request for {release_request.workspace} by {release_request.author}",
-        # TODO file these in from user/models
-        "is_author": is_author,
-        "is_output_checker": request.user.output_checker,
-        "voting_buttons": voting_buttons,
-        "file_withdraw_url": file_withdraw_url,
-        "request_submit_url": request_submit_url,
-        "request_review_url": request_review_url,
-        "request_reject_url": request_reject_url,
-        "request_return_url": request_return_url,
-        "request_withdraw_url": request_withdraw_url,
-        "release_files_url": release_files_url,
-        "user_has_submitted_review": user_has_submitted_review,
-        "user_has_reviewed_all_files": user_has_reviewed_all_files,
+        "content_buttons": button_context,
         "activity": activity,
         "group": group_context,
         "request_action_required": request_action_required,
-        "multiselect_url": reverse(
-            "request_multiselect", kwargs={"request_id": request_id}
-        ),
-        "multiselect_withdraw": release_request.is_editing(),
         "code_url": code_url,
         "include_code": code_url is not None,
         "include_download": not is_author,

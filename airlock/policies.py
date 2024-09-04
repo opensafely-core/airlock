@@ -31,7 +31,12 @@ if TYPE_CHECKING:  # pragma: no cover
     # imports are not executed at runtime.
     # https://peps.python.org/pep-0484/#forward-references
     # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles`
-    from airlock.models import Comment, FileReview, ReleaseRequest, Workspace
+    from airlock.models import (
+        Comment,
+        FileReview,
+        ReleaseRequest,
+        Workspace,
+    )
 
 
 def check_can_edit_request(request: "ReleaseRequest"):
