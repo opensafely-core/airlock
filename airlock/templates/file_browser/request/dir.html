@@ -18,7 +18,7 @@
 {% endfragment %}
 
 
-{% #card title=path_item.name container=True custom_button=buttons %}
+{% #card title=path_item.name container=False custom_button=buttons %}
   <form id="multiselect_form"
         method="POST"
         hx-post="{{ content_buttons.multiselect_withdraw.url }}"

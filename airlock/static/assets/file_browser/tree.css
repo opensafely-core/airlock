@@ -95,7 +95,7 @@
   height: calc(var(--tree-line-height) + 1px);
   left: 0;
   position: absolute;
-  width: calc(100% + 1rem);
+  width: 100%;
   z-index: -2;
 }
 
