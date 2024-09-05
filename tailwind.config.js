@@ -6,6 +6,7 @@ import { fontFamily } from "tailwindcss/defaultTheme";
 export default {
   content: [
     "airlock/templates/**/*.html",
+    "assets/src/**/*.{css,js}",
     "assets/templates/**/*.html"
   ],
   theme: {
