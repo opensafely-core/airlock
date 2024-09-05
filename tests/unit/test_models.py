@@ -140,7 +140,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     factories.create_workspace("not_ongoing")
     user = factories.create_user_from_dict(
         "user",
-        workspaces_dict={
+        workspaces={
             "normal_workspace": {
                 "project": "project-1",
                 "project_details": {"name": "project-1", "ongoing": True},

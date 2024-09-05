@@ -24,7 +24,7 @@ def test_home_redirects(airlock_client):
 def test_workspace_view_summary(airlock_client):
     user = factories.create_user_from_dict(
         username="testuser",
-        workspaces_dict={
+        workspaces={
             "workspace": {
                 "project_details": {"name": "TESTPROJECT", "ongoing": True},
                 "archived": False,
@@ -45,7 +45,7 @@ def test_workspace_view_summary(airlock_client):
 def test_workspace_view_archived_inactive(airlock_client):
     user = factories.create_user_from_dict(
         username="testuser",
-        workspaces_dict={
+        workspaces={
             "workspace-abc": {
                 "project_details": {"name": "TESTPROJECT", "ongoing": False},
                 "archived": True,
@@ -470,7 +470,7 @@ def test_workspaces_index_no_user(airlock_client):
 def test_workspaces_index_user_permitted_workspaces(airlock_client):
     user = factories.create_user_from_dict(
         username="testuser",
-        workspaces_dict={
+        workspaces={
             "test1a": {
                 "project_details": {"name": "Project 1", "ongoing": True},
                 "archived": True,

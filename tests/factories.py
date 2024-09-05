@@ -61,12 +61,20 @@ def create_user(
 
 
 def create_user_from_dict(
-    username, workspaces_dict, output_checker=False, last_refresh=None
+    username, workspaces, output_checker=False, last_refresh=None
 ) -> User:
     if last_refresh is None:
         last_refresh = time.time()
 
-    return User(username, workspaces_dict, output_checker, last_refresh)
+    if isinstance(workspaces, list):
+        workspaces = {
+            workspace: {
+                "project_details": {"name": "project", "ongoing": True},
+                "archived": False,
+            }
+            for workspace in workspaces
+        }
+    return User(username, workspaces, output_checker, last_refresh)
 
 
 def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
