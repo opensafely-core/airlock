@@ -1,12 +1,12 @@
-{% #card id="fileCard" title=path_item.name container=True custom_button=buttons %}
-  <div class="content">
-    <iframe src="{{ path_item.contents_url }}"
-            title="{{ path_item.relpath }}"
-            frameborder=0
-            height=1000
-            style="width: 100%;"
-            sandbox="{{ path_item.iframe_sandbox }} allow-same-origin"
-            id="content-iframe"
-    ></iframe>
-  </div>
+{% #card id="fileCard" title=path_item.name container=False custom_button=buttons %}
+  <iframe
+    class="w-full h-full bg-white border-t border-slate-200 pl-4"
+    style="height: 400px;"
+    frameborder="0"
+    height="100"
+    id="content-iframe"
+    sandbox="{{ path_item.iframe_sandbox }} allow-same-origin"
+    src="{{ path_item.contents_url }}"
+    title="{{ path_item.relpath }}"
+  ></iframe>
 {% /card %}

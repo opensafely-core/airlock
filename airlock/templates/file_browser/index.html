@@ -14,8 +14,8 @@
 {% block content %}{% endblock content %}
 
 {% block full_width_content %}
-  <div class="browser">
-    <div class="browser__files">
+  <div class="grid grid-cols-4 gap-x-4 flex-1">
+    <div class="border-r border-t bg-white overflow-auto" id="tree-container">
       <ul
         class="tree root tree__root"
         hx-boost="true"
@@ -29,7 +29,7 @@
         {% include "file_browser/tree.html" with path=root.fake_parent %}
       </ul>
     </div>
-    <div class="browser__content">
+    <div class="col-span-3">
       {% include "file_browser/contents.html" %}
     </div>
   </div>
@@ -39,4 +39,5 @@
   <script type="text/javascript" src="{% static 'htmx-1.9.10.min.js' %}"></script>
   {% django_htmx_script %}
   <script src="{% static 'assets/file_browser/index.js' %}"></script>
+  {% vite_asset "assets/src/scripts/resizer.js" %}
 {% endblock %}
