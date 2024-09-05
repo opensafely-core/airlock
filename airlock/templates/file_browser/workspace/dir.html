@@ -7,29 +7,24 @@
 {% endblock %}
 
 {% fragment as buttons %}
-  {% if workspace.is_active %}
-    {% if path_item.children %}
-      {% if multiselect_add %}
-        <div class="div flex flex-col items-start gap-4">
-          <div class="flex items-center gap-2">
-            {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form"%}
-              Add Files to Request
-            {% /button %}
-            {% #button type="submit" name="action" value="update_files" variant="success" form="multiselect_form"%}
-              Update Files in Request
-            {% /button %}
-          </div>
-          <div id="multiselect_modal"></div>
+
+  {% if content_buttons.multiselect_add.show %}
+    {% if content_buttons.multiselect_add.disabled %}
+      {% #button type="button" disabled=True tooltip=content_buttons.multiselect_add.tooltip id="add-file-modal-button" %}
+        Add Files to Request
+      {% /button %}
+    {% else %}
+      <div class="div flex flex-col items-start gap-4">
+        <div class="flex items-center gap-2">
+          {% #button type="submit" name="action" value="add_files" variant="success" form="multiselect_form" id="add-file-modal-button" %}
+            Add Files to Request
+          {% /button %}
+          {% #button type="submit" name="action" value="update_files" variant="success" form="multiselect_form" id="update-file-modal-button" %}
+            Update Files in Request
+          {% /button %}
         </div>
-      {% elif current_request and current_request.status_owner != "AUTHOR"  %}
-        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
-          Add Files to Request
-        {% /button %}
-      {% else %}
-        {% #button type="button" disabled=True tooltip="You do not have permission to add files to a request" id="add-file-modal-button-disabled" %}
-          Add Files to Request
-        {% /button %}
-      {% endif %}
+        <div id="multiselect_modal"></div>
+      </div>
     {% endif %}
   {% endif %}
 {% endfragment %}
@@ -41,7 +36,7 @@
   {% else %}
     <form id="multiselect_form"
           method="POST"
-          hx-post="{{ multiselect_url }}"
+          hx-post="{{ content_buttons.multiselect_add.url }}"
           hx-target="#multiselect_modal"
           hx-swap="outerHtml"
     >
@@ -64,7 +59,7 @@
             <th>
               <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
             </th>
-            {% if workspace.is_active and multiselect_add %}
+            {% if not content_buttons.multiselect_add.disabled %}
               <th data-searchable="false" data-sortable="false">
                 <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
               </th>
@@ -78,7 +73,7 @@
               <td>{{ path.display_status }}</td>
               <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
               <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-              {% if workspace.is_active and multiselect_add %}
+              {% if not content_buttons.multiselect_add.disabled %}
                 <td>
                   {% if not path.is_directory %}
                     {% form_checkbox name="selected" value=path.relpath custom_field=True %}

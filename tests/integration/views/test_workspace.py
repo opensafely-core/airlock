@@ -136,7 +136,8 @@ def test_workspace_directory_and_request_can_multiselect_add(
         ),
     )
     response = airlock_client.get("/workspaces/view/workspace/test/")
-    assert response.context["multiselect_add"] == can_multiselect_add
+    button_enabled = not response.context["content_buttons"]["multiselect_add"].disabled
+    assert button_enabled == can_multiselect_add
 
 
 def test_workspace_view_with_empty_directory(airlock_client):
@@ -317,7 +318,8 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
     airlock_client.login_with_user(user)
     factories.write_workspace_file("workspace", "file.txt")
     response = airlock_client.get("/workspaces/view/workspace/file.txt")
-    assert response.context["add_file"] == can_see_form
+    button_enabled = not response.context["content_buttons"]["add_file_button"].disabled
+    assert button_enabled == can_see_form
 
 
 @pytest.mark.parametrize(
@@ -408,7 +410,8 @@ def test_workspace_view_file_add_to_current_request(
         assert response.context["current_request"] == release_request
     else:
         assert response.context["current_request"] is None
-    assert response.context["add_file"] == can_see_form
+    button_enabled = not response.context["content_buttons"]["add_file_button"].disabled
+    assert button_enabled == can_see_form
 
 
 def test_workspace_view_index_no_user(airlock_client):

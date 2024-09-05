@@ -34,6 +34,14 @@ class ButtonContext:
             ),
         )
 
+    @classmethod
+    def with_workspace_defaults(cls, workspace_name, url_name, **extra_kwargs):
+        return cls(
+            url=reverse(
+                url_name, kwargs={"workspace_name": workspace_name, **extra_kwargs}
+            ),
+        )
+
 
 def login_exempt(view):
     view.login_exempt = True
