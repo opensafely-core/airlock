@@ -81,6 +81,9 @@ def test_request_file_group_context_modal(live_server, context, page):
     expect(dialog).to_contain_text("This is some testing context")
     expect(dialog).to_contain_text("I got rid of all the small numbers")
 
+    # context and controls instruction help text is not shown in the modal
+    expect(page.get_by_test_id("c3")).not_to_contain_text("Please describe")
+
     dialog.locator("button[type=cancel]").click()
     expect(dialog).not_to_be_visible()
 

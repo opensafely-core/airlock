@@ -282,6 +282,9 @@ def test_e2e_release_files(
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     find_and_click(filegroup_link)
 
+    # context and controls instruction help text is shown
+    expect(page.get_by_test_id("c3")).to_contain_text("Please describe")
+
     context_input = page.locator("#id_context")
     find_and_click(context_input)
     context_input.fill("some context")
