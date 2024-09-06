@@ -130,13 +130,13 @@ class GroupEditForm(forms.Form):
         help_text=mark_safe(
             """
             <div class="c2-help">
-            Please describe the contents of these outputs to help reviewers. This includes:
-            <ul style="margin-top: 0;">
-                <li>Variable descriptions</li>
-                <li>A description and count of the underlying population for each output if it is not included in the output.</li>
-                <li>Specify population size and degrees of freedom for all regression outputs.</li>
-                <li>Relationship to other data/tables which through combination may introduce secondary disclosive risks.</li>
-            </ul>
+                <p>Please describe the contents of these outputs to help reviewers. This includes:</p>
+                <ul>
+                    <li>Variable descriptions</li>
+                    <li>A description and count of the underlying population for each output if it is not included in the output.</li>
+                    <li>Specify population size and degrees of freedom for all regression outputs.</li>
+                    <li>Relationship to other data/tables which through combination may introduce secondary disclosive risks.</li>
+                </ul>
             </div>
             """
         ),
@@ -146,11 +146,11 @@ class GroupEditForm(forms.Form):
         help_text=mark_safe(
             """
             <div class="c2-help">
-            Please describe the statistical disclosure controls you have applied to these outputs. This includes:
-            <ul>
-                <li>The threshold used for low number suppression.</li>
-                <li>The rounding approach used.</li>
-            </ul>
+                <p>Please describe the statistical disclosure controls you have applied to these outputs. This includes:</p>
+                <ul>
+                    <li>The threshold used for low number suppression.</li>
+                    <li>The rounding approach used.</li>
+                </ul>
             </div>
             """
         ),
