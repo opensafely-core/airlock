@@ -67,17 +67,29 @@
                   </span>
                 </summary>
                 <div class="absolute border-0 origin-top-right top-full mt-2 right-20 z-10 w-48 rounded-md shadow-lg overflow-hidden bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-sm">
-                  <p class="pt-3 pb-2 px-4" style="background-color: var(--color-red-500);">TEST MODE ONLY</p>
+                  <p class="pt-3 pb-2 px-4 bg-red-700 text-red-50">TEST MODE ONLY</p>
                   {% for username, token in dev_users.items %}
                     <form
-                      {% if username == request.user.username %}style="background-color: var(--color-emerald-50);"{% endif %}
-                      class="border-t block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-oxford-50 focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-inset w-full text-left"
-                      method="POST" action="{% url 'login' %}">
+                      action="{% url 'login' %}"
+                      method="POST"
+                    >
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.path }}" />
                       <input type="hidden" name="user" value="{{ username }}" />
                       <input type="hidden" name="token" value="{{ token }}" />
-                      <button type="submit">{{ username }}</button>
+                      <button
+                        class="
+                               border-t block px-4 py-2 focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-inset w-full text-left
+                               {% if username == request.user.username %}
+                                 bg-emerald-200 text-emerald hover:text-bn-emerald-700 hover:bg-emerald-50 focus:text-bn-emerald-700
+                               {% else %}
+                                 text-oxford hover:text-bn-strawberry-700 hover:bg-oxford-50 focus:text-bn-strawberry-700
+                               {% endif %}
+                              "
+                        type="submit"
+                      >
+                        {{ username }}
+                      </button>
                     </form>
                   {% endfor %}
                 </div>
