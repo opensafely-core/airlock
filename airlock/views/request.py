@@ -386,7 +386,7 @@ def group_presenter(release_request, relpath, request):
         "inline": inline,
         # context/controls editing
         "c2_readonly": c2_readonly,
-        "c2_edit_form": GroupEditForm.from_filegroup(filegroup),
+        "c2_edit_form": GroupEditForm.from_filegroup(filegroup, inline=inline),
         "c2_edit_url": reverse(
             "group_edit",
             kwargs={"request_id": release_request.id, "group": group},

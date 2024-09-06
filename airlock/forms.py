@@ -156,6 +156,15 @@ class GroupEditForm(forms.Form):
         ),
     )
 
+    def __init__(self, *args, **kwargs):
+        inline = kwargs.pop("inline", False)
+        super().__init__(*args, **kwargs)
+        if inline:
+            # Hide the help text if the form is inlined (i.e. it's)
+            # being opened as readonly from a file view
+            for field in ["context", "controls"]:
+                self.fields[field].help_text = ""
+
     @classmethod
     def from_filegroup(cls, filegroup: FileGroup, *args, **kwargs):
         data = {
