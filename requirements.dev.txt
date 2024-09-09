@@ -499,9 +499,9 @@ types-pyyaml==6.0.12.20240311 \
     --hash=sha256:a9e0f0f88dc835739b0c1ca51ee90d04ca2a897a71af79de9aec5f38cb0a5342 \
     --hash=sha256:b845b06a1c7e54b8e5b4c683043de0d9caf205e7434b3edc678ff2411979b8f6
     # via django-stubs
-types-requests==2.32.0.20240712 \
-    --hash=sha256:90c079ff05e549f6bf50e02e910210b98b8ff1ebdd18e19c873cd237737c1358 \
-    --hash=sha256:f754283e152c752e46e70942fa2a146b5bc70393522257bb85bd1ef7e019dcc3
+types-requests==2.32.0.20240907 \
+    --hash=sha256:1d1e79faeaf9d42def77f3c304893dea17a97cae98168ac69f3cb465516ee8da \
+    --hash=sha256:ff33935f061b5e81ec87997e91050f7b4af4f82027a7a7a9d9aaea04a963fdf8
     # via -r requirements.dev.in
 typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
