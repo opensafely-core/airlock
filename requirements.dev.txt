@@ -378,9 +378,9 @@ pytest-freezer==0.4.8 \
     --hash=sha256:644ce7ddb8ba52b92a1df0a80a699bad2b93514c55cf92e9f2517b68ebe74814 \
     --hash=sha256:8ee2f724b3ff3540523fa355958a22e6f4c1c819928b78a7a183ae4248ce6ee6
     # via -r requirements.dev.in
-pytest-playwright==0.5.1 \
-    --hash=sha256:54eb12742de16bf50d9630fe06ac398727e52d5c1e55269acb37e1ede91d9e00 \
-    --hash=sha256:6b0683cbacd060f338b37d0c2cdac25d841e14f1440e986efcceaacd3d61a268
+pytest-playwright==0.5.2 \
+    --hash=sha256:2c5720591364a1cdf66610b972ff8492512bc380953e043c85f705b78b2ed582 \
+    --hash=sha256:c6d603df9e6c50b35f057b0528e11d41c0963283e98c257267117f5ed6ba1924
     # via -r requirements.dev.in
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
