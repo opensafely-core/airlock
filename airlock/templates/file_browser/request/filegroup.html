@@ -22,8 +22,8 @@
       method="POST"
     >
       {% csrf_token %}
-      {% form_textarea field=group.c2_edit_form.context show_placeholder=True resize=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
-      {% form_textarea field=group.c2_edit_form.controls resize=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+      {% form_textarea field=group.c2_edit_form.context resize=True hint_below=True show_placeholder=True placeholder="Describe the data to be released in this group of files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+      {% form_textarea field=group.c2_edit_form.controls resize=True hint_below=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full max-w-lg mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
       {% if not group.c2_readonly %}
         {% #button type="submit" variant="success" id="edit-group-button" class="w-min" disabled=group.c2_readonly %}Save{% /button %}
       {% endif %}
