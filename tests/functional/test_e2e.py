@@ -134,7 +134,7 @@ def test_e2e_release_files(
         "src", workspace.get_contents_url(UrlPath("subdir/file.foo"))
     )
     # The add file button is disabled for an invalid file
-    add_file_button = page.locator("#add-file-modal-button-disabled")
+    add_file_button = page.locator("#add-file-modal-button")
     expect(add_file_button).to_be_disabled()
 
     # Get and click on the valid file
@@ -169,7 +169,7 @@ def test_e2e_release_files(
     )
 
     # The "Add file to request" button is disabled
-    add_file_button = page.locator("#add-file-modal-button-disabled")
+    add_file_button = page.locator("#add-file-modal-button")
     expect(add_file_button).to_be_disabled()
 
     # We now have a "Current release request" button

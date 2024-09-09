@@ -11,7 +11,7 @@ from opentelemetry import trace
 
 from airlock import exceptions, permissions, policies
 from airlock.business_logic import bll
-from airlock.enums import RequestFileType, WorkspaceFileStatus
+from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
 from airlock.file_browser_api import get_workspace_tree
 from airlock.forms import (
     AddFileForm,
@@ -21,6 +21,7 @@ from airlock.forms import (
 )
 from airlock.types import UrlPath
 from airlock.views.helpers import (
+    ButtonContext,
     display_form_errors,
     display_multiple_messages,
     get_path_item_from_tree_or_404,
@@ -52,6 +53,102 @@ def workspace_index(request):
     return TemplateResponse(request, "workspaces.html", {"projects": projects})
 
 
+def _get_dir_button_context(user, workspace):
+    multiselect_add_btn = ButtonContext.with_workspace_defaults(
+        workspace.name, "workspace_multiselect"
+    )
+    context = {"multiselect_add": multiselect_add_btn}
+
+    # We always show the button unless the workspace is inactive (but it may be disabled)
+    if not workspace.is_active():
+        return context
+
+    multiselect_add_btn.show = True
+
+    if permissions.user_can_action_request_for_workspace(user, workspace.name):
+        if workspace.current_request is None or workspace.current_request.is_editing():
+            multiselect_add_btn.disabled = False
+        else:
+            multiselect_add_btn.tooltip = (
+                "The current request is under review and cannot be modified."
+            )
+    else:
+        multiselect_add_btn.tooltip = (
+            "You do not have permission to add files to a request."
+        )
+    return context
+
+
+def _get_file_button_context(user, workspace, path_item):
+    # The add-file button on the file view also uses the multiselect
+    add_file_btn = ButtonContext.with_workspace_defaults(
+        workspace.name, "workspace_multiselect"
+    )
+
+    # The button may show Add File or Update File, depending on the
+    # state of the file
+    file_status = workspace.get_workspace_file_status(path_item.relpath)
+    update_file = file_status == WorkspaceFileStatus.CONTENT_UPDATED
+    add_file = not update_file
+
+    context = {
+        "add_file": add_file,
+        "update_file": update_file,
+        "add_file_button": add_file_btn,
+    }
+    # We always show the button unless the workspace is inactive (but it may be disabled)
+    if not workspace.is_active():
+        return context
+
+    add_file_btn.show = True
+    # Enable the add file form button if the user has permission to add a
+    # file and/or create a request
+    # and also this pathitem is a file that can be either added or
+    # replaced
+    # We first check the context for files generally by looking at the
+    # dir context. If the button was disabled there, it will be disabled
+    # for the file context too, with the same tooltips
+    dir_button = _get_dir_button_context(user, workspace)["multiselect_add"]
+    if dir_button.disabled:
+        add_file_btn.tooltip = dir_button.tooltip
+    else:
+        # Check we can add or update the specific file
+        if policies.can_add_file_to_request(workspace, path_item.relpath):
+            add_file_btn.disabled = False
+        elif policies.can_replace_file_in_request(workspace, path_item.relpath):
+            add_file_btn.disabled = False
+        else:
+            # disabled due to specific file state; update the tooltips to say why
+            if not path_item.is_valid():
+                add_file_btn.tooltip = "This file type cannot be added to a request"
+            elif file_status == WorkspaceFileStatus.RELEASED:
+                add_file_btn.tooltip = "This file has already been released"
+            else:
+                # if it's a valid file, and it's not already released,
+                # but the uer can's add or update it, it must already
+                # be on the request
+                assert file_status == WorkspaceFileStatus.UNDER_REVIEW
+                add_file_btn.tooltip = (
+                    "This file has already been added to the current request"
+                )
+
+    return context
+
+
+def get_button_context(path_item, user, workspace):
+    """
+    Return a context dict defining the status of the buttons
+    shown at the top of the content panel
+    """
+    match path_item.type:
+        case PathType.FILE:
+            return _get_file_button_context(user, workspace, path_item)
+        case PathType.DIR:
+            return _get_dir_button_context(user, workspace)
+        case _:
+            return {}
+
+
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -73,29 +170,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
-    # Add file / add files buttons
-    #
-    # Only show the add files multiselect button if the user is allowed to
-    # create a request (if they are an output-checker they are allowed to
-    # view all workspaces, but not necessarily create requests for them)
-    # If there already is a current request, only show the multiselect add
-    # if the request is in an author-editable state (pending/returned)
-    #
-    can_action_request = permissions.user_can_action_request_for_workspace(
-        request.user, workspace_name
-    )
-
-    multiselect_add = can_action_request and (
-        workspace.current_request is None or workspace.current_request.is_editing()
-    )
-
-    # Only show the add file form button if the multiselect_add condition is true,
-    # and also this pathitem is a file that can be added to a request - i.e. it is a
-    # valid file and it's not already on the current request for the user
-    add_file = multiselect_add and (
-        policies.can_add_file_to_request(workspace, path_item.relpath)
-        or policies.can_replace_file_in_request(workspace, path_item.relpath)
-    )
+    content_buttons = get_button_context(path_item, request.user, workspace)
 
     project = workspace.project()
 
@@ -122,26 +197,15 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "workspace": workspace,
             "root": tree,
             "path_item": path_item,
-            "is_supporting_file": False,
             "title": f"Files for workspace {workspace.display_name()}",
-            "request_file_url": reverse(
-                "workspace_add_file",
-                kwargs={"workspace_name": workspace_name},
-            ),
             "current_request": workspace.current_request,
             # for add file buttons
-            "add_file": add_file,
-            "multiselect_add": multiselect_add,
-            "multiselect_url": reverse(
-                "workspace_multiselect",
-                kwargs={"workspace_name": workspace_name},
-            ),
+            "content_buttons": content_buttons,
             # for workspace summary page
             "project": project,
             # for code button
             "code_url": code_url,
             "include_code": code_url is not None,
-            "is_output_checker": request.user.output_checker,
         },
     )
 

@@ -1,20 +1,30 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
-    {% if workspace.is_active %}
-      {% if add_file %}
+    {% if content_buttons.add_file_button.show %}
+      {% if content_buttons.add_file_button.disabled %}
+        {% if content_buttons.add_file %}
+          {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="add-file-modal-button" %}
+            Add File to Request
+          {% /button %}
+        {% else %}
+          {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="update-file-modal-button" %}
+            Update File in Request
+          {% /button %}
+        {% endif %}
+      {% else %}
         <form
           method="POST"
-          hx-post="{{ multiselect_url }}"
+          hx-post="{{ content_buttons.add_file_button.url }}"
           hx-target="#multiselect_modal"
           hx-swap="outerHtml"
         >
-          {% if path_item.workspace_status.value == "UPDATED" %}
-            {% #button type="submit" name="action" value="update_files" variant="success" %}
-              Update File in Request
+          {% if content_buttons.add_file %}
+            {% #button type="submit" name="action" value="add_files" variant="success" id="add-file-modal-button" %}
+              Add File to Request
             {% /button %}
           {% else %}
-            {% #button type="submit" name="action" value="add_files" variant="success" %}
-              Add File to Request
+            {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
+              Update File in Request
             {% /button %}
           {% endif %}
           <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
@@ -22,30 +32,6 @@
           {% csrf_token %}
         </form>
         <div id="multiselect_modal"></div>
-      {% elif path_item.workspace_status.value == "RELEASED" %}
-        {% #button type="button" disabled=True tooltip="This file has already been released" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif path_item.workspace_status.value == "UNDER_REVIEW" %}
-        {% #button type="button" disabled=True tooltip="This file has already been added to the current request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif not path_item.is_valid %}
-        {% #button type="button" disabled=True tooltip="This file type cannot be added to a request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
-      {% elif current_request and not current_request.is_editing %}
-        {% #button type="button" disabled=True tooltip="The current request is under review and cannot be modified." id="add-file-modal-button-disabled" %}
-          {% if path_item.workspace_status.value == "UPDATED" %}
-            Update File in Request
-          {% else %}
-            Add File to Request
-          {% endif %}
-        {% /button %}
-      {% else %}
-        {% #button type="button" disabled=True tooltip="You do not have permission to add this file to a request" id="add-file-modal-button-disabled" %}
-          Add File to Request
-        {% /button %}
       {% endif %}
     {% endif %}
 
