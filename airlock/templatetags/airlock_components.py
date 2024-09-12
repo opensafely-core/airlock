@@ -11,6 +11,7 @@ register_components(
         "airlock_workspace_header": "_components/header/workspace/header.html",
         "airlock_request_header": "_components/header/request/header.html",
         "airlock_repo_header": "_components/header/repo/header.html",
+        "datatable": "_components/datatable.html",
     },
     register,
 )
