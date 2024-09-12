@@ -2,20 +2,20 @@
 {% load static %}
 {% load airlock %}
 
-{% block extra_styles %}
-  <link rel="stylesheet" href="{% static 'assets/file_browser/dir.css' %}">
-{% endblock %}
-
 {% #card title=path_item.name container=True %}
-
-  {% #table class="dir_table" id="customTable" %}
-    {% #table_head %}
+  {% #datatable column_filter searchable sortable %}
+    <thead>
       <tr>
         <th>
-          <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+          <div class="flex flex-row gap-2 items-center">
+            File
+            <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+              {% datatable_sort_icon %}
+            </span>
+          </div>
         </th>
       </tr>
-    {% /table_head %}
+    </thead>
     <tbody>
       {% for path in path_item.children %}
         <tr>
@@ -23,10 +23,9 @@
         </tr>
       {% endfor %}
     </tbody>
-  {% /table %}
-
-  {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
-
-  <script src="{% static 'assets/file_browser/dir.js' %}"></script>
-
+  {% /datatable %}
 {% /card %}
+
+{% vite_hmr_client %}
+{% vite_asset "assets/src/scripts/datatable.js" %}
+<script src="{% static 'assets/file_browser/dir.js' %}"></script>

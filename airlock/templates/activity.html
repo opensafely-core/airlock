@@ -1,81 +1,63 @@
 {% load airlock %}
 {% load django_vite %}
-{% load static %}
 
-<link rel="stylesheet" href="{% static 'assets/datatable.css' %}">
-
-{% #card title="Recent activity" %}
+{% #card title="Recent activity" class="mt-5" %}
   {% if activity %}
-    <div id="airlock-table">
-      <p class="spinner">Loading table data...</p>
-      <table class="datatable hidden" id="customTable">
-        <thead>
+    {% #datatable paging per_page="25" column_filter searchable sortable %}
+      <thead>
+        <tr>
+          <th>
+            <div class="flex flex-row gap-2 items-center">
+              Time
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </th>
+          <th>
+            <div class="flex flex-row gap-2 items-center">
+              User
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </th>
+          <th>
+            <div class="flex flex-row gap-2 items-center">
+              Action
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </th>
+          <th>
+            <div class="flex flex-row gap-2 items-center">
+              Details
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in activity %}
           <tr>
-            <th><div class="flex flex-row gap-2">Time{% datatable_sort_icon %}</div></th>
-            <th><div class="flex flex-row gap-2">User{% datatable_sort_icon %}</div></th>
-            <th><div class="flex flex-row gap-2">Action{% datatable_sort_icon %}</div></th>
-            <th><div class="flex flex-row gap-2">Details{% datatable_sort_icon %}</div></th>
+            <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
+            <td>{{ log.user }}</td>
+            <td>{{ log.description }}</td>
+            <td>
+              <ul>
+                {% if log.path %}<li><b>path:</b> {{ log.path }}</li>{% endif %}
+                {% for k,v in log.extra.items %}
+                  <li><b>{{ k }}:</b> {{ v }}</li>
+                {% endfor %}
+              </ul>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {% for log in activity %}
-            <tr>
-              <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
-              <td>{{ log.user }}</td>
-              <td>{{ log.description }}</td>
-              <td>
-                <ul>
-                  {% if log.path %}<li><b>path:</b> {{ log.path }}</li>{% endif %}
-                  {% for k,v in log.extra.items %}
-                    <li><b>{{ k }}:</b> {{ v }}</li>
-                  {% endfor %}
-                </ul>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </table>
-
-    <nav id="pagination-nav" class="hidden flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3" aria-label="Pagination">
-      <div class="sm:block">
-        <p class="text-sm text-gray-700">
-          Page
-          <strong data-table-pagination="page-number">#</strong>
-          of
-          <strong data-table-pagination="total-pages">#</strong>
-        </p>
-      </div>
-      <div class="flex flex-1 justify-between gap-4 sm:justify-end">
-        <button
-          data-table-pagination="previous-page"
-          class="
-                 px-4 py-2 text-sm font-medium
-                 inline-flex items-center justify-center border rounded-md shadow-sm transition-buttons duration-200
-                 border border-slate-400/75 text-slate-700 !shadow-none
-                 hover:bg-slate-200
-                 focus:bg-slate-200 focus:ring-slate-500 focus:ring-offset-white
-                 hover:shadow-lg
-                 focus:outline-none focus:ring-2 focus:ring-offset-2"
-        >
-          Previous
-        </button>
-        <button
-          data-table-pagination="next-page"
-          class="
-                 px-4 py-2 text-sm font-medium
-                 inline-flex items-center justify-center border rounded-md shadow-sm transition-buttons duration-200
-                 border border-slate-400/75 text-slate-700 !shadow-none
-                 hover:bg-slate-200
-                 focus:bg-slate-200 focus:ring-slate-500 focus:ring-offset-white
-                 hover:shadow-lg
-                 focus:outline-none focus:ring-2 focus:ring-offset-2"
-        >
-          Next
-        </button>
-      </div>
-    </nav>
-    </div>
+        {% endfor %}
+      </tbody>
+    {% /datatable %}
   {% else %}
     {% #list_group %}
       {% list_group_empty title="No activity" description="There has been no recent activity on this workspace" %}
@@ -83,6 +65,4 @@
   {% endif %}
 {% /card %}
 
-{% vite_asset "assets/src/scripts/components.js" app="job_server" %}
-<script defer src="{% static 'assets/activity.js' %}"></script>
-<script defer src="{% static 'assets/datatable-loader.js' %}"></script>
+{% vite_asset "assets/src/scripts/datatable.js" %}

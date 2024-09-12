@@ -2,10 +2,6 @@
 {% load static %}
 {% load airlock %}
 
-{% block extra_styles %}
-  <link rel="stylesheet" href="{% static 'assets/file_browser/dir.css' %}">
-{% endblock %}
-
 {% fragment as buttons %}
   {% if content_buttons.multiselect_withdraw.show %}
     <div class="div flex flex-col items-start gap-4">
@@ -16,7 +12,6 @@
     </div>
   {% endif %}
 {% endfragment %}
-
 
 {% #card title=path_item.name container=False custom_button=buttons %}
   <form id="multiselect_form"
@@ -29,28 +24,48 @@
     {% csrf_token %}
     <input type=hidden name="next_url" value="{{ request.path }}"/>
 
-    {% #table class="dir_table" id="customTable" %}
-      {% #table_head %}
+    {% #datatable column_filter searchable sortable %}
+      <thead>
         <tr>
           <th>
-            <div class="flex flex-row gap-2">File{% datatable_sort_icon %}</div>
+            <div class="flex flex-row gap-2 items-center">
+              File
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
           </th>
           <th>
-            <div class="flex flex-row gap-2">File Type{% datatable_sort_icon %}</div>
+            <div class="flex flex-row gap-2 items-center">
+              File Type
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
           </th>
           <th>
-            <div class="flex flex-row gap-2">Size{% datatable_sort_icon %}</div>
+            <div class="flex flex-row gap-2 items-center">
+              Size
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
           </th>
           <th>
-            <div class="flex flex-row gap-2">Modified{% datatable_sort_icon %}</div>
+            <div class="flex flex-row gap-2 items-center">
+              Modified
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
           </th>
           {% if content_buttons.multiselect_withdraw.show %}
             <th data-searchable="false" data-sortable="false">
-              <input class="selectall" type="checkbox" onchange="toggleSelectAll(this)" />
+              <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
             </th>
           {% endif %}
         </tr>
-      {% /table_head %}
+      </thead>
       <tbody>
         {% for path in path_item.children %}
           <tr>
@@ -68,12 +83,10 @@
           </tr>
         {% endfor %}
       </tbody>
-    {% /table %}
-
+    {% /datatable %}
   </form>
-
-  {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
-
-  <script src="{% static 'assets/file_browser/dir.js' %}"></script>
-
 {% /card %}
+
+{% vite_hmr_client %}
+{% vite_asset "assets/src/scripts/datatable.js" %}
+<script src="{% static 'assets/file_browser/dir.js' %}"></script>
