@@ -1,1 +1,0 @@
-window.initCustomTable(10);
