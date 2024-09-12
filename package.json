@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.0.19",
-    "htmx.org": "^1.9.12"
+    "htmx.org": "^1.9.12",
+    "simple-datatables": "^9.1.0"
   }
 }
