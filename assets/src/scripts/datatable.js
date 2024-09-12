@@ -14,14 +14,15 @@ function buildTables() {
 
   datatableEls?.forEach((table) => {
     const columnFilter = table.hasAttribute("data-column-filter");
-    const paging = table.hasAttribute("data-paging");
     const searchable = table.hasAttribute("data-searchable");
     const sortable = table.hasAttribute("data-sortable");
 
+    let paging = false;
     let perPage = undefined;
     if (table.hasAttribute("data-per-page")) {
       const dataPerPage = table.getAttribute("data-per-page");
       if (dataPerPage !== null && hasOnlyDigits(dataPerPage)) {
+        paging = true;
         perPage = parseInt(dataPerPage);
       }
     }

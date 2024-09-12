@@ -3,10 +3,10 @@
   <table
     class="{{ class }} hidden"
     data-datatable
-    {% if paging and per_page %}
+    {% if per_page %}
       data-per-page="{{ per_page }}"
     {% endif %}
-    {% attrs id data-column-filter=column_filter data-paging=paging data-sortable=sortable data-searchable=searchable %}
+    {% attrs id data-column-filter=column_filter data-sortable=sortable data-searchable=searchable %}
   >
     {{ children }}
   </table>
