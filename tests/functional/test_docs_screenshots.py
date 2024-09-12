@@ -82,7 +82,7 @@ def test_screenshot_from_creation_to_release(
     # Directory view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
     # let the data table load
-    expect(page.locator("#customTable.datatable-table")).to_be_visible()
+    expect(page.locator(".datatable-table")).to_be_visible()
     page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_directory_view.png")
     # Content only in directory view
     content = page.locator("#selected-contents")

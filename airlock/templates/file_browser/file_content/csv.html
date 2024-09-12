@@ -3,52 +3,70 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="min-h-screen">
   <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     {% vite_hmr_client %}
-    {% vite_asset "assets/src/scripts/base.js" app="job_server" %}
-    {% vite_asset "assets/src/scripts/components.js" app="job_server" %}
-    <link rel="stylesheet" href="{% static 'assets/datatable.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/icons.css' %}">
+    {% vite_asset "assets/src/scripts/main.js" %}
+    {% vite_asset "assets/src/scripts/datatable.js" %}
   </head>
 
   <body>
 
     <div id="airlock-table">
       {% if use_datatables %}
-        <p class="spinner">Loading table data...</p>
-        <table class="datatable hidden" id="customTable">
+        {% #datatable column_filter searchable sortable %}
+          <thead>
+            <tr>
+              {% for header in headers %}
+                <th>
+                  <div class="flex flex-row gap-2 items-center">
+                    {{ header }}
+                    <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                      {% datatable_sort_icon %}
+                    </span>
+                  </div>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                {% for cell in row %}
+                  <td data-order="{{ cell }}">{{ cell }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        {% /datatable %}
       {% else %}
         <table>
-      {% endif %}
-      <thead>
-        <tr>
-          {% for header in headers %}
-            <th>
-              <div class="flex flex-row gap-2">
-                {{ header }}
-                {% if use_datatables %}
-                  <span class="sort-icon">{% datatable_sort_icon %}</span>
-                {% endif %}
-              </dir>
-            </th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-          <tr>
-            {% for cell in row %}
-              <td data-order="{{ cell }}">{{ cell }}</td>
+          <thead>
+            <tr>
+              {% for header in headers %}
+                <th>
+                  {{ header }}
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                {% for cell in row %}
+                  <td>{{ cell }}</td>
+                {% endfor %}
+              </tr>
             {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      {% endif %}
 
-  </div>
-
-  <script src="{% static 'assets/datatable-loader.js' %}"></script>
-</body>
+    </div>
+  </body>
 
 </html>

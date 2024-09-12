@@ -1,0 +1,42 @@
+[data-datatable] {
+  .datatable-sorter {
+    & .datatable-icon--descending,
+    & .datatable-icon--ascending {
+      @apply hidden;
+    }
+
+    & .datatable-icon--no-sort {
+      @apply block;
+    }
+  }
+  .datatable-ascending {
+    & .datatable-icon--no-sort,
+    & .datatable-icon--descending {
+      @apply hidden;
+    }
+
+    & .datatable-icon--ascending {
+      @apply block;
+    }
+  }
+
+  .datatable-descending {
+    & .datatable-icon--no-sort,
+    & .datatable-icon--ascending {
+      @apply hidden;
+    }
+
+    & .datatable-icon--descending {
+      @apply block;
+    }
+  }
+
+  & a {
+    @apply text-oxford-600 font-semibold underline decoration-oxford-300 underline-offset-2 duration-200 transition-colors ease-in-out focus:bg-bn-sun-300;
+
+    &:hover,
+    &:focus {
+      @apply text-oxford-800 decoration-transparent;
+    }
+  }
+}
