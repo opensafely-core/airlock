@@ -1,27 +1,70 @@
-<div class="alert alert--{{ variant }}{% if dismissible %} alert--dismissible{% endif %}{% if class %} {{ class }}{% endif %}" role="alert">
-  {% if no_icon %}
-    {% if title %}<h2 class="alert__title">{{ title }}</h2>{% endif %}
-    <div class="alert__text">{{ children }}</div>
+{% fragment as alert_title %}
+  {% if title %}
+    <h2
+      class="
+             {{ variant|match:"warning:text-bn-flamenco-900,success:text-green-900,danger:text-bn-ribbon-900"|default:"text-slate-900" }}
+             font-bold text-lg tracking-tight mb-1
+            "
+    >
+      {{ title }}
+    </h2>
+  {% endif %}
+{% endfragment %}
+
+{% fragment as alert_text %}
+  <div class="{{ variant|match:"warning:text-bn-flamenco-800,success:text-green-900,danger:text-bn-ribbon-800"|default:"text-slate-700" }}">
+    {{ children }}
+  </div>
+{% endfragment %}
+
+{% fragment as alert_icon %}
+  {% if variant == "warning" %}
+    {% icon_exclamation_triangle_solid class="text-bn-flamenco-500 h-6 w-6 mt-0.5 flex-shrink-0" %}
+  {% elif variant == "success" %}
+    {% icon_check_circle_solid class="text-green-600 h-6 w-6 mt-0.5 flex-shrink-0" %}
+  {% elif variant == "danger" %}
+    {% icon_x_circle_solid class="text-bn-ribbon-500 h-6 w-6 mt-0.5 flex-shrink-0" %}
   {% else %}
-    <div class="alert__container">
-      {% if variant == "warning" %}
-        {% icon_exclamation_triangle_solid class="alert__icon" %}
-      {% elif variant == "success" %}
-        {% icon_check_circle_solid class="alert__icon" %}
-      {% elif variant == "danger" %}
-        {% icon_x_circle_solid class="alert__icon" %}
-      {% elif variant == "info" %}
-        {% icon_information_circle_solid class="alert__icon" %}
-      {% endif %}
+    {% icon_information_circle_solid class="text-slate-500 h-6 w-6 mt-0.5 flex-shrink-0" %}
+  {% endif %}
+{% endfragment %}
+
+{% fragment as alert_dismiss %}
+  <button
+    aria-label="Close"
+    class="
+           {{ variant|match:"warning:text-bn-flamenco-800,success:text-green-900,danger:text-bn-ribbon-800"|default:"text-slate-700" }}
+           absolute right-2 top-2
+          "
+    data-dismiss="alert"
+    type="button"
+  >
+    {% icon_x_outline class="hover:text-oxford-900 h-6 w-6" %}
+  </button>
+{% endfragment %}
+
+<div
+  class="
+         rounded-lg drop-shadow p-4 pr-6 relative
+         {{ variant|match:"warning:bg-bn-flamenco-100,success:bg-green-100,danger:bg-bn-ribbon-100"|default:"bg-white" }}
+         {% if dismissible %}pr-8{% endif %}
+         {% if class %}{{ class }}{% endif %}
+        "
+  role="alert"
+>
+  {% if no_icon %}
+    {{ alert_title }}
+    {{ alert_text }}
+  {% else %}
+    <div class="flex gap-3">
+      {{ alert_icon }}
       <div>
-        {% if title %}<h2 class="alert__title">{{ title }}</h2>{% endif %}
-        <div class="alert__text">{{ children }}</div>
+        {{ alert_title }}
+        {{ alert_text }}
       </div>
     </div>
   {% endif %}
   {% if dismissible %}
-    <button type="button" class="alert__dismiss" data-dismiss="alert" aria-label="Close">
-      {% icon_x_outline class="alert__dismiss-icon" %}
-    </button>
+    {{ alert_dismiss }}
   {% endif %}
 </div>
