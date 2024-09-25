@@ -12,10 +12,12 @@ RENDERER_TESTS = [
     (".png", "image/png", False, None),
     (".csv", "text/html", False, "airlock/templates/file_browser/csv.html"),
     (".txt", "text/html", False, "airlock/templates/file_browser/text.html"),
+    (".log", "text/html", False, "airlock/templates/file_browser/text.html"),
     (".html", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
     (".png", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
     (".csv", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
     (".txt", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
+    (".log", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
 ]
 
 
@@ -145,3 +147,27 @@ def test_plaintext_renderer_handles_invalid_utf8(tmp_path):
     response.render()
     assert response.status_code == 200
     assert "invalid � continuation byte" in response.rendered_content
+
+
+def test_log_renderer_handles_ansi_colors(tmp_path):
+    log_file = tmp_path / "test.log"
+    # in ansi codes:
+    # \x1B[32m = foregrouund green
+    # \x1b[1m bold
+    # \x1b[0m resets formatting
+    log_file.write_bytes(
+        b"No ansi here \x1b[32m\x1b[1mThis is green and bold.\x1b[0m This is not."
+    )
+    relpath = log_file.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(log_file, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+
+    assert "ansi1 { font-weight: bold; }" in response.rendered_content
+    assert "ansi32 { color: #00aa00; }" in response.rendered_content
+    assert (
+        '<span class="ansi1 ansi32">This is green and bold.</span>'
+        in response.rendered_content
+    )
