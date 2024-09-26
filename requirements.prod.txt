@@ -4,6 +4,10 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --strip-extras requirements.prod.in
 #
+ansi2html==1.9.2 \
+    --hash=sha256:3453bf87535d37b827b05245faaa756dbab4ec3d69925e352b6319c3c955c0a5 \
+    --hash=sha256:dccb75aa95fb018e5d299be2b45f802952377abfdce0504c17a6ee6ef0a420c5
+    # via -r requirements.prod.in
 asgiref==3.8.1 \
     --hash=sha256:3e1e3ecc849832fe52ccf2cb6686b7a55f82bb1d6aee72a58826471390335e47 \
     --hash=sha256:c343bd80a0bec947a9860adb4c432ffa7db769836c64238fc34bdc3fec84d590

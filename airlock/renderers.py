@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import mimetypes
+import re
 from dataclasses import dataclass
 from email.utils import formatdate
 from functools import cached_property
@@ -9,9 +10,11 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from typing import IO, Any, ClassVar, Self, cast
 
+from ansi2html import Ansi2HTMLConverter
 from django.http import FileResponse, HttpResponseBase
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
+from django.utils.safestring import mark_safe
 
 from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type
@@ -158,9 +161,35 @@ class InvalidFileRenderer(Renderer):
         }
 
 
+class LogRenderer(TextRenderer):
+    def context(self):
+        # Convert the text of the log file to HTML, converting ANSI colour codes to css classes
+        # so we get the colour formatting from the original log.
+        # We don't need the full HTML file that's produced, so just extract the <pre></pre>
+        # tag which contains the log content and the inline styles.
+        conv = Ansi2HTMLConverter()
+        text = conv.convert(self.stream.read())
+        match = re.match(
+            r".*(?P<style_tag><style.*</style>).*(?P<pre_tag><pre.*</pre>).*",
+            text,
+            flags=re.S,
+        )
+        if match:  # pragma: no branch
+            # After conversion, we should always find a match. As a precaution, check
+            # and render the plain text if we don't.
+            style_tag = match.group("style_tag")
+            pre_tag = match.group("pre_tag")
+            text = mark_safe(f"{style_tag}{pre_tag}")
+
+        return {
+            "text": text,
+            "class": Path(self.filename).suffix.lstrip("."),
+        }
+
+
 FILE_RENDERERS = {
     ".csv": CSVRenderer,
-    ".log": TextRenderer,
+    ".log": LogRenderer,
     ".txt": TextRenderer,
     ".json": TextRenderer,
     ".md": TextRenderer,
