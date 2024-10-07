@@ -12,8 +12,8 @@
     "@tailwindcss/typography": "^0.5.15",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.11",
-    "vite": "^5.4.5"
+    "tailwindcss": "^3.4.13",
+    "vite": "^5.4.8"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.1.0",
