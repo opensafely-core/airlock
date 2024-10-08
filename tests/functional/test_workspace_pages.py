@@ -324,3 +324,54 @@ def assert_button_status(
             expect(update_file_modal_button).to_contain_text(tooltip)
     else:
         expect(update_file_modal_button).not_to_be_visible()
+
+
+def test_csv_filtering(live_server, page, context, bll):
+    workspace = factories.create_workspace("my-workspace")
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "Age Band,Mean\n0-20,10\n21-40,20\n41-60,30\n60+,40",
+    )
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 2", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    # Table displays all data
+    age_bands = {"0-20", "21-40", "41-60", "60+"}
+    for age_band in age_bands:
+        expect(page.locator("body")).to_contain_text(age_band)
+
+    # Filter the mean column to value 20 (in age band 21-40)
+    column_filter = page.get_by_placeholder("Filter mean")
+    column_filter.fill("20")
+    expect(page.locator("body")).to_contain_text("21-40")
+
+    for age_band in age_bands - {"21-40"}:
+        expect(page.locator("body")).not_to_contain_text(age_band)
+
+    # Filter the mean column to a value that doesn't match anything
+    column_filter.fill("foo")
+    for age_band in age_bands:
+        expect(page.locator("body")).not_to_contain_text(age_band)
+    expect(page.locator("body")).to_contain_text("No results match")
+
+    # Reset the filter by removing text
+    column_filter.fill("")
+    for age_band in age_bands:
+        expect(page.locator("body")).to_contain_text(age_band)

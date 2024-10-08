@@ -101,8 +101,9 @@ function buildTables() {
 
       if (container) {
         const spinner = container.querySelector("[data-datatable-spinner]");
+        const wrapper = container.querySelector("[data-datatable-wrapper]");
         spinner?.classList.toggle("hidden");
-        table.classList.toggle("hidden");
+        wrapper.classList.toggle("hidden");
       }
     });
   });

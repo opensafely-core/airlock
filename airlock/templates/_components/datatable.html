@@ -1,13 +1,15 @@
 <div class="table-container">
   <p class="spinner p-4" data-datatable-spinner>Loading table data...</p>
-  <table
-    class="{{ class }} hidden"
-    data-datatable
-    {% if per_page %}
-      data-per-page="{{ per_page }}"
-    {% endif %}
-    {% attrs id data-column-filter=column_filter data-sortable=sortable data-searchable=searchable %}
-  >
-    {{ children }}
-  </table>
+  <div class="hidden" data-datatable-wrapper >
+    <table
+      class="{{ class }}"
+      data-datatable
+      {% if per_page %}
+        data-per-page="{{ per_page }}"
+      {% endif %}
+      {% attrs id data-column-filter=column_filter data-sortable=sortable data-searchable=searchable %}
+    >
+      {{ children }}
+    </table>
+  </div>
 </div>
