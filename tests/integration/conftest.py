@@ -5,7 +5,10 @@ from tests import factories
 
 
 class AirlockClient(Client):
-    def login(self, username="testuser", workspaces=None, output_checker=False):
+    def login(self, **credentials):
+        username = credentials.get("username", "testuser")
+        workspaces = credentials.get("workspaces")
+        output_checker = credentials.get("output_checker", False)
         user = factories.create_user(username, workspaces, output_checker)
         self.login_with_user(user)
 
