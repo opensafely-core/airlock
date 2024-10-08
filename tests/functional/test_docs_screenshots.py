@@ -254,18 +254,18 @@ def test_screenshot_from_creation_to_release(
     comment_input = page.locator("#id_comment")
 
     comment_input.fill("Please update file2.csv with more descriptive variable names")
-    page.get_by_test_id("c3").screenshot(
-        path=settings.SCREENSHOT_DIR / "reviewed_request_comment_in_progress.png"
-    )
+
+    comments = page.locator("#comments")
+
+    comments.screenshot(path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png")
     comment_button.click()
     # Add public comment
     public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
     public_visibility_radio.check()
     comment_input.fill("Is summmary.txt required for output?")
     comment_button.click()
-    page.get_by_test_id("c3").screenshot(
-        path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png"
-    )
+
+    comments.screenshot(path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png")
 
     # Return to researcher
     page.goto(live_server.url + release_request.get_url())
@@ -279,9 +279,7 @@ def test_screenshot_from_creation_to_release(
 
     # View comments
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
-    page.get_by_test_id("c3").screenshot(
-        path=settings.SCREENSHOT_DIR / "returned_request_comments.png"
-    )
+    comments.screenshot(path=settings.SCREENSHOT_DIR / "returned_request_comments.png")
 
     # Withdraw a file after request returned
     page.goto(
