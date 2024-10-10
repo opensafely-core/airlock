@@ -1,6 +1,7 @@
 # OpenSAFELY Airlock
 
-An in-development component of the OpenSAFELY research framework.
+A tool that allows researchers to request the release of a set of files from an OpenSAFELY backend, allows output checkers to review the contents of those files for disclosivity, and then releases those files deemed safe to job-server.
+A component of the OpenSAFELY research framework.
 
 
 ## About the OpenSAFELY framework
