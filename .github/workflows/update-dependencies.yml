@@ -12,8 +12,14 @@ jobs:
     - uses: "opensafely-core/setup-action@v1"
       with:
         python-version: "3.11"
-        install-just: true
+        install-just: true 
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: ".node-version"
+        cache: "npm"
+        cache-dependency-path: package-lock.json
+
     - uses: opensafely-core/update-dependencies-action@main
       with:
         update_command: "just compile-reqs -U"
-        on_changes_command: "just test-all"
+        on_changes_command: "just assets && just docs-build && just test --ignore=tests/functional"
