@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron:  "0 23 * * *"
+
 jobs:
   update-dependencies:
     runs-on: ubuntu-latest
@@ -13,13 +14,8 @@ jobs:
       with:
         python-version: "3.11"
         install-just: true 
-    - uses: actions/setup-node@v4
-      with:
-        node-version-file: ".node-version"
-        cache: "npm"
-        cache-dependency-path: package-lock.json
 
     - uses: opensafely-core/update-dependencies-action@main
       with:
+        token: ${{ secrets.CREATE_PR_TOKEN }}
         update_command: "just compile-reqs -U"
-        on_changes_command: "just assets && just docs-build && just test --ignore=tests/functional"
