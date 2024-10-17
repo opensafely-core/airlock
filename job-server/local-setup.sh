@@ -61,7 +61,7 @@ else
 fi
 
 # ensure user exists
-docker compose exec job-server ./manage.py create_user "$ghusername" --output-checker --core-developer
+docker compose exec job-server ./manage.py create_user "$ghusername" --output-checker --staff-area-administrator
 
 # create backend and store token
 echo "Getting AIRLOCK_API_TOKEN for $backend backend"
