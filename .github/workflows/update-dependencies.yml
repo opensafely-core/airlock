@@ -15,7 +15,7 @@ jobs:
         python-version: "3.11"
         install-just: true 
 
-    - uses: opensafely-core/update-dependencies-action@main
+    - uses: opensafely-core/update-dependencies-action@v1
       with:
         token: ${{ secrets.CREATE_PR_TOKEN }}
         update_command: "just compile-reqs -U"
