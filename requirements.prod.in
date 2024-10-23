@@ -6,9 +6,9 @@ django-extensions
 django-htmx
 whitenoise
 gunicorn
-opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.07.25.105509.zip
+opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.10.11.170331.zip
 requests
-pydantic<2.0
+pydantic<2
 ulid
 opentelemetry-exporter-otlp-proto-http
 opentelemetry-instrumentation-django
