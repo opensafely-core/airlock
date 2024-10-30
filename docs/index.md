@@ -20,7 +20,7 @@ Airlock allows us to enforce some safety controls and policies automatically. Th
     Please ensure you use Chrome when accessing Airlock. Features
     may not work as expected in other browsers.
 
-To access the Airlock system, you will need to [obtain a single user token via the Jobs site](how-tos/access-airlock/),
+To access the Airlock system, you will need to [obtain a single user token via the Jobs site](how-tos/access-airlock.md),
 which you can use to login in Airlock in Chrome in the relevant backend.
 
 For more details, see the section on [how to access Airlock](how-tos/access-airlock.md)
