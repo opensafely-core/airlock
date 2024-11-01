@@ -3,7 +3,10 @@ import time
 import pytest
 from django.conf import settings
 
+from opentelemetry import trace
+
 from tests import factories
+from tests.conftest import get_trace
 
 
 @pytest.mark.django_db
@@ -54,3 +57,24 @@ def test_middleware_expired_error(airlock_client, responses):
 
     response = airlock_client.get("/workspaces/")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_middleware_user_trace(airlock_client, responses):
+    user = factories.create_user(workspaces=["workspace"])
+    airlock_client.login_with_user(user)
+    factories.create_workspace("workspace")
+
+    # In tests the current span in the middleware is a NonRecordingSpan,
+    # so call the endpoint inside another span so we can assert that the
+    # user is added during the middleware
+    tracer = trace.get_tracer("test")
+    with tracer.start_as_current_span("mock_django_span"):
+        response = airlock_client.get("/workspaces/view/workspace/")
+    
+    assert response.status_code == 200
+
+    mock_django_span_attributes, = [
+        span.attributes for span in get_trace() if span.name == "mock_django_span"
+    ]
+    assert mock_django_span_attributes == {"workspace": "workspace", "user": user.username}
