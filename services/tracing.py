@@ -108,6 +108,11 @@ def instrument(
 
         @wraps(func)
         def wrap_with_span(*args, **kwargs):
+            bound_args = func_signature.bind(*args, **kwargs).arguments
+            if "request" in bound_args:
+                user = bound_args["request"].user
+                attributes_dict["user"] = user.username if user else ""
+
             if func_attributes is not None:
                 bound_args = func_signature.bind(*args, **kwargs).arguments
                 for attribute, parameter_name in func_attributes.items():
