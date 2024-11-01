@@ -136,6 +136,10 @@ def instrument(
                         )
                     attributes_dict[attribute] = str(func_arg)
 
+            # Add attributes to the current (parent) span before we start the child span
+            span = trace.get_current_span()
+            span.set_attributes(attributes_dict)
+
             with tracer.start_as_current_span(
                 name, record_exception=record_exception, attributes=attributes_dict
             ):
