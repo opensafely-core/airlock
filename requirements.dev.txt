@@ -8,7 +8,7 @@ asgiref==3.8.1 \
     --hash=sha256:3e1e3ecc849832fe52ccf2cb6686b7a55f82bb1d6aee72a58826471390335e47 \
     --hash=sha256:c343bd80a0bec947a9860adb4c432ffa7db769836c64238fc34bdc3fec84d590
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   django
     #   django-stubs
 build==1.2.2.post1 \
@@ -19,7 +19,7 @@ certifi==2024.8.30 \
     --hash=sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8 \
     --hash=sha256:bec941d2aa8195e248a60b31ff9f0558284cf01a52591ceda73ea9afffd69fd9
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   requests
 charset-normalizer==3.4.0 \
     --hash=sha256:0099d79bdfcf5c1f0c2c72f91516702ebf8b0b8ddd8905f97a8aecf49712c621 \
@@ -128,13 +128,13 @@ charset-normalizer==3.4.0 \
     --hash=sha256:fe9f97feb71aa9896b81973a7bbada8c49501dc73e58a10fcef6663af95e5079 \
     --hash=sha256:ffc519621dce0c767e96b9c53f09c5d215578e10b02c285809f76509a3931482
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   requests
 click==8.1.7 \
     --hash=sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28 \
     --hash=sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   pip-tools
 coverage==7.6.4 \
     --hash=sha256:00a1d69c112ff5149cabe60d2e2ee948752c975d95f1e1096742e6077affd376 \
@@ -206,7 +206,7 @@ django==5.1.2 \
     --hash=sha256:bd7376f90c99f96b643722eee676498706c9fd7dc759f55ebfaf2c08ebcdf4f0 \
     --hash=sha256:f11aa87ad8d5617171e3f77e1d5d16f004b79a2cf5d2e1d2b97a6a1f8e9ba5ed
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   django-debug-toolbar
     #   django-stubs
     #   django-stubs-ext
@@ -317,7 +317,7 @@ idna==3.10 \
     --hash=sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9 \
     --hash=sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   requests
 iniconfig==2.0.0 \
     --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
@@ -367,7 +367,7 @@ packaging==24.1 \
     --hash=sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002 \
     --hash=sha256:5b8f2217dbdbd2f7f384c41c628544e6d52f2d0f53c6d0c3ea61aa5d1d7ff124
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   build
     #   pytest
 pip-tools==7.4.1 \
@@ -431,7 +431,7 @@ python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   freezegun
 python-slugify==8.0.4 \
     --hash=sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8 \
@@ -492,50 +492,50 @@ pyyaml==6.0.2 \
     --hash=sha256:f753120cb8181e736c57ef7636e83f31b9c0d1722c516f7e86cf15b7aa57ff12 \
     --hash=sha256:ff3824dc5261f50c9b0dfb3be22b4567a6f938ccce4587b38952d85fd9e9afe4
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   responses
 requests==2.32.3 \
     --hash=sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760 \
     --hash=sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   pytest-base-url
     #   responses
 responses==0.25.3 \
     --hash=sha256:521efcbc82081ab8daa588e08f7e8a64ce79b91c39f6e62199b19159bea7dbcb \
     --hash=sha256:617b9247abd9ae28313d57a75880422d55ec63c29d33d629697590a034358dba
     # via -r requirements.dev.in
-ruff==0.7.1 \
-    --hash=sha256:19aa200ec824c0f36d0c9114c8ec0087082021732979a359d6f3c390a6ff2a37 \
-    --hash=sha256:27c1c52a8d199a257ff1e5582d078eab7145129aa02721815ca8fa4f9612dc35 \
-    --hash=sha256:32f1e8a192e261366c702c5fb2ece9f68d26625f198a25c408861c16dc2dea9c \
-    --hash=sha256:344cc2b0814047dc8c3a8ff2cd1f3d808bb23c6658db830d25147339d9bf9ea7 \
-    --hash=sha256:4316bbf69d5a859cc937890c7ac7a6551252b6a01b1d2c97e8fc96e45a7c8b4a \
-    --hash=sha256:56aad830af8a9db644e80098fe4984a948e2b6fc2e73891538f43bbe478461b8 \
-    --hash=sha256:588a34e1ef2ea55b4ddfec26bbe76bc866e92523d8c6cdec5e8aceefeff02d99 \
-    --hash=sha256:658304f02f68d3a83c998ad8bf91f9b4f53e93e5412b8f2388359d55869727fd \
-    --hash=sha256:699085bf05819588551b11751eff33e9ca58b1b86a6843e1b082a7de40da1565 \
-    --hash=sha256:79d3af9dca4c56043e738a4d6dd1e9444b6d6c10598ac52d146e331eb155a8ad \
-    --hash=sha256:8422104078324ea250886954e48f1373a8fe7de59283d747c3a7eca050b4e378 \
-    --hash=sha256:94fc32f9cdf72dc75c451e5f072758b118ab8100727168a3df58502b43a599ca \
-    --hash=sha256:985818742b833bffa543a84d1cc11b5e6871de1b4e0ac3060a59a2bae3969250 \
-    --hash=sha256:9d8a41d4aa2dad1575adb98a82870cf5db5f76b2938cf2206c22c940034a36f4 \
-    --hash=sha256:b517a2011333eb7ce2d402652ecaa0ac1a30c114fbbd55c6b8ee466a7f600ee9 \
-    --hash=sha256:c5c121b46abde94a505175524e51891f829414e093cd8326d6e741ecfc0a9112 \
-    --hash=sha256:cb1bc5ed9403daa7da05475d615739cc0212e861b7306f314379d958592aaa89 \
-    --hash=sha256:f38c41fcde1728736b4eb2b18850f6d1e3eedd9678c914dede554a70d5241307
+ruff==0.7.2 \
+    --hash=sha256:21aae53ab1490a52bf4e3bf520c10ce120987b047c494cacf4edad0ba0888da2 \
+    --hash=sha256:28bd8220f4d8f79d590db9e2f6a0674f75ddbc3847277dd44ac1f8d30684b828 \
+    --hash=sha256:2b14e77293380e475b4e3a7a368e14549288ed2931fce259a6f99978669e844f \
+    --hash=sha256:576305393998b7bd6c46018f8104ea3a9cb3fa7908c21d8580e3274a3b04b691 \
+    --hash=sha256:5b813ef26db1015953daf476202585512afd6a6862a02cde63f3bafb53d0b2d4 \
+    --hash=sha256:7b792468e9804a204be221b14257566669d1db5c00d6bb335996e5cd7004ba80 \
+    --hash=sha256:853277dbd9675810c6826dad7a428d52a11760744508340e66bf46f8be9701d9 \
+    --hash=sha256:9fd67094e77efbea932e62b5d2483006154794040abb3a5072e659096415ae1e \
+    --hash=sha256:b19fafe261bf741bca2764c14cbb4ee1819b67adb63ebc2db6401dcd652e3748 \
+    --hash=sha256:b73f873b5f52092e63ed540adefc3c36f1f803790ecf2590e1df8bf0a9f72cb8 \
+    --hash=sha256:bb8368cd45bba3f57bb29cbb8d64b4a33f8415d0149d2655c5c8539452ce7760 \
+    --hash=sha256:ccc7e0fc6e0cb3168443eeadb6445285abaae75142ee22b2b72c27d790ab60ba \
+    --hash=sha256:dba53ed84ac19ae4bfb4ea4bf0172550a2285fa27fbb13e3746f04c80f7fa088 \
+    --hash=sha256:dd8800cbe0254e06b8fec585e97554047fb82c894973f7ff18558eee33d1cb88 \
+    --hash=sha256:e00163fb897d35523c70d71a46fbaa43bf7bf9af0f4534c53ea5b96b2e03397b \
+    --hash=sha256:f3c54b538633482dc342e9b634d91168fe8cc56b30a4b4f99287f4e339103e88 \
+    --hash=sha256:fa993cfc9f0ff11187e82de874dfc3611df80852540331bc85c75809c93253a8 \
+    --hash=sha256:fd77877a4e43b3a98e5ef4715ba3862105e299af0c48942cc6d51ba3d97dc859
     # via -r requirements.dev.in
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   python-dateutil
 sqlparse==0.5.1 \
     --hash=sha256:773dcbf9a5ab44a090f3441e2180efe2560220203dc2f8c0b0fa141e18b505e4 \
     --hash=sha256:bb6b4df465655ef332548e24f08e205afc81b9ab86cb1c45657a7ff173a3a00e
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   django
     #   django-debug-toolbar
 text-unidecode==1.3 \
@@ -554,7 +554,7 @@ typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
     --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   django-stubs
     #   django-stubs-ext
     #   mypy
@@ -563,7 +563,7 @@ urllib3==2.2.3 \
     --hash=sha256:ca899ca043dcb1bafa3e262d73aa25c465bfb49e0bd9dd5d59f1d0acba2f8fac \
     --hash=sha256:e7d814a81dad81e6caf2ec9fdedb284ecc9c73076b62654547cc64ccdcae26e9
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   requests
     #   responses
     #   types-requests
@@ -643,7 +643,7 @@ wrapt==1.16.0 \
     --hash=sha256:f8212564d49c50eb4565e502814f694e240c55551a5f1bc841d4fcaabb0a9b8a \
     --hash=sha256:ffa565331890b90056c01db69c0fe634a776f8019c143a5ae265f9c6bc4bd6d4
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   django-debug-toolbar-template-profiler
 
 # The following packages are considered to be unsafe in a requirements file:
@@ -655,5 +655,5 @@ setuptools==75.3.0 \
     --hash=sha256:f2504966861356aa38616760c0f66568e535562374995367b4e69c7143cf6bcd \
     --hash=sha256:fba5dd4d766e97be1b1681d98712680ae8f2f26d7881245f2ce9e40714f1a686
     # via
-    #   -c requirements.prod.txt
+    #   -c /home/runner/work/airlock/airlock/requirements.prod.txt
     #   pip-tools
