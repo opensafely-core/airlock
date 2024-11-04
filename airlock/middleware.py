@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
+from opentelemetry import trace
 
 from airlock import login_api
 from airlock.users import User
@@ -32,6 +33,8 @@ class UserMiddleware:
                     user = User.from_session(request.session)
 
         request.user = user
+        span = trace.get_current_span()
+        span.set_attribute("user", user.username if user else "")
         response = self.get_response(request)
         return response
 

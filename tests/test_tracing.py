@@ -8,6 +8,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 from services.tracing import instrument, setup_default_tracing
+from tests.conftest import get_trace
 
 
 def test_setup_default_tracing_empty_env(monkeypatch):
@@ -81,6 +82,22 @@ def test_instrument_decorator_with_name_and_attributes():
     assert current_span.is_recording() is True
     assert current_span.name == "testing"  # type: ignore
     assert current_span.attributes == {"foo": "bar"}  # type: ignore
+
+
+def test_instrument_decorator_parent_attributes(settings):
+    @instrument(span_name="child", attributes={"foo": "bar"})
+    def child(): ...
+
+    tracer = trace.get_tracer("test")
+    with tracer.start_as_current_span("parent", attributes={"p_foo": "p_bar"}):
+        child()
+
+    spans = {span.name: span.attributes for span in get_trace()}
+
+    assert spans == {
+        "parent": {"p_foo": "p_bar", "foo": "bar"},
+        "child": {"foo": "bar"},
+    }
 
 
 @pytest.mark.parametrize(

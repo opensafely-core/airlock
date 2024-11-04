@@ -108,6 +108,11 @@ def instrument(
 
         @wraps(func)
         def wrap_with_span(*args, **kwargs):
+            bound_args = func_signature.bind(*args, **kwargs).arguments
+            if "request" in bound_args:
+                user = bound_args["request"].user
+                attributes_dict["user"] = user.username if user else ""
+
             if func_attributes is not None:
                 bound_args = func_signature.bind(*args, **kwargs).arguments
                 for attribute, parameter_name in func_attributes.items():
@@ -135,6 +140,10 @@ def instrument(
                             f"Expected argument {parameter_name} not found in function signature"
                         )
                     attributes_dict[attribute] = str(func_arg)
+
+            # Add attributes to the current (parent) span before we start the child span
+            span = trace.get_current_span()
+            span.set_attributes(attributes_dict)
 
             with tracer.start_as_current_span(
                 name, record_exception=record_exception, attributes=attributes_dict

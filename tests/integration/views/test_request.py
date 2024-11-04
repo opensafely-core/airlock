@@ -1731,7 +1731,10 @@ def test_request_view_tracing_with_request_attribute(
         airlock_client.get(url)
     traces = get_trace()
     last_trace = traces[-1]
-    assert last_trace.attributes == {"release_request": release_request.id}
+    assert last_trace.attributes == {
+        "release_request": release_request.id,
+        "user": login_as,
+    }
 
 
 def test_group_edit_success(airlock_client):

@@ -1157,4 +1157,7 @@ def test_workspace_view_tracing_with_workspace_attribute(
         airlock_client.get(urlpath)
     traces = get_trace()
     last_trace = traces[-1]
-    assert last_trace.attributes == {"workspace": "test-workspace"}
+    assert last_trace.attributes == {
+        "workspace": "test-workspace",
+        "user": airlock_client.user.username,
+    }
