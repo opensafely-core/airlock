@@ -1,7 +1,7 @@
 import hypothesis.strategies as st
 import pytest
 from hypothesis import assume
-from hypothesis.stateful import RuleBasedStateMachine, precondition, rule, initialize
+from hypothesis.stateful import RuleBasedStateMachine, precondition, rule, initialize, invariant
 
 from airlock.business_logic import (
     AuditEvent,
@@ -40,6 +40,9 @@ def request_pending(airlock_machine):
 
 def request_not_pending(airlock_machine):
     return not request_pending(airlock_machine)
+
+def request_submitted(airlock_machine):
+    return airlock_machine.release_request.status == RequestStatus.SUBMITTED
 
 
 def has_filegroups(airlock_machine):
@@ -168,6 +171,11 @@ class AirlockMachine(RuleBasedStateMachine):
     # @precondition(request_submitted)
     # def review_file(self):
     #     bll.set_status(self.release_request, RequestStatus.SUBMITTED, user=self.author)
+
+    @invariant()
+    @precondition(request_submitted)
+    def at_least_one_file(self):
+        assert len(self.release_request.filegroups["default"].files) > 0
 
 
     def teardown(self):
