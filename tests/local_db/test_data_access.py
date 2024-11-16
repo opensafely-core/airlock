@@ -85,7 +85,7 @@ def test_get_audit_log(test_audits, kwargs, expected_audits):
 
 
 def test_delete_file_from_request_bad_state():
-    author = factories.create_user()
+    author = factories.create_user("author", ["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -197,7 +197,7 @@ def test_add_file_to_request_bad_state():
 
 
 def test_delete_file_from_request_bad_path():
-    author = factories.create_user()
+    author = factories.create_user("author", ["workspace"])
     release_request = factories.create_release_request(
         "workspace",
         status=RequestStatus.PENDING,
