@@ -1,21 +1,27 @@
+# type: ignore
+# type: ignore
 import hypothesis.strategies as st
 import pytest
 from hypothesis import assume
+
+# type: ignore
 from hypothesis.stateful import (
+    Bundle,
     RuleBasedStateMachine,
     initialize,
     invariant,
     precondition,
     rule,
-    Bundle,
 )
 
 from airlock import exceptions
 from airlock.business_logic import (
-    RequestStatus,
-    UrlPath,
     bll,
 )
+from airlock.enums import (
+    RequestStatus,
+)
+from airlock.types import UrlPath
 from local_db.models import (
     FileReview,
 )
@@ -166,9 +172,7 @@ class AirlockMachine(RuleBasedStateMachine):
     def withdraw_file(self, filename):
         path = UrlPath(f"path/{filename}.txt")
         filegroup = "default"
-        assume(
-            path in list(self.release_request.filegroups["default"].files.keys())
-        )
+        assume(path in list(self.release_request.filegroups["default"].files.keys()))
         bll.withdraw_file_from_request(
             self.release_request, filegroup / path, user=self.author
         )
@@ -208,9 +212,7 @@ class AirlockMachine(RuleBasedStateMachine):
     def review_file(self, filename):
         # TODO: this fails because this can be any filename
         path = UrlPath(f"path/{filename}.txt")
-        assume(
-            path in list(self.release_request.filegroups["default"].files.keys())
-        )
+        assume(path in list(self.release_request.filegroups["default"].files.keys()))
         request_file = self.release_request.get_request_file_from_output_path(path)
         bll.approve_file(self.release_request, request_file, self.checker1)
         bll.set_status(
@@ -247,10 +249,8 @@ class AirlockMachine(RuleBasedStateMachine):
         if hasattr(self, "release_request"):
             # manually delete FileReview objects, because they don't cascade delete
             FileReview.objects.filter().delete()
+            # TODO delete the request as above (to satisfy just check!)
             bll._dal._delete_release_request(self.release_request.id)
 
 
 TestAirlockMachine = AirlockMachine.TestCase
-
-if __name__ == "__main__":
-    unittest.main()
