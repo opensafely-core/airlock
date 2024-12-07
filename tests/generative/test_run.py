@@ -215,7 +215,6 @@ class AirlockMachine(RuleBasedStateMachine):
             self.release_request, RequestStatus.PARTIALLY_REVIEWED, user=self.checker1
         )
 
-    #     bll.set_status(self.release_request, RequestStatus.SUBMITTED, user=self.author1)
 
     # @rule()
     # @precondition(request_submitted)
