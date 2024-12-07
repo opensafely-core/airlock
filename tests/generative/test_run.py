@@ -10,6 +10,7 @@ from hypothesis.stateful import (
     Bundle,
 )
 
+from airlock import exceptions
 from airlock.business_logic import (
     RequestStatus,
     UrlPath,
@@ -120,7 +121,7 @@ class AirlockMachine(RuleBasedStateMachine):
             )
         # TODO: cleanup this file
         factories.write_workspace_file(self.workspace, path)
-        with pytest.raises(bll.RequestPermissionDenied):
+        with pytest.raises(exceptions.RequestPermissionDenied):
             bll.add_file_to_request(self.release_request, path, self.author)
 
     # # TODO: strategy to draw the filegroup to modify
@@ -141,24 +142,23 @@ class AirlockMachine(RuleBasedStateMachine):
         )
         self.release_request = factories.refresh_release_request(self.release_request)
 
-    # # TODO: this is fixed in main
-    # # TODO: strategy to draw the filegroup to modify
-    # @rule(
-    #     filegroup=st.just("default"),
-    #     context=filename_strategy,
-    #     controls=filename_strategy,
-    # )
-    # @precondition(has_filegroups)
-    # @precondition(request_not_pending)
-    # def update_c2_fail(self, filegroup, context, controls):
-    #     # with pytest.raises(Exception):
-    #     bll.group_edit(
-    #         self.release_request,
-    #         filegroup,
-    #         context,
-    #         controls,
-    #         self.author,
-    #     )
+    # TODO: strategy to draw the filegroup to modify
+    @rule(
+        filegroup=st.just("default"),
+        context=filename_strategy,
+        controls=filename_strategy,
+    )
+    @precondition(has_filegroups)
+    @precondition(request_not_pending)
+    def update_c2_fail(self, filegroup, context, controls):
+        with pytest.raises(exceptions.RequestPermissionDenied):
+            bll.group_edit(
+                self.release_request,
+                filegroup,
+                context,
+                controls,
+                self.author,
+            )
 
     @rule(filename=filenames)
     @precondition(has_files)
@@ -182,7 +182,7 @@ class AirlockMachine(RuleBasedStateMachine):
         assume(
             path not in list(self.release_request.filegroups["default"].files.keys())
         )
-        with pytest.raises(bll.FileNotFound):
+        with pytest.raises(exceptions.FileNotFound):
             bll.withdraw_file_from_request(
                 self.release_request, filegroup / path, user=self.author
             )
