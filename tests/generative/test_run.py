@@ -102,7 +102,7 @@ class AirlockMachine(RuleBasedStateMachine):
             # TODO: this should check all filegroups
             assume(
                 path
-                not in list(self.release_request.filegroups.popitem()[1].files.keys())
+                not in list(self.release_request.filegroups["default"].files.keys())
             )
         factories.write_workspace_file(self.workspace, path)
         bll.add_file_to_request(self.release_request, path, self.author)
@@ -225,10 +225,7 @@ class AirlockMachine(RuleBasedStateMachine):
     @invariant()
     @precondition(request_submitted)
     def at_least_one_file(self):
-        try:
-            assert len(self.release_request.filegroups["default"].files) > 0
-        except KeyError:
-            raise Exception(self.release_request.filegroups)
+        assert len(self.release_request.filegroups["default"].files) > 0
 
     # @invariant()
     # def no_reviews(self):
