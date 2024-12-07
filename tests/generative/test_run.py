@@ -1,10 +1,6 @@
-# type: ignore
-# type: ignore
 import hypothesis.strategies as st
 import pytest
 from hypothesis import assume
-
-# type: ignore
 from hypothesis.stateful import (
     Bundle,
     RuleBasedStateMachine,
