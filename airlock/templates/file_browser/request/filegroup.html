@@ -108,7 +108,7 @@
     </div>
   </div>
   {% if not group.inline %}
-    {% include "activity.html" with activity=group.activity %}
+    {% include "activity.html" with activity=group.activity title="Recent activity for this group" %}
   {% else %}
     {% #card_footer no_container=False %}
       {% #button variant="primary" class="action-button" small=True type="cancel" %}Close{% /button %}
