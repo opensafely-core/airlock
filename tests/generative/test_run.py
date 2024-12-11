@@ -37,6 +37,10 @@ filename_strategy = st.text(
 # * preconditions for everything
 # * separate methods for passing/failing calls
 # * consider one big "bad state transition" method for all the transitions
+#   * we should have unit tests for bad state transitions
+#   * (or maybe we don't for job-runner)
+#   * we're interested in invariants that can be violated by state transition chaining
+#     to reach unexpected states (which aren't covered by unit tests)
 # * as many verification methods as you like, they're not expensive
 #
 # TOASK:
@@ -205,8 +209,7 @@ class AirlockMachine(RuleBasedStateMachine):
     # select a file from the Bundle
     @rule(filename=filenames)
     @precondition(request_submitted)
-    def review_file(self, filename):
-        # TODO: this fails because this can be any filename
+    def review_file_checker1(self, filename):
         path = UrlPath(f"path/{filename}.txt")
         assume(path in list(self.release_request.filegroups["default"].files.keys()))
         request_file = self.release_request.get_request_file_from_output_path(path)
