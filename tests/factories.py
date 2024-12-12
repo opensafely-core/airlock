@@ -290,6 +290,7 @@ def create_release_request(
     return release_request
 
 
+# TODO: create flag to force creating an invalid state?
 def create_request_at_status(
     workspace: Workspace | str,
     status,
@@ -324,10 +325,16 @@ def create_request_at_status(
     review (approve/request changes to) the file. If not provided, default output checkers
     will be used.
     """
+    workspace_name = workspace if isinstance(workspace, str) else workspace.name
     author = author or create_user(
         "author",
-        workspaces=[workspace if isinstance(workspace, str) else workspace.name],
+        workspaces=[workspace_name],
     )
+
+    # TODO: we shouldn't rely on output_checker as this is explicitly to set the author
+    # of a request?
+    # assert( workspace_name in author.workspaces or author.output_checker)
+
     if status == RequestStatus.WITHDRAWN:
         assert (
             withdrawn_after is not None
