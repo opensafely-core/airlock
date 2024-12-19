@@ -1,7 +1,6 @@
 import os
 from functools import wraps
 from inspect import Parameter, signature
-from typing import Dict
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -70,8 +69,8 @@ def instrument(
     *,
     span_name: str = "",
     record_exception: bool = True,
-    attributes: Dict[str, str] = None,
-    func_attributes: Dict[str, str] = None,
+    attributes: dict[str, str] = None,
+    func_attributes: dict[str, str] = None,
     existing_tracer: trace.Tracer = None,
 ):
     """

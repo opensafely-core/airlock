@@ -190,6 +190,9 @@ def test_screenshot_from_creation_to_release(
                 "more_dropdown_el_request_file.png",
                 extra={"x": -180, "width": 180, "height": 160},
             )
+            # Close the more dropdown and unfocus
+            page.keyboard.press("Escape")
+            more_locator.blur()
 
             # Click to open the context modal
             page.locator("button[data-modal=group-context]").click()

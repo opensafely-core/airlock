@@ -37,7 +37,6 @@ def test_code_from_workspace(live_server, page, context):
 
     # manifest.json itself doesn't have a manifest entry, so code button not displayed
     page.goto(live_server.url + "/workspaces/view/test-dir1/metadata/manifest.json")
-    page.locator("#file-button-more").click()
     expect(more_button).to_be_visible()
     more_button.click()
     expect(code_button).not_to_be_visible()
