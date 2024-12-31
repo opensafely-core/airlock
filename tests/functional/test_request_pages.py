@@ -135,12 +135,12 @@ def test_request_group_edit_comment_for_author(live_server, context, page, bll):
     expect(group_comment_locator).to_be_visible()
     comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
 
-    comment_locator.fill("test comment")
+    comment_locator.fill("test _comment_")
     comment_button = group_comment_locator.get_by_role("button", name="Comment")
     comment_button.click()
 
     comments_locator = contents.locator(".comments")
-    expect(comments_locator).to_contain_text("test comment")
+    assert "test <em>comment</em>" in comments_locator.inner_html()
 
     delete_comment_button = page.get_by_role("button", name="Delete comment")
     expect(delete_comment_button).to_be_visible()
@@ -153,7 +153,7 @@ def test_request_group_edit_comment_for_author(live_server, context, page, bll):
 
     # comment is still visible
     comments_locator = contents.locator(".comments")
-    expect(comments_locator).to_contain_text("test comment")
+    assert "test <em>comment</em>" in comments_locator.inner_html()
     # context/controls and all buttons (including delete comment for comment made
     # pre-submission) are not visible
     expect(context_locator).not_to_be_editable()
