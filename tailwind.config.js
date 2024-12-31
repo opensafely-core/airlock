@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import tailwindForms from "@tailwindcss/forms";
 import tailwindTypography from "@tailwindcss/typography";
 import { fontFamily } from "tailwindcss/defaultTheme";
@@ -5,9 +6,9 @@ import { fontFamily } from "tailwindcss/defaultTheme";
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "airlock/templates/**/*.html",
-    "assets/src/**/*.{css,js}",
-    "assets/templates/**/*.html"
+    join(__dirname, "airlock/templates/**/*.html"),
+    join(__dirname, "assets/src/**/*.{css,js}"),
+    join(__dirname, "assets/templates/**/*.html"),
   ],
   theme: {
     extend: {

@@ -354,6 +354,73 @@ def test_screenshot_from_creation_to_release(
     os.getenv("RUN_SCREENSHOT_TESTS") is None,
     reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
 )
+def test_screenshot_comments(page, context, live_server):
+    author, user_dicts = get_user_data()
+
+    release_request = factories.create_request_at_status(
+        "my-workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(approved=True)],
+    )
+    # Log in as author
+    login_as_user(live_server, context, user_dicts["author"])
+
+    # Go to group
+    page.goto(live_server.url + release_request.get_url(UrlPath("group")))
+
+    # Locators for comment elements
+    comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
+    comment_input = page.locator("#id_comment")
+    add_comment_element = page.locator('label:has-text("Add Comment")').locator("..")
+
+    # Add markdown comments
+    def add_comment(comment_text, filename):
+        # Fill the comment input element with the markdown text
+        comment_input.fill(comment_text)
+        # Screenshot before submitting
+        add_comment_element.screenshot(
+            path=settings.SCREENSHOT_DIR / f"{filename}_1.png"
+        )
+        comment_button.click()
+
+        # get the parent li element for the last submitted comment
+        # we can't just use the comment_text, because it will be different in the rendered comment
+        all_comments = page.locator("li.group.comment_public")
+        last_comment = all_comments.nth(len(all_comments.all()) - 1)
+        last_comment.scroll_into_view_if_needed()
+        # The rendered comment is a bit wide for displaying side by side with the pre-submitted
+        # version, so crop it to 50% of its actual width
+        screenshot_element_with_padding(
+            page,
+            last_comment,
+            f"{filename}_2.png",
+            extra={"y": 10},
+            crop={"width": 0.5},
+        )
+
+    add_comment("This is **a bold comment**", "markdown_comment_bold")
+    add_comment("Example quote:\n>This is airlock!", "markdown_comment_blockquote")
+    add_comment(
+        "This is an [example link](https://www.example.com/my%20great%20page)",
+        "markdown_comment_anchor",
+    )
+    add_comment("`code example`", "markdown_comment_code")
+    add_comment("This is _italicised_ or _emphasised_ text", "markdown_comment_italics")
+    add_comment(
+        "1. first text\n1. second text\n1. third text\n8. fourth text",
+        "markdown_comment_ordered_list",
+    )
+    add_comment(
+        "- First item\n- Second item\n- Third item\n- Fourth item",
+        "markdown_comment_unordered_list",
+    )
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_SCREENSHOT_TESTS") is None,
+    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
+)
 def test_screenshot_withdraw_request(page, context, live_server):
     author, user_dicts = get_user_data()
 

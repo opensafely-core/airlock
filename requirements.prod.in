@@ -4,6 +4,7 @@ django-vite
 slippers
 django-extensions
 django-htmx
+django-markdownify
 whitenoise
 gunicorn
 opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.10.11.170331.zip
