@@ -56,7 +56,7 @@
             </span>
           {% endfragment %}
           {% #list_group_rich_item custom_status=comment_status class=comment_class title=comment.author %}
-            {{ comment.comment|markdownify }}
+            <div>{{ comment.comment|markdownify }}</div>
             {% if request.user.username == comment.author %}
               {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
                 <div>
