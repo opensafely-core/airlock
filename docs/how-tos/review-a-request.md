@@ -101,7 +101,7 @@ Comments can be added to each file group, to ask questions, or
 provide information on why changes have been requested to any files.
 
 To add a comment, navigate to the file group by clicking on it in
-the file browser. Enter your comment text and click Save.
+the file browser. Enter your comment text and click Save. You can format your comment with markdown using these [supported tags](https://django-markdownify.readthedocs.io/en/latest/settings.html#whitelist-tags)
 
 ![Comment form](../screenshots/reviewed_request_comment_in_progress.png)
 

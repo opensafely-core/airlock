@@ -93,7 +93,7 @@
                 {% /alert %}
               {% endif %}
 
-              {% form_textarea field=group.comment_form.comment placeholder=" " label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
+              {% form_textarea field=group.comment_form.comment placeholder="Use Markdown to format your comment" label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
               {% if group.comment_form.visibility.field.choices|length == 1 %}
                 <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
               {% else %}
