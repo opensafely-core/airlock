@@ -45,42 +45,6 @@ tracer = trace.get_tracer_provider().get_tracer("airlock")
 
 
 @instrument
-# def requests_for_researcher(request):
-#     authored_requests = bll.get_requests_authored_by_user(request.user)
-
-# def requests_for_output_checker(request):
-#     outstanding_requests = []
-#     returned_requests = []
-#     approved_requests = []
-
-#     def get_reviewer_progress(release_request):
-#         progress = f"Your review: {release_request.files_reviewed_by_reviewer_count(request.user)}/{len(release_request.output_files())} files"
-#         if request.user.username not in release_request.submitted_reviews:
-#             progress += " (incomplete)"
-#         return progress
-
-#     if permissions.user_can_review(request.user):
-#         outstanding_requests = [
-#             (outstanding_request, get_reviewer_progress(outstanding_request))
-#             for outstanding_request in bll.get_outstanding_requests_for_review(
-#                 request.user
-#             )
-#         ]
-#         returned_requests = bll.get_returned_requests(request.user)
-#         approved_requests = bll.get_approved_requests(request.user)
-
-#     return TemplateResponse(
-#         request,
-#         "requests.html",
-#         {
-#             "authored_requests": authored_requests,
-#             "outstanding_requests": outstanding_requests,
-#             "returned_requests": returned_requests,
-#             "approved_requests": approved_requests,
-#         },
-#     )
-
-######
 def request_index(request):
     authored_requests = bll.get_requests_authored_by_user(request.user)
 
@@ -114,7 +78,7 @@ def request_index(request):
             "approved_requests": approved_requests,
         },
     )
-#####
+
 
 def _get_request_button_context(user, release_request):
     # default context for request-level actions with everything hidden
