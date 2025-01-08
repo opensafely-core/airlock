@@ -39,6 +39,7 @@ nav:
     - Viewing underlying source code: reference/view-source-code.md
     - Downloading files: reference/downloading-files.md
     - Request state diagram: reference/request-states.md
+    - Formatting comments with markdown: reference/formatting-comments.md
 
 watch:
   - docs

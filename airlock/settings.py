@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "airlock",
     "assets",
     "local_db",  # TODO: not include this application if we're not configured to use it?
+    "markdownify.apps.MarkdownifyConfig",
     # "django.contrib.auth",
     # "django.contrib.contenttypes",
     "django.contrib.sessions",

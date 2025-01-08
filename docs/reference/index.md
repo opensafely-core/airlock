@@ -6,3 +6,4 @@ The reference provides background knowledge for working with Airlock.
 * [Viewing underlying source code](view-source-code.md)
 * [Downloading files](downloading-files.md)
 * [Request state diagram](request-states.md)
+* [Formatting comments with markdown](formatting-comments.md)

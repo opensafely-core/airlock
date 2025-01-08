@@ -18,8 +18,7 @@ file and two files with changes requested:
 ## Comments
 
 Navigate to each of your file groups to view comments from the output checkers. You should add
-comments to respond to any questions or requests for information. Note that your comments will
-not be visible to output checkers until you have submitted the request again for review
+comments to respond to any questions or requests for information. You can [write your comments in markdown](../reference/formatting-comments.md) for additional formatting. Note that your comments will not be visible to output checkers until you have submitted the request again for review
 
 ![Tree for a returned request](../screenshots/returned_request_comments.png)
 
