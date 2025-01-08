@@ -101,55 +101,9 @@ Comments can be added to each file group, to ask questions, or
 provide information on why changes have been requested to any files.
 
 To add a comment, navigate to the file group by clicking on it in
-the file browser. Enter your comment text and click Save. 
+the file browser. Enter your comment text, [format it as needed](../reference/formatting-comments.md), and click Save. 
 
 ![Comment form](../screenshots/reviewed_request_comment_in_progress.png)
-
-You can format your comment with markdown using the following supporting tags: 
-
-- Anchor: To add a hyperlink. 
-
-Markdown                                            |  Rendered Output
-:-------------------------:                         |:-------------------------:
-![Markdown anchor tag](../screenshots/anchor_1.png) | ![Rendered anchor tag](../screenshots/anchor_2.png)
-
-- Bold / Strong
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown bold/strong tag](../screenshots/bold_1.png) | ![Rendered bold/strong tag](../screenshots/bold_2.png)
-
-- Block Quote
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown block quote tag](../screenshots/block_quote_1.png) | ![Rendered block quote tag](../screenshots/block_quote_2.png)
-
-- Code
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown code tag](../screenshots/code_1.png) | ![Rendered code tag](../screenshots/code_2.png)
-
-- Italics
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown italics tag](../screenshots/italics_1.png) | ![Rendered italics tag](../screenshots/italics_2.png)
-
-- Ordered lists: The numbers do not need to be in order but must always start with number 1
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown ordered list tag](../screenshots/ordered_list_1.png) | ![Rendered ordered list tag](../screenshots/ordered_list_2.png)
-
-- Unordered lists
-
-Markdown                                               |  Rendered Output
-:-------------------------:                            |:-------------------------:
-![Markdown unordered list tag](../screenshots/unordered_list_1.png) | ![Rendered unordered list tag](../screenshots/unordered_list_2.png)
-
-> **Note:**  Abbreviations and acronyms do not have native markdown support.
 
 You can choose to make a comment public and visible to everyone, or 
 private, visible only to other output checkers. In either case, comments are
