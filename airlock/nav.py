@@ -5,6 +5,8 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.urls import reverse
 
+from airlock import permissions
+
 
 def default_predicate(request):
     return True
@@ -33,9 +35,13 @@ def iter_nav(items, request):
 def menu(request):
     items = [
         NavItem(name="Workspaces", url_name="workspace_index"),
-        NavItem(name="Requests", url_name="request_index"),
+        NavItem(name="Requests", url_name="requests_for_researcher"),
         NavItem(name="Docs", url_name="docs_home"),
     ]
+
+    if request.user and permissions.user_can_review(request.user):
+        reviews_menu = NavItem(name="Reviews", url_name="requests_for_output_checker")
+        items.insert(2, reviews_menu)
     return {"nav": list(iter_nav(items, request))}
 
 

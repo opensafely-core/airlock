@@ -45,9 +45,7 @@ tracer = trace.get_tracer_provider().get_tracer("airlock")
 
 
 @instrument
-def request_index(request):
-    authored_requests = bll.get_requests_authored_by_user(request.user)
-
+def requests_for_output_checker(request):
     outstanding_requests = []
     returned_requests = []
     approved_requests = []
@@ -67,15 +65,29 @@ def request_index(request):
         ]
         returned_requests = bll.get_returned_requests(request.user)
         approved_requests = bll.get_approved_requests(request.user)
+    else:
+        return redirect("requests_for_researcher")
 
     return TemplateResponse(
         request,
-        "requests.html",
+        "requests_for_output_checker.html",
         {
-            "authored_requests": authored_requests,
             "outstanding_requests": outstanding_requests,
             "returned_requests": returned_requests,
             "approved_requests": approved_requests,
+        },
+    )
+
+
+@instrument
+def requests_for_researcher(request):
+    authored_requests = bll.get_requests_authored_by_user(request.user)
+
+    return TemplateResponse(
+        request,
+        "requests_for_researcher.html",
+        {
+            "authored_requests": authored_requests,
         },
     )
 

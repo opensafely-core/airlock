@@ -309,7 +309,7 @@ def test_e2e_release_files(
     # Before we log the researcher out and continue, let's just check
     # their requests
     find_and_click(page.get_by_test_id("nav-requests"))
-    expect(page).to_have_url(live_server.url + "/requests/")
+    expect(page).to_have_url(live_server.url + "/requests/researcher")
 
     authored_request_locator = page.locator("#authored-requests")
     expect(authored_request_locator).to_contain_text("SUBMITTED")
@@ -330,7 +330,7 @@ def test_e2e_release_files(
     login_as(live_server, page, "output_checker")
 
     # View requests
-    find_and_click(page.get_by_test_id("nav-requests"))
+    find_and_click(page.get_by_test_id("nav-reviews"))
 
     # View submitted request (in the output-checker's outstanding requests for review)
     find_and_click(page.locator("#outstanding-requests").get_by_role("link"))
