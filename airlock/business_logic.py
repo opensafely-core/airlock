@@ -573,9 +573,9 @@ class BusinessLogicLayer:
         )
 
         manifest = workspace.get_manifest_for_file(relpath)
-        assert (
-            manifest["content_hash"] == file_id
-        ), "File hash does not match manifest.json"
+        assert manifest["content_hash"] == file_id, (
+            "File hash does not match manifest.json"
+        )
 
         filegroup_data = self._dal.add_file_to_request(
             request_id=release_request.id,
@@ -649,9 +649,9 @@ class BusinessLogicLayer:
         file_id = store_file(release_request, src)
 
         manifest = workspace.get_manifest_for_file(relpath)
-        assert (
-            manifest["content_hash"] == file_id
-        ), "File hash does not match manifest.json"
+        assert manifest["content_hash"] == file_id, (
+            "File hash does not match manifest.json"
+        )
 
         request_file = release_request.get_request_file_from_output_path(relpath)
         old_group = request_file.group
@@ -752,7 +752,9 @@ class BusinessLogicLayer:
                 audit=audit,
             )
         else:
-            assert False, f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
+            assert False, (
+                f"Invalid state {release_request.status.name}, cannot withdraw file {relpath} from request {release_request.id}"
+            )
 
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
@@ -1131,13 +1133,13 @@ class BusinessLogicLayer:
             return
         allowed_keys = {"update", "group", "user"}
         for update_dict in updates:
-            assert (
-                "update" in update_dict
-            ), "Notification updates must include an `update` key"
+            assert "update" in update_dict, (
+                "Notification updates must include an `update` key"
+            )
             extra_keys = set(update_dict.keys()) - allowed_keys
-            assert (
-                not extra_keys
-            ), f"Unexpected keys in notification update ({extra_keys})"
+            assert not extra_keys, (
+                f"Unexpected keys in notification update ({extra_keys})"
+            )
 
     def send_notification(
         self,

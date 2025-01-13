@@ -274,9 +274,9 @@ def create_release_request(
     workspace: Workspace | str, user=None, status=None, **kwargs
 ) -> ReleaseRequest:
     if status:
-        assert (
-            status == RequestStatus.PENDING
-        ), "Use create_request_at_status to create a release request with a state other than PENDING"
+        assert status == RequestStatus.PENDING, (
+            "Use create_request_at_status to create a release request with a state other than PENDING"
+        )
     workspace = ensure_workspace(workspace)
 
     # create a default user with permission on workspace
@@ -329,9 +329,9 @@ def create_request_at_status(
         workspaces=[workspace if isinstance(workspace, str) else workspace.name],
     )
     if status == RequestStatus.WITHDRAWN:
-        assert (
-            withdrawn_after is not None
-        ), "pass withdrawn_after to decide when to withdraw"
+        assert withdrawn_after is not None, (
+            "pass withdrawn_after to decide when to withdraw"
+        )
         assert withdrawn_after in [
             RequestStatus.PENDING,
             RequestStatus.RETURNED,
