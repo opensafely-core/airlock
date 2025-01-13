@@ -78,7 +78,7 @@ def requests_for_output_checker(request):
 
     return TemplateResponse(
         request,
-        "requests.html",
+        "requests_for_output_checker.html",
         {
             "outstanding_requests": outstanding_requests,
             "returned_requests": returned_requests,

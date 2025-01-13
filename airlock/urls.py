@@ -67,10 +67,20 @@ urlpatterns = [
         name="workspace_update_file",
     ),
     # requests
+    # path(
+    #     "requests/",
+    #     airlock.views.request_index,
+    #     name="request_index",
+    # ),
     path(
         "requests/",
-        airlock.views.request_index,
-        name="request_index",
+        airlock.views.requests_for_researcher,
+        name="requests_for_researcher",
+    ),
+    path(
+        "requests/",
+        airlock.views.requests_for_output_checker,
+        name="requests_for_for_output_checker",
     ),
     path(
         "requests/view/<str:request_id>/",
