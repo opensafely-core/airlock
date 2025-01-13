@@ -44,17 +44,6 @@ from .helpers import (
 tracer = trace.get_tracer_provider().get_tracer("airlock")
 
 @instrument
-def requests_for_researcher(request):
-    authored_requests = bll.get_requests_authored_by_user(request.user)
-
-    return TemplateResponse(
-        request,
-        "requests_for_researcher.html",
-        {
-            "authored_requests": authored_requests,
-        },
-    )
-
 def requests_for_output_checker(request):
     outstanding_requests = []
     returned_requests = []
@@ -85,6 +74,22 @@ def requests_for_output_checker(request):
             "approved_requests": approved_requests,
         },
     )
+
+@instrument
+def requests_for_researcher(request):
+    if permissions.user_can_review(request.user):
+        return requests_for_output_checker(request)
+    
+    else:  
+        authored_requests = bll.get_requests_authored_by_user(request.user)
+
+        return TemplateResponse(
+            request,
+            "requests_for_researcher.html",
+            {
+                "authored_requests": authored_requests,
+            },
+        )
 
 #####
 

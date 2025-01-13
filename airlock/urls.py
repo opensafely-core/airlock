@@ -77,11 +77,11 @@ urlpatterns = [
         airlock.views.requests_for_researcher,
         name="requests_for_researcher",
     ),
-    path(
-        "requests/",
-        airlock.views.requests_for_output_checker,
-        name="requests_for_for_output_checker",
-    ),
+    # path(
+    #     "requests/",
+    #     airlock.views.requests_for_output_checker,
+    #     name="requests_for_for_output_checker",
+    # ),
     path(
         "requests/view/<str:request_id>/",
         airlock.views.request_view,
