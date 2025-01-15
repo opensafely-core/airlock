@@ -2376,9 +2376,9 @@ def test_dal_methods_have_audit_event_parameter():
     for name, func in dal_functions.items():
         signature = inspect.signature(func)
         arg_annotations = set(p.annotation for p in signature.parameters.values())
-        assert (
-            "AuditEvent" in arg_annotations
-        ), f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
+        assert "AuditEvent" in arg_annotations, (
+            f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
+        )
 
 
 def test_group_edit_author(bll):

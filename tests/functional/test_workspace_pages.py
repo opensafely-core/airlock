@@ -127,7 +127,7 @@ def test_content_buttons(
 
 
 @pytest.mark.parametrize(
-    "request_status,released,updated,filetype,file_ext," "is_enabled,tooltip",
+    "request_status,released,updated,filetype,file_ext,is_enabled,tooltip",
     [
         # no current request, button enabled
         (None, False, False, None, "txt", True, ""),

@@ -62,7 +62,7 @@ def test_old_api_upload_file(responses):
 
     old_api.upload_file("release-id", relpath, abspath, "testuser")
     request = responses.calls[0].request
-    assert request.body.read() == b"test"
+    assert request.body == b"test"
     assert request.headers["Content-Disposition"] == f'attachment; filename="{relpath}"'
     assert request.headers["OS-User"] == "testuser"
 

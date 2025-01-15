@@ -16,6 +16,7 @@ extend-select = [
   "W",  # pycodestyle warning
 ]
 extend-ignore = [
+  "A005", # ignore stdlib-module-shadowing 
   "E501", # ignore line length
 ]
 isort.lines-after-imports = 2
