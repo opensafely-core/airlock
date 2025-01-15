@@ -43,6 +43,7 @@ from .helpers import (
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
 
+
 @instrument
 def requests_for_output_checker(request):
     outstanding_requests = []
@@ -75,12 +76,13 @@ def requests_for_output_checker(request):
         },
     )
 
+
 @instrument
 def requests_for_researcher(request):
     if permissions.user_can_review(request.user):
         return requests_for_output_checker(request)
-    
-    else:  
+
+    else:
         authored_requests = bll.get_requests_authored_by_user(request.user)
 
         return TemplateResponse(
@@ -90,6 +92,7 @@ def requests_for_researcher(request):
                 "authored_requests": authored_requests,
             },
         )
+
 
 def _get_request_button_context(user, release_request):
     # default context for request-level actions with everything hidden

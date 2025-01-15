@@ -8,7 +8,7 @@ def predicate_false(request):
 def test_iter_nav(rf):
     items = [
         nav.NavItem("Workspace", "workspace_index"),
-        nav.NavItem("Requests", "request_index", predicate_false),
+        nav.NavItem("Requests", "requests_for_researcher", predicate_false),
     ]
 
     request = rf.get("/workspaces/")

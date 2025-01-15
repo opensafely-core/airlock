@@ -10,8 +10,6 @@ from .request import (
     group_comment_visibility_public,
     group_edit,
     request_contents,
-    requests_for_output_checker,
-    requests_for_researcher,
     request_multiselect,
     request_reject,
     request_release_files,
@@ -20,6 +18,8 @@ from .request import (
     request_submit,
     request_view,
     request_withdraw,
+    requests_for_output_checker,
+    requests_for_researcher,
     requests_for_workspace,
 )
 from .workspace import (
