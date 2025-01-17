@@ -61,7 +61,7 @@ def test_old_api_upload_file(responses):
         status=201,
     )
 
-    old_api.upload_file("release-id", relpath, abspath, "testuser")
+    old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
     request = responses.calls[0].request
     assert request.body == b"test"
     assert request.headers["Content-Disposition"] == f'attachment; filename="{relpath}"'
@@ -82,7 +82,7 @@ def test_old_api_upload_file_error(responses, caplog):
         json={"detail": "job-server error"},
     )
     with pytest.raises(requests.exceptions.HTTPError):
-        old_api.upload_file("release-id", relpath, abspath, "testuser")
+        old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
 
     assert len(caplog.messages) == 1
     log = caplog.messages[0]
@@ -102,9 +102,9 @@ def test_old_api_upload_file_already_uploaded_error(responses, caplog):
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
         status=400,
-        json={"detail": "This version of '{relpath}' has already been uploaded"},
+        json={"detail": f"This version of '{relpath}' has already been uploaded"},
     )
-    old_api.upload_file("release-id", relpath, abspath, "testuser")
+    old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
 
     assert len(caplog.messages) == 1
     log = caplog.messages[0]

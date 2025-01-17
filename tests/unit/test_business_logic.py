@@ -212,7 +212,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
     )
     old_api.upload_file.assert_called_once_with(  # type: ignore
-        "jobserver_id", relpath, abspath, checkers[0].username
+        "jobserver_id", "workspace", relpath, abspath, checkers[0].username
     )
 
     notification_responses = parse_notification_responses(mock_notifications)

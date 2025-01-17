@@ -64,7 +64,7 @@ def get_or_create_release(workspace_name, release_request_id, release_json, user
     return response.headers["Release-Id"]
 
 
-def upload_file(release_id, relpath, abspath, username):
+def upload_file(release_id, workspace, relpath, abspath, username):
     """Upload file to job server."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{release_id}",
@@ -80,9 +80,14 @@ def upload_file(release_id, relpath, abspath, username):
 
     if response.status_code != 201:
         response_content = response.content.decode()
-        if "has already been uploaded" in response_content:
+        if (
+            f"This version of '{relpath}' has already been uploaded"
+            in response.json()["detail"]
+        ):
             # Ignore attempted re-uploads
-            logger.info("File already uploaded - %s - %s", relpath, release_id)
+            logger.info(
+                "File already uploaded - %s - %s - %s", workspace, relpath, release_id
+            )
         else:
             logger.error(
                 "%s Error uploading file - %s - %s - %s",

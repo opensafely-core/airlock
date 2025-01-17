@@ -802,7 +802,11 @@ class BusinessLogicLayer:
 
             if upload:
                 old_api.upload_file(
-                    jobserver_release_id, relpath, abspath, user.username
+                    jobserver_release_id,
+                    release_request.workspace,
+                    relpath,
+                    abspath,
+                    user.username,
                 )
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
