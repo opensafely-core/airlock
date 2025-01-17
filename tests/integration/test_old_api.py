@@ -11,7 +11,7 @@ from tests import factories
 pytestmark = pytest.mark.django_db
 
 
-def test_old_api_create_release(responses):
+def test_old_api_get_or_create_release(responses):
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/workspace_name",
         status=201,
@@ -19,7 +19,7 @@ def test_old_api_create_release(responses):
     )
 
     assert (
-        old_api.create_release(
+        old_api.get_or_create_release(
             "workspace_name", "jobserver-id", {"airlock_id": "jobserver-id"}, "testuser"
         )
         == "jobserver-id"
@@ -30,7 +30,7 @@ def test_old_api_create_release(responses):
     assert request.body == "airlock_id=jobserver-id"
 
 
-def test_old_api_create_release_with_error(responses, caplog):
+def test_old_api_get_or_create_release_with_error(responses, caplog):
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/workspace_name",
         status=403,
@@ -38,7 +38,7 @@ def test_old_api_create_release_with_error(responses, caplog):
         body="job-server error",
     )
     with pytest.raises(requests.exceptions.HTTPError):
-        old_api.create_release(
+        old_api.get_or_create_release(
             "workspace_name", "jobserver-id", {"airlock_id": "jobserver-id"}, "testuser"
         )
     assert len(caplog.messages) == 1

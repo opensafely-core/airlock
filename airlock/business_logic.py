@@ -779,7 +779,10 @@ class BusinessLogicLayer:
         filelist = old_api.create_filelist(file_paths, release_request)
 
         if upload:
-            jobserver_release_id = old_api.create_release(
+            # Get or create the release
+            # If this is a re-release attempt, the id for the existing
+            # release will be returned
+            jobserver_release_id = old_api.get_or_create_release(
                 release_request.workspace,
                 release_request.id,
                 filelist.json(),

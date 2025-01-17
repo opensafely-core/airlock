@@ -38,8 +38,8 @@ def create_filelist(paths, release_request):
     )
 
 
-def create_release(workspace_name, release_request_id, release_json, username):
-    """API call to job server to create a release."""
+def get_or_create_release(workspace_name, release_request_id, release_json, username):
+    """API call to job server to get or create a release."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{workspace_name}",
         data=release_json,
