@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pytest
@@ -87,3 +88,24 @@ def test_old_api_upload_file_error(responses, caplog):
     log = caplog.messages[0]
     assert "Error uploading file" in log
     assert "job-server error" in log
+
+
+def test_old_api_upload_file_already_uploaded_error(responses, caplog):
+    caplog.set_level(logging.INFO)
+    release_request = factories.create_release_request("workspace")
+    relpath = Path("test/file.txt")
+    release_request = factories.add_request_file(
+        release_request, "group", relpath, "test"
+    )
+    abspath = release_request.abspath("group" / relpath)
+
+    responses.post(
+        f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
+        status=400,
+        json={"detail": "This version of '{relpath}' has already been uploaded"},
+    )
+    old_api.upload_file("release-id", relpath, abspath, "testuser")
+
+    assert len(caplog.messages) == 1
+    log = caplog.messages[0]
+    assert "File already uploaded" in log

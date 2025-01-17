@@ -79,15 +79,19 @@ def upload_file(release_id, relpath, abspath, username):
     )
 
     if response.status_code != 201:
-        logger.error(
-            "%s Error uploading file - %s - %s - %s",
-            response.status_code,
-            relpath,
-            release_id,
-            response.content.decode(),
-        )
-
-    response.raise_for_status()
+        response_content = response.content.decode()
+        if "has already been uploaded" in response_content:
+            # Ignore attempted re-uploads
+            logger.info("File already uploaded - %s - %s", relpath, release_id)
+        else:
+            logger.error(
+                "%s Error uploading file - %s - %s - %s",
+                response.status_code,
+                relpath,
+                release_id,
+                response_content,
+            )
+            response.raise_for_status()
 
     return response
 
