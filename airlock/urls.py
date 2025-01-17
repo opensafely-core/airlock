@@ -69,8 +69,8 @@ urlpatterns = [
     # requests
     path(
         "requests/",
-        airlock.views.request_index,
-        name="request_index",
+        airlock.views.requests_for_researcher,
+        name="requests_for_researcher",
     ),
     path(
         "requests/view/<str:request_id>/",
