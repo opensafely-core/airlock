@@ -38,8 +38,8 @@ def create_filelist(paths, release_request):
     )
 
 
-def create_release(workspace_name, release_request_id, release_json, username):
-    """API call to job server to create a release."""
+def get_or_create_release(workspace_name, release_request_id, release_json, username):
+    """API call to job server to get or create a release."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/workspace/{workspace_name}",
         data=release_json,
@@ -64,7 +64,7 @@ def create_release(workspace_name, release_request_id, release_json, username):
     return response.headers["Release-Id"]
 
 
-def upload_file(release_id, relpath, abspath, username):
+def upload_file(release_id, workspace, relpath, abspath, username):
     """Upload file to job server."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{release_id}",
@@ -79,15 +79,24 @@ def upload_file(release_id, relpath, abspath, username):
     )
 
     if response.status_code != 201:
-        logger.error(
-            "%s Error uploading file - %s - %s - %s",
-            response.status_code,
-            relpath,
-            release_id,
-            response.content.decode(),
-        )
-
-    response.raise_for_status()
+        response_content = response.content.decode()
+        if (
+            f"This version of '{relpath}' has already been uploaded"
+            in response.json()["detail"]
+        ):
+            # Ignore attempted re-uploads
+            logger.info(
+                "File already uploaded - %s - %s - %s", workspace, relpath, release_id
+            )
+        else:
+            logger.error(
+                "%s Error uploading file - %s - %s - %s",
+                response.status_code,
+                relpath,
+                release_id,
+                response_content,
+            )
+            response.raise_for_status()
 
     return response
 
