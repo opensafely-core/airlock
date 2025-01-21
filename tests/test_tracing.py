@@ -100,6 +100,19 @@ def test_instrument_decorator_parent_attributes(settings):
     }
 
 
+@pytest.mark.parametrize("set_status", [True, False])
+def test_instrument_decorator_exception_status(set_status):
+    @instrument(set_status_on_exception=set_status)
+    def test_exception():
+        raise Exception("test")
+
+    with pytest.raises(Exception):
+        test_exception()
+
+    spans = get_trace()
+    assert spans[0].status.is_ok is not set_status
+
+
 @pytest.mark.parametrize(
     "func_attributes,func_args,func_kwargs,expected_attributes",
     [

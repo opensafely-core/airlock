@@ -68,6 +68,7 @@ def instrument(
     _func=None,
     *,
     span_name: str = "",
+    set_status_on_exception=False,
     record_exception: bool = True,
     attributes: dict[str, str] = None,
     func_attributes: dict[str, str] = None,
@@ -77,6 +78,10 @@ def instrument(
     A decorator to instrument a function with an OTEL tracing span.
 
     span_name: custom name for the span, defaults to name of decorated functionvv
+    set_status_on_exception: passed to `start_as_current_span`. Whether to mark
+      this span as failed if an exception is raise. Note: Django uses exceptions
+      for control flow (e.g. Http404, PermissionDenied), so this is set to
+      False by default.
     record_exception: passed to `start_as_current_span`; whether to record
       exceptions when they happen.
     attributes: custom attributes to set on the span
@@ -145,7 +150,10 @@ def instrument(
             span.set_attributes(attributes_dict)
 
             with tracer.start_as_current_span(
-                name, record_exception=record_exception, attributes=attributes_dict
+                name,
+                set_status_on_exception=set_status_on_exception,
+                record_exception=record_exception,
+                attributes=attributes_dict,
             ):
                 return func(*args, **kwargs)
 
