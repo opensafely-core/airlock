@@ -15,7 +15,3 @@ Click on the "Withdraw request" button.
 You will need to confirm that you really want to do this before proceeding.
 
 ![Withdraw request button](../screenshots/withdraw_request_modal.png)
-
-
----
-* Previous: [Edit a file on a request](edit-file-on-request.md)

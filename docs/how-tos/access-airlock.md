@@ -35,7 +35,3 @@ Log in using your GitHub username or OpenSAFELY email and the Single Use Token f
 ![Single Use Token generated on Jobs site](../screenshots/login_form.png)
 
 You should be now logged in. This login will expire after two weeks of not being used.
-
----
-
-* Next: [View workspace files](view-workspace-files.md)

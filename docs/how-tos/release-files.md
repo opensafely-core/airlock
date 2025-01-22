@@ -21,4 +21,3 @@ release request will move to the "Released" state.
 
 !!!info "Files excluded from release"
     Supporting files and withdrawn output files will not be released.
-    

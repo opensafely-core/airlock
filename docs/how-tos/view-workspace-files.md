@@ -21,9 +21,3 @@ From the file view, the `More` dropdown also allows you to [view the file in alt
 the file.
 
 ![More dropdown](../screenshots/more_dropdown_el.png)
-
-
----
-
-* Previous: [Accessing Airlock](access-airlock.md)
-* Next: [Create and submit a release request](create-and-submit-a-release-request.md)

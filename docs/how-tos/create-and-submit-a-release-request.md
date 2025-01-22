@@ -71,8 +71,3 @@ Your release request's status will transition to "Submitted", and you will no lo
 able to edit it. Output checkers will be [automatically notified](../explanation/notifications.md) that the request is ready for review.
 
 ![Submitted request](../screenshots/submitted_request.png)
-
----
-
-* Previous: [View workspace files](view-workspace-files.md)
-* Next: [Respond to a returned request](respond-to-returned-request.md)

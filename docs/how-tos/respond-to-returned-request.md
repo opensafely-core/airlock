@@ -35,8 +35,3 @@ You can opt to respond to a request to change a file by:
 
 When you are happy that you have responded to feedback and questions, 
 [submit the request](create-and-submit-a-release-request.md#submit-the-request) again for review.
-
-
----
-* Previous: [Create and submit a release request](create-and-submit-a-release-request.md)
-* Next: [Edit a file on a request](edit-file-on-request.md)

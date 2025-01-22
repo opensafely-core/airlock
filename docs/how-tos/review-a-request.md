@@ -169,7 +169,3 @@ Once a request has been returned, researchers will receive a
 respond to comments and re-submit the request for re-review. Review
 of re-submitted requests follows the same process described above, until
 the request is ready for release.
-
-
----
-* Next: [Release files](release-files.md)
