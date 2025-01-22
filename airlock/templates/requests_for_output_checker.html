@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% load airlock %}
+
+{% block metatitle %}Reviews |  Airlock{% endblock metatitle %}
+
+{% block content %}
+  <div class="flex flex-col gap-4 max-w-3xl">
+    {% airlock_header title="Requests" %}
+
+    {% #card title="Outstanding requests awaiting review" %}
+      {% #list_group id="outstanding-requests" %}
+        {% for release_request, request_progress in outstanding_requests %}
+          {% fragment as title %}{{ release_request.workspace }} by {{ release_request.author }}{% endfragment %}
+          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=title %}
+            <p class="text-right text-xs">
+              {{ request_progress }}
+            </p>
+          {% /list_group_rich_item %}
+        {% empty %}
+          {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
+        {% endfor %}
+      {% /list_group %}
+    {% /card %}
+
+    {% #card title="Requests returned for changes/questions" %}
+      {% #list_group id="returned-requests" %}
+        {% for release_request in returned_requests %}
+          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+          {% /list_group_rich_item %}
+        {% empty %}
+          {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
+        {% endfor %}
+      {% /list_group %}
+    {% /card %}
+
+    {% if approved_requests %}
+      {% #card title="Approved requests awaiting release" %}
+        {% #list_group id="returned-requests" %}
+          {% for release_request in approved_requests %}
+            {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+            {% /list_group_rich_item %}
+          {% endfor %}
+        {% /list_group %}
+      {% /card %}
+    {% endif %}
+
+  </div>
+{% endblock content %}

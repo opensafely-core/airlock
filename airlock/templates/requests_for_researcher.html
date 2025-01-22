@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% load airlock %}
+
+{% block metatitle %}Requests |  Airlock{% endblock metatitle %}
+
+{% block content %}
+  <div class="flex flex-col gap-4 max-w-3xl">
+    {% airlock_header title="Requests" %}
+
+    {% #card title="Requests by "|add:request.user.username %}
+      {% #list_group id="authored-requests" %}
+        {% for release_request in authored_requests %}
+          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+          {% /list_group_rich_item %}
+        {% empty %}
+          {% list_group_empty title="No requests" description="You do not have any authored requests" %}
+        {% endfor %}
+      {% /list_group %}
+    {% /card %}
+
+  </div>
+{% endblock content %}
