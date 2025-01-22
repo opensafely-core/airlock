@@ -47,14 +47,14 @@ one supporting file, all in a file group called "my-group".
 
 ![Request file tree](../screenshots/request_tree.png)
 
-## View context and controls for a file group
+## View file group context and statistical disclosure controls
 
 Click on the file group in the tree to view the file group information.
 
 ![File group](../screenshots/file_group.png)
 
-File group information contains the information about the context and controls
-that the researcher has provided for these files. 
+File group information contains the information about the file group context and 
+statistical disclosure controls that the researcher has provided for these files. 
 
 ## Review files
 
@@ -65,11 +65,11 @@ content in the browser.
 ![Request file page](../screenshots/file_review.png)
 
 The `More` dropdown also allows you to [view the file in alternative ways](../reference/view-files-alt.md), or to [view the source code](../reference/view-source-code.md) underlying
-the file. You can also [download](../reference/downloading-files.md) if required.
+the file. You can also [download](../reference/downloading-files.md) it if required.
 
 ![More dropdown](../screenshots/more_dropdown_el_request_file.png)
 
-### View context, controls and comments
+### View file group context, statistical disclosure controls and comments
 The context, controls and comments related to this file's file group can be
 viewed from the file page by clicking on the Context button.
 
@@ -77,15 +77,14 @@ viewed from the file page by clicking on the Context button.
 
 ### Vote on a file
 
-Use the buttons at the top of the file content to submit your vote
-for this file. Options are:
+Use the buttons at the top of the file content to submit your file vote. Options are:
 
 * **Approve** — output meets disclosure requirements and is safe to be released
 * **Request Changes** — output is not currently acceptable for release. 
 
 After approving or requesting changes to a file, the
-page will display your vote, as well as the overall decision for the
-file. You can change or reset your vote in the same way.
+page will display your file vote, as well as the overall file decision. 
+You can change or reset your vote in the same way.
 
 ![Request file post-approval](../screenshots/file_approved.png)
 
@@ -112,9 +111,9 @@ hidden from the researcher until the request is returned (or approved/released).
 ![Comments on submitted request](../screenshots/reviewed_request_comments.png)
 
 Comments that are created as private can be updated to public at a later stage.
-This can be useful during the consolidation stage, if output checkers agree that
-the comment contains a question to the researcher that they would like to ask
-without revision. 
+This can be useful during the [review consolidation](#review-consolidation) stage, 
+if output checkers agree that the comment contains a question to the researcher that
+they would like to ask without revision. 
 
 ### Submit your independent review
 
@@ -129,7 +128,7 @@ After your review has been submitted, the request status will change.
 ![After independent review submitted](../screenshots/submitted_review.png)
 
 
-### Consolidation
+### Review consolidation
 
 Once two independent reviews have been submitted, the request moves into
 "Reviewed" status. At this stage, output checkers are able to see the

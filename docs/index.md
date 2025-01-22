@@ -4,14 +4,14 @@ Airlock is a service running inside the secure environment to allow researchers 
 view output files, create release requests, and for output checkers to review and
 release these requests.
 
-Researchers use the Airlock UI to view their workspace files, create a new release request, add their files to the release request, provide context information and
+Researchers use the Airlock UI to view their workspace files, create a new release request, add their files to the release request, provide file group context information and
 description of applied statistical disclosure controls, and submit the files for review.
 
 Output checkers review the files requested for release, and approve or request changes for
 each one. Once a full review of all files has been completed by two output checkers and all
-filees are approved, an output checker can release the files to the Jobs site.
+files are approved, an output checker can release the files to the Jobs site.
 
-Airlock allows us to enforce some safety controls and policies automatically. This includes things such as the number of required reviews, independence of reviews, and ensuring that researchers who are also output checkers are not able to review their own requests.
+Airlock allows us to enforce some safety controls and policies automatically. This includes things such as the number of required reviews, independent review, and ensuring that researchers who are also output checkers are not able to review their own requests.
 
 
 ## Accessing Airlock

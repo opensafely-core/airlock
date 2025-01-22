@@ -1,6 +1,6 @@
 ## Security
 
-Airlock allows us to enforce some safety controls and policies automatically. This includes things such as the number of required reviews, independence of reviews, and ensuring that researchers who are also output checkers are not able to review their own requests.
+Airlock allows us to enforce some safety controls and policies automatically. This includes things such as the number of required reviews, independent review, and ensuring that researchers who are also output checkers are not able to review their own requests.
 
 ## User experience
 
