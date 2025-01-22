@@ -109,7 +109,7 @@ def user_can_action_request_for_workspace(user: User | None, workspace_name: str
 def check_user_can_review(user: User):
     """This user can be a reviewer"""
     if not user.output_checker:
-        raise exceptions.RequestPermissionDenied("Only ouput-checkers allowed")
+        raise exceptions.RequestPermissionDenied("Only output-checkers allowed")
 
 
 def user_can_review(user: User):

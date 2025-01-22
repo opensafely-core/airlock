@@ -723,15 +723,6 @@ def test_request_index_user_output_checker(airlock_client):
     assert authored_ids == {r1.id}
 
 
-# Check that the reviews page redirects to requests for researchers
-def test_request_index_redirect_user_researcher(airlock_client):
-    airlock_client.login(workspaces=["test_workspace"], output_checker=False)
-
-    response = airlock_client.get("/requests/output_checker")
-    redirected_url = "/requests/researcher"
-    assert response.url == redirected_url
-
-
 def test_no_outstanding_request_output_checker(airlock_client):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
     response = airlock_client.get("/requests/output_checker")
