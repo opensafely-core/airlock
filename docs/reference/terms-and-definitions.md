@@ -34,7 +34,7 @@ into logical groups, in order to help the output checker understand the request.
 Supporting files should be placed in the same file group as the output file they support.
 
 
-## Context
+## File Group Context
 Contextual description of what data is contained in the output files within a file group
 explaining e.g.:
 
@@ -45,12 +45,12 @@ explaining e.g.:
 - relationship to other data/tables which through combination may introduce secondary disclosive risks.
 
 
-## Controls
+## Statistical Disclosure Controls
 
 Description of statistical disclosure control measures (e.g. rounding/suppression) that have been
 applied to the files within a file group.
 
-## Turn
+## Release Request Turn
 
 A stage of the release request process during which the request is considered to be "owned"
 by either the researcher (author) or the reviewer (output checker). 
@@ -72,7 +72,7 @@ agree.)
 Each time a release request is submitted for review, it is initially reviewed independently by two output checkers. At this stage, output checkers are not aware of the status of other 
 reviews, and cannot see comments made by other output checker.
 
-## Consolidation
+## Review consolidation
 
 After output checkers have both completed their independent review, there is a phase of 
 consolidation, where they can collaborate and determine the questions and feedback that

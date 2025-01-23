@@ -54,9 +54,3 @@ supporting file), first [withdraw the file](#withdraw-a-file) from the request a
 In order to move a file to a different file group, first [withdraw the file](#withdraw-a-file)
 from the request and then [add it again](create-and-submit-a-release-request.md#adding-files)
 with the new file group.
-
-
----
-
-* Previous: [Respond to a returned request](respond-to-returned-request.md)
-* Next: [Withdraw a release request](withdraw-request.md)

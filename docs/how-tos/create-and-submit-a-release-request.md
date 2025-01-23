@@ -24,7 +24,7 @@ select the type of file (output file or supporting file).
 
 !!! note
     You can only have one active release request for a workspace at any one time. If you
-    already have an active release request, file will be added to it. If you do not have
+    already have an active release request, the file will be added to it. If you do not have
     an active release request, a new one will be created.
 
 If you added a file that you did not intend to, you can
@@ -44,7 +44,7 @@ to workspaces, and can be navigated in the same way.
 
 Output and supporting files are [differentiated in the tree by colour and icon](../reference/file-icons.md), as shown above.
 
-## Add context and controls
+## Add file group context and statistical disclosure controls
 
 Context and controls must be added to each file group before the release request
 can be submitted.
@@ -71,8 +71,3 @@ Your release request's status will transition to "Submitted", and you will no lo
 able to edit it. Output checkers will be [automatically notified](../explanation/notifications.md) that the request is ready for review.
 
 ![Submitted request](../screenshots/submitted_request.png)
-
----
-
-* Previous: [View workspace files](view-workspace-files.md)
-* Next: [Respond to a returned request](respond-to-returned-request.md)

@@ -6,7 +6,7 @@
 You will use your OpenSAFELY email address or your GitHub username to log in. These are
 the same credentials you use to access the Jobs website.
 
-However, whilst normally you log into https://jobs.opensafely.org from your browser using GitHub,
+However, whilst normally you log into <https://jobs.opensafely.org> from your browser using GitHub,
 the secure server does not have access to GitHub. So you need to use an alternate method to login to Airlock, by generating a Single Use Token via the Jobs site, and then using it on the secure
 server to log in to Airlock.
 
@@ -35,7 +35,3 @@ Log in using your GitHub username or OpenSAFELY email and the Single Use Token f
 ![Single Use Token generated on Jobs site](../screenshots/login_form.png)
 
 You should be now logged in. This login will expire after two weeks of not being used.
-
----
-
-* Next: [View workspace files](view-workspace-files.md)

@@ -1,7 +1,7 @@
-A **workspace file** is always the latest version of the output file created by
+A **workspace file** is always the latest version of the file created by
 a job run via the Jobs site.
 
-A **request file** is the version of the output file at the time that it was
+A **request file** is the version of the file at the time that it was
 added to a release request.
 
 When a file is added to a release request, a copy is taken of the current contents

@@ -22,16 +22,16 @@ A request moves through a [series of statuses](../reference/request-states.md) d
 be "owned" by either the researcher (request author) or the output checker. 
 
 During researcher-owned statuses, the researcher can add, withdraw and update
-files on a request, and can add or edit context, controls and comments on a file 
-group. They can also choose to withdraw the request entirely.
+files on a request, and can add or edit file group context, statistical disclosure controls
+and comments on a file group. They can also choose to withdraw the request entirely.
 
 During output checker-owned statuses, output checkers can vote on files, and,
-depending on the status of the file votes, return the request to the researcher,
+depending on the status of the file decision, return the request to the researcher,
 reject it, or release files. They can also add comments and questions on file groups.
 
 Researchers and output checkers take it in turns to work on the release request.
 We refer to the change from a researcher-owned status to an output checker-owned
-status (or vice versa) as a new turn.
+status (or vice versa) as a new release request turn.
 
 For example: a researcher creates a new request and adds files to it. The release request is in status PENDING. It is "owned" by the researcher, who can continue
 to edit it.
