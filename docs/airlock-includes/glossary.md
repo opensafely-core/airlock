@@ -2,7 +2,7 @@
 *[file group]: A collection of files that share the same context and disclosure control information
 *[workspace]: a directory of files generated from the jobs that have been run on the Jobs site
 *[output file]: A file that has been added to a release request and is to be released
-*[output files]: File that have been added to a release request and are to be released
+*[output files]: Files that have been added to a release request and are to be released
 *[supporting file]: A file that has been added to a release request for additional information or context, and will not be released
 *[supporting files]: Files that have been added to a release request for additional information or context, and will not be released
 *[release request turn]: A stage of the release request process during which the request is considered to be "owned" by either the researcher (author) or the reviewer (output checker).
