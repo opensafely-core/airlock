@@ -7,7 +7,7 @@ django-htmx
 django-markdownify
 whitenoise
 gunicorn
-opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2024.10.11.170331.zip
+opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2025.01.21.182725.zip
 requests
 pydantic<2
 ulid
