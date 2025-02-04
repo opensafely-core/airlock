@@ -80,14 +80,13 @@ def upload_file(release_id, workspace, relpath, abspath, username):
 
     if response.status_code != 201:
         response_content = response.content.decode()
-        if (
-            f"This version of '{relpath}' has already been uploaded"
-            in response.json()["detail"]
-        ):
+        error = response.json()["detail"]
+        if f"This version of '{relpath}' has already been uploaded" in error:
             # Ignore attempted re-uploads
             logger.info(
                 "File already uploaded - %s - %s - %s", workspace, relpath, release_id
             )
+            return True, error
         else:
             logger.error(
                 "%s Error uploading file - %s - %s - %s",
@@ -96,9 +95,8 @@ def upload_file(release_id, workspace, relpath, abspath, username):
                 release_id,
                 response_content,
             )
-            response.raise_for_status()
-
-    return response
+            return False, error
+    return True, ""
 
 
 def modified_time(path: Path) -> str:

@@ -81,13 +81,15 @@ def test_old_api_upload_file_error(responses, caplog):
         status=400,
         json={"detail": "job-server error"},
     )
-    with pytest.raises(requests.exceptions.HTTPError):
-        old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
-
+    uploaded, error = old_api.upload_file(
+        "release-id", "workspace", relpath, abspath, "testuser"
+    )
+    assert not uploaded
     assert len(caplog.messages) == 1
     log = caplog.messages[0]
     assert "Error uploading file" in log
     assert "job-server error" in log
+    assert error == "job-server error"
 
 
 def test_old_api_upload_file_already_uploaded_error(responses, caplog):
