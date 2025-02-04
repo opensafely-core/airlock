@@ -1491,13 +1491,11 @@ def test_request_release_files_success(airlock_client, release_files_stubber, st
         ],
     )
 
-    api_responses = release_files_stubber(release_request)
+    release_files_stubber(release_request)
+
     response = airlock_client.post(f"/requests/release/{release_request.id}")
     assert response.url == f"/requests/view/{release_request.id}/"
     assert response.status_code == 302
-
-    assert api_responses.calls[1].request.body == b"test1"
-    assert api_responses.calls[2].request.body == b"test2"
 
 
 @pytest.mark.parametrize("status", [RequestStatus.REVIEWED, RequestStatus.APPROVED])
@@ -1513,7 +1511,7 @@ def test_request_release_files_success_htmx(
             factories.request_file(path="file1.txt", contents="test2", approved=True),
         ],
     )
-    api_responses = release_files_stubber(release_request)
+    release_files_stubber(release_request)
     response = airlock_client.post(
         f"/requests/release/{release_request.id}",
         headers={"HX-Request": "true"},
@@ -1521,9 +1519,6 @@ def test_request_release_files_success_htmx(
 
     assert response.headers["HX-Redirect"] == f"/requests/view/{release_request.id}/"
     assert response.status_code == 200
-
-    assert api_responses.calls[1].request.body == b"test1"
-    assert api_responses.calls[2].request.body == b"test2"
 
 
 def test_requests_release_workspace_403(airlock_client):
