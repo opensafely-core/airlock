@@ -236,9 +236,9 @@ def test_screenshot_from_creation_to_release(
 
     # Login as output checker and visit pages
     login_as_user(live_server, context, user_dicts["checker1"])
-    # Requests index
-    page.goto(f"{live_server.url}/requests")
-    page.screenshot(path=settings.SCREENSHOT_DIR / "requests_index.png")
+    # Reviews index page
+    page.goto(f"{live_server.url}/requests/output_checker")
+    page.screenshot(path=settings.SCREENSHOT_DIR / "reviews_index.png")
     # Request view
     page.goto(live_server.url + release_request.get_url())
     page.screenshot(path=settings.SCREENSHOT_DIR / "request_overview.png")

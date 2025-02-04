@@ -3,17 +3,11 @@ each requested file.
 
 ## View release requests that require action
 
-Use the navigation bar link to view all requests.
+Use the navigation bar link to view all requests for review. 
 
-![Requests index](../screenshots/requests_index.png)
+![Reviews index](../screenshots/reviews_index.png)
 
-This page shows you any release requests that you have authored, and any
-release requests that are currently active.
-
-!!! note
-    If you are not an output checker you will only see requests that you
-    have authored on this page.
-
+This page shows you any release requests that are currently active.
 
 ### Outstanding requests awaiting review
 These are requests that have been submitted and are awaiting or under review.
