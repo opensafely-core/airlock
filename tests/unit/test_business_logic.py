@@ -267,6 +267,126 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     assert [log.type for log in audit_log] == expected_audit_logs
 
 
+def test_provider_register_file_upload(mock_old_api, bll, freezer):
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                group="group",
+                path="test/file.txt",
+                contents="test",
+                approved=True,
+            ),
+            # a supporting file, which should NOT be released
+            factories.request_file(
+                group="group",
+                path="test/supporting_file.txt",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+
+    relpath = UrlPath("test/file.txt")
+    abspath = release_request.abspath("group" / relpath)
+    freezer.move_to("2022-01-01T12:34:56")
+
+    bll.register_file_upload(release_request, relpath, checkers[0])
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.uploaded
+    assert request_file.uploaded_at == parse_datetime("2022-01-01T12:34:56Z")
+
+    expected_json = {
+        "files": [
+            {
+                "name": "test/file.txt",
+                "url": "test/file.txt",
+                "size": 4,
+                "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+                "date": old_api.modified_time(abspath),
+                "metadata": {"tool": "airlock", "airlock_id": release_request.id},
+                "review": None,
+            }
+        ],
+        "metadata": {"tool": "airlock", "airlock_id": release_request.id},
+        "review": None,
+    }
+
+    old_api.get_or_create_release.assert_called_once_with(  # type: ignore
+        "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
+    )
+    # in the real workflow, upload_file is called asynchronously and triggers
+    # register_file_upload, so it isn't called in this test
+    old_api.upload_file.assert_not_called()  # type: ignore
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+
+    expected_audit_logs = [
+        # create request
+        AuditEventType.REQUEST_CREATE,
+        # add 2 files
+        AuditEventType.REQUEST_FILE_ADD,
+        AuditEventType.REQUEST_FILE_ADD,
+        # add default context & controls
+        AuditEventType.REQUEST_EDIT,
+        # submit request
+        AuditEventType.REQUEST_SUBMIT,
+        # initial reviews
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_REVIEW,
+        AuditEventType.REQUEST_REVIEW,
+        # appprove, release 1 output file, change request to released
+        AuditEventType.REQUEST_APPROVE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_RELEASE,
+        # upload 1 file
+        AuditEventType.REQUEST_FILE_UPLOAD,
+    ]
+    assert [log.type for log in audit_log] == expected_audit_logs
+
+
+def test_provider_register_and_reset_file_upload_attempt(mock_old_api, bll, freezer):
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                group="group",
+                path="test/file.txt",
+                contents="test",
+                approved=True,
+            )
+        ],
+    )
+
+    relpath = UrlPath("test/file.txt")
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert not request_file.uploaded
+    assert request_file.upload_attempts == 0
+
+    bll.register_file_upload_attempt(release_request, relpath)
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert not request_file.uploaded
+    assert request_file.upload_attempts == 1
+
+    bll.reset_file_upload_attempts(release_request, relpath)
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert not request_file.uploaded
+    assert request_file.upload_attempts == 0
+
+
 def test_provider_get_requests_for_workspace(bll):
     user = factories.create_user("test", ["workspace", "workspace2"])
     other_user = factories.create_user("other", ["workspace"])
@@ -2362,6 +2482,8 @@ DAL_AUDIT_EXCLUDED = {
     "record_review",
     "start_new_turn",
     "get_released_files_for_workspace",
+    "register_file_upload_attempt",
+    "reset_file_upload_attempts",
 }
 
 

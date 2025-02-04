@@ -262,6 +262,37 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
 
+    def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
+        with transaction.atomic():
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+            request_file.upload_attempts += 1
+            request_file.save()
+
+    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
+        with transaction.atomic():
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+            request_file.upload_attempts = 0
+            request_file.save()
+
+    def register_file_upload(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        with transaction.atomic():
+            # nb. the business logic layer register_file_upload() should confirm that
+            # this path is part of the request before calling this method
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+            request_file.uploaded = True
+            request_file.uploaded_at = timezone.now()
+            request_file.save()
+
+            self._create_audit_log(audit)
+
     def approve_file(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):

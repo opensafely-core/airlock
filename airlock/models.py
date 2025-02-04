@@ -58,6 +58,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_FILE_RESET_REVIEW: "Reset review of file",
     AuditEventType.REQUEST_FILE_UNDECIDED: "File with changes requested moved to undecided",
     AuditEventType.REQUEST_FILE_RELEASE: "File released",
+    AuditEventType.REQUEST_FILE_UPLOAD: "File uploaded",
 }
 
 

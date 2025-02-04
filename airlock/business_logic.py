@@ -129,6 +129,17 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
+        raise NotImplementedError()
+
+    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
+        raise NotImplementedError()
+
+    def register_file_upload(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
     def withdraw_file_from_request(
         self,
         request_id: str,
@@ -802,6 +813,39 @@ class BusinessLogicLayer:
             self._dal.release_file(release_request.id, relpath, user.username, audit)
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
+
+    def register_file_upload_attempt(
+        self, release_request: ReleaseRequest, relpath: UrlPath
+    ):
+        """
+        Register an attempt to upload a file
+        """
+        self._dal.register_file_upload_attempt(release_request.id, relpath)
+
+    def reset_file_upload_attempts(
+        self, release_request: ReleaseRequest, relpath: UrlPath
+    ):
+        """
+        Reset file upload attempts so the upload will be retried
+        """
+        self._dal.reset_file_upload_attempts(release_request.id, relpath)
+
+    def register_file_upload(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        """
+        Register that a file has been uploaded successfully
+        """
+        assert relpath in release_request.output_files()
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_UPLOAD,
+            user=user,
+            path=relpath,
+        )
+        self._dal.register_file_upload(
+            release_request.id, relpath, user.username, audit
+        )
 
     def submit_request(self, request: ReleaseRequest, user: User):
         """
