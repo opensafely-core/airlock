@@ -41,6 +41,9 @@ compile-reqs *ARGS: devenv
       $BIN/$command "$req_file" "$@"
     done
 
+# update to the latest version of the internal pipeline library
+upgrade-pipeline:
+    ./scripts/upgrade-pipeline.sh requirements.prod.in
 
 # create a valid .env if none exists
 _dotenv:
