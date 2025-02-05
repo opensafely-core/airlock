@@ -12,8 +12,6 @@ host="http://localhost:9000"
 
 test -f .env.jobserver|| cp .env.jobserver.template .env.jobserver
 
-# this is *horrid*, but the service won't start if the config has ADMIN_USERS that don't exist
-ensure_value ADMIN_USERS "" .env.jobserver
 ensure_value JOBSERVER_GITHUB_TOKEN "" .env.jobserver
 
 # ensure we have a running db and up to date job-server instance we can run stuff in it 

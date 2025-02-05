@@ -200,9 +200,9 @@ PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable just test -k fu
 the console, or with `--headed` for headed mode.)
 
 
-# Local job-server for integration.
+## Local job-server for integration.
 
-## First time set up
+### First time set up
 
 This needs some first time setup, but after that is fairly simple to use. You
 will need the Bitwarden cli `bw` installed to pull the dev Github auth
@@ -225,7 +225,7 @@ In future you can just do the following to start it up:
 just job-server/run
 ```
 
-## Create workspace
+### Create workspace
 
 You will need at least one workspace set up in job-server and locally in airlock to test integration:
 
@@ -235,14 +235,13 @@ just job-server/create-workspace NAME  # defaults to "airlock-test-workspace"
 
 ```
 
-IMPORTANT GOTCHA: The current release API is awkward, and will refuse to upload a file
-that's already been uploaded. This will change, but for now, you can clear the
-state of all releases for a workspace with:
+You can clear the state of all releases for a workspace with:
 
 ```
 just job-server/remove-releases workspace
 ```
-## Running a custom job-server build
+
+### Running a custom job-server build
 
 This is useful to test against an development version of job-server.
 
@@ -253,13 +252,13 @@ Now the configure and run command will use the local job-server image, rather
 than the published one.
 
 
-## Undoing
+### Undoing
 
 To go back to normal, you can use `just job-server/stop`. This will comment out
 the `AIRLOCK_API_*` lines in .env.  `just job-server/run` will uncomment them.
 
 
-## Cleaning up
+### Cleaning up
 
 By default, the local job-server maintains db and file on a couple of volumes.
 To reset back to a clean slate, you can kill and re-configure, and then add
