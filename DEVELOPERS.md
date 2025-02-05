@@ -50,6 +50,12 @@ Check that Django is configured correctly with:
 just manage check
 ```
 
+Create a local database with:
+
+```
+just manage migrate
+```
+
 You can run all the tests with:
 ```
 just test
