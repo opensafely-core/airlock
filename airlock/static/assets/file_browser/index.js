@@ -67,6 +67,17 @@ function saveCheckboxSessionState() {
   sessionStorage.setItem("checkbox-cache", JSON.stringify(currentState));
 }
 
+// implement select all checkbox
+function toggleSelectAll(elem) {
+  const checkboxes = getVisibleCheckboxes();
+
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = elem.checked;
+  });
+
+  saveCheckboxSessionState();
+}
+
 // Update the state of the select all checkbox. Checked if
 // all other checkboxes are checked, unchecked if none of the
 // others are checked, and "intermediate" (visual only) if some
