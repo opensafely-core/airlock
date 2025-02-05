@@ -14,6 +14,14 @@ from .conftest import login_as_user
 from .utils import screenshot_element_with_padding
 
 
+@pytest.fixture(autouse=True)
+def hide_nav_item_switch_user(monkeypatch):
+    def mockreturn(request):
+        return {"dev_users": False}
+
+    monkeypatch.setattr("airlock.nav.dev_users", mockreturn)
+
+
 def get_user_data():
     author_username = "researcher"
     author_workspaces = ["my-workspace"]
