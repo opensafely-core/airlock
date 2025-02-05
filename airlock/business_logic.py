@@ -770,15 +770,12 @@ class BusinessLogicLayer:
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
-    def release_files(self, release_request: ReleaseRequest, user: User, upload=True):
+    def release_files(self, release_request: ReleaseRequest, user: User):
         """Release all files from a release_request to job-server.
 
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
 
-        Passing upload=False will just perform the DAL actions, but not
-        actually attempt to upload the files. This defaults to True, and is
-        primarily used for testing.
         """
 
         # we check this is valid status transition *before* releasing the files
@@ -789,16 +786,12 @@ class BusinessLogicLayer:
 
         filelist = old_api.create_filelist(file_paths, release_request)
 
-        if upload:
-            # Get or create the release
-            # If this is a re-release attempt, the id for the existing
-            # release will be returned
-            old_api.get_or_create_release(
-                release_request.workspace,
-                release_request.id,
-                filelist.json(),
-                user.username,
-            )
+        old_api.get_or_create_release(
+            release_request.workspace,
+            release_request.id,
+            filelist.json(),
+            user.username,
+        )
 
         for relpath, abspath in file_paths:
             audit = AuditEvent.from_request(
@@ -812,6 +805,10 @@ class BusinessLogicLayer:
             # the file will be handled by the asychronous file uploader.
             self._dal.release_file(release_request.id, relpath, user.username, audit)
 
+        # TODO: For now, we continue to set the status to RELEASED, even though the
+        # files have not necessarily been uploaded yet. Eventually we'll leave this
+        # as APPROVED, and have the upload task check whether all files are uploaded
+        # and update the status
         self.set_status(release_request, RequestStatus.RELEASED, user)
 
     def register_file_upload_attempt(

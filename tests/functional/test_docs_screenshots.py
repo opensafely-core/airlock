@@ -590,7 +590,7 @@ def test_screenshot_request_reviewed_icons(page, context, live_server):
     os.getenv("RUN_SCREENSHOT_TESTS") is None,
     reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
 )
-def test_screenshot_workspace_icons(page, context, live_server):
+def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     author, user_dicts = get_user_data()
     checker1 = factories.create_user(
         username="checker1",

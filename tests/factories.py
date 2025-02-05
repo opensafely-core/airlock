@@ -437,7 +437,6 @@ def create_request_at_status(
         bll.release_files(
             request,
             user=checker,
-            upload=False,
         )
         return refresh_release_request(request)
 

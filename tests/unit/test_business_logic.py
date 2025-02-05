@@ -428,7 +428,9 @@ def test_provider_get_requests_authored_by_user(bll):
         True,
     ],
 )
-def test_provider_get_outstanding_requests_for_review(output_checker, bll):
+def test_provider_get_outstanding_requests_for_review(
+    mock_old_api, output_checker, bll
+):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
     # request created by another user, status submitted
@@ -486,7 +488,7 @@ def test_provider_get_outstanding_requests_for_review(output_checker, bll):
         True,
     ],
 )
-def test_provider_get_returned_requests(output_checker, bll):
+def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
 
@@ -545,7 +547,7 @@ def test_provider_get_returned_requests(output_checker, bll):
         True,
     ],
 )
-def test_provider_get_approved_requests(output_checker, bll):
+def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
     user = factories.create_user("test", ["workspace"], output_checker)
     other_user = factories.create_user("other", ["workspace"], False)
 
@@ -614,7 +616,7 @@ def test_provider_get_approved_requests(output_checker, bll):
         (RequestStatus.WITHDRAWN, False),
     ],
 )
-def test_provider_get_current_request_for_user(bll, status, is_current):
+def test_provider_get_current_request_for_user(mock_old_api, bll, status, is_current):
     user = factories.create_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
@@ -868,7 +870,9 @@ def test_provider_get_current_request_for_user_output_checker(bll):
         ),
     ],
 )
-def test_set_status(current, future, valid_author, valid_checker, withdrawn_after, bll):
+def test_set_status(
+    current, future, valid_author, valid_checker, withdrawn_after, bll, mock_old_api
+):
     author = factories.create_user("author", ["workspace1", "workspace2"], False)
     checker = factories.create_user(output_checker=True)
     file_reviewers = [checker, factories.create_user("checker1", [], True)]
@@ -1252,7 +1256,7 @@ def test_add_file_to_request_invalid_file_type(bll):
         (RequestStatus.WITHDRAWN, False),
     ],
 )
-def test_add_file_to_request_states(status, success, bll):
+def test_add_file_to_request_states(status, success, bll, mock_old_api):
     author = factories.create_user("author", ["workspace"], False)
 
     path = UrlPath("path/file.txt")
@@ -1328,7 +1332,7 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
             bll.add_file_to_request(release_request, path, author, filetype=filetype)
 
 
-def test_add_file_to_request_already_released(bll):
+def test_add_file_to_request_already_released(bll, mock_old_api):
     user = factories.create_user(workspaces=["workspace"])
     # release one file, include one supporting file
     factories.create_request_at_status(
@@ -1420,6 +1424,7 @@ def test_update_file_to_request_states(
     notification_sent,
     bll,
     mock_notifications,
+    mock_old_api,
 ):
     author = factories.create_user("author", ["workspace"], False)
     checkers = factories.get_default_output_checkers()
@@ -1704,7 +1709,7 @@ def test_readd_withdrawn_file_to_request_returned_new_group(bll):
         RequestStatus.RELEASED,
     ],
 )
-def test_withdraw_file_from_request_not_editable_state(bll, status):
+def test_withdraw_file_from_request_not_editable_state(bll, mock_old_api, status):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",

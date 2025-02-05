@@ -281,6 +281,7 @@ def test_request_buttons(
     context,
     page,
     bll,
+    mock_old_api,
     author,
     login_as,
     status,

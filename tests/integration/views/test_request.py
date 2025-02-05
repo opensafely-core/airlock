@@ -366,7 +366,7 @@ def test_request_view_with_reviewed_request(airlock_client):
 
 
 @pytest.mark.parametrize("status", list(RequestStatus))
-def test_request_view_with_authored_request_file(airlock_client, status):
+def test_request_view_with_authored_request_file(mock_old_api, airlock_client, status):
     airlock_client.login(output_checker=True, workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
