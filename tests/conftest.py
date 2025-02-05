@@ -3,11 +3,12 @@ import responses as _responses
 from django.conf import settings
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from unittest.mock import MagicMock
 
 import airlock.business_logic
+import old_api
 import services.tracing as tracing
 import tests.factories
-
 
 # set up tracing for tests
 provider = tracing.get_provider()
@@ -105,3 +106,13 @@ def notifications_stubber(responses, settings):
 @pytest.fixture
 def mock_notifications(notifications_stubber):
     return notifications_stubber()
+
+
+@pytest.fixture
+def mock_old_api(monkeypatch):
+    monkeypatch.setattr(
+        old_api,
+        "get_or_create_release",
+        MagicMock(autospec=old_api.get_or_create_release),
+    )
+    monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))

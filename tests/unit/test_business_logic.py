@@ -1,6 +1,6 @@
 import inspect
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.utils.dateparse import parse_datetime
@@ -91,16 +91,6 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
     ]
 
 
-@pytest.fixture
-def mock_old_api(monkeypatch):
-    monkeypatch.setattr(
-        old_api,
-        "get_or_create_release",
-        MagicMock(autospec=old_api.get_or_create_release),
-    )
-    monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
-
-
 def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
     author = factories.create_user("author", ["workspace"])
     checker = factories.create_user("checker", output_checker=True)
@@ -136,7 +126,6 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
 
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
-    old_api.get_or_create_release.return_value = "jobserver_id"  # type: ignore
     author = factories.create_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
