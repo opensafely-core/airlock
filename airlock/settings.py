@@ -441,3 +441,7 @@ LOGGING = {
 }
 
 SCREENSHOT_DIR = BASE_DIR / "docs" / "screenshots"
+
+
+UPLOAD_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_DELAY", 1))
+UPLOAD_MAX_ATTEMPTS = int(os.environ.get("AIRLOCK_UPLOAD_MAX_ATTEMPTS", 3))

@@ -262,6 +262,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
 
+    def get_released_files_for_request(self, request_id: str):
+        released_files = RequestFileMetadata.objects.filter(
+            request_id=request_id,
+            released_at__isnull=False,
+        )
+        return [request_file.to_dict() for request_file in released_files]
+
     def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -269,6 +276,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             request_file.upload_attempts += 1
             request_file.save()
+        return request_file.to_dict()
 
     def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
         with transaction.atomic():

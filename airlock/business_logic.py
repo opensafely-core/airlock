@@ -129,6 +129,9 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def get_released_files_for_request(self, request_id: str):
+        raise NotImplementedError()
+
     def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
         raise NotImplementedError()
 
@@ -830,13 +833,30 @@ class BusinessLogicLayer:
         if release_request.status != RequestStatus.APPROVED:
             bll.set_status(release_request, RequestStatus.APPROVED, user)
 
+    def get_released_files_for_request(self, release_request: ReleaseRequest):
+        return [
+            RequestFile.from_dict(file_metadata)
+            for file_metadata in self._dal.get_released_files_for_request(
+                request_id=release_request.id
+            )
+        ]
+
+    def get_released_files_for_upload(self, release_request: ReleaseRequest):
+        return [
+            request_file
+            for request_file in self.get_released_files_for_request(release_request)
+            if not request_file.uploaded
+        ]
+
     def register_file_upload_attempt(
         self, release_request: ReleaseRequest, relpath: UrlPath
     ):
         """
         Register an attempt to upload a file
         """
-        self._dal.register_file_upload_attempt(release_request.id, relpath)
+        return RequestFile.from_dict(
+            self._dal.register_file_upload_attempt(release_request.id, relpath)
+        )
 
     def reset_file_upload_attempts(
         self, release_request: ReleaseRequest, relpath: UrlPath

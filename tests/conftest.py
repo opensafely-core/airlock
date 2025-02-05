@@ -1,14 +1,16 @@
+from unittest.mock import MagicMock
+
 import pytest
 import responses as _responses
 from django.conf import settings
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from unittest.mock import MagicMock
 
 import airlock.business_logic
 import old_api
 import services.tracing as tracing
 import tests.factories
+
 
 # set up tracing for tests
 provider = tracing.get_provider()
@@ -82,6 +84,26 @@ def release_files_stubber(responses):
         return responses
 
     return release_files
+
+
+@pytest.fixture()
+def upload_files_stubber(release_files_stubber):
+    def upload_files(request, response_statuses=None):
+        responses = release_files_stubber(request)
+
+        if response_statuses is None:
+            response_statuses = [201 for _ in request.get_output_file_paths()]
+
+        for status in response_statuses:
+            responses.post(
+                f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{request.id}",
+                status=status,
+                json={"detail": "error" if status != 201 else "ok"},
+            )
+
+        return responses
+
+    return upload_files
 
 
 @pytest.fixture
