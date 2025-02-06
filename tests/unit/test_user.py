@@ -10,12 +10,10 @@ def test_session_user_from_session():
             "username": "test",
             "workspaces": {
                 "test-workspace-1": {
-                    "project": "Project 1",
                     "project_details": {"name": "Project 1", "ongoing": True},
                     "archived": False,
                 },
                 "test_workspace2": {
-                    "project": "Project 2",
                     "project_details": {"name": "Project 2", "ongoing": True},
                     "archived": True,
                 },
@@ -25,8 +23,6 @@ def test_session_user_from_session():
     }
     user = User.from_session(mock_session)
     assert set(user.workspaces) == {"test-workspace-1", "test_workspace2"}
-    assert user.workspaces["test-workspace-1"]["project"] == "Project 1"
-    assert user.workspaces["test_workspace2"]["project"] == "Project 2"
     assert user.workspaces["test-workspace-1"]["project_details"] == {
         "name": "Project 1",
         "ongoing": True,

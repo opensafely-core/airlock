@@ -142,17 +142,14 @@ def test_workspace_get_workspace_archived_ongoing(bll):
         "user",
         workspaces={
             "normal_workspace": {
-                "project": "project-1",
                 "project_details": {"name": "project-1", "ongoing": True},
                 "archived": False,
             },
             "archived_workspace": {
-                "project": "project-1",
                 "project_details": {"name": "project-1", "ongoing": True},
                 "archived": True,
             },
             "not_ongoing": {
-                "project": "project-2",
                 "project_details": {"name": "project-2", "ongoing": False},
                 "archived": False,
             },
