@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.2
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 #################################################
 #
