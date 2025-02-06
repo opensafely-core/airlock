@@ -191,6 +191,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     request_file = release_request.filegroups["group"].files[relpath]
     assert request_file.released_by == checkers[0].username
     assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
+    assert not request_file.uploaded
 
     expected_json = {
         "files": [
@@ -211,9 +212,9 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     old_api.get_or_create_release.assert_called_once_with(  # type: ignore
         "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
     )
-    old_api.upload_file.assert_called_once_with(  # type: ignore
-        "jobserver_id", "workspace", relpath, abspath, checkers[0].username
-    )
+    # upload file is not called on release; it will be called by the file uploader
+    # asynchronously
+    old_api.upload_file.assert_not_called()  # type: ignore
 
     notification_responses = parse_notification_responses(mock_notifications)
     assert notification_responses["count"] == 9

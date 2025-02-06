@@ -782,14 +782,12 @@ class BusinessLogicLayer:
             # Get or create the release
             # If this is a re-release attempt, the id for the existing
             # release will be returned
-            jobserver_release_id = old_api.get_or_create_release(
+            old_api.get_or_create_release(
                 release_request.workspace,
                 release_request.id,
                 filelist.json(),
                 user.username,
             )
-        else:
-            jobserver_release_id = None
 
         for relpath, abspath in file_paths:
             audit = AuditEvent.from_request(
@@ -798,16 +796,10 @@ class BusinessLogicLayer:
                 user=user,
                 path=relpath,
             )
+            # Note: releasing the file updates its released_at and released by
+            # attributes, as an indication of intent to release. Actually uploading
+            # the file will be handled by the asychronous file uploader.
             self._dal.release_file(release_request.id, relpath, user.username, audit)
-
-            if upload:
-                old_api.upload_file(
-                    jobserver_release_id,
-                    release_request.workspace,
-                    relpath,
-                    abspath,
-                    user.username,
-                )
 
         self.set_status(release_request, RequestStatus.RELEASED, user)
 
