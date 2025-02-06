@@ -200,6 +200,10 @@ class RequestFileMetadata(models.Model):
     released_at = models.DateTimeField(default=None, null=True)
     # just username, as we have no User model
     released_by = models.TextField(null=True)
+    # upload status information
+    uploaded = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(default=None, null=True)
+    upload_attempts = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ("relpath", "request")
@@ -220,6 +224,9 @@ class RequestFileMetadata(models.Model):
             reviews=[file_review.to_dict() for file_review in self.reviews.all()],
             released_at=self.released_at,
             released_by=self.released_by,
+            uploaded=self.uploaded,
+            uploaded_at=self.uploaded_at,
+            upload_attempts=self.upload_attempts,
         )
 
 

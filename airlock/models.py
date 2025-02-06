@@ -479,6 +479,9 @@ class RequestFile:
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
     released_at: datetime | None = None
+    uploaded: bool = False
+    upload_attempts: int | None = 0
+    uploaded_at: datetime | None = None
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
