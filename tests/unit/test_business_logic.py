@@ -3,6 +3,7 @@ import json
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import old_api
@@ -250,6 +251,115 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         AuditEventType.REQUEST_REVIEW,
         # appprove, release 1 output file, change request to released
         AuditEventType.REQUEST_APPROVE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_RELEASE,
+    ]
+    assert [log.type for log in audit_log] == expected_audit_logs
+
+
+def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
+    author = factories.create_user("author", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.APPROVED,
+        files=[
+            factories.request_file(
+                group="group",
+                path="test/file.txt",
+                contents="test",
+                approved=True,
+            ),
+            factories.request_file(
+                group="group",
+                path="test/file1.txt",
+                contents="test",
+                approved=True,
+            ),
+            factories.request_file(
+                group="group",
+                path="test/file2.txt",
+                contents="test",
+                approved=True,
+            ),
+        ],
+    )
+
+    uploaded_relpath = UrlPath("test/file.txt")
+    not_uploaded_relpath = UrlPath("test/file1.txt")
+    not_uploaded1_relpath = UrlPath("test/file2.txt")
+    freezer.move_to("2022-01-01T12:34:56")
+
+    bll.release_files(release_request, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+
+    for relpath in [not_uploaded_relpath, not_uploaded1_relpath]:
+        not_uploaded_file = release_request.filegroups["group"].files[relpath]
+        assert not_uploaded_file.released_by == checkers[0].username
+        assert not not_uploaded_file.uploaded
+        assert not_uploaded_file.upload_attempts == 0
+
+    # set max attempts to upload file2
+    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+        bll.register_file_upload_attempt(release_request, not_uploaded1_relpath)
+
+    release_request = factories.refresh_release_request(release_request)
+    assert (
+        release_request.filegroups["group"].files[relpath].upload_attempts
+        == settings.UPLOAD_MAX_ATTEMPTS
+    )
+
+    # mark first file as uploaded
+    bll.register_file_upload(release_request, uploaded_relpath, checkers[0])
+    release_request = factories.refresh_release_request(release_request)
+
+    # Set request status back to APPROVED so we can try to re-release
+    release_request.status = RequestStatus.APPROVED
+    bll.release_files(release_request, checkers[1])
+
+    release_request = factories.refresh_release_request(release_request)
+    # uploaded file hasn't changed
+    uploaded_request_file = release_request.filegroups["group"].files[uploaded_relpath]
+    assert uploaded_request_file.released_by == checkers[0].username
+
+    # non-uploaded file has been updated and attempts on
+    # file with max previous attempts has been reset
+    for relpath in [not_uploaded_relpath, not_uploaded1_relpath]:
+        not_uploaded_file = release_request.filegroups["group"].files[relpath]
+        assert not_uploaded_file.released_by == checkers[1].username
+        assert not_uploaded_file.upload_attempts == 0
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    expected_audit_logs = [
+        # create request
+        AuditEventType.REQUEST_CREATE,
+        # add 3 files
+        AuditEventType.REQUEST_FILE_ADD,
+        AuditEventType.REQUEST_FILE_ADD,
+        AuditEventType.REQUEST_FILE_ADD,
+        # add default context & controls
+        AuditEventType.REQUEST_EDIT,
+        # submit request
+        AuditEventType.REQUEST_SUBMIT,
+        # initial reviews
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_FILE_APPROVE,
+        AuditEventType.REQUEST_REVIEW,
+        AuditEventType.REQUEST_REVIEW,
+        # approve, change request to released
+        AuditEventType.REQUEST_APPROVE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_FILE_RELEASE,
+        # upload one file
+        AuditEventType.REQUEST_FILE_UPLOAD,
+        # re-try only releases two un-uploaded files
+        AuditEventType.REQUEST_FILE_RELEASE,
         AuditEventType.REQUEST_FILE_RELEASE,
         AuditEventType.REQUEST_RELEASE,
     ]
@@ -2476,6 +2586,7 @@ DAL_AUDIT_EXCLUDED = {
     "record_review",
     "start_new_turn",
     "get_released_files_for_workspace",
+    "get_released_files_for_request",
     "register_file_upload_attempt",
     "reset_file_upload_attempts",
 }

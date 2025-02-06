@@ -794,16 +794,32 @@ class BusinessLogicLayer:
         )
 
         for relpath, abspath in file_paths:
-            audit = AuditEvent.from_request(
-                request=release_request,
-                type=AuditEventType.REQUEST_FILE_RELEASE,
-                user=user,
-                path=relpath,
-            )
-            # Note: releasing the file updates its released_at and released by
-            # attributes, as an indication of intent to release. Actually uploading
-            # the file will be handled by the asychronous file uploader.
-            self._dal.release_file(release_request.id, relpath, user.username, audit)
+            # If the file has already been released, this is a re-release attempt due
+            # to a file upload issue with one or more files.
+            # Some files may have already been upoaded successfully, so for those
+            # we do nothing.
+            # Otherwise, we call release_file again to record the user that re-tried the
+            # upload attempt in the file metadata and audit log
+            request_file = release_request.get_request_file_from_output_path(relpath)
+            if not request_file.uploaded:
+                audit = AuditEvent.from_request(
+                    request=release_request,
+                    type=AuditEventType.REQUEST_FILE_RELEASE,
+                    user=user,
+                    path=relpath,
+                )
+
+                if request_file.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
+                    # If we're attempting to manually re-release, reset the file
+                    # upload attempts so the file uploader will retry it.
+                    self._dal.reset_file_upload_attempts(release_request.id, relpath)
+
+                # Note: releasing the file updates its released_at and released by
+                # attributes, as an indication of intent to release. Actually uploading
+                # the file will be handled by the asychronous file uploader.
+                self._dal.release_file(
+                    release_request.id, relpath, user.username, audit
+                )
 
         # TODO: For now, we continue to set the status to RELEASED, even though the
         # files have not necessarily been uploaded yet. Eventually we'll leave this
