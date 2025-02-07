@@ -776,6 +776,8 @@ class BusinessLogicLayer:
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
 
+        This creates the release on job-server, but doesn't actually upload
+        the files.
         """
 
         # we check this is valid status transition *before* releasing the files
@@ -820,12 +822,6 @@ class BusinessLogicLayer:
                 self._dal.release_file(
                     release_request.id, relpath, user.username, audit
                 )
-
-        # TODO: For now, we continue to set the status to RELEASED, even though the
-        # files have not necessarily been uploaded yet. Eventually we'll leave this
-        # as APPROVED, and have the upload task check whether all files are uploaded
-        # and update the status
-        self.set_status(release_request, RequestStatus.RELEASED, user)
 
     def register_file_upload_attempt(
         self, release_request: ReleaseRequest, relpath: UrlPath
