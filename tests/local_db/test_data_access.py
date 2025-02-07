@@ -111,7 +111,7 @@ def test_delete_file_from_request_bad_state():
         RequestStatus.APPROVED,
     ],
 )
-def test_withdraw_file_from_request_bad_state(status):
+def test_withdraw_file_from_request_bad_state(status, mock_old_api):
     author = factories.create_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",

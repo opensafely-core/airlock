@@ -779,9 +779,12 @@ class BusinessLogicLayer:
         This creates the release on job-server, but doesn't actually upload
         the files.
         """
-
-        # we check this is valid status transition *before* releasing the files
-        self.check_status(release_request, RequestStatus.RELEASED, user)
+        # check this is valid status transition (or it's already approved)
+        # *before* initiating the release
+        # If a file fails to upload, we may need to re-try releasing from an
+        # already-approved status
+        if release_request.status != RequestStatus.APPROVED:
+            bll.check_status(release_request, RequestStatus.APPROVED, user)
 
         file_paths = release_request.get_output_file_paths()
         self.validate_file_types(file_paths)
@@ -795,7 +798,7 @@ class BusinessLogicLayer:
             user.username,
         )
 
-        for relpath, abspath in file_paths:
+        for relpath, _ in file_paths:
             # If the file has already been released, this is a re-release attempt due
             # to a file upload issue with one or more files.
             # Some files may have already been upoaded successfully, so for those
@@ -822,6 +825,10 @@ class BusinessLogicLayer:
                 self._dal.release_file(
                     release_request.id, relpath, user.username, audit
                 )
+
+        # Change status to approved if necessary.
+        if release_request.status != RequestStatus.APPROVED:
+            bll.set_status(release_request, RequestStatus.APPROVED, user)
 
     def register_file_upload_attempt(
         self, release_request: ReleaseRequest, relpath: UrlPath

@@ -666,7 +666,7 @@ def test_request_index_user_permitted_requests(airlock_client):
 
 
 # reviews page
-def test_review_user_output_checker(airlock_client):
+def test_review_user_output_checker(airlock_client, mock_old_api):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
     other = factories.create_user(
         "other",
@@ -1482,9 +1482,12 @@ def test_request_multiselect_withdraw_files_invalid_action(airlock_client):
 @pytest.mark.parametrize("status", [RequestStatus.REVIEWED, RequestStatus.APPROVED])
 def test_request_release_files_success(airlock_client, release_files_stubber, status):
     airlock_client.login(username="checker", output_checker=True)
+    # create request in REVIEWED status; we need to stub the job-server calls
+    # before release_files is called (it will be called by
+    # create_request_at_status if the status is APPROVED)
     release_request = factories.create_request_at_status(
         "workspace",
-        status=status,
+        status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(path="file.txt", contents="test1", approved=True),
             factories.request_file(path="file1.txt", contents="test2", approved=True),
@@ -1492,6 +1495,9 @@ def test_request_release_files_success(airlock_client, release_files_stubber, st
     )
 
     release_files_stubber(release_request)
+
+    if status == RequestStatus.APPROVED:
+        bll.release_files(release_request, airlock_client.user)
 
     response = airlock_client.post(f"/requests/release/{release_request.id}")
     assert response.url == f"/requests/view/{release_request.id}/"
@@ -1505,13 +1511,17 @@ def test_request_release_files_success_htmx(
     airlock_client.login(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
-        status=status,
+        status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(path="file.txt", contents="test1", approved=True),
             factories.request_file(path="file1.txt", contents="test2", approved=True),
         ],
     )
     release_files_stubber(release_request)
+
+    if status == RequestStatus.APPROVED:
+        bll.release_files(release_request, airlock_client.user)
+
     response = airlock_client.post(
         f"/requests/release/{release_request.id}",
         headers={"HX-Request": "true"},

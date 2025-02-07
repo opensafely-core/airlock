@@ -456,7 +456,7 @@ def test_e2e_release_files(
     # Release the files
     find_and_click(release_button)
     expect(page.locator("body")).to_contain_text(
-        "Files have been released to jobs.opensafely.org"
+        "Files have been released and will be uploaded to jobs.opensafely.org"
     )
 
     # Requests view does not show released request

@@ -374,10 +374,12 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         ),
         (RequestStatus.APPROVED, False, [], True),
         (
+            # In Approved status, files are released but may not be uploaded yet;
+            # Released files cannot be added to a new request as an output file
             RequestStatus.APPROVED,
             False,
             [factories.request_file(path="file.txt", approved=True)],
-            True,
+            False,
         ),
         (RequestStatus.RELEASED, False, [], True),
         (

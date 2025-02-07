@@ -353,7 +353,7 @@ def test_screenshot_from_creation_to_release(
     page.locator("#release-files-button").click()
     # Make sure we've waited for the files to be released
     expect(page.locator("body")).to_contain_text(
-        "Files have been released to jobs.opensafely.org"
+        "Files have been released and will be uploaded to jobs.opensafely.org"
     )
     page.screenshot(path=settings.SCREENSHOT_DIR / "files_released.png")
 

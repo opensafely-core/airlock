@@ -116,14 +116,14 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
         release_request = factories.create_request_at_status(
             "workspace",
-            status=RequestStatus.APPROVED,
+            status=RequestStatus.REVIEWED,
             files=[factories.request_file(path="test/file.foo", approved=True)],
         )
 
     checker = factories.create_user("checker", [], output_checker=True)
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.release_files(release_request, checker)
-    assert_last_notification(mock_notifications, "request_approved")
+    assert_last_notification(mock_notifications, "request_reviewed")
 
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
@@ -207,7 +207,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     old_api.upload_file.assert_not_called()  # type: ignore
 
     notification_responses = parse_notification_responses(mock_notifications)
-    assert notification_responses["count"] == 9
+    assert notification_responses["count"] == 8
     request_json = notification_responses["request_json"]
     expected_notifications = [
         "request_submitted",
@@ -218,7 +218,6 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         "request_partially_reviewed",
         "request_reviewed",
         "request_approved",
-        "request_released",
     ]
     assert [event["event_type"] for event in request_json] == expected_notifications
 
@@ -249,10 +248,10 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
         # re-review
         AuditEventType.REQUEST_REVIEW,
         AuditEventType.REQUEST_REVIEW,
-        # appprove, release 1 output file, change request to released
+        # appprove, release 1 output file, request NOT change to released yet
+        # (changes only when all files are uploaded)
         AuditEventType.REQUEST_APPROVE,
         AuditEventType.REQUEST_FILE_RELEASE,
-        AuditEventType.REQUEST_RELEASE,
     ]
     assert [log.type for log in audit_log] == expected_audit_logs
 
@@ -270,6 +269,7 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
                 path="test/file.txt",
                 contents="test",
                 approved=True,
+                uploaded=True,
             ),
             factories.request_file(
                 group="group",
@@ -291,8 +291,9 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
     not_uploaded1_relpath = UrlPath("test/file2.txt")
     freezer.move_to("2022-01-01T12:34:56")
 
-    bll.release_files(release_request, checkers[0])
-    release_request = factories.refresh_release_request(release_request)
+    uploaded_file = release_request.filegroups["group"].files[uploaded_relpath]
+    assert uploaded_file.released_by == checkers[0].username
+    assert uploaded_file.uploaded
 
     for relpath in [not_uploaded_relpath, not_uploaded1_relpath]:
         not_uploaded_file = release_request.filegroups["group"].files[relpath]
@@ -310,15 +311,11 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
         == settings.UPLOAD_MAX_ATTEMPTS
     )
 
-    # mark first file as uploaded
-    bll.register_file_upload(release_request, uploaded_relpath, checkers[0])
-    release_request = factories.refresh_release_request(release_request)
-
-    # Set request status back to APPROVED so we can try to re-release
-    release_request.status = RequestStatus.APPROVED
+    # try to re-release
     bll.release_files(release_request, checkers[1])
 
     release_request = factories.refresh_release_request(release_request)
+
     # uploaded file hasn't changed
     uploaded_request_file = release_request.filegroups["group"].files[uploaded_relpath]
     assert uploaded_request_file.released_by == checkers[0].username
@@ -361,7 +358,6 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
         # re-try only releases two un-uploaded files
         AuditEventType.REQUEST_FILE_RELEASE,
         AuditEventType.REQUEST_FILE_RELEASE,
-        AuditEventType.REQUEST_RELEASE,
     ]
     assert [log.type for log in audit_log] == expected_audit_logs
 
@@ -372,7 +368,7 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.RELEASED,
+        status=RequestStatus.APPROVED,
         files=[
             factories.request_file(
                 group="group",
@@ -443,7 +439,6 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
         # appprove, release 1 output file, change request to released
         AuditEventType.REQUEST_APPROVE,
         AuditEventType.REQUEST_FILE_RELEASE,
-        AuditEventType.REQUEST_RELEASE,
         # upload 1 file
         AuditEventType.REQUEST_FILE_UPLOAD,
     ]
@@ -452,11 +447,10 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
 
 def test_provider_register_and_reset_file_upload_attempt(mock_old_api, bll, freezer):
     author = factories.create_user("author", workspaces=["workspace"])
-    checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.RELEASED,
+        status=RequestStatus.APPROVED,
         files=[
             factories.request_file(
                 group="group",
@@ -666,7 +660,7 @@ def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
         "workspace",
         author=other_user,
         status=RequestStatus.APPROVED,
-        files=[factories.request_file(path="file.txt", approved=True)],
+        files=[factories.request_file(path="file.txt", contents="test", approved=True)],
     )
 
     # requests not visible to output checker
@@ -675,7 +669,9 @@ def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
         "workspace",
         author=user,
         status=RequestStatus.APPROVED,
-        files=[factories.request_file(path="file.txt", approved=True)],
+        files=[
+            factories.request_file(path="file1.txt", contents="test1", approved=True)
+        ],
     )
 
     # requests authored by other users, status other than approved
@@ -1085,7 +1081,13 @@ def test_set_status(
     ],
 )
 def test_set_status_notifications(
-    current, future, user, notification_event_type, bll, mock_notifications
+    current,
+    future,
+    user,
+    notification_event_type,
+    bll,
+    mock_notifications,
+    mock_old_api,
 ):
     users = {
         "author": factories.create_user("author", ["workspace"], False),
@@ -1190,7 +1192,7 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
         assert_last_notification(mock_notifications, "request_reviewed")
 
 
-def test_set_status_cannot_action_own_request(bll):
+def test_set_status_cannot_action_own_request(bll, mock_old_api):
     user = factories.create_user(
         workspaces=["workspace", "workspace1"], output_checker=True
     )
@@ -2697,7 +2699,7 @@ def test_group_edit_not_author(bll):
         RequestStatus.WITHDRAWN,
     ],
 )
-def test_group_edit_not_editable_by_author(bll, status):
+def test_group_edit_not_editable_by_author(bll, status, mock_old_api):
     author = factories.create_user("author", ["workspace"], False)
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3051,7 +3053,7 @@ def test_group_comment_visibility_public_bad_round(bll):
     ],
 )
 def test_group_comment_visibility_public_permissions(
-    bll, status, checker_can_change_visibility
+    bll, mock_old_api, status, checker_can_change_visibility
 ):
     author = factories.create_user("author", ["workspace"], False)
     # checker who does not have access to workspace
@@ -3106,7 +3108,7 @@ def test_group_comment_visibility_public_permissions(
     ],
 )
 def test_group_comment_delete_permissions(
-    bll, status, author_can_delete, checker_can_delete
+    bll, mock_old_api, status, author_can_delete, checker_can_delete
 ):
     author = factories.create_user("author", ["workspace"], False)
     collaborator = factories.create_user("collaborator", ["workspace"], False)
