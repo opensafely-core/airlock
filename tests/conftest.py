@@ -45,7 +45,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 @pytest.fixture(autouse=True)
 def temp_test_settings(settings, tmp_path):
-    "Ensure all tests have isolated file storage"
+    # Ensure all tests have isolated file storage
     settings.WORK_DIR = tmp_path
     settings.WORKSPACE_DIR = tmp_path / "workspaces"
     settings.REQUEST_DIR = tmp_path / "requests"
@@ -53,7 +53,7 @@ def temp_test_settings(settings, tmp_path):
     settings.WORKSPACE_DIR.mkdir(parents=True)
     settings.REQUEST_DIR.mkdir(parents=True)
     settings.GIT_REPO_DIR.mkdir(parents=True)
-    "Ensure no tests attempt to call the real releases endpont"
+    # Ensure no tests attempt to call the real releases endpont
     settings.AIRLOCK_API_ENDPOINT = "https://example.com/job-server"
 
 
