@@ -1,13 +1,16 @@
 import logging
+import os
 import time
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from opentelemetry import trace
 
 import old_api
 from airlock.business_logic import bll
 from airlock.enums import RequestStatus
 from airlock.users import User
+from services.tracing import instrument
 
 
 logger = logging.getLogger(__name__)
@@ -69,19 +72,33 @@ class Command(BaseCommand):
                     file_for_upload = bll.register_file_upload_attempt(
                         approved_request, file_for_upload.relpath
                     )
-                    try:
-                        do_upload_task(file_for_upload, approved_request, workspace)
-                    except Exception as error:
-                        # Catch any unexpected exception here so we don't stop the task runner
-                        # from running
-                        logger.error(
-                            "Upload for %s - %s failed (attempt %d of %d): %s",
-                            approved_request.id,
-                            file_for_upload.relpath,
-                            file_for_upload.upload_attempts,
-                            settings.UPLOAD_MAX_ATTEMPTS,
-                            error,
-                        )
+
+                    tracer = trace.get_tracer(
+                        os.environ.get("OTEL_SERVICE_NAME", "airlock")
+                    )
+                    with tracer.start_as_current_span(
+                        "file_uploader",
+                        attributes={
+                            "release_request": approved_request.id,
+                            "workspace": approved_request.workspace,
+                            "file": str(file_for_upload.relpath),
+                        },
+                    ) as span:
+                        try:
+                            do_upload_task(file_for_upload, approved_request, workspace)
+                        except Exception as error:
+                            # The most likely error here is old_api.FileUploadError, however
+                            # we catch any unexpected exception here so we don't stop the task runner
+                            # from running
+                            span.record_exception(error)
+                            logger.error(
+                                "Upload for %s - %s failed (attempt %d of %d): %s",
+                                approved_request.id,
+                                file_for_upload.relpath,
+                                file_for_upload.upload_attempts,
+                                settings.UPLOAD_MAX_ATTEMPTS,
+                                str(error),
+                            )
 
                 # After we've tried to upload all files for this request, check if
                 # there are any still pending and set the request status now, so it's
@@ -89,36 +106,25 @@ class Command(BaseCommand):
                 get_upload_files_and_update_request_status(approved_request)
 
 
+@instrument
 def do_upload_task(file_for_upload, release_request, workspace):
     """
     Perform an upload task.
     """
-    uploaded, error = old_api.upload_file(
+    old_api.upload_file(
         release_request.id,
         release_request.workspace,
         file_for_upload.relpath,
         workspace.abspath(file_for_upload.relpath),
         file_for_upload.released_by,
     )
-    if uploaded:
-        # mark the request file as uploaded and set the task completed time
-        # we use the released_by user for this, for consistency with the
-        # user who initiated the release
-        bll.register_file_upload(
-            release_request, file_for_upload.relpath, get_user_for_file(file_for_upload)
-        )
-        logger.info(
-            "File uploaded: %s - %s", release_request.id, file_for_upload.relpath
-        )
-    else:
-        logger.error(
-            "Upload for %s - %s failed (attempt %d of %d): %s",
-            release_request.id,
-            file_for_upload.relpath,
-            file_for_upload.upload_attempts,
-            settings.UPLOAD_MAX_ATTEMPTS,
-            error,
-        )
+    # mark the request file as uploaded and set the task completed time
+    # we use the released_by user for this, for consistency with the
+    # user who initiated the release
+    bll.register_file_upload(
+        release_request, file_for_upload.relpath, get_user_for_file(file_for_upload)
+    )
+    logger.info("File uploaded: %s - %s", release_request.id, file_for_upload.relpath)
 
 
 def get_upload_files_and_update_request_status(release_request):

@@ -14,6 +14,9 @@ session = requests.Session()
 logger = logging.getLogger(__name__)
 
 
+class FileUploadError(Exception): ...
+
+
 def create_filelist(paths, release_request):
     files = []
 
@@ -86,7 +89,6 @@ def upload_file(release_id, workspace, relpath, abspath, username):
             logger.info(
                 "File already uploaded - %s - %s - %s", workspace, relpath, release_id
             )
-            return True, error
         else:
             logger.error(
                 "%s Error uploading file - %s - %s - %s",
@@ -95,8 +97,7 @@ def upload_file(release_id, workspace, relpath, abspath, username):
                 release_id,
                 response_content,
             )
-            return False, error
-    return True, ""
+            raise FileUploadError(error)
 
 
 def modified_time(path: Path) -> str:

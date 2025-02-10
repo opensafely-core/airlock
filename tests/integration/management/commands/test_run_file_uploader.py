@@ -8,7 +8,9 @@ from django.utils.dateparse import parse_datetime
 from airlock.enums import AuditEventType, RequestStatus
 from airlock.management.commands.run_file_uploader import do_upload_task
 from airlock.types import UrlPath
+from old_api import FileUploadError
 from tests import factories
+from tests.conftest import get_trace
 
 
 pytestmark = pytest.mark.django_db
@@ -81,7 +83,9 @@ def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     )
     relpath = UrlPath("test/file.txt")
     request_file = release_request.get_request_file_from_output_path(relpath)
-    do_upload_task(request_file, release_request, workspace)
+
+    with pytest.raises(FileUploadError):
+        do_upload_task(request_file, release_request, workspace)
 
     request_file = refresh_request_file(release_request, relpath)
     assert not request_file.uploaded
@@ -117,6 +121,14 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
     audit_log = bll.get_request_audit_log(checker, release_request)
     assert audit_log[0].type == AuditEventType.REQUEST_RELEASE
     assert {log.type for log in audit_log[1:3]} == {AuditEventType.REQUEST_FILE_UPLOAD}
+
+    traces = get_trace()
+    last_trace = traces[-1]
+    assert last_trace.attributes == {
+        "release_request": release_request.id,
+        "workspace": "workspace",
+        "file": "test/file2.txt",
+    }
 
 
 @patch("airlock.management.commands.run_file_uploader.time.sleep")
@@ -212,7 +224,7 @@ def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
 
     with patch(
         "airlock.management.commands.run_file_uploader.do_upload_task",
-        side_effect=Exception(),
+        side_effect=Exception("an unknown exception"),
     ):
         call_command("run_file_uploader", run_fn=run_fn)
 
@@ -223,6 +235,19 @@ def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
         request_file = refresh_request_file(release_request, UrlPath(filename))
         assert not request_file.uploaded
         request_file.upload_attempts == 2
+
+    traces = get_trace()
+    last_trace = traces[-1]
+
+    assert last_trace.attributes == {
+        "release_request": release_request.id,
+        "workspace": "workspace",
+        "file": "test/file2.txt",
+    }
+    last_trace_event = last_trace.events[0]
+    assert last_trace_event.name == "exception"
+    assert last_trace_event.attributes["exception.type"] == "Exception"
+    assert last_trace_event.attributes["exception.message"] == "an unknown exception"
 
 
 def test_run_file_uploader_command_exceeds_attempts(upload_files_stubber, bll):
