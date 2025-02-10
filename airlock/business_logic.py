@@ -809,25 +809,25 @@ class BusinessLogicLayer:
             # Otherwise, we call release_file again to record the user that re-tried the
             # upload attempt in the file metadata and audit log
             request_file = release_request.get_request_file_from_output_path(relpath)
-            if not request_file.uploaded:
-                audit = AuditEvent.from_request(
-                    request=release_request,
-                    type=AuditEventType.REQUEST_FILE_RELEASE,
-                    user=user,
-                    path=relpath,
-                )
+            if request_file.uploaded:
+                continue
 
-                if request_file.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
-                    # If we're attempting to manually re-release, reset the file
-                    # upload attempts so the file uploader will retry it.
-                    self._dal.reset_file_upload_attempts(release_request.id, relpath)
+            audit = AuditEvent.from_request(
+                request=release_request,
+                type=AuditEventType.REQUEST_FILE_RELEASE,
+                user=user,
+                path=relpath,
+            )
 
-                # Note: releasing the file updates its released_at and released by
-                # attributes, as an indication of intent to release. Actually uploading
-                # the file will be handled by the asychronous file uploader.
-                self._dal.release_file(
-                    release_request.id, relpath, user.username, audit
-                )
+            if request_file.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
+                # If we're attempting to manually re-release, reset the file
+                # upload attempts so the file uploader will retry it.
+                self._dal.reset_file_upload_attempts(release_request.id, relpath)
+
+            # Note: releasing the file updates its released_at and released by
+            # attributes, as an indication of intent to release. Actually uploading
+            # the file will be handled by the asychronous file uploader.
+            self._dal.release_file(release_request.id, relpath, user.username, audit)
 
         # Change status to approved if necessary.
         if release_request.status != RequestStatus.APPROVED:
