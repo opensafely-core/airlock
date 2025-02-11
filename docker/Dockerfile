@@ -165,6 +165,11 @@ EXPOSE 8000
 # copy application code
 COPY . /app
 
+# We use --init to run the docker cotnainer, which mounts tini binary, and uses it as PID 1,
+# but only in single-process mode. Setting TINI_KILL_PROCESS_GROUP means it will forward signals
+# to the background process (running the airlock file uploader) as well as the main process.
+ENV TINI_KILL_PROCESS_GROUP=1
+
 ENTRYPOINT ["/app/docker/entrypoints/prod.sh"]
 
 # We set command rather than entrypoint, to make it easier to run different

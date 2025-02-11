@@ -667,12 +667,6 @@ def request_release_files(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        # For now, we just implicitly approve when release files is requested
-        # If the status is already approved, don't approve again. An error from
-        # job-server when releasing files can result in a request being stuck in
-        # approved status
-        if release_request.status != RequestStatus.APPROVED:
-            bll.set_status(release_request, RequestStatus.APPROVED, request.user)
         bll.release_files(release_request, request.user)
     except exceptions.RequestPermissionDenied as exc:
         messages.error(request, f"Error releasing files: {str(exc)}")
@@ -702,7 +696,10 @@ def request_release_files(request, request_id):
                     request, "Error releasing files; please contact tech-support."
                 )
     else:
-        messages.success(request, "Files have been released to jobs.opensafely.org")
+        messages.success(
+            request,
+            "Files have been released and will be uploaded to jobs.opensafely.org",
+        )
 
     if request.htmx:
         return HttpResponse(headers={"HX-Redirect": release_request.get_url()})

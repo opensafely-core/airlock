@@ -129,6 +129,20 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def get_released_files_for_request(self, request_id: str):
+        raise NotImplementedError()
+
+    def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
+        raise NotImplementedError()
+
+    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
+        raise NotImplementedError()
+
+    def register_file_upload(
+        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+    ):
+        raise NotImplementedError()
+
     def withdraw_file_from_request(
         self,
         request_id: str,
@@ -759,57 +773,115 @@ class BusinessLogicLayer:
         release_request.set_filegroups_from_dict(filegroup_data)
         return release_request
 
-    def release_files(self, release_request: ReleaseRequest, user: User, upload=True):
+    def release_files(self, release_request: ReleaseRequest, user: User):
         """Release all files from a release_request to job-server.
 
         This currently uses the old api, and is shared amongst provider
         implementations, but that will likely change in future.
 
-        Passing upload=False will just perform the DAL actions, but not
-        actually attempt to upload the files. This defaults to True, and is
-        primarily used for testing.
+        This creates the release on job-server, but doesn't actually upload
+        the files.
         """
-
-        # we check this is valid status transition *before* releasing the files
-        self.check_status(release_request, RequestStatus.RELEASED, user)
+        # check this is valid status transition (or it's already approved)
+        # *before* initiating the release
+        # If a file fails to upload, we may need to re-try releasing from an
+        # already-approved status
+        if release_request.status != RequestStatus.APPROVED:
+            bll.check_status(release_request, RequestStatus.APPROVED, user)
 
         file_paths = release_request.get_output_file_paths()
         self.validate_file_types(file_paths)
 
         filelist = old_api.create_filelist(file_paths, release_request)
 
-        if upload:
-            # Get or create the release
-            # If this is a re-release attempt, the id for the existing
-            # release will be returned
-            jobserver_release_id = old_api.get_or_create_release(
-                release_request.workspace,
-                release_request.id,
-                filelist.json(),
-                user.username,
-            )
-        else:
-            jobserver_release_id = None
+        old_api.get_or_create_release(
+            release_request.workspace,
+            release_request.id,
+            filelist.json(),
+            user.username,
+        )
 
-        for relpath, abspath in file_paths:
+        for relpath, _ in file_paths:
+            # If the file has already been released, this is a re-release attempt due
+            # to a file upload issue with one or more files.
+            # Some files may have already been upoaded successfully, so for those
+            # we do nothing.
+            # Otherwise, we call release_file again to record the user that re-tried the
+            # upload attempt in the file metadata and audit log
+            request_file = release_request.get_request_file_from_output_path(relpath)
+            if request_file.uploaded:
+                continue
+
             audit = AuditEvent.from_request(
                 request=release_request,
                 type=AuditEventType.REQUEST_FILE_RELEASE,
                 user=user,
                 path=relpath,
             )
+
+            if request_file.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
+                # If we're attempting to manually re-release, reset the file
+                # upload attempts so the file uploader will retry it.
+                self._dal.reset_file_upload_attempts(release_request.id, relpath)
+
+            # Note: releasing the file updates its released_at and released by
+            # attributes, as an indication of intent to release. Actually uploading
+            # the file will be handled by the asychronous file uploader.
             self._dal.release_file(release_request.id, relpath, user.username, audit)
 
-            if upload:
-                old_api.upload_file(
-                    jobserver_release_id,
-                    release_request.workspace,
-                    relpath,
-                    abspath,
-                    user.username,
-                )
+        # Change status to approved if necessary.
+        if release_request.status != RequestStatus.APPROVED:
+            bll.set_status(release_request, RequestStatus.APPROVED, user)
 
-        self.set_status(release_request, RequestStatus.RELEASED, user)
+    def get_released_files_for_request(self, release_request: ReleaseRequest):
+        return [
+            RequestFile.from_dict(file_metadata)
+            for file_metadata in self._dal.get_released_files_for_request(
+                request_id=release_request.id
+            )
+        ]
+
+    def get_released_files_for_upload(self, release_request: ReleaseRequest):
+        return [
+            request_file
+            for request_file in self.get_released_files_for_request(release_request)
+            if not request_file.uploaded
+        ]
+
+    def register_file_upload_attempt(
+        self, release_request: ReleaseRequest, relpath: UrlPath
+    ):
+        """
+        Register an attempt to upload a file
+        """
+        return RequestFile.from_dict(
+            self._dal.register_file_upload_attempt(release_request.id, relpath)
+        )
+
+    def reset_file_upload_attempts(
+        self, release_request: ReleaseRequest, relpath: UrlPath
+    ):
+        """
+        Reset file upload attempts so the upload will be retried
+        """
+        self._dal.reset_file_upload_attempts(release_request.id, relpath)
+
+    def register_file_upload(
+        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+    ):
+        """
+        Register that a file has been uploaded successfully
+        """
+        assert relpath in release_request.output_files()
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_UPLOAD,
+            user=user,
+            path=relpath,
+        )
+        self._dal.register_file_upload(
+            release_request.id, relpath, user.username, audit
+        )
 
     def submit_request(self, request: ReleaseRequest, user: User):
         """

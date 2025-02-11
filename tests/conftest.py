@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 import responses as _responses
 from django.conf import settings
@@ -5,6 +7,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 import airlock.business_logic
+import old_api
 import services.tracing as tracing
 import tests.factories
 
@@ -41,8 +44,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 
 @pytest.fixture(autouse=True)
-def temp_storage(settings, tmp_path):
-    "Ensure all tests have isolated file storage"
+def temp_test_settings(settings, tmp_path):
+    # Ensure all tests have isolated file storage
     settings.WORK_DIR = tmp_path
     settings.WORKSPACE_DIR = tmp_path / "workspaces"
     settings.REQUEST_DIR = tmp_path / "requests"
@@ -50,6 +53,8 @@ def temp_storage(settings, tmp_path):
     settings.WORKSPACE_DIR.mkdir(parents=True)
     settings.REQUEST_DIR.mkdir(parents=True)
     settings.GIT_REPO_DIR.mkdir(parents=True)
+    # Ensure no tests attempt to call the real releases endpont
+    settings.AIRLOCK_API_ENDPOINT = "https://example.com/job-server"
 
 
 @pytest.fixture
@@ -76,16 +81,29 @@ def release_files_stubber(responses):
             body=body,
         )
 
-        if not isinstance(body, Exception):
-            for _ in request.get_output_file_paths():
-                responses.post(
-                    f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{request.id}",
-                    status=201,
-                )
-
         return responses
 
     return release_files
+
+
+@pytest.fixture()
+def upload_files_stubber(release_files_stubber):
+    def upload_files(request, response_statuses=None):
+        responses = release_files_stubber(request)
+
+        if response_statuses is None:
+            response_statuses = [201 for _ in request.get_output_file_paths()]
+
+        for status in response_statuses:
+            responses.post(
+                f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{request.id}",
+                status=status,
+                json={"detail": "error" if status != 201 else "ok"},
+            )
+
+        return responses
+
+    return upload_files
 
 
 @pytest.fixture
@@ -110,3 +128,13 @@ def notifications_stubber(responses, settings):
 @pytest.fixture
 def mock_notifications(notifications_stubber):
     return notifications_stubber()
+
+
+@pytest.fixture
+def mock_old_api(monkeypatch):
+    monkeypatch.setattr(
+        old_api,
+        "get_or_create_release",
+        MagicMock(autospec=old_api.get_or_create_release),
+    )
+    monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))

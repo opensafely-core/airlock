@@ -353,7 +353,7 @@ def test_screenshot_from_creation_to_release(
     page.locator("#release-files-button").click()
     # Make sure we've waited for the files to be released
     expect(page.locator("body")).to_contain_text(
-        "Files have been released to jobs.opensafely.org"
+        "Files have been released and will be uploaded to jobs.opensafely.org"
     )
     page.screenshot(path=settings.SCREENSHOT_DIR / "files_released.png")
 
@@ -590,7 +590,7 @@ def test_screenshot_request_reviewed_icons(page, context, live_server):
     os.getenv("RUN_SCREENSHOT_TESTS") is None,
     reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
 )
-def test_screenshot_workspace_icons(page, context, live_server):
+def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     author, user_dicts = get_user_data()
     checker1 = factories.create_user(
         username="checker1",

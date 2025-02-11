@@ -430,15 +430,24 @@ def create_request_at_status(
     bll.set_status(request, RequestStatus.APPROVED, checker)
     request = refresh_release_request(request)
 
-    if status == RequestStatus.APPROVED:
-        return request
-
-    if status == RequestStatus.RELEASED:
+    if status in [RequestStatus.APPROVED, RequestStatus.RELEASED]:
         bll.release_files(
             request,
             user=checker,
-            upload=False,
         )
+        request = refresh_release_request(request)
+
+        # upload files.
+        # Note: approved requests may have some uploaded files
+        # Released requests have all uploaded files
+        for testfile in files:
+            if status == RequestStatus.RELEASED:
+                testfile.uploaded = True
+            testfile.upload(request, checker)
+
+        if status == RequestStatus.RELEASED:
+            bll.set_status(request, RequestStatus.RELEASED, checker)
+
         return refresh_release_request(request)
 
     raise Exception(f"invalid state: {status}")  # pragma: no cover
@@ -527,8 +536,8 @@ def review_file(
 class TestRequestFile:
     """Placeholder containing file metadata.
 
-    Allows us to set up file states declaratively. The add() and vote()
-    methods can be called with a request in the right state.
+    Allows us to set up file states declaratively. The add(), vote()
+    and upload() methods can be called with a request in the right state.
     """
 
     group: str
@@ -542,6 +551,9 @@ class TestRequestFile:
     approved: bool = False
     changes_requested: bool = False
     checkers: typing.Sequence[User] = field(default_factory=list)
+
+    # uploading
+    uploaded: bool = True
 
     def add(self, request):
         request = refresh_release_request(request)
@@ -563,6 +575,12 @@ class TestRequestFile:
                 request, self.path, RequestFileVote.CHANGES_REQUESTED, *self.checkers
             )
 
+    def upload(self, request: ReleaseRequest, user: User):
+        request = refresh_release_request(request)
+        if self.approved and self.uploaded:
+            bll.register_file_upload_attempt(request, self.path)
+            bll.register_file_upload(request, self.path, user)
+
 
 def request_file(
     group="group",
@@ -573,6 +591,7 @@ def request_file(
     approved=False,
     changes_requested=False,
     checkers=None,
+    uploaded=False,
     **kwargs,
 ) -> TestRequestFile:
     """Helper function to define some test file metadata
@@ -590,6 +609,7 @@ def request_file(
         approved=approved,
         changes_requested=changes_requested,
         checkers=checkers or [],
+        uploaded=uploaded,
     )
 
 

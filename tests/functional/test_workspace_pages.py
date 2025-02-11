@@ -210,6 +210,7 @@ def test_content_buttons(
     ],
 )
 def test_file_content_buttons(
+    mock_old_api,
     live_server,
     page,
     context,

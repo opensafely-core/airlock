@@ -14,6 +14,9 @@ session = requests.Session()
 logger = logging.getLogger(__name__)
 
 
+class FileUploadError(Exception): ...
+
+
 def create_filelist(paths, release_request):
     files = []
 
@@ -80,10 +83,8 @@ def upload_file(release_id, workspace, relpath, abspath, username):
 
     if response.status_code != 201:
         response_content = response.content.decode()
-        if (
-            f"This version of '{relpath}' has already been uploaded"
-            in response.json()["detail"]
-        ):
+        error = response.json()["detail"]
+        if f"This version of '{relpath}' has already been uploaded" in error:
             # Ignore attempted re-uploads
             logger.info(
                 "File already uploaded - %s - %s - %s", workspace, relpath, release_id
@@ -96,9 +97,7 @@ def upload_file(release_id, workspace, relpath, abspath, username):
                 release_id,
                 response_content,
             )
-            response.raise_for_status()
-
-    return response
+            raise FileUploadError(error)
 
 
 def modified_time(path: Path) -> str:

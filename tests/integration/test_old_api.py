@@ -81,9 +81,8 @@ def test_old_api_upload_file_error(responses, caplog):
         status=400,
         json={"detail": "job-server error"},
     )
-    with pytest.raises(requests.exceptions.HTTPError):
+    with pytest.raises(old_api.FileUploadError, match="job-server error"):
         old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
-
     assert len(caplog.messages) == 1
     log = caplog.messages[0]
     assert "Error uploading file" in log

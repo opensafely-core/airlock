@@ -119,7 +119,7 @@ def test_workspace_view_with_directory(airlock_client):
     ],
 )
 def test_workspace_directory_and_request_can_multiselect_add(
-    airlock_client, bll, login_as, status, can_multiselect_add
+    airlock_client, bll, mock_old_api, login_as, status, can_multiselect_add
 ):
     users = {
         "author": factories.create_user("author", workspaces=["workspace"]),
@@ -374,10 +374,12 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         ),
         (RequestStatus.APPROVED, False, [], True),
         (
+            # In Approved status, files are released but may not be uploaded yet;
+            # Released files cannot be added to a new request as an output file
             RequestStatus.APPROVED,
             False,
             [factories.request_file(path="file.txt", approved=True)],
-            True,
+            False,
         ),
         (RequestStatus.RELEASED, False, [], True),
         (
@@ -390,7 +392,7 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
     ],
 )
 def test_workspace_view_file_add_to_current_request(
-    airlock_client, status, is_current, files, can_see_form
+    mock_old_api, airlock_client, status, is_current, files, can_see_form
 ):
     user = factories.create_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
@@ -714,7 +716,9 @@ def test_workspace_multiselect_update_files(
     assert response.rendered_content.count("file cannot be updated") == ignored_count
 
 
-def test_workspace_multiselect_add_released_file_not_valid(airlock_client, bll):
+def test_workspace_multiselect_add_released_file_not_valid(
+    airlock_client, bll, mock_old_api
+):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path1.txt", "foo")

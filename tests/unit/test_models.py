@@ -213,7 +213,7 @@ def test_workspace_get_workspace_file_status(bll):
     )
 
 
-def test_workspace_get_released_files(bll):
+def test_workspace_get_released_files(bll, mock_old_api):
     path = UrlPath("foo/bar.txt")
     path1 = UrlPath("foo/supporting_bar.txt")
     factories.create_request_at_status(
