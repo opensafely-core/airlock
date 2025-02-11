@@ -36,6 +36,8 @@ class Command(BaseCommand):
 
         logger.debug("Watching for tasks")
 
+        tracer = trace.get_tracer(os.environ.get("OTEL_SERVICE_NAME", "airlock"))
+
         while run_fn():  # pragma: no branch
             # Find approved requests
             approved_requests = bll.get_approved_requests(user=system_user)
@@ -74,9 +76,6 @@ class Command(BaseCommand):
                         approved_request, file_for_upload.relpath
                     )
 
-                    tracer = trace.get_tracer(
-                        os.environ.get("OTEL_SERVICE_NAME", "airlock")
-                    )
                     with tracer.start_as_current_span(
                         "file_uploader",
                         attributes={
