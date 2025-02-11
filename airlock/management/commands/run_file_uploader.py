@@ -61,7 +61,7 @@ class Command(BaseCommand):
                 workspace = bll.get_workspace(approved_request.workspace, system_user)
                 for file_for_upload in files_for_upload:
                     if file_for_upload.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
-                        logger.warning(
+                        logger.debug(
                             "Max upload attempts reached for %s - %s, skipping",
                             approved_request.id,
                             file_for_upload.relpath,
