@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import time
@@ -28,7 +29,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         # In production, we want this check to run forever. Using a
         # function means that we can test it on a finite number of loops.
-        parser.add_argument("--run-fn", default=lambda: True)
+        parser.add_argument("--run-fn", default=lambda: True, help=argparse.SUPPRESS)
 
     def handle(self, *args, **options):
         run_fn = options["run_fn"]
