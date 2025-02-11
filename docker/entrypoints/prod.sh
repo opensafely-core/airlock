@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
+export PYTHONUNBUFFERED=TRUE  # make sure the log output lines don't clobber each other.
+
 ./manage.py check --deploy
 ./manage.py migrate
 
-exec "$@"
+./manage.py run_file_uploader & exec "$@"
