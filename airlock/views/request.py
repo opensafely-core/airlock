@@ -150,18 +150,35 @@ def _get_request_button_context(user, release_request):
             return_btn.tooltip = "Returning a request is disabled until review has been submitted by two reviewers"
 
         if not release_request.can_be_released():
+            release_files_btn.display_label = "Release files"
             release_files_btn.tooltip = "Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers"
 
+    # A request can be released if it is in REVIEWED status and all files are
+    # approved - a first release attempt
     # If a request is in APPROVED status, it isn't currently reviewable by a user,
     # but it can be released by a user with permissions, so we need to show the
     # release files button
+    # BUT we only enable the button if it can be re-released - i.e. all of its
+    # un-uploaded files have been attempted the max number of times
     if (
         permissions.user_can_review_request(user, release_request)
         and release_request.can_be_released()
     ):
         release_files_btn.show = True
-        release_files_btn.disabled = False
-        release_files_btn.tooltip = "Release files to jobs.opensafely.org"
+        if release_request.upload_in_progress():
+            release_files_btn.display_label = "Re-release files"
+            release_files_btn.disabled = True
+            release_files_btn.tooltip = "Files are uploading to jobs.opensafely.org"
+        elif release_request.can_be_rereleased():
+            release_files_btn.display_label = "Re-release files"
+            release_files_btn.disabled = False
+            release_files_btn.tooltip = (
+                "Some files failed to upload; re-attempt release to jobs.opensafely.org"
+            )
+        else:
+            release_files_btn.display_label = "Release files"
+            release_files_btn.disabled = False
+            release_files_btn.tooltip = "Release files to jobs.opensafely.org"
 
     return {
         "submit": submit_btn,
