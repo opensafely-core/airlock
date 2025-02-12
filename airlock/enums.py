@@ -35,6 +35,8 @@ class RequestStatus(Enum):
             return "ONE REVIEW SUBMITTED"
         if self == RequestStatus.REVIEWED:
             return "ALL REVIEWS SUBMITTED"
+        if self == RequestStatus.APPROVED:
+            return "APPROVED - FILES UPLOADING"
         return self.name
 
 

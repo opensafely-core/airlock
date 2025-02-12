@@ -458,10 +458,19 @@ def test_e2e_release_files(
     expect(page.locator("body")).to_contain_text(
         "Files have been released and will be uploaded to jobs.opensafely.org"
     )
+    # Request is approved; header contains additional status description
+    expect(page.locator("body")).to_contain_text("APPROVED - FILES UPLOADING")
 
-    # Requests view does not show released request
-    find_and_click(page.get_by_test_id("nav-requests"))
-    expect(page.locator("body")).not_to_contain_text("test-workspace by researcher")
+    # Reviews page still shows approved request
+    find_and_click(page.get_by_test_id("nav-reviews"))
+    expect(page.locator("body")).to_contain_text("test-workspace")
+    expect(page.locator("body")).to_contain_text("APPROVED - FILES UPLOADING")
+
+    # change status to released (mock state once files have been uploaded)
+    release_request = factories.refresh_release_request(release_request)
+    bll.set_status(release_request, RequestStatus.RELEASED, admin_user)
+    page.reload()
+    expect(page.locator("body")).not_to_contain_text("test-workspace")
 
 
 @pytest.mark.parametrize(
