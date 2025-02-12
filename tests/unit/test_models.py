@@ -416,6 +416,90 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
         bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
 
 
+def test_request_file_upload_in_progress_failed(mock_notifications, mock_old_api, bll):
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.APPROVED,
+        files=[
+            factories.request_file(contents="1", approved=True, path="test/file1.txt")
+        ],
+    )
+    relpath = UrlPath("test/file1.txt")
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.upload_in_progress()
+    assert request_file.upload_attempts == 0
+
+    bll.register_file_upload_attempt(release_request, relpath)
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.upload_in_progress()
+    assert request_file.upload_attempts == 1
+
+    for _ in range(settings.UPLOAD_MAX_ATTEMPTS - 1):
+        bll.register_file_upload_attempt(release_request, relpath)
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert not request_file.upload_in_progress()
+    assert request_file.upload_attempts == settings.UPLOAD_MAX_ATTEMPTS
+    assert request_file.upload_failed()
+
+
+def test_request_can_be_rereleased(mock_notifications, mock_old_api, bll):
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.APPROVED,
+        files=[
+            factories.request_file(contents="1", approved=True, path="test/file1.txt"),
+            factories.request_file(contents="2", approved=True, path="test/file2.txt"),
+        ],
+    )
+    assert release_request.can_be_released()
+    assert not release_request.can_be_rereleased()
+    assert release_request.upload_in_progress()
+
+    for relpath in [UrlPath("test/file1.txt"), UrlPath("test/file2.txt")]:
+        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+            bll.register_file_upload_attempt(release_request, relpath)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.can_be_released()
+    assert release_request.can_be_rereleased()
+    assert not release_request.upload_in_progress()
+
+
+def test_request_upload_in_progress(mock_notifications, mock_old_api, bll):
+    checker = factories.get_default_output_checkers()[0]
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.APPROVED,
+        files=[
+            factories.request_file(contents="1", approved=True, path="test/file1.txt"),
+            factories.request_file(contents="2", approved=True, path="test/file2.txt"),
+            factories.request_file(contents="3", approved=True, path="test/file3.txt"),
+        ],
+    )
+
+    assert release_request.upload_in_progress()
+    # upload file 1, files 2 and 3 still in progress
+    bll.register_file_upload(release_request, UrlPath("test/file1.txt"), checker)
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.upload_in_progress()
+
+    # max out attempts for file 2, file 3 still in progress
+    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+        bll.register_file_upload_attempt(release_request, UrlPath("test/file2.txt"))
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.upload_in_progress()
+
+    # upload file 3
+    bll.register_file_upload(release_request, UrlPath("test/file3.txt"), checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert not release_request.upload_in_progress()
+    assert release_request.can_be_rereleased()
+
+
 def test_code_repo_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo.txt")
