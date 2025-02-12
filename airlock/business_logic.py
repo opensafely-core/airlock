@@ -406,9 +406,11 @@ class BusinessLogicLayer:
         ],
         RequestStatus.SUBMITTED: [
             RequestStatus.PARTIALLY_REVIEWED,
+            RequestStatus.RETURNED,
         ],
         RequestStatus.PARTIALLY_REVIEWED: [
             RequestStatus.REVIEWED,
+            RequestStatus.RETURNED,
         ],
         RequestStatus.REVIEWED: [
             RequestStatus.APPROVED,

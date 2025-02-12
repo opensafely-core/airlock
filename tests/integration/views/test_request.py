@@ -196,7 +196,7 @@ def test_request_view_with_submitted_request(airlock_client):
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
     assert "Rejecting a request is disabled" in response.rendered_content
     assert "Releasing to jobs.opensafely.org is disabled" in response.rendered_content
-    assert "Returning a request is disabled" in response.rendered_content
+    assert "Return request before full review" in response.rendered_content
     assert "Submit review" in response.rendered_content
 
 

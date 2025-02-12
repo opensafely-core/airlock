@@ -280,6 +280,7 @@ def test_screenshot_from_creation_to_release(
 
     # Return to researcher
     page.goto(live_server.url + release_request.get_url())
+    page.locator("button[data-modal=returnRequest]").click()
     page.locator("#return-request-button").click()
 
     # Responding to returned request

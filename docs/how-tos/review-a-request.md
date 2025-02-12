@@ -29,8 +29,8 @@ It also shows a log of recent activity.
 
 This page also contains buttons for various actions that can be performed
 on the request as a whole (submitting your review, returning the request to
-the researcher etc.).  In the example below, all buttons are disabled, as
-this request has not yet been reviewed.
+the researcher etc.).  In the example below, all buttons (except "Return request")
+are disabled, as this request has not yet been reviewed.
 
 ![Request overview](../screenshots/request_overview.png)
 

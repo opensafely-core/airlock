@@ -133,6 +133,9 @@ def _get_request_button_context(user, release_request):
         ]:
             button.show = True
 
+        # We allow output checkers to review at any time
+        return_btn.disabled = False
+
         try:
             permissions.check_user_can_submit_review(user, release_request)
         except exceptions.RequestReviewDenied as err:
@@ -143,11 +146,16 @@ def _get_request_button_context(user, release_request):
 
         if release_request.status == RequestStatus.REVIEWED:
             reject_btn.disabled = False
-            return_btn.disabled = False
             return_btn.tooltip = "Return request for changes/clarification"
+            return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the user?"
         else:
             reject_btn.tooltip = "Rejecting a request is disabled until review has been submitted by two reviewers"
-            return_btn.tooltip = "Returning a request is disabled until review has been submitted by two reviewers"
+            return_btn.tooltip = "Return request before full review"
+            return_btn.modal_confirm_message = (
+                "Are you sure you want to return this request before both reviews "
+                "are submitted? Typically you would only do this if the request "
+                "author has asked for an early return to make changes."
+            )
 
         if not release_request.can_be_released():
             release_files_btn.tooltip = "Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers"

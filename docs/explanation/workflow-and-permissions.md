@@ -57,8 +57,10 @@ flowchart TD
     subgraph Release Request Workflow
         A([PENDING]):::author -- Adds files and submits --> B([SUBMITTED]):::checker
         B -- 1st independent review --> C([PARTIALLY_REVIEWED]):::checker
+        B -- Return without review --> E([RETURNED]):::author
         C -- 2nd independent review --> D([REVIEWED]):::checker
-        D -- Consolidation --> E([RETURNED]):::author
+        C -- Return prior to full review --> E
+        D -- Consolidation --> E
         E -- Updates and responds to questions --> B
         D -- All files approved ----> F(RELEASED)
         D -- Not approved ----> G(REJECTED)

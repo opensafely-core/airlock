@@ -316,7 +316,7 @@ def test_request_buttons(
     page.goto(live_server.url + release_request.get_url())
 
     reviewer_buttons = [
-        "#return-request-button",
+        "button[data-modal=returnRequest]",
         "button[data-modal=rejectRequest]",
         "#submit-review-button",
     ]
@@ -463,8 +463,8 @@ def test_resubmit_button_visibility(
     "login_as,status,checkers, can_return",
     [
         ("author", RequestStatus.SUBMITTED, None, False),
-        ("checker1", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False),
-        ("checker2", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False),
+        ("checker1", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], True),
+        ("checker2", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], True),
         ("checker1", RequestStatus.REVIEWED, ["checker1", "checker2"], True),
     ],
 )
@@ -506,18 +506,18 @@ def test_request_returnable(
     )
 
     login_as_user(live_server, context, user_data[login_as])
-    return_request_button = page.locator("#return-request-button")
+    return_request_button = page.locator("button[data-modal=returnRequest]")
+    modal_return_request_button = page.locator("#return-request-button")
     page.goto(live_server.url + release_request.get_url())
 
     if can_return:
         expect(return_request_button).to_be_enabled()
+        expect(modal_return_request_button).not_to_be_visible()
         return_request_button.click()
-        expect(return_request_button).not_to_be_visible()
+        expect(modal_return_request_button).to_be_visible()
 
-    elif login_as == "author":
-        expect(return_request_button).not_to_be_visible()
     else:
-        expect(return_request_button).to_be_disabled()
+        expect(return_request_button).not_to_be_visible()
 
 
 def test_returned_request(live_server, context, page, bll):
@@ -597,7 +597,7 @@ def test_request_releaseable(live_server, context, page, bll):
 
     release_files_button = page.locator("#release-files-button")
     reject_request_button = page.locator("button[data-modal=rejectRequest]")
-    return_request_button = page.locator("#return-request-button")
+    return_request_button = page.locator("button[data-modal=returnRequest]")
 
     # Request is currently reviewed twice
     # output checker can release, return or reject

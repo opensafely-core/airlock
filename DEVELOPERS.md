@@ -2,7 +2,7 @@
 
 ## Diagrams
 
- * [Request State Machine](docs/request-states.md) (auto-generated)
+ * [Request State Machine](docs/reference/request-states.md) (auto-generated)
 
 
 ## Prerequisites for local development
