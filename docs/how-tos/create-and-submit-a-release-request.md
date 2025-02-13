@@ -71,3 +71,5 @@ Your release request's status will transition to "Submitted", and you will no lo
 able to edit it. Output checkers will be [automatically notified](../explanation/notifications.md) that the request is ready for review.
 
 ![Submitted request](../screenshots/submitted_request.png)
+
+If you have made a mistake on a submitted request, you can contact the output checkers. They will be able to return the request so you can make changes.
