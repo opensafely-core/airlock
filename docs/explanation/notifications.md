@@ -35,7 +35,13 @@ Notifications are sent at various stags during the release request workflow. Not
 - GitHub issue closed
 - Slack notification to output checkers
 
-## Files released
+## Request approved for release
+
+- GitHub issue updated
+- Slack notification to output checkers
+- Author notified by email
+
+## Request released (all files successsully uploaded)
 
 - GitHub issue closed
 - Author notified by email
