@@ -41,9 +41,14 @@ SUBMITTED. It is owned by the output checkers. The researcher can no longer add 
 withdraw files, or comment on file groups. It is now the turn of the output checkers
 to work on the request, reviewing files and asking questions where necessary.
 
+A release request moves into APPROVED status when an output checker has clicked the
+button to release the files. At this stage, the files have been scheduled for release
+and upload to the jobs site. Once all files have been uploaded, the request will
+automatically move to the RELEASED status.
+
 The RELEASED, REJECTED and WITHDRAWN statuses are considered final states. When a
 release request is in one of these statuses, it cannot be edited by any user, and
-it cannot be moved into any other status.
+it cannot be moved into any other status. 
 
 ```mermaid
 flowchart TD
@@ -62,10 +67,11 @@ flowchart TD
         C -- Return prior to full review --> E
         D -- Consolidation --> E
         E -- Updates and responds to questions --> B
-        D -- All files approved ----> F(RELEASED)
+        D -- All files approved ----> F(APPROVED)
         D -- Not approved ----> G(REJECTED)
-        A --> H(WITHDRAWN)
-        E --> H
+        F(APPROVED) -- Files uploaded ----> H(RELEASED)
+        A --> I(WITHDRAWN)
+        E --> I
     end
 
 classDef author fill:#ff9,stroke:#333;
