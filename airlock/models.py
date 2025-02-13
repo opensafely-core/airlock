@@ -841,13 +841,16 @@ class ReleaseRequest:
             if rfile.filetype == RequestFileType.OUTPUT
         }
 
+    def uploaded_files_count(self):
+        if self.status not in [RequestStatus.APPROVED, RequestStatus.RELEASED]:
+            return 0
+        return sum(1 for rfile in self.output_files().values() if rfile.uploaded)
+
     def supporting_files_count(self):
-        return len(
-            [
-                1
-                for rfile in self.all_files_by_name.values()
-                if rfile.filetype == RequestFileType.SUPPORTING
-            ]
+        return sum(
+            1
+            for rfile in self.all_files_by_name.values()
+            if rfile.filetype == RequestFileType.SUPPORTING
         )
 
     def request_filetype(self, urlpath: UrlPath):
