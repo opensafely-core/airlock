@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.enums import RequestFileType, RequestStatus, Visibility
@@ -613,3 +614,87 @@ def test_request_releaseable(live_server, context, page, bll):
     expect(release_files_button).to_be_enabled()
     for locator in [return_request_button, reject_request_button]:
         expect(locator).not_to_be_visible()
+
+
+@pytest.mark.parametrize(
+    "status,uploaded_files,failed_uploaded_files,uploaded_count,release_button_enabled,icon_colour",
+    [
+        (RequestStatus.REVIEWED, [], [], 0, True, ""),
+        (RequestStatus.APPROVED, ["file1.txt"], [], 1, False, "text-bn-egg-500"),
+        (RequestStatus.APPROVED, [], ["file1.txt"], 0, False, "text-bn-egg-500"),
+        (RequestStatus.APPROVED, ["file1.txt"], ["file2.txt"], 1, True, "text-red-800"),
+        (
+            RequestStatus.APPROVED,
+            [],
+            ["file1.txt", "file2.txt"],
+            0,
+            True,
+            "text-red-800",
+        ),
+        (
+            RequestStatus.RELEASED,
+            ["file1.txt", "file2.txt"],
+            [],
+            2,
+            False,
+            "text-green-700",
+        ),
+    ],
+)
+def test_request_uploaded_files_status(
+    live_server,
+    context,
+    page,
+    bll,
+    mock_old_api,
+    mock_notifications,
+    status,
+    uploaded_files,
+    failed_uploaded_files,
+    uploaded_count,
+    release_button_enabled,
+    icon_colour,
+):
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=status,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+            factories.request_file(group="group", path="file2.txt", approved=True),
+        ],
+    )
+    output_checker = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "output_checker",
+            "workspaces": {},
+            "output_checker": True,
+        },
+    )
+    for path in uploaded_files:
+        bll.register_file_upload(release_request, UrlPath(path), output_checker)
+
+    for path in failed_uploaded_files:
+        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+            bll.register_file_upload_attempt(release_request, UrlPath(path))
+
+    release_request = factories.refresh_release_request(release_request)
+    page.goto(live_server.url + release_request.get_url())
+
+    release_files_button = page.locator("#release-files-button")
+    uploaded_files_count_el = page.locator("#uploaded-files-count")
+
+    expect(uploaded_files_count_el).to_contain_text(str(uploaded_count))
+    # we're using the icon component, so the easiest way to check the icon is correct
+    # is to look for its colour
+    assert icon_colour in uploaded_files_count_el.inner_html()
+
+    if status == RequestStatus.RELEASED:
+        expect(release_files_button).not_to_be_visible()
+    else:
+        expect(release_files_button).to_be_visible()
+        if release_button_enabled:
+            expect(release_files_button).to_be_enabled()
+        else:
+            expect(release_files_button).not_to_be_enabled()
