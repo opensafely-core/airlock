@@ -111,17 +111,18 @@
       {% endif %}
     {% endif %}
     {% if content_buttons.return.show %}
-      {% if content_buttons.return.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="secondary" id="return-request-button" %}
-          Return request
-          {% tooltip class="airlock-tooltip" content=content_buttons.return.tooltip %}
-        {% /button %}
-      {% else %}
-        <form action="{{ content_buttons.return.url }}" method="POST">
-          {% csrf_token %}
-          {% #button type="submit" small=True tooltip=content_buttons.return.tooltip variant="secondary" id="return-request-button" %}Return request{% /button %}
-        </form>
-      {% endif %}
+      {% #modal id="returnRequest" button_small=True button_text="Return request" button_variant="secondary" button_tooltip=content_buttons.return.tooltip %}
+        {% #card container=True title="Return this request" %}
+          <form action="{{ content_buttons.return.url }}" method="POST">
+            {% csrf_token %}
+            <div class="pb-8">
+              {{content_buttons.return.modal_confirm_message}}
+            </div>
+            {% #button type="submit" variant="warning" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
+            {% #button variant="primary" type="cancel" small=True %}Cancel{% /button %}
+          </form>
+        {% /card %}
+      {% /modal %}
     {% endif %}
     {% if content_buttons.release_files.show %}
       {% if content_buttons.release_files.disabled %}
