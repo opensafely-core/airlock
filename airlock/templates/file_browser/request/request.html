@@ -127,14 +127,14 @@
     {% if content_buttons.release_files.show %}
       {% if content_buttons.release_files.disabled %}
         {% #button disabled=True class="relative group" small=True variant="warning" id="release-files-button" %}
-          Release files
+          {{ content_buttons.release_files.display_label }}
           {% tooltip class="airlock-tooltip" content=content_buttons.release_files.tooltip %}
         {% /button %}
       {% else %}
         <form action="{{ content_buttons.release_files.url }}" method="POST" hx-post="{{ content_buttons.release_files.url }}" hx-disabled-elt="button">
           {% csrf_token %}
           {% #button small=True type="submit" tooltip=content_buttons.release_files.tooltip variant="warning" id="release-files-button" %}
-            Release files
+            {{ content_buttons.release_files.display_label }}
             <img height="16" width="16" class="icon icon--green-700 animate-spin htmx-indicator" src="{% static 'icons/progress_activity.svg' %}" alt="">
           {% /button %}
         </form>

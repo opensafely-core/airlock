@@ -481,7 +481,7 @@ class RequestFile:
     filetype: RequestFileType = RequestFileType.OUTPUT
     released_at: datetime | None = None
     uploaded: bool = False
-    upload_attempts: int | None = 0
+    upload_attempts: int = 0
     uploaded_at: datetime | None = None
 
     @classmethod
@@ -537,6 +537,18 @@ class RequestFile:
             for review in self.reviews.values()
             if review.status == RequestFileVote.CHANGES_REQUESTED
         ]
+
+    def upload_in_progress(self):
+        return (
+            self.released_at is not None
+            and not self.uploaded
+            and self.upload_attempts < settings.UPLOAD_MAX_ATTEMPTS
+        )
+
+    def upload_failed(self):
+        return (
+            not self.uploaded and self.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS
+        )
 
 
 @dataclass(frozen=True)
@@ -888,6 +900,25 @@ class ReleaseRequest:
         return (
             self.status in [RequestStatus.REVIEWED, RequestStatus.APPROVED]
             and self.all_files_approved()
+        )
+
+    def can_be_rereleased(self) -> bool:
+        """
+        An approved request can be re-released if all of its file are
+        either uploaded already, or have have failed to upload after the
+        maximum number of attempts
+        """
+        return self.status == RequestStatus.APPROVED and all(
+            rf.uploaded or rf.upload_failed() for rf in self.output_files().values()
+        )
+
+    def upload_in_progress(self) -> bool:
+        """
+        A request is uploading if it has been approved and not all of its
+        output files have been uploaded
+        """
+        return self.status == RequestStatus.APPROVED and any(
+            rf.upload_in_progress() for rf in self.output_files().values()
         )
 
     def is_final(self):
