@@ -227,7 +227,7 @@ def test_request_group_comment_visibility_public_for_checker(
             "output_checker": True,
         },
     )
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_airlock_user("checker", [], True)
 
     submitted_release_request = factories.create_request_at_status(
         "workspace",
@@ -301,7 +301,7 @@ def test_request_buttons(
 
     release_request = factories.create_request_at_status(
         "workspace",
-        author=factories.create_user(**user_data[author]),
+        author=factories.create_airlock_user(**user_data[author]),
         status=status,
         withdrawn_after=RequestStatus.PENDING,
         files=[
@@ -388,7 +388,7 @@ def test_submit_button_visibility(
     )
     release_request = factories.create_request_at_status(
         "workspace",
-        author=factories.create_user(**user_data),
+        author=factories.create_airlock_user(**user_data),
         status=RequestStatus.PENDING,
         files=files,
     )
@@ -425,7 +425,7 @@ def test_resubmit_button_visibility(
     user_data = dict(
         username="researcher", workspaces=_workspace_dict(), output_checker=False
     )
-    author = factories.create_user(**user_data)
+    author = factories.create_airlock_user(**user_data)
     # Create a returned release request with one output file
     release_request = factories.create_request_at_status(
         "workspace",
@@ -483,9 +483,11 @@ def test_request_returnable(
             username="checker2", workspaces=_workspace_dict(), output_checker=True
         ),
     }
-    author = factories.create_user(**user_data["author"])
+    author = factories.create_airlock_user(**user_data["author"])
     if checkers is not None:
-        checkers = [factories.create_user(**user_data[user]) for user in checkers]
+        checkers = [
+            factories.create_airlock_user(**user_data[user]) for user in checkers
+        ]
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -533,9 +535,10 @@ def test_returned_request(live_server, context, page, bll):
             username="checker2", workspaces=_workspace_dict(), output_checker=True
         ),
     }
-    author = factories.create_user(**user_data["author"])
+    author = factories.create_airlock_user(**user_data["author"])
     checkers = [
-        factories.create_user(**user_data[user]) for user in ["checker1", "checker2"]
+        factories.create_airlock_user(**user_data[user])
+        for user in ["checker1", "checker2"]
     ]
     release_request = factories.create_request_at_status(
         "workspace",

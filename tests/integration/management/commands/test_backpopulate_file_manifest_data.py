@@ -25,7 +25,7 @@ def test_command(bll):
     file_meta.save()
 
     workspace = bll.get_workspace(
-        "workspace", factories.create_user(workspaces=["workspace"])
+        "workspace", factories.create_airlock_user(workspaces=["workspace"])
     )
     manifest = workspace.get_manifest_for_file(UrlPath(file_meta.relpath))
     for attr in ["commit", "size", "job_id", "timestamp", "repo"]:

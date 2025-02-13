@@ -10,7 +10,7 @@ from tests.conftest import get_trace
 
 @pytest.mark.django_db
 def test_middleware_expired_user(airlock_client, responses):
-    user = factories.create_user()
+    user = factories.create_airlock_user()
     airlock_client.login_with_user(user)
     factories.create_workspace("new_workspace")
 
@@ -45,7 +45,7 @@ def test_middleware_expired_user(airlock_client, responses):
 @pytest.mark.django_db
 def test_middleware_expired_error(airlock_client, responses):
     last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
-    user = factories.create_user(last_refresh=last_refresh)
+    user = factories.create_airlock_user(last_refresh=last_refresh)
     airlock_client.login_with_user(user)
     factories.create_workspace("new_workspace")
 
@@ -60,7 +60,7 @@ def test_middleware_expired_error(airlock_client, responses):
 
 @pytest.mark.django_db
 def test_middleware_user_trace(airlock_client, responses):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
     factories.create_workspace("workspace")
 

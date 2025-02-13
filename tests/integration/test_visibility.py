@@ -83,7 +83,7 @@ def test_request_comment_and_audit_visibility(bll):
     # validating that the comments that are visibile to various users at
     # different points in the process are correct.
     #
-    author = factories.create_user("author1", workspaces=["workspace"])
+    author = factories.create_airlock_user("author1", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
 
     release_request = factories.create_request_at_status(

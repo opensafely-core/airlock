@@ -56,7 +56,7 @@ def test_request_id_does_not_exist(airlock_client):
 
 def test_request_view_root_summary(airlock_client):
     airlock_client.login(output_checker=True)
-    audit_user = factories.create_user("audit_user", workspaces=["workspace"])
+    audit_user = factories.create_airlock_user("audit_user", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
@@ -88,7 +88,7 @@ def test_request_view_root_summary(airlock_client):
 
 def test_request_view_root_group(airlock_client):
     airlock_client.login(output_checker=True)
-    audit_user = factories.create_user("audit_user", workspaces=["workspace"])
+    audit_user = factories.create_airlock_user("audit_user", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         author=audit_user,
@@ -130,7 +130,7 @@ def test_request_view_with_directory(airlock_client):
 
 
 def test_request_view_cannot_have_empty_directory(airlock_client):
-    author = factories.create_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user("author", workspaces=["workspace"])
     release_request = factories.create_release_request("workspace", author)
     factories.add_request_file(release_request, "group", "some_dir/file.txt")
 
@@ -315,9 +315,13 @@ def test_request_view_complete_turn_alert(
     can now be progressed by returning/rejecting/releasing
     """
     users = {
-        "researcher": factories.create_user("researcher", workspaces=["workspace"]),
-        "researcher1": factories.create_user("researcher", output_checker=False),
-        "checker": factories.create_user(
+        "researcher": factories.create_airlock_user(
+            "researcher", workspaces=["workspace"]
+        ),
+        "researcher1": factories.create_airlock_user(
+            "researcher", output_checker=False
+        ),
+        "checker": factories.create_airlock_user(
             "checker", output_checker=True, workspaces=["workspace"]
         ),
     }
@@ -638,7 +642,7 @@ def test_request_contents_group_not_exists(airlock_client):
 
 def test_request_download_file(airlock_client):
     airlock_client.login(username="reviewer", output_checker=True)
-    author = factories.create_user("author", ["workspace"])
+    author = factories.create_airlock_user("author", ["workspace"])
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "default", "file.txt", contents="test")
     response = airlock_client.get(
@@ -718,7 +722,7 @@ def test_request_download_file_permissions(
     airlock_client, request_author, user, can_download
 ):
     airlock_client.login(**user)
-    author = factories.create_user(**request_author)
+    author = factories.create_airlock_user(**request_author)
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(
         release_request, "default", "file.txt", contents="test", user=author
@@ -752,7 +756,7 @@ def test_request_index_user_permitted_requests(airlock_client):
 # reviews page
 def test_review_user_output_checker(airlock_client, mock_old_api):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
-    other = factories.create_user(
+    other = factories.create_airlock_user(
         "other",
         workspaces=[
             "test_workspace",
@@ -816,7 +820,7 @@ def test_no_outstanding_request_output_checker(airlock_client):
 
 def test_request_index_user_request_progress(airlock_client):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
-    other = factories.create_user(
+    other = factories.create_airlock_user(
         "other",
         workspaces=[
             "other_workspace",
@@ -936,7 +940,7 @@ def test_request_submit_author(airlock_client):
 
 def test_request_submit_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_author = factories.create_user("other", ["test1"], False)
+    other_author = factories.create_airlock_user("other", ["test1"], False)
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
@@ -981,7 +985,7 @@ def test_request_withdraw_author(airlock_client):
 
 def test_request_withdraw_not_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    other_author = factories.create_user("other", ["test1"], False)
+    other_author = factories.create_airlock_user("other", ["test1"], False)
     release_request = factories.create_release_request(
         "test1", user=other_author, status=RequestStatus.PENDING
     )
@@ -1015,7 +1019,7 @@ def test_request_return_author(airlock_client):
 
 def test_request_return_output_checker(airlock_client):
     airlock_client.login(workspaces=["test1"], output_checker=True)
-    other_author = factories.create_user("other", ["test1"], False)
+    other_author = factories.create_airlock_user("other", ["test1"], False)
     release_request = factories.create_request_at_status(
         "test1",
         author=other_author,
@@ -1124,8 +1128,8 @@ def test_empty_requests_for_workspace(airlock_client):
 
 def test_requests_for_workspace(airlock_client):
     airlock_client.login(workspaces=["test1"])
-    author1 = factories.create_user("author1", ["test1"], False)
-    author2 = factories.create_user("author2", ["test1"], False)
+    author1 = factories.create_airlock_user("author1", ["test1"], False)
+    author2 = factories.create_airlock_user("author2", ["test1"], False)
 
     release_request1 = factories.create_release_request(
         "test1", user=author1, status=RequestStatus.PENDING
@@ -1151,7 +1155,7 @@ def test_requests_for_workspace(airlock_client):
 def test_file_review_bad_user(airlock_client, review):
     workspace = "test1"
     airlock_client.login(workspaces=[workspace], output_checker=False)
-    author = factories.create_user("author", [workspace], False)
+    author = factories.create_airlock_user("author", [workspace], False)
     path = "path/test.txt"
     release_request = factories.create_request_at_status(
         "test1",
@@ -1181,7 +1185,7 @@ def test_file_review_bad_user(airlock_client, review):
 @pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
 def test_file_review_bad_file(airlock_client, review):
     airlock_client.login(output_checker=True)
-    author = factories.create_user("author", ["test1"], False)
+    author = factories.create_airlock_user("author", ["test1"], False)
     path = "path/test.txt"
     release_request = factories.create_request_at_status(
         "test1",
@@ -1211,7 +1215,7 @@ def test_file_review_bad_file(airlock_client, review):
 
 def test_file_approve(airlock_client):
     airlock_client.login(output_checker=True)
-    author = factories.create_user("author", ["test1"], False)
+    author = factories.create_airlock_user("author", ["test1"], False)
     path = "path/test.txt"
     release_request = factories.create_request_at_status(
         "test1",
@@ -1238,7 +1242,7 @@ def test_file_approve(airlock_client):
 
 def test_file_request_changes(airlock_client):
     airlock_client.login(output_checker=True)
-    author = factories.create_user("author", ["test1"], False)
+    author = factories.create_airlock_user("author", ["test1"], False)
     path = "path/test.txt"
     release_request = factories.create_request_at_status(
         "test1",
@@ -1265,7 +1269,7 @@ def test_file_request_changes(airlock_client):
 
 def test_file_reset_review(airlock_client):
     airlock_client.login(output_checker=True)
-    author = factories.create_user("author", ["test1"], False)
+    author = factories.create_airlock_user("author", ["test1"], False)
     path = "path/test.txt"
     release_request = factories.create_request_at_status(
         "test1",
@@ -1307,7 +1311,7 @@ def test_file_reset_review(airlock_client):
 
 def test_request_reject_output_checker(airlock_client):
     airlock_client.login(output_checker=True)
-    author = factories.create_user("author", ["test1"], False)
+    author = factories.create_airlock_user("author", ["test1"], False)
     release_request = factories.create_request_at_status(
         "test1",
         author=author,
@@ -1326,7 +1330,7 @@ def test_request_reject_output_checker(airlock_client):
 def test_request_reject_not_output_checker(airlock_client):
     release_request = factories.create_request_at_status(
         "test1",
-        author=factories.create_user("author1", workspaces=["test1"]),
+        author=factories.create_airlock_user("author1", workspaces=["test1"]),
         status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(changes_requested=True),
@@ -1452,7 +1456,7 @@ def test_file_withdraw_file_bad_request(airlock_client):
 
 
 def test_request_multiselect_withdraw_files(airlock_client):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
         author=user,
@@ -1485,7 +1489,7 @@ def test_request_multiselect_withdraw_files(airlock_client):
 
 
 def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
         author=user,
@@ -1518,7 +1522,7 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
 
 
 def test_request_multiselect_withdraw_files_none_selected(airlock_client):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
         author=user,
@@ -1541,7 +1545,7 @@ def test_request_multiselect_withdraw_files_none_selected(airlock_client):
 
 
 def test_request_multiselect_withdraw_files_invalid_action(airlock_client):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
         author=user,
@@ -1802,8 +1806,8 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
 def test_request_view_tracing_with_request_attribute(
     airlock_client, release_files_stubber, urlpath, post_data, login_as, status, stub
 ):
-    author = factories.create_user("author", ["test-workspace"])
-    checker = factories.create_user("output_checker", output_checker=True)
+    author = factories.create_airlock_user("author", ["test-workspace"])
+    checker = factories.create_airlock_user("output_checker", output_checker=True)
     airlock_client.login(username=login_as, output_checker=True)
 
     release_request = factories.create_request_at_status(
@@ -1815,7 +1819,7 @@ def test_request_view_tracing_with_request_attribute(
                 "default",
                 "file.txt",
                 approved=status in [RequestStatus.REVIEWED, RequestStatus.RELEASED],
-                checkers=[checker, factories.create_user(output_checker=True)],
+                checkers=[checker, factories.create_airlock_user(output_checker=True)],
             ),
         ],
     )
@@ -1904,8 +1908,8 @@ def test_group_edit_no_change(airlock_client, bll):
 
 
 def test_group_edit_bad_user(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
-    other = factories.create_user("other", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    other = factories.create_airlock_user("other", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -1925,7 +1929,7 @@ def test_group_edit_bad_user(airlock_client):
 
 
 def test_group_edit_bad_group(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -1956,12 +1960,12 @@ def test_group_edit_bad_group(airlock_client):
 def test_group_comment_create_success(
     airlock_client, output_checker, visibility, allowed
 ):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
 
-    user = factories.create_user(
+    user = factories.create_airlock_user(
         output_checker=output_checker, workspaces=["workspace"]
     )
     airlock_client.login_with_user(user)
@@ -1987,8 +1991,8 @@ def test_group_comment_create_success(
 
 
 def test_group_comment_create_bad_user(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
-    other = factories.create_user("other", ["other"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    other = factories.create_airlock_user("other", ["other"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -2005,7 +2009,7 @@ def test_group_comment_create_bad_user(airlock_client):
 
 
 def test_group_comment_create_bad_form(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -2025,7 +2029,7 @@ def test_group_comment_create_bad_form(airlock_client):
 
 
 def test_group_comment_create_bad_group(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -2042,7 +2046,7 @@ def test_group_comment_create_bad_group(airlock_client):
 
 
 def test_group_comment_delete(airlock_client):
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
 
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
@@ -2078,7 +2082,7 @@ def test_group_comment_delete(airlock_client):
 
 
 def test_group_comment_visibility_public(airlock_client):
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_airlock_user("checker", [], True)
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2114,7 +2118,7 @@ def test_group_comment_visibility_public(airlock_client):
 
 @pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
 def test_group_comment_modify_bad_form(airlock_client, endpoint):
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_airlock_user("checker", [], True)
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2150,7 +2154,7 @@ def test_group_comment_modify_bad_form(airlock_client, endpoint):
 
 @pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
 def test_group_comment_modify_bad_group(airlock_client, endpoint):
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_airlock_user("checker", [], True)
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2183,7 +2187,7 @@ def test_group_comment_modify_bad_group(airlock_client, endpoint):
 
 @pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
 def test_group_comment_modify_missing_comment(airlock_client, endpoint):
-    checker = factories.create_user("checker", [], True)
+    checker = factories.create_airlock_user("checker", [], True)
 
     release_request = factories.create_request_at_status(
         "workspace",

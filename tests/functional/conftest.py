@@ -45,7 +45,7 @@ def login_as_user(live_server, context, user_dict):
     Creates a session with relevant user data and
     sets the session cookie.
     """
-    user = factories.create_user_from_dict(**user_dict)
+    user = factories.create_airlock_user(**user_dict)
     session_store = Session.get_session_store_class()()  # type: ignore
     session_store["user"] = user.to_dict()
     session_store.save()

@@ -15,7 +15,9 @@ from tests import factories
     ],
 )
 def test_user_can_view_workspace(output_checker, workspaces, can_view):
-    user = factories.create_user("test", workspaces, output_checker=output_checker)
+    user = factories.create_airlock_user(
+        "test", workspaces, output_checker=output_checker
+    )
     assert permissions.user_can_view_workspace(user, "test") == can_view
 
     if not can_view:
@@ -37,7 +39,9 @@ def test_user_can_view_workspace_no_user():
     ],
 )
 def test_user_has_role_on_workspace(output_checker, workspaces, has_role):
-    user = factories.create_user("test", workspaces, output_checker=output_checker)
+    user = factories.create_airlock_user(
+        "test", workspaces, output_checker=output_checker
+    )
     assert permissions.user_has_role_on_workspace(user, "test") == has_role
 
     if not has_role:
@@ -46,10 +50,9 @@ def test_user_has_role_on_workspace(output_checker, workspaces, has_role):
 
 
 def _details(archived=False, ongoing=True):
-    return {
-        "project_details": {"name": "Project", "ongoing": ongoing},
-        "archived": archived,
-    }
+    return factories.create_api_workspace(
+        project="Project", archived=archived, ongoing=ongoing
+    )
 
 
 @pytest.mark.parametrize(
@@ -97,7 +100,7 @@ def _details(archived=False, ongoing=True):
 def test_session_user_can_action_request(
     output_checker, workspaces, can_action_request, expected_reason
 ):
-    user = factories.create_user_from_dict(
+    user = factories.create_airlock_user(
         "test", workspaces, output_checker=output_checker
     )
     assert (
@@ -121,10 +124,12 @@ def test_session_user_can_action_request(
     ],
 )
 def test_user_can_review_request(output_checker, author, workspaces, can_review):
-    user = factories.create_user("user", workspaces, output_checker=output_checker)
+    user = factories.create_airlock_user(
+        "user", workspaces, output_checker=output_checker
+    )
     users = {
         "user": user,
-        "other": factories.create_user("other", ["test"], output_checker=False),
+        "other": factories.create_airlock_user("other", ["test"], output_checker=False),
     }
     release_request = factories.create_request_at_status(
         "test",

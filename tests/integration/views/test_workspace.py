@@ -22,7 +22,7 @@ def test_home_redirects(airlock_client):
 
 
 def test_workspace_view_summary(airlock_client):
-    user = factories.create_user_from_dict(
+    user = factories.create_airlock_user(
         username="testuser",
         workspaces={
             "workspace": {
@@ -43,7 +43,7 @@ def test_workspace_view_summary(airlock_client):
 
 
 def test_workspace_view_archived_inactive(airlock_client):
-    user = factories.create_user_from_dict(
+    user = factories.create_airlock_user(
         username="testuser",
         workspaces={
             "workspace-abc": {
@@ -63,7 +63,7 @@ def test_workspace_view_archived_inactive(airlock_client):
 
 
 def test_workspace_view_with_existing_request_for_user(airlock_client):
-    user = factories.create_user(output_checker=True)
+    user = factories.create_airlock_user(output_checker=True)
     airlock_client.login_with_user(user)
     factories.write_workspace_file("workspace", "file.txt")
     release_request = factories.create_release_request("workspace", user=user)
@@ -122,8 +122,10 @@ def test_workspace_directory_and_request_can_multiselect_add(
     airlock_client, bll, mock_old_api, login_as, status, can_multiselect_add
 ):
     users = {
-        "author": factories.create_user("author", workspaces=["workspace"]),
-        "checker": factories.create_user("checker", workspaces=[], output_checker=True),
+        "author": factories.create_airlock_user("author", workspaces=["workspace"]),
+        "checker": factories.create_airlock_user(
+            "checker", workspaces=[], output_checker=True
+        ),
     }
     airlock_client.login_with_user(users[login_as])
     factories.create_request_at_status(
@@ -168,7 +170,7 @@ def test_workspace_view_with_file(airlock_client):
     ],
 )
 def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
-    author = factories.create_user("author", workspaces=["test-workspace"])
+    author = factories.create_airlock_user("author", workspaces=["test-workspace"])
 
     airlock_client.login_with_user(author)
     # set up a returned file & request
@@ -309,9 +311,19 @@ def test_workspace_view_redirects_to_file(airlock_client):
 @pytest.mark.parametrize(
     "user,can_see_form",
     [
-        (factories.create_user(workspaces=["workspace"], output_checker=True), True),
-        (factories.create_user(workspaces=["workspace"], output_checker=False), True),
-        (factories.create_user(workspaces=[], output_checker=True), False),
+        (
+            factories.create_airlock_user(
+                workspaces=["workspace"], output_checker=True
+            ),
+            True,
+        ),
+        (
+            factories.create_airlock_user(
+                workspaces=["workspace"], output_checker=False
+            ),
+            True,
+        ),
+        (factories.create_airlock_user(workspaces=[], output_checker=True), False),
     ],
 )
 def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
@@ -394,7 +406,7 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
 def test_workspace_view_file_add_to_current_request(
     mock_old_api, airlock_client, status, is_current, files, can_see_form
 ):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file("workspace", "file.txt", "foo")
@@ -473,7 +485,7 @@ def test_workspaces_index_no_user(airlock_client):
 
 
 def test_workspaces_index_user_permitted_workspaces(airlock_client):
-    user = factories.create_user_from_dict(
+    user = factories.create_airlock_user(
         username="testuser",
         workspaces={
             "test1a": {
@@ -666,7 +678,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
 def test_workspace_multiselect_update_files(
     airlock_client, bll, path1_updated, path2_updated, ignored_count
 ):
-    author = factories.create_user("author", workspaces=["test1"])
+    author = factories.create_airlock_user("author", workspaces=["test1"])
     airlock_client.login_with_user(author)
 
     workspace = factories.create_workspace("test1")
