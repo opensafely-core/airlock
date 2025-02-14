@@ -133,8 +133,22 @@ function addCheckboxClickListener() {
 
 // On first load of the page we need to wire up the event listener
 // so that we can respond to checkbox changes.
-document.addEventListener("DOMContentLoaded", addCheckboxClickListener);
+if (document.readyState !== "loading") {
+  // If the document is already loaded then we can add the event listener now
+  // and also ensure the checkboxes are in sync with the stored values
+  addCheckboxClickListener();
+  renderCheckboxStatus();
+} else {
+  // If the document is not yet loaded we wait for the loaded event
+  document.addEventListener("DOMContentLoaded", () => {
+    addCheckboxClickListener();
+    // I'm pretty sure we never need to call renderCheckboxStatus here
+    // because in this scenario the "datatable-ready" event (see below)
+    // will fire. But calling it twice isn't an issue, so just in case...
+    renderCheckboxStatus();
+  });
+}
 
 // Every time a datatable is rendered we need to update the checkboxes
 // so they match the saved state
-document.body.addEventListener("datatable-ready", renderCheckboxStatus)
+document.body.addEventListener("datatable-ready", renderCheckboxStatus);
