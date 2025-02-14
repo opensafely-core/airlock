@@ -391,7 +391,7 @@ def test_screenshot_from_creation_to_release(
 
     # Progress the release request to all uploads complete and released
     release_request = factories.refresh_release_request(release_request)
-    checker_user = factories.create_user(**user_dicts["checker1"])
+    checker_user = factories.create_airlock_user(**user_dicts["checker1"])
     for relpath in release_request.output_files():
         for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
             bll.register_file_upload(release_request, relpath, checker_user)
