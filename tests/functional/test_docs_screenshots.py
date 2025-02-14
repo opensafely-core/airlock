@@ -42,6 +42,18 @@ def get_user_data():
     return author, user_dicts
 
 
+def move_mouse_from(page):
+    """
+    Move the mouse away from any elements it might be hovering over so that we
+    don't screenshot tooltips.
+    """
+    # Note there's a locator.dispatch_event('mouseleave') method, which does move the
+    # pointer off the button, but it doesn't get rid of the tooltip until you move the
+    # mouse again. Moving it to 0, 0 ensures that it doesn't accidentally land on some
+    # other element that has a tooltip
+    page.mouse.move(0, 0)
+
+
 @pytest.mark.skipif(
     os.getenv("RUN_SCREENSHOT_TESTS") is None,
     reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
@@ -239,7 +251,10 @@ def test_screenshot_from_creation_to_release(
             page.screenshot(path=settings.SCREENSHOT_DIR / "submit_review.png")
 
         page.locator("#submit-review-button").click()
+
         if screenshot:
+            # move mouse off button to avoid screenshotting tooltips
+            move_mouse_from(page)
             page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_review.png")
 
     # Login as output checker and visit pages
@@ -350,13 +365,39 @@ def test_screenshot_from_creation_to_release(
     release_files_stubber(release_request)
     page.goto(live_server.url + release_request.get_url())
 
+    # Move the mouse off the button so we don't screenshot the tooltip
+    move_mouse_from(page)
     page.screenshot(path=settings.SCREENSHOT_DIR / "ready_to_release.png")
+
+    # Approve for release
     page.locator("#release-files-button").click()
-    # Make sure we've waited for the files to be released
+
     expect(page.locator("body")).to_contain_text(
         "Files have been released and will be uploaded to jobs.opensafely.org"
     )
-    page.screenshot(path=settings.SCREENSHOT_DIR / "files_released.png")
+    # Move the mouse off the button so we don't screenshot the tooltip
+    move_mouse_from(page)
+    page.screenshot(
+        path=settings.SCREENSHOT_DIR / "request_approved_upload_in_progress.png"
+    )
+
+    # Progress the release request to all uploads failed
+    for relpath in release_request.output_files():
+        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+            bll.register_file_upload_attempt(release_request, relpath)
+
+    page.goto(live_server.url + release_request.get_url())
+    page.screenshot(path=settings.SCREENSHOT_DIR / "request_approved_upload_failed.png")
+
+    # Progress the release request to all uploads complete and released
+    release_request = factories.refresh_release_request(release_request)
+    checker_user = factories.create_user(**user_dicts["checker1"])
+    for relpath in release_request.output_files():
+        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+            bll.register_file_upload(release_request, relpath, checker_user)
+    bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
+    page.goto(live_server.url + release_request.get_url())
+    page.screenshot(path=settings.SCREENSHOT_DIR / "request_released.png")
 
 
 @pytest.mark.skipif(
