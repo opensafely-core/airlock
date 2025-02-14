@@ -386,6 +386,7 @@ def request_view(request, request_id: str, path: str = ""):
         "code_url": code_url,
         "include_code": code_url is not None,
         "include_download": not is_author,
+        "upload_in_progress": release_request.upload_in_progress(),
     }
 
     return TemplateResponse(request, template, context)
