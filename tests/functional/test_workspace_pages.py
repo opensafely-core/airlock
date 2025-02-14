@@ -78,14 +78,15 @@ def test_content_buttons(
         "researcher": dict(
             username="researcher",
             workspaces={
-                "workspace": {
-                    "project_details": {"name": "Project 1", "ongoing": ongoing},
-                    "archived": archived,
-                }
+                "workspace": factories.create_api_workspace(
+                    project="Project 1", ongoing=ongoing, archived=archived
+                )
             },
             output_checker=False,
         ),
-        "checker": dict(username="checker", workspaces={}, output_checker=True),
+        "checker": factories.create_api_user(
+            username="checker", workspaces={}, output_checker=True
+        ),
     }
     user = login_as_user(live_server, context, user_data[login_as])
     workspace = factories.create_workspace("workspace", user)
@@ -223,14 +224,9 @@ def test_file_content_buttons(
     is_enabled,
     tooltip,
 ):
-    user_data = dict(
+    user_data = factories.create_api_user(
         username="author",
-        workspaces={
-            "workspace": {
-                "project_details": {"name": "Project 1", "ongoing": True},
-                "archived": False,
-            }
-        },
+        workspaces={"workspace": factories.create_api_workspace(project="Project 1")},
         output_checker=False,
     )
     user = login_as_user(live_server, context, user_data)
@@ -338,15 +334,12 @@ def test_csv_filtering(live_server, page, context, bll):
     login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "author",
-            "workspaces": {
-                "my-workspace": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": False,
-                },
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
             },
-        },
+        ),
     )
 
     page.goto(

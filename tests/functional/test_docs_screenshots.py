@@ -33,7 +33,7 @@ def get_user_data():
         "checker2": dict(username="checker2", workspaces=[], output_checker=True),
     }
 
-    author = factories.create_user(
+    author = factories.create_airlock_user(
         username=author_username,
         workspaces=author_workspaces,
         output_checker=False,
@@ -500,7 +500,7 @@ def test_screenshot_withdraw_request(page, context, live_server):
 )
 def test_screenshot_request_partially_reviewed_icons(page, context, live_server):
     author, user_dicts = get_user_data()
-    checker1 = factories.create_user(
+    checker1 = factories.create_airlock_user(
         username="checker1",
         workspaces=[],
         output_checker=True,
@@ -565,12 +565,12 @@ def test_screenshot_request_partially_reviewed_icons(page, context, live_server)
 )
 def test_screenshot_request_reviewed_icons(page, context, live_server):
     author, user_dicts = get_user_data()
-    checker1 = factories.create_user(
+    checker1 = factories.create_airlock_user(
         username="checker1",
         workspaces=[],
         output_checker=True,
     )
-    checker2 = factories.create_user(
+    checker2 = factories.create_airlock_user(
         username="checker2",
         workspaces=[],
         output_checker=True,
@@ -634,12 +634,12 @@ def test_screenshot_request_reviewed_icons(page, context, live_server):
 )
 def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     author, user_dicts = get_user_data()
-    checker1 = factories.create_user(
+    checker1 = factories.create_airlock_user(
         username="checker1",
         workspaces=[],
         output_checker=True,
     )
-    checker2 = factories.create_user(
+    checker2 = factories.create_airlock_user(
         username="checker2",
         workspaces=[],
         output_checker=True,

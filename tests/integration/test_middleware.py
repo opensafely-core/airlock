@@ -10,7 +10,7 @@ from tests.conftest import get_trace
 
 @pytest.mark.django_db
 def test_middleware_expired_user(airlock_client, responses):
-    user = factories.create_user()
+    user = factories.create_airlock_user()
     airlock_client.login_with_user(user)
     factories.create_workspace("new_workspace")
 
@@ -23,10 +23,9 @@ def test_middleware_expired_user(airlock_client, responses):
     session.save()
 
     new_workspaces = user.workspaces.copy()
-    new_workspaces["new_workspace"] = {
-        "project_details": {"name": "other_project", "ongoing": True},
-        "archived": False,
-    }
+    new_workspaces["new_workspace"] = factories.create_api_workspace(
+        project="other_project"
+    )
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",
@@ -45,7 +44,7 @@ def test_middleware_expired_user(airlock_client, responses):
 @pytest.mark.django_db
 def test_middleware_expired_error(airlock_client, responses):
     last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
-    user = factories.create_user(last_refresh=last_refresh)
+    user = factories.create_airlock_user(last_refresh=last_refresh)
     airlock_client.login_with_user(user)
     factories.create_workspace("new_workspace")
 
@@ -60,7 +59,7 @@ def test_middleware_expired_error(airlock_client, responses):
 
 @pytest.mark.django_db
 def test_middleware_user_trace(airlock_client, responses):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
     factories.create_workspace("workspace")
 

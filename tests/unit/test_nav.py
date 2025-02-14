@@ -32,7 +32,7 @@ def test_iter_nav(rf):
 
 
 def test_iter_nav_output_checker(rf):
-    factories.create_user("user", ["test"], output_checker=True)
+    factories.create_airlock_user("user", ["test"], output_checker=True)
     items = [
         nav.NavItem("Reviews", "requests_for_output_checker"),
     ]

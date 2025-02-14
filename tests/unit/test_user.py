@@ -1,38 +1,36 @@
 from typing import Any
 
 from airlock.users import User
+from tests import factories
 
 
 def test_session_user_from_session():
     mock_session = {
-        "user": {
-            "id": 1,
-            "username": "test",
-            "workspaces": {
-                "test-workspace-1": {
-                    "project_details": {"name": "Project 1", "ongoing": True},
-                    "archived": False,
-                },
-                "test_workspace2": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": True,
-                },
+        "user": factories.create_api_user(
+            username="test",
+            workspaces={
+                "workspace1": factories.create_api_workspace(
+                    project="Project 1", archived=False
+                ),
+                "workspace2": factories.create_api_workspace(
+                    project="Project 2", archived=True
+                ),
             },
-            "output_checker": True,
-        }
+            output_checker=True,
+        )
     }
     user = User.from_session(mock_session)
-    assert set(user.workspaces) == {"test-workspace-1", "test_workspace2"}
-    assert user.workspaces["test-workspace-1"]["project_details"] == {
+    assert set(user.workspaces) == {"workspace1", "workspace2"}
+    assert user.workspaces["workspace1"]["project_details"] == {
         "name": "Project 1",
         "ongoing": True,
     }
-    assert user.workspaces["test_workspace2"]["project_details"] == {
+    assert user.workspaces["workspace2"]["project_details"] == {
         "name": "Project 2",
         "ongoing": True,
     }
-    assert user.workspaces["test-workspace-1"]["archived"] is False
-    assert user.workspaces["test_workspace2"]["archived"] is True
+    assert user.workspaces["workspace1"]["archived"] is False
+    assert user.workspaces["workspace2"]["archived"] is True
     assert user.output_checker
 
 

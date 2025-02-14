@@ -29,52 +29,80 @@ from airlock.types import UrlPath
 from airlock.users import User
 
 
-def create_user(
-    username: str = "testuser",
-    workspaces: list[str] | None = None,
-    output_checker: bool = False,
-    last_refresh=None,
-) -> User:
-    """Factory to create a user.
+def create_api_project(project="project", ongoing=True):
+    """Test factory for project details"""
+    return dict(name=project, ongoing=ongoing)
 
-    For ease of use, workspaces is just a flat list of workspace name, which is
-    converted into an appropriate dict with all the right keys.
 
-    If you need to create a more complex workspace dict, you can call
-    create_user_from_dict directly.
-    """
-    if workspaces is None:
-        # default to usual workspace
-        workspaces = ["workspace"]
-
-    workspaces_dict = {
-        workspace: {
-            "project_details": {"name": "project", "ongoing": True},
-            "archived": False,
-        }
-        for workspace in workspaces
-    }
-
-    return create_user_from_dict(
-        username, workspaces_dict, output_checker, last_refresh
+def create_api_workspace(
+    project_details=None, archived=False, project="project", ongoing=True
+):
+    """Test factory for workspace details"""
+    if project_details is None:
+        project_details = create_api_project(project, ongoing)
+    return dict(
+        project_details=project_details,
+        archived=archived,
     )
 
 
-def create_user_from_dict(
-    username, workspaces, output_checker=False, last_refresh=None
-) -> User:
-    if last_refresh is None:
-        last_refresh = time.time()
+def create_api_user(
+    username: str = "testuser",
+    workspaces: dict[str, typing.Any] | list[str] | None = None,
+    output_checker: bool = False,
+):
+    """Test factory to create a user from the Auth API
+
+    For convenience, the factory accepts the following values for workspaces:
+     - None:      create a default workspace called "workspace"
+     - list[str]: create a list of workspaces with given names, and default
+                  workspace values
+     - dict[str, dict]: pass wholesale through to APIUser
+
+    This allows the caller complete control, but makes the common case simple.
+    """
+
+    actual_workspaces = {}
+    if workspaces is None:
+        # default to default test workspace
+        workspaces = ["workspace"]
 
     if isinstance(workspaces, list):
-        workspaces = {
-            workspace: {
-                "project_details": {"name": "project", "ongoing": True},
-                "archived": False,
-            }
-            for workspace in workspaces
-        }
-    return User(username, workspaces, output_checker, last_refresh)
+        for workspace in workspaces:
+            actual_workspaces[workspace] = create_api_workspace()
+    elif isinstance(workspaces, dict):
+        for k, v in workspaces.items():
+            actual_workspaces[k] = create_api_workspace(**v)
+    else:  # pragma: nocover
+        raise Exception("bad workspaces parameter, should be dict, list, or None")
+
+    return dict(
+        username=username,
+        workspaces=actual_workspaces,
+        output_checker=output_checker,
+    )
+
+
+def create_airlock_user(
+    username: str = "testuser",
+    workspaces: dict[str, typing.Any] | list[str] | None = None,
+    output_checker: bool = False,
+    last_refresh: float = -1,
+) -> User:
+    """Factory to create an Airlock User.
+
+    The username, workspaces, and output_checker, are all just passed through to create_api_user.
+    """
+    api_user = create_api_user(username, workspaces, output_checker)
+    if last_refresh == -1:
+        last_refresh = time.time()
+
+    return User(
+        username=api_user["username"],
+        workspaces=api_user["workspaces"],
+        output_checker=api_user["output_checker"],
+        last_refresh=last_refresh,
+    )
 
 
 def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
@@ -186,7 +214,7 @@ def update_manifest(workspace: Workspace | str, files=None):
 def create_workspace(name: str, user=None) -> Workspace:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
-        user = create_user("author", workspaces=[name])
+        user = create_airlock_user("author", workspaces=[name])
 
     workspace_dir = settings.WORKSPACE_DIR / name
     if not workspace_dir.exists():
@@ -281,7 +309,7 @@ def create_release_request(
 
     # create a default user with permission on workspace
     if user is None:
-        user = create_user("author", workspaces=[workspace.name])
+        user = create_airlock_user("author", workspaces=[workspace.name])
 
     release_request = bll.get_or_create_current_request(
         workspace=workspace.name, user=user, **kwargs
@@ -324,7 +352,7 @@ def create_request_at_status(
     review (approve/request changes to) the file. If not provided, default output checkers
     will be used.
     """
-    author = author or create_user(
+    author = author or create_airlock_user(
         "author",
         workspaces=[workspace if isinstance(workspace, str) else workspace.name],
     )
@@ -475,7 +503,7 @@ def add_request_file(
 
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
-        user = create_user(request.author, workspaces=[workspace.name])
+        user = create_airlock_user(request.author, workspaces=[workspace.name])
 
     bll.add_file_to_request(
         request, relpath=path, user=user, group_name=group, filetype=filetype
@@ -502,8 +530,8 @@ def create_request_file_bad_path(request_file: RequestFile, bad_path) -> Request
 
 def get_default_output_checkers():
     return [
-        create_user("output-checker-0", output_checker=True),
-        create_user("output-checker-1", output_checker=True),
+        create_airlock_user("output-checker-0", output_checker=True),
+        create_airlock_user("output-checker-1", output_checker=True),
     ]
 
 
@@ -624,7 +652,7 @@ def submit_independent_review(request, *users):
 
 
 def create_filegroup(release_request, group_name, filepaths=None):
-    user = create_user(release_request.author, [release_request.workspace])
+    user = create_airlock_user(release_request.author, [release_request.workspace])
     for filepath in filepaths or []:  # pragma: nocover
         bll.add_file_to_request(release_request, filepath, user, group_name)
     return bll._dal._get_or_create_filegroupmetadata(release_request.id, group_name)  # type: ignore
@@ -633,7 +661,7 @@ def create_filegroup(release_request, group_name, filepaths=None):
 def refresh_release_request(release_request, user=None) -> ReleaseRequest:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
-        user = create_user("author", workspaces=[release_request.workspace])
+        user = create_airlock_user("author", workspaces=[release_request.workspace])
     return bll.get_release_request(release_request.id, user)
 
 

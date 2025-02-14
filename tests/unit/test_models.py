@@ -89,7 +89,7 @@ def test_workspace_manifest_for_file_not_found(bll):
     manifest_path.write_text(json.dumps(manifest_data))
 
     workspace = bll.get_workspace(
-        "workspace", factories.create_user(workspaces=["workspace"])
+        "workspace", factories.create_airlock_user(workspaces=["workspace"])
     )
     with pytest.raises(exceptions.ManifestFileError):
         workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
@@ -138,24 +138,19 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     factories.create_workspace("normal_workspace")
     factories.create_workspace("archived_workspace")
     factories.create_workspace("not_ongoing")
-    user = factories.create_user_from_dict(
+    user = factories.create_airlock_user(
         "user",
         workspaces={
-            "normal_workspace": {
-                "project_details": {"name": "project-1", "ongoing": True},
-                "archived": False,
-            },
-            "archived_workspace": {
-                "project_details": {"name": "project-1", "ongoing": True},
-                "archived": True,
-            },
-            "not_ongoing": {
-                "project_details": {"name": "project-2", "ongoing": False},
-                "archived": False,
-            },
+            "normal_workspace": factories.create_api_workspace(project="project-1"),
+            "archived_workspace": factories.create_api_workspace(
+                project="project-1", archived=True
+            ),
+            "not_ongoing": factories.create_api_workspace(
+                project="project-2", ongoing=False
+            ),
         },
     )
-    checker = factories.create_user("checker", output_checker=True)
+    checker = factories.create_airlock_user("checker", output_checker=True)
 
     active_workspace = bll.get_workspace("normal_workspace", user)
     archived_workspace = bll.get_workspace("archived_workspace", user)
@@ -189,7 +184,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
 def test_workspace_get_workspace_file_status(bll):
     path = UrlPath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
 
     with pytest.raises(exceptions.FileNotFound):
         workspace.get_workspace_file_status(path)
@@ -233,7 +228,7 @@ def test_workspace_get_released_files(bll, mock_old_api):
             ),
         ],
     )
-    user = factories.create_user("test", workspaces=["workspace"])
+    user = factories.create_airlock_user("test", workspaces=["workspace"])
     workspace = bll.get_workspace("workspace", user)
     # supporting file is not considered a released file
     assert len(workspace.released_files) == 1
@@ -242,7 +237,7 @@ def test_workspace_get_released_files(bll, mock_old_api):
 
 
 def test_request_returned_get_workspace_file_status(bll):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
         group="group",
@@ -264,7 +259,7 @@ def test_request_returned_get_workspace_file_status(bll):
 
 
 def test_request_pending_not_author_get_workspace_file_status(bll):
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     path = "file1.txt"
     workspace_file = factories.request_file(
         group="group",
@@ -287,7 +282,7 @@ def test_request_pending_not_author_get_workspace_file_status(bll):
 def test_request_pending_author_get_workspace_file_status(bll):
     status = RequestStatus.PENDING
 
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
     workspace = factories.create_workspace("workspace")
     path = UrlPath("path/file.txt")
 
@@ -316,7 +311,7 @@ def test_request_pending_author_get_workspace_file_status(bll):
 def test_request_returned_author_get_workspace_file_status(bll):
     status = RequestStatus.RETURNED
 
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
     workspace = factories.create_workspace("workspace")
     path = UrlPath("path/file.txt")
 
@@ -367,7 +362,7 @@ def test_request_container():
 def test_request_file_manifest_data(mock_notifications, bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "bar.txt")
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_release_request(workspace, user=user)
 
     # modify the manifest data to known values for asserts
@@ -398,7 +393,7 @@ def test_request_file_manifest_data(mock_notifications, bll):
 def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "bar.txt")
-    user = factories.create_user(workspaces=["workspace"])
+    user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_release_request(workspace, user=user)
 
     # modify the manifest data to known values for asserts
@@ -534,7 +529,7 @@ def test_request_status_ownership(bll):
 
 
 def test_request_all_files_by_name(bll):
-    author = factories.create_user(username="author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file.txt")
     supporting_path = UrlPath("path/supporting_file.txt")
 
@@ -632,7 +627,7 @@ def test_request_release_request_filetype(bll):
 
 
 def setup_empty_release_request():
-    author = factories.create_user("author", ["workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
@@ -644,7 +639,7 @@ def setup_empty_release_request():
 
 
 def test_get_visible_comments_for_group_class(bll):
-    author = factories.create_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
 
     release_request = factories.create_request_at_status(

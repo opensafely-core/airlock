@@ -9,7 +9,7 @@ class AirlockClient(Client):
         username = credentials.get("username", "testuser")
         workspaces = credentials.get("workspaces")
         output_checker = credentials.get("output_checker", False)
-        user = factories.create_user(username, workspaces, output_checker)
+        user = factories.create_airlock_user(username, workspaces, output_checker)
         self.login_with_user(user)
 
     def login_with_user(self, user):

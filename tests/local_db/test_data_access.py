@@ -85,7 +85,7 @@ def test_get_audit_log(test_audits, kwargs, expected_audits):
 
 
 def test_delete_file_from_request_bad_state():
-    author = factories.create_user()
+    author = factories.create_airlock_user()
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -112,7 +112,7 @@ def test_delete_file_from_request_bad_state():
     ],
 )
 def test_withdraw_file_from_request_bad_state(status, mock_old_api):
-    author = factories.create_user(username="author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -132,7 +132,7 @@ def test_withdraw_file_from_request_bad_state(status, mock_old_api):
 
 
 def test_withdraw_file_from_request_file_does_not_exist():
-    author = factories.create_user(username="author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -161,7 +161,7 @@ def test_withdraw_file_from_request_file_does_not_exist():
 
 def test_add_file_to_request_bad_state():
     workspace = factories.create_workspace("workspace")
-    author = factories.create_user(username="author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     request_file = factories.request_file()
     relpath = UrlPath(request_file.path)
     factories.write_workspace_file(workspace, relpath, contents="1234")
@@ -197,7 +197,7 @@ def test_add_file_to_request_bad_state():
 
 
 def test_delete_file_from_request_bad_path():
-    author = factories.create_user()
+    author = factories.create_airlock_user()
     release_request = factories.create_release_request(
         "workspace",
         status=RequestStatus.PENDING,
@@ -225,8 +225,8 @@ def test_delete_file_from_request_bad_path():
     ],
 )
 def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
-    author = factories.create_user("author", ["workspace"], False)
-    other = factories.create_user("other", ["other-workspace"], False)
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    other = factories.create_airlock_user("other", ["other-workspace"], False)
 
     release_request = factories.create_request_at_status(
         "workspace",

@@ -132,7 +132,9 @@ def test_get_workspace_tree_general(release_request):
 @pytest.mark.django_db
 def test_get_request_tree_general(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
-    tree = get_request_tree(release_request, factories.create_user(), selected_path)
+    tree = get_request_tree(
+        release_request, factories.create_airlock_user(), selected_path
+    )
 
     # simple way to express the entire tree structure, including selected
     expected = textwrap.dedent(
@@ -167,11 +169,11 @@ def test_get_request_tree_general(release_request):
 
 
 def test_get_request_tree_status(bll):
-    author = factories.create_user(
+    author = factories.create_airlock_user(
         "author", output_checker=True, workspaces=["workspace"]
     )
-    checker1 = factories.create_user("checker1", [], True)
-    checker2 = factories.create_user("checker2", [], True)
+    checker1 = factories.create_airlock_user("checker1", [], True)
+    checker2 = factories.create_airlock_user("checker2", [], True)
 
     path = UrlPath("some_dir/file_a.txt")
     release_request = factories.create_request_at_status(
@@ -315,7 +317,10 @@ def test_get_workspace_tree_selected_is_empty_dir(workspace):
 def test_get_request_tree_selected_only_file(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
     tree = get_request_tree(
-        release_request, factories.create_user(), selected_path, selected_only=True
+        release_request,
+        factories.create_airlock_user(),
+        selected_path,
+        selected_only=True,
     )
 
     # only the selected path should be in the tree, and all groups
@@ -337,7 +342,10 @@ def test_get_request_tree_selected_only_file(release_request):
 def test_get_request_tree_selected_only_group(release_request):
     selected_path = UrlPath("group1")
     tree = get_request_tree(
-        release_request, factories.create_user(), selected_path, selected_only=True
+        release_request,
+        factories.create_airlock_user(),
+        selected_path,
+        selected_only=True,
     )
 
     # only the selected path should be in the tree, and all groups
@@ -387,7 +395,7 @@ def test_workspace_tree_get_path(workspace, path, exists):
 )
 @pytest.mark.django_db
 def test_request_tree_get_path(release_request, path, exists):
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
 
     if exists:
         tree.get_path(path)
@@ -427,13 +435,13 @@ def test_workspace_tree_content_urls(workspace):
 )
 @pytest.mark.django_db
 def test_request_tree_urls(release_request, path, url):
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
     assert tree.get_path(path).url().endswith(url)
 
 
 @pytest.mark.django_db
 def test_request_tree_download_url(release_request):
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
     assert (
         tree.get_path("group1/some_dir/file_a.txt")
         .download_url()
@@ -456,7 +464,7 @@ def test_workspace_tree_breadcrumbs(workspace):
 
 @pytest.mark.django_db
 def test_request_tree_breadcrumbs(release_request):
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
     path = tree.get_path("group1/some_dir/file_a.txt")
     assert [c.name() for c in path.breadcrumbs()] == [
         release_request.id,
@@ -508,14 +516,16 @@ def test_workspace_tree_selection_bad_path(workspace):
 @pytest.mark.django_db
 def test_request_tree_selection_root(release_request):
     # selected root by default
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
     assert tree.get_selected() == tree
 
 
 @pytest.mark.django_db
 def test_request_tree_selection_path(release_request):
     selected_path = UrlPath("group1/some_dir/file_a.txt")
-    tree = get_request_tree(release_request, factories.create_user(), selected_path)
+    tree = get_request_tree(
+        release_request, factories.create_airlock_user(), selected_path
+    )
 
     selected_item = tree.get_path(selected_path)
     assert selected_item.selected
@@ -533,7 +543,9 @@ def test_request_tree_selection_path(release_request):
 @pytest.mark.django_db
 def test_request_tree_selection_not_path(release_request):
     selected_path = UrlPath("bad/path")
-    tree = get_request_tree(release_request, factories.create_user(), selected_path)
+    tree = get_request_tree(
+        release_request, factories.create_airlock_user(), selected_path
+    )
     with pytest.raises(tree.PathNotFound):
         tree.get_selected()
 
@@ -558,7 +570,7 @@ def test_workspace_tree_siblings(workspace):
 
 @pytest.mark.django_db
 def test_request_tree_siblings(release_request):
-    tree = get_request_tree(release_request, factories.create_user())
+    tree = get_request_tree(release_request, factories.create_airlock_user())
 
     assert tree.siblings() == []
     assert {s.name() for s in tree.get_path("group1").siblings()} == {
@@ -581,7 +593,7 @@ def test_get_workspace_tree_tracing(workspace):
 
 @pytest.mark.django_db
 def test_get_request_tree_tracing(release_request):
-    get_request_tree(release_request, factories.create_user())
+    get_request_tree(release_request, factories.create_airlock_user())
     traces = get_trace()
     assert len(traces) == 1
     trace = traces[0]

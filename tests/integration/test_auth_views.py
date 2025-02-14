@@ -2,6 +2,8 @@ from unittest import mock
 
 import pytest
 
+from tests import factories
+
 
 pytestmark = pytest.mark.django_db
 
@@ -28,16 +30,7 @@ def test_login(requests_post, client, settings):
 
     api_response = requests_post.return_value
     api_response.status_code = 200
-    api_response.json.return_value = {
-        "username": "test_user",
-        "output_checker": False,
-        "workspaces": {
-            "workspace": {
-                "project_details": {"name": "project1", "ongoing": True},
-                "archived": False,
-            },
-        },
-    }
+    api_response.json.return_value = factories.create_api_user()
 
     assert "user" not in client.session
 
@@ -52,11 +45,11 @@ def test_login(requests_post, client, settings):
         json={"user": "test_user", "token": "foo bar baz"},
     )
 
-    assert client.session["user"]["username"] == "test_user"
+    assert client.session["user"]["username"] == "testuser"
     assert client.session["user"]["output_checker"] is False
     assert client.session["user"]["workspaces"] == {
         "workspace": {
-            "project_details": {"name": "project1", "ongoing": True},
+            "project_details": {"name": "project", "ongoing": True},
             "archived": False,
         },
     }
