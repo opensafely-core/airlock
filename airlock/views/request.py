@@ -885,7 +885,10 @@ def uploaded_files_count(request, request_id):
     overview page.
     """
     release_request = get_release_request_or_raise(request.user, request_id)
-    if release_request.upload_in_progress():
+    if release_request.upload_in_progress() or (
+        release_request.status == RequestStatus.APPROVED
+        and release_request.all_files_uploaded()
+    ):
         return TemplateResponse(
             request,
             "file_browser/_includes/uploaded_files_count.html",

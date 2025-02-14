@@ -745,11 +745,18 @@ def test_request_uploaded_files_counts(
     release_files_button.click()
     assert_still_uploading(2)
 
-    # complete the upload and release
+    # complete the upload
     bll.register_file_upload(release_request, UrlPath("file3.txt"), output_checker)
+
+    # test for the race condition where the upload has been completed but the
+    # status hasn't yet been updated; in this case we want to continue to poll
+    # until the status has change to RELEASED
+    assert_still_uploading(3)
+
+    # Now update the status to released
     bll.set_status(release_request, RequestStatus.RELEASED, output_checker)
 
-    # 3 files uploaded; request is no longer uploading so page has refreshed and no
+    # all files uploaded AND status updated; page has refreshed and no
     # htmx attributes on the parent element anymore
     # the release files button is not visible because the release is now complete
     expect(uploaded_files_count_el).to_contain_text("3")
