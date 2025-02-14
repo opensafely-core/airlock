@@ -21,6 +21,7 @@ from .request import (
     requests_for_output_checker,
     requests_for_researcher,
     requests_for_workspace,
+    uploaded_files_count,
 )
 from .workspace import (
     workspace_add_file_to_request,
@@ -56,6 +57,7 @@ __all__ = [
     "group_comment_create",
     "group_comment_delete",
     "group_comment_visibility_public",
+    "uploaded_files_count",
     "workspace_add_file_to_request",
     "workspace_multiselect",
     "workspace_contents",
