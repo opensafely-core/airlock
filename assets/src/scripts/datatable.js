@@ -110,6 +110,12 @@ function buildTables() {
         spinner?.classList.toggle("hidden");
         wrapper.classList.toggle("hidden");
       }
+
+      // For remembering the state of the checkboxes we need to update them
+      // from sessionStorage every time the table is redrawn. Rather than
+      // adding the checkbox logic here, we decouple it by just emitting an
+      // event when the table is ready, and the checkbox state logic can listen for it.
+      document.body.dispatchEvent(new Event("datatable-ready"));
     });
   });
 }

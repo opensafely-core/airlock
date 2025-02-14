@@ -420,3 +420,228 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     page.wait_for_load_state()
     # should load the table but previously didn't
     expect(page.locator(".datatable-table")).to_be_visible()
+
+
+def test_checkbox_caching(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    file_2 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    factories.write_workspace_file(workspace, file_2)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+    # goto page with files
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    file_1_selector = f"input[type=checkbox][value='{file_1}']"
+    file_2_selector = f"input[type=checkbox][value='{file_2}']"
+
+    # checkboxes start unchecked
+    expect(page.locator(file_1_selector)).not_to_be_checked()
+    expect(page.locator(file_2_selector)).not_to_be_checked()
+
+    # check the first box
+    page.check(file_1_selector)
+
+    # go to a different page and then come back
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    # the first checkbox state has persisted
+    expect(page.locator(file_1_selector)).to_be_checked()
+    expect(page.locator(file_2_selector)).not_to_be_checked()
+
+
+def test_checkbox_caching_same_file_name_but_different_workspace(
+    live_server, page, context
+):
+    workspace_1 = factories.create_workspace("my-workspace-1")
+    workspace_2 = factories.create_workspace("my-workspace-2")
+
+    file_1 = "outputs/file1.txt"
+    factories.write_workspace_file(workspace_1, file_1)
+    factories.write_workspace_file(workspace_2, file_1)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace-1": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+                "my-workspace-2": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # goto page with files in workspace 1
+    page.goto(live_server.url + workspace_1.get_url(UrlPath("outputs")))
+
+    file_1_selector = f"input[type=checkbox][value='{file_1}']"
+
+    # checkboxes start unchecked
+    expect(page.locator(file_1_selector)).not_to_be_checked()
+
+    # check the first box
+    page.check(file_1_selector)
+
+    # go to different workspace
+    page.goto(live_server.url + workspace_2.get_url(UrlPath("outputs")))
+
+    # file with same name will not be checked
+    expect(page.locator(file_1_selector)).not_to_be_checked()
+
+    # go back to original workspace
+    page.goto(live_server.url + workspace_1.get_url(UrlPath("outputs")))
+
+    # original file should still be checked
+    expect(page.locator(file_1_selector)).to_be_checked()
+
+
+def test_checkbox_caching_appears_after_back_button(live_server, page, context):
+    """
+    View a folder > check a box > view a file > click back > ensure checkbox is still checked
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    file_2 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    factories.write_workspace_file(workspace, file_2)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    file_1_selector = f"input[type=checkbox][value='{file_1}']"
+    file_2_selector = f"input[type=checkbox][value='{file_2}']"
+
+    # goto folder view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    # checkboxes start unchecked
+    expect(page.locator(file_1_selector)).not_to_be_checked()
+    expect(page.locator(file_2_selector)).not_to_be_checked()
+    # Check a box
+    page.check(file_1_selector)
+    expect(page.locator(file_1_selector)).to_be_checked()
+    # view file via treeview click
+    page.locator('.tree a[href*="file1.csv"]').click()
+    # ensure the file has loaded
+    expect(page.locator("#file1csv-title")).to_be_visible()
+    # go back to the folder view
+    page.go_back()
+    # checkbox should still be checked
+    expect(page.locator(file_1_selector)).to_be_checked()
+
+
+def test_checkbox_caching_works_following_back_button(live_server, page, context):
+    """
+    View a folder > view a file > click back > check a box > refresh > box state persists
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    file_2 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    factories.write_workspace_file(workspace, file_2)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    file_1_selector = f"input[type=checkbox][value='{file_1}']"
+    file_2_selector = f"input[type=checkbox][value='{file_2}']"
+
+    # goto folder view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    # view file via treeview click
+    page.locator('.tree a[href*="file1.csv"]').click()
+    # ensure the file has loaded
+    expect(page.locator("#file1csv-title")).to_be_visible()
+    # go back to the folder view
+    page.go_back()
+    # checkboxes start unchecked
+    expect(page.locator(file_1_selector)).not_to_be_checked()
+    expect(page.locator(file_2_selector)).not_to_be_checked()
+    # Check a box
+    page.check(file_1_selector)
+    expect(page.locator(file_1_selector)).to_be_checked()
+    # Refresh page
+    page.reload()
+    expect(page.locator(file_1_selector)).to_be_checked()
+    expect(page.locator(file_2_selector)).not_to_be_checked()
+
+
+def test_select_all(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    file_2 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    factories.write_workspace_file(workspace, file_2)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # goto page with files
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    # confirm selectall is unchecked
+    expect(page.locator("input.selectall")).not_to_be_checked()
+
+    # select 1 checkbox and expect selectall to remain unchecked
+    page.check(f"input[type=checkbox][value='{file_1}']")
+    expect(page.locator("input.selectall")).not_to_be_checked()
+
+    # select the other checkbox, now expect select all to be checked
+    page.check(f"input[type=checkbox][value='{file_2}']")
+    expect(page.locator("input.selectall")).to_be_checked()
+
+    # uncheck 1 checkbox, now select all should be unchecked again
+    page.uncheck(f"input[type=checkbox][value='{file_1}']")
+    expect(page.locator("input.selectall")).not_to_be_checked()
