@@ -376,3 +376,54 @@ def test_csv_filtering(live_server, page, context, bll):
     column_filter.fill("")
     for age_band in age_bands:
         expect(page.locator("body")).to_contain_text(age_band)
+
+
+def test_bug_rendering_datatable_in_combination_with_back_button(
+    live_server, page, context
+):
+    """
+    A combination of navigation, page refreshes and the back button created
+    a state where the datatable failed to load. This was a failing test until
+    the bug was fixed and acts as a regression test in case it happens again.
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    file_2 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    factories.write_workspace_file(workspace, file_2)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # goto folder view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    # view file via treeview click
+    page.locator('.tree a[href*="file1.csv"]').click()
+    # ensure the file has loaded
+    expect(page.locator("#file1csv-title")).to_be_visible()
+    # refresh the page
+    page.reload()
+    # go back to the folder view
+    page.go_back()
+    # should load the table
+    expect(page.locator(".datatable-table")).to_be_visible()
+
+    # refresh the folder view by clicking on the folder in the tree view
+    page.locator('.tree a[href$="outputs/"]').click()
+
+    # The above click triggers an htmx request. This waits for that to
+    # complete
+    page.wait_for_load_state()
+    # should load the table but previously didn't
+    expect(page.locator(".datatable-table")).to_be_visible()
