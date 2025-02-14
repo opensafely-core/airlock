@@ -388,15 +388,12 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "author",
-            "workspaces": {
-                "my-workspace": {
-                    "project_details": {"name": "Project 1", "ongoing": True},
-                    "archived": False,
-                },
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 1")
             },
-        },
+        ),
     )
 
     # goto folder view
