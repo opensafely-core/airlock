@@ -671,3 +671,89 @@ def test_request_uploaded_files_status(
             expect(release_files_button).to_be_enabled()
         else:
             expect(release_files_button).not_to_be_enabled()
+
+
+def test_request_uploaded_files_counts(
+    live_server,
+    context,
+    page,
+    bll,
+    mock_old_api,
+    mock_notifications,
+):
+    # make a release request in APPROVED status
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.APPROVED,
+        files=[
+            factories.request_file(
+                group="group", contents="1", path="file1.txt", approved=True
+            ),
+            factories.request_file(
+                group="group", contents="2", path="file2.txt", approved=True
+            ),
+            factories.request_file(
+                group="group", contents="3", path="file3.txt", approved=True
+            ),
+        ],
+    )
+    output_checker = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "output_checker",
+            "workspaces": {},
+            "output_checker": True,
+        },
+    )
+
+    page.goto(live_server.url + release_request.get_url())
+
+    release_files_button = page.locator("#release-files-button")
+    uploaded_files_count_el = page.locator("#uploaded-files-count")
+    uploaded_files_count_parent_el = uploaded_files_count_el.locator("..")
+
+    def assert_still_uploading(uploaded_count):
+        expect(uploaded_files_count_el).to_contain_text(str(uploaded_count))
+        expect(uploaded_files_count_parent_el).to_have_attribute(
+            "hx-get", release_request.uploaded_files_count_url()
+        )
+        expect(release_files_button).to_be_disabled()
+
+    assert_still_uploading(0)
+
+    # update the uploaded file count in the background, without reloading the page
+    bll.register_file_upload(release_request, UrlPath("file1.txt"), output_checker)
+    assert_still_uploading(1)
+
+    bll.register_file_upload(release_request, UrlPath("file2.txt"), output_checker)
+    assert_still_uploading(2)
+
+    # make the last file failed
+    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
+        bll.register_file_upload_attempt(release_request, UrlPath("file3.txt"))
+    # still shows 2 files; page has refreshed and no htmx attributes on the
+    # parent element anymore, so it doesn't continue to poll, and the release files
+    # button is enabled
+    expect(uploaded_files_count_el).to_contain_text("2")
+    expect(uploaded_files_count_parent_el).not_to_have_attribute(
+        "hx-get", release_request.uploaded_files_count_url()
+    )
+    expect(release_files_button).to_be_enabled()
+
+    # click the button to re-release
+    release_files_button.click()
+    assert_still_uploading(2)
+
+    # complete the upload and release
+    bll.register_file_upload(release_request, UrlPath("file3.txt"), output_checker)
+    bll.set_status(release_request, RequestStatus.RELEASED, output_checker)
+
+    # 3 files uploaded; request is no longer uploading so page has refreshed and no
+    # htmx attributes on the parent element anymore
+    # the release files button is not visible because the release is now complete
+    expect(uploaded_files_count_el).to_contain_text("3")
+    expect(uploaded_files_count_parent_el).not_to_have_attribute(
+        "hx-get", release_request.uploaded_files_count_url()
+    )
+    expect(release_files_button).not_to_be_visible()

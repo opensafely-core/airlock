@@ -846,6 +846,9 @@ class ReleaseRequest:
             return 0
         return sum(1 for rfile in self.output_files().values() if rfile.uploaded)
 
+    def uploaded_files_count_url(self):
+        return reverse("uploaded_files_count", args=(self.id,))
+
     def supporting_files_count(self):
         return sum(
             1
