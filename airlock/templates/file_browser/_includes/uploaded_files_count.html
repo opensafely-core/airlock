@@ -1,0 +1,10 @@
+<div class="flex flex-row flex-wrap gap-6" id="uploaded-files-count">
+    {{ release_request.uploaded_files_count }}
+    {% if release_request.status.value == "RELEASED" %}
+      {% icon_check_circle_solid class="h-5 w-5 text-green-700" %}
+    {% elif upload_in_progress %}
+      {% icon_custom_spinner class="h-5 w-5 text-bn-egg-500 animate-spin stroke-current stroke-2" %}
+    {% elif release_request.can_be_rereleased %}
+      {% icon_exclamation_triangle_solid class="h-5 w-5 text-red-800" %}
+    {% endif %}
+</div>
