@@ -10,7 +10,12 @@ function hasOnlyDigits(value) {
 
 function buildTables() {
   /** @type {NodeListOf<HTMLTableElement> | null} */
-  const datatableEls = document.querySelectorAll("[data-datatable]");
+  // In some situations the buildTables is called twice. There may be better
+  // ways of doing this, but by restricting the selector to just html tables
+  // that have not already been DataTable-ified we solve the issue. This works
+  // because tables that need to be processed contain the attribute "data-datatable"
+  // and those that already have, contain the .datatable-table css class.
+  const datatableEls = document.querySelectorAll("[data-datatable]:not(.datatable-table)");
 
   datatableEls?.forEach((table) => {
     const columnFilter = table.hasAttribute("data-column-filter");
