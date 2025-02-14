@@ -841,10 +841,13 @@ class ReleaseRequest:
             if rfile.filetype == RequestFileType.OUTPUT
         }
 
-    def uploaded_files_count(self):
+    def uploaded_files_count(self) -> int:
         if self.status not in [RequestStatus.APPROVED, RequestStatus.RELEASED]:
             return 0
         return sum(1 for rfile in self.output_files().values() if rfile.uploaded)
+
+    def uploaded_files_count_url(self):
+        return reverse("uploaded_files_count", args=(self.id,))
 
     def supporting_files_count(self):
         return sum(
@@ -923,6 +926,9 @@ class ReleaseRequest:
         return self.status == RequestStatus.APPROVED and any(
             rf.upload_in_progress() for rf in self.output_files().values()
         )
+
+    def all_files_uploaded(self) -> bool:
+        return self.uploaded_files_count() == len(self.output_files())
 
     def is_final(self):
         return self.status_owner() == RequestStatusOwner.SYSTEM

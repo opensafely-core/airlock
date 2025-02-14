@@ -386,6 +386,7 @@ def request_view(request, request_id: str, path: str = ""):
         "code_url": code_url,
         "include_code": code_url is not None,
         "include_download": not is_author,
+        "upload_in_progress": release_request.upload_in_progress(),
     }
 
     return TemplateResponse(request, template, context)
@@ -875,3 +876,28 @@ def group_comment_visibility_public(request, request_id, group):
                 messages.error(request, f"{field}: {error}")
 
     return redirect(release_request.get_url(group))
+
+
+def uploaded_files_count(request, request_id):
+    """
+    This view is called with htmx when a request is in the process of
+    uploading files, so we can update the file count displayed on the request
+    overview page.
+    """
+    release_request = get_release_request_or_raise(request.user, request_id)
+    if release_request.upload_in_progress() or (
+        release_request.status == RequestStatus.APPROVED
+        and release_request.all_files_uploaded()
+    ):
+        return TemplateResponse(
+            request,
+            "file_browser/_includes/uploaded_files_count.html",
+            {"release_request": release_request, "upload_in_progress": True},
+        )
+    # If the request is no longer uploading, we just reload the whole page. It
+    # will either be released now, or the uploads have all been attempted and
+    # at least one has failed. In either case, we'll need need to update various
+    # other elements on the page (the request status, the release
+    # files button). We could do this with hx-swap-oob for the various different
+    # elements, but it's simpler just to reload.
+    return HttpResponse(headers={"HX-Redirect": release_request.get_url()})
