@@ -129,32 +129,47 @@ Once two independent reviews have been submitted, the request moves into
 combined decision on files, and comments that they have each made, and
 can discuss and decide how to proceed with the request.
 
-At this stage, more comments can be added or the visibility of existing
-comments can be changed. Output checkers should determine the set of
-comments that they intend to return to the researcher (if any).
+If the output checkers have conflicting votes, they should discuss and
+come to an agreement on whether the file(s) require changes. They should
+review any comments to determine the set of comments that they intend to 
+return to the researcher (if any), and ensure that comments that are to be
+made visible to the researcher are consistent and coherent.
+
+While consolidating reviews, more comments can be added, after the output
+checkers have discussed and agreed on the questions they need to ask.
+If an existing comment already conveys the information requires, its
+visibility can be changed to allow it to be made visible to the researcher. 
+
 
 ## Progress the request to the next stage
 
-To progress the request, navigate to the request overview
-page. Depending on the status of the file decisions, you will have the options to:
+### Navigate to the request overview page
+
+Navigate to the request overview page by clicking on the request ID in the file tree,
+or by clicking on the overview link in the page header.
+
+Depending on the status of the file decisions, you will have the options to:
 
 ### Return request to researcher
 
 If there are questions or changes have been requested, you will need to
-return the request to the researcher. Click the Return request button from the 
-request overview page.
+return the request to the researcher. 
+
+Click the Return request button from the [request overview page](#navigate-to-the-request-overview-page).
 
 ### Reject request
 
 On rare occasions, there may be a request that contains data that must not
 be released. In this case, you can reject the entire request.
 
+Click the Reject request button from the [request overview page](#navigate-to-the-request-overview-page).
+
 !!! warning
     Rejecting a request cannot be undone.
 
 ### Release files
 
-If all files have been approved, they can be [released](release-files.md)
+If all files have been approved, they can be [released](release-files.md).
 
 ## Re-review of a request
 
