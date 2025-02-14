@@ -66,16 +66,13 @@ def output_checker_user(live_server, context):
     login_as_user(
         live_server,
         context,
-        {
-            "username": "test_output_checker",
-            "workspaces": {
-                "test-dir2": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": False,
-                }
+        factories.create_api_user(
+            username="test_output_checker",
+            workspaces={
+                "test-dir2": factories.create_api_workspace(project="Project 2")
             },
-            "output_checker": True,
-        },
+            output_checker=True,
+        ),
     )
 
 
@@ -84,16 +81,13 @@ def researcher_user(live_server, context):
     login_as_user(
         live_server,
         context,
-        {
-            "username": "test_researcher",
-            "workspaces": {
-                "test-dir1": {
-                    "project_details": {"name": "Test Project", "ongoing": True},
-                    "archived": False,
-                }
+        factories.create_api_user(
+            username="test_researcher",
+            workspaces={
+                "test-dir1": factories.create_api_workspace(project="Test Project")
             },
-            "output_checker": False,
-        },
+            output_checker=False,
+        ),
     )
 
 
@@ -105,41 +99,31 @@ def dev_users(tmp_path, settings):
             {
                 "output_checker": {
                     "token": "output_checker",
-                    "details": {
-                        "username": "output_checker",
-                        "fullname": "Output Checker",
-                        "output_checker": True,
-                        "staff": True,
-                        "workspaces": {},
-                    },
+                    "details": factories.create_api_user(
+                        username="output_checker",
+                        output_checker=True,
+                        workspaces={},
+                    ),
                 },
                 "output_checker_1": {
                     "token": "output_checker_1",
-                    "details": {
-                        "username": "output_checker_1",
-                        "fullname": "Output Checker 1",
-                        "output_checker": True,
-                        "staff": True,
-                        "workspaces": {},
-                    },
+                    "details": factories.create_api_user(
+                        username="output_checker_1",
+                        output_checker=True,
+                        workspaces={},
+                    ),
                 },
                 "researcher": {
                     "token": "researcher",
-                    "details": {
-                        "username": "researcher",
-                        "fullname": "Researcher",
-                        "output_checker": False,
-                        "staff": False,
-                        "workspaces": {
-                            "test-workspace": {
-                                "project_details": {
-                                    "name": "Test Project",
-                                    "ongoing": True,
-                                },
-                                "archived": False,
-                            }
+                    "details": factories.create_api_user(
+                        username="researcher",
+                        output_checker=False,
+                        workspaces={
+                            "test-workspace": factories.create_api_workspace(
+                                project="Test Project"
+                            )
                         },
-                    },
+                    ),
                 },
             }
         )

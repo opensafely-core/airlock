@@ -69,18 +69,9 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
     workspaces = {
-        "foo": {
-            "project_details": {"name": "project 1", "ongoing": True},
-            "archived": False,
-        },
-        "bar": {
-            "project_details": {"name": "project 2", "ongoing": True},
-            "archived": True,
-        },
-        "not-exists": {
-            "project_details": {"name": "project 2", "ongoing": True},
-            "archived": False,
-        },
+        "foo": factories.create_api_workspace(project="project 1", archived=False),
+        "bar": factories.create_api_workspace(project="project 2", archived=True),
+        "not-exists": factories.create_api_workspace(project="project 3"),
     }
     user = factories.create_airlock_user(
         username="testuser", workspaces=workspaces, output_checker=output_checker
@@ -1308,20 +1299,18 @@ def test_add_file_to_request_not_author(bll):
         # workspace archived
         (
             {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": True},
-                    "archived": True,
-                }
+                "workspace": factories.create_api_workspace(
+                    project="p1", archived=True
+                ),
             },
             exceptions.RequestPermissionDenied,
         ),
         # project inactive
         (
             {
-                "workspace": {
-                    "project_details": {"name": "p1", "ongoing": False},
-                    "archived": False,
-                }
+                "workspace": factories.create_api_workspace(
+                    project="p1", ongoing=False
+                ),
             },
             exceptions.RequestPermissionDenied,
         ),

@@ -12,16 +12,7 @@ def test_request_file_withdraw(live_server, context, page, bll):
     author = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "author",
-            "workspaces": {
-                "workspace": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": False,
-                }
-            },
-            "output_checker": False,
-        },
+        user_dict=factories.create_api_user(username="author"),
     )
 
     release_request = factories.create_request_at_status(
@@ -56,10 +47,7 @@ def test_request_file_group_context_modal(live_server, context, page):
     author = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "author",
-            "workspaces": ["workspace"],
-        },
+        user_dict=factories.create_api_user(username="author"),
     )
 
     release_request = factories.create_request_at_status(
@@ -93,20 +81,13 @@ def test_request_group_edit_comment_for_author(live_server, context, page, bll):
     author = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "author",
-            "workspaces": {
-                "workspace": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": False,
-                },
-                "pending": {
-                    "project_details": {"name": "Project 2", "ongoing": True},
-                    "archived": False,
-                },
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "workspace": factories.create_api_workspace(),
+                "pending": factories.create_api_workspace(),
             },
-            "output_checker": False,
-        },
+        ),
     )
 
     pending_release_request = factories.create_request_at_status(
@@ -170,11 +151,7 @@ def test_request_group_edit_comment_for_checker(
     login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "checker",
-            "workspaces": {},
-            "output_checker": True,
-        },
+        user_dict=factories.create_api_user(username="checker", output_checker=True),
     )
 
     submitted_release_request = factories.create_request_at_status(
@@ -221,11 +198,7 @@ def test_request_group_comment_visibility_public_for_checker(
     login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "checker",
-            "workspaces": {},
-            "output_checker": True,
-        },
+        user_dict=factories.create_api_user(username="checker", output_checker=True),
     )
     checker = factories.create_airlock_user("checker", [], True)
 
@@ -250,10 +223,7 @@ def test_request_group_comment_visibility_public_for_checker(
 
 def _workspace_dict():
     return {
-        "workspace": {
-            "project_details": {"name": "Project 2", "ongoing": True},
-            "archived": False,
-        }
+        "workspace": factories.create_api_workspace(project="Project 2"),
     }
 
 
@@ -291,10 +261,10 @@ def test_request_buttons(
     file_review_buttons_visible,
 ):
     user_data = {
-        "researcher": dict(
+        "researcher": factories.create_api_user(
             username="researcher", workspaces=_workspace_dict(), output_checker=False
         ),
-        "checker": dict(
+        "checker": factories.create_api_user(
             username="checker", workspaces=_workspace_dict(), output_checker=True
         ),
     }

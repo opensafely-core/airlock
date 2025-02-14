@@ -23,13 +23,7 @@ def test_home_redirects(airlock_client):
 
 def test_workspace_view_summary(airlock_client):
     user = factories.create_airlock_user(
-        username="testuser",
-        workspaces={
-            "workspace": {
-                "project_details": {"name": "TESTPROJECT", "ongoing": True},
-                "archived": False,
-            }
-        },
+        workspaces={"workspace": factories.create_api_workspace(project="TESTPROJECT")}
     )
 
     airlock_client.login_with_user(user)
@@ -44,13 +38,13 @@ def test_workspace_view_summary(airlock_client):
 
 def test_workspace_view_archived_inactive(airlock_client):
     user = factories.create_airlock_user(
-        username="testuser",
         workspaces={
-            "workspace-abc": {
-                "project_details": {"name": "TESTPROJECT", "ongoing": False},
-                "archived": True,
-            }
-        },
+            "workspace-abc": factories.create_api_workspace(
+                project="TESTPROJECT",
+                archived=True,
+                ongoing=False,
+            )
+        }
     )
 
     airlock_client.login_with_user(user)
@@ -488,30 +482,18 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
     user = factories.create_airlock_user(
         username="testuser",
         workspaces={
-            "test1a": {
-                "project_details": {"name": "Project 1", "ongoing": True},
-                "archived": True,
-            },
-            "test1b": {
-                "project_details": {"name": "Project 1", "ongoing": True},
-                "archived": False,
-            },
-            "test1c": {
-                "project_details": {"name": "Project 1", "ongoing": True},
-                "archived": False,
-            },
-            "test2b": {
-                "project_details": {"name": "Project 2", "ongoing": False},
-                "archived": False,
-            },
-            "test2a": {
-                "project_details": {"name": "Project 2", "ongoing": False},
-                "archived": False,
-            },
-            "test3": {
-                "project_details": {"name": "Project 3", "ongoing": True},
-                "archived": False,
-            },
+            "test1a": factories.create_api_workspace(
+                project="Project 1", archived=True
+            ),
+            "test1b": factories.create_api_workspace(project="Project 1"),
+            "test1c": factories.create_api_workspace(project="Project 1"),
+            "test2b": factories.create_api_workspace(
+                project="Project 2", ongoing=False
+            ),
+            "test2a": factories.create_api_workspace(
+                project="Project 2", ongoing=False
+            ),
+            "test3": factories.create_api_workspace(project="Project 3"),
         },
     )
 
