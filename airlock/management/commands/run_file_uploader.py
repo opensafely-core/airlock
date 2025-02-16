@@ -34,7 +34,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         run_fn = options["run_fn"]
 
-        logger.debug("Watching for tasks")
+        logger.warning("File uploader started: watching for tasks")
 
         tracer = trace.get_tracer(os.environ.get("OTEL_SERVICE_NAME", "airlock"))
 
