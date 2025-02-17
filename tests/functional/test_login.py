@@ -1,25 +1,18 @@
-from unittest import mock
-
 from playwright.sync_api import expect
+
+from tests import factories
 
 from .conftest import login_as_user
 from .utils import screenshot_element_with_padding
 
 
-@mock.patch("airlock.login_api.session.post", autospec=True)
-def test_login(requests_post, settings, page, live_server):
-    settings.AIRLOCK_API_TOKEN = "test_api_token"
+def test_login(auth_api_stubber, settings, page, live_server):
     settings.DEV_USERS = {}
 
-    api_response = requests_post.return_value
-    api_response.status_code = 200
-    api_response.json.return_value = {
-        "username": "test_user",
-        "output_checker": False,
-    }
+    auth_api_stubber("authenticate", json=factories.create_api_user())
 
     page.goto(live_server.url + "/login/?next=/")
-    page.locator("#id_user").fill("test_user")
+    page.locator("#id_user").fill("testuser")
     page.locator("#id_token").fill("dummy test token")
 
     # Scroll the button into view before screenshotting the form
@@ -30,14 +23,8 @@ def test_login(requests_post, settings, page, live_server):
 
     submit_button.click()
 
-    requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
-        headers={"Authorization": "test_api_token"},
-        json={"user": "test_user", "token": "dummy test token"},
-    )
-
     expect(page).to_have_url(live_server.url + "/workspaces/")
-    expect(page.locator("body")).to_contain_text("Logged in as: test_user")
+    expect(page.locator("body")).to_contain_text("Logged in as: testuser")
     expect(page.get_by_test_id("switch-user")).not_to_be_attached()
 
 

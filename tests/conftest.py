@@ -131,6 +131,27 @@ def mock_notifications(notifications_stubber):
 
 
 @pytest.fixture
+def auth_api_stubber(responses, settings):
+    settings.AIRLOCK_API_TOKEN = "token"
+
+    def stub_api_path(
+        action="authenticate",
+        status=200,
+        json=None,
+    ):
+        assert action in ["authenticate", "authorise"], (
+            "auth_api_stubber only supports authenticate and authorise actions"
+        )
+        responses.post(
+            f"{settings.AIRLOCK_API_ENDPOINT}/releases/{action}",
+            status=status,
+            json=json,
+        )
+
+    return stub_api_path
+
+
+@pytest.fixture
 def mock_old_api(monkeypatch):
     monkeypatch.setattr(
         old_api,
