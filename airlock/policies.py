@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from airlock import exceptions
 from airlock.enums import (
+    RequestFileType,
     RequestFileVote,
     RequestStatus,
     WorkspaceFileStatus,
@@ -83,15 +84,21 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
         )
 
 
-def can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+def can_replace_file_in_request(
+    workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType | None = None
+):
     try:
-        check_can_replace_file_in_request(workspace, relpath)
+        check_can_replace_file_in_request(workspace, relpath, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+def check_can_replace_file_in_request(
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filetype: RequestFileType | None = None,
+):
     """
     This file can replace an existing file in the request, which currently happens
     in two scenarios:
@@ -115,10 +122,24 @@ def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
         WorkspaceFileStatus.WITHDRAWN,
         WorkspaceFileStatus.CONTENT_UPDATED,
     ]:
-        status = workspace.get_workspace_file_status(relpath)
-        raise exceptions.RequestPermissionDenied(
-            f"Cannot add or update file in request if it is in status {status}"
+        request_filetype = (
+            workspace.current_request.get_request_file_from_output_path(
+                relpath
+            ).filetype
+            if workspace.current_request
+            else None
         )
+        # We can replace a file that hasn't been withdrawn/updated if we are changing its filetype
+        if request_filetype and (request_filetype != filetype):
+            if filetype not in [RequestFileType.SUPPORTING, RequestFileType.OUTPUT]:
+                raise exceptions.RequestPermissionDenied(
+                    f"Cannot change filetype to {filetype}"
+                )
+        else:
+            status = workspace.get_workspace_file_status(relpath)
+            raise exceptions.RequestPermissionDenied(
+                f"Cannot add or update file in request if it is in status {status}"
+            )
 
 
 def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):

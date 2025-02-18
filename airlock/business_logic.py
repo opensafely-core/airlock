@@ -617,6 +617,7 @@ class BusinessLogicLayer:
         release_request: ReleaseRequest,
         relpath: UrlPath,
         user: User,
+        filetype: RequestFileType | None = None,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
@@ -625,8 +626,9 @@ class BusinessLogicLayer:
         )
 
         request_file = release_request.get_request_file_from_output_path(relpath)
+        filetype = filetype or request_file.filetype
         return self.replace_file_in_request(
-            release_request, relpath, user, request_file.group, request_file.filetype
+            release_request, relpath, user, request_file.group, filetype
         )
 
     def add_withdrawn_file_to_request(
@@ -653,12 +655,12 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
         group_name: str,
-        filetype: RequestFileType,
+        filetype: RequestFileType | None = None,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_replace_file_in_request(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, relpath, filetype
         )
 
         src = workspace.abspath(relpath)
@@ -704,6 +706,7 @@ class BusinessLogicLayer:
             audit=audit,
         )
 
+        filetype = filetype or old_filetype
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_UPDATE,

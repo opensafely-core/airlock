@@ -1672,6 +1672,56 @@ def test_replace_file_with_different_file_type(bll, request_status):
     assert request_file.filetype == RequestFileType.SUPPORTING
 
 
+def test_cannot_replace_unchanged_file_with_same_file_type(bll):
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+    # No change to file content, same file type
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.replace_file_in_request(
+            release_request, relpath, author, "group", RequestFileType.OUTPUT
+        )
+
+
+def test_cannot_replace_file_with_invalid_file_type(bll):
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+    # No change to file content, bad file type
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.replace_file_in_request(
+            release_request, relpath, author, "group", RequestFileType.CODE
+        )
+
+
 @pytest.mark.parametrize(
     "request_status",
     [
