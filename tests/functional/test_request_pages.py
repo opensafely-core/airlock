@@ -560,11 +560,9 @@ def test_request_releaseable(live_server, context, page, bll):
     output_checker = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "output_checker",
-            "workspaces": {},
-            "output_checker": True,
-        },
+        user_dict=factories.create_api_user(
+            username="output_checker", output_checker=True
+        ),
     )
 
     page.goto(live_server.url + release_request.get_url())
@@ -639,11 +637,9 @@ def test_request_uploaded_files_status(
     output_checker = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "output_checker",
-            "workspaces": {},
-            "output_checker": True,
-        },
+        user_dict=factories.create_api_user(
+            username="output_checker", output_checker=True
+        ),
     )
     for path in uploaded_files:
         bll.register_file_upload(release_request, UrlPath(path), output_checker)
@@ -700,11 +696,9 @@ def test_request_uploaded_files_counts(
     output_checker = login_as_user(
         live_server,
         context,
-        user_dict={
-            "username": "output_checker",
-            "workspaces": {},
-            "output_checker": True,
-        },
+        user_dict=factories.create_api_user(
+            username="output_checker", output_checker=True
+        ),
     )
 
     page.goto(live_server.url + release_request.get_url())
