@@ -1,4 +1,4 @@
-Notifications are sent at various stags during the release request workflow. Notifications may take the form of:
+Notifications are sent at various stages during the release request workflow. Notifications may take the form of:
 
 - Emails to the release request author
 - GitHub issues in the relevant output-checking repo
