@@ -60,7 +60,7 @@
                         "
                   data-testid="switch-user"
                 >
-                  Switch user
+                  {{ request.user.username }}
                   <span class="opacity-75 ml-1">
                     <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
                     <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
