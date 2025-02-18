@@ -42,7 +42,7 @@ compile-reqs *ARGS: devenv
     done
 
 # update to the latest version of the internal pipeline library
-upgrade-pipeline:
+update-pipeline:
     ./scripts/upgrade-pipeline.sh requirements.prod.in
 
 # create a valid .env if none exists
