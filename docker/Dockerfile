@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.2
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 #################################################
 #
@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/usr/src/app/.npm \
     npm ci
 
 # just copy in the files `npm run build` needs
-COPY vite.config.js tailwind.config.js postcss.config.js ./
+COPY vite.config.js ./
 COPY airlock/templates ./airlock/templates
 COPY assets/templates ./assets/templates
 COPY assets/src ./assets/src

@@ -2,41 +2,55 @@
   .datatable-sorter {
     & .datatable-icon--descending,
     & .datatable-icon--ascending {
-      @apply hidden;
+      display: none;
     }
 
     & .datatable-icon--no-sort {
-      @apply block;
+      display: block;
     }
   }
   .datatable-ascending {
     & .datatable-icon--no-sort,
     & .datatable-icon--descending {
-      @apply hidden;
+      display: none;
     }
 
     & .datatable-icon--ascending {
-      @apply block;
+      display: block;
     }
   }
 
   .datatable-descending {
     & .datatable-icon--no-sort,
     & .datatable-icon--ascending {
-      @apply hidden;
+      display: none;
     }
 
     & .datatable-icon--descending {
-      @apply block;
+      display: block;
     }
   }
 
   & a {
-    @apply text-oxford-600 font-semibold underline decoration-oxford-300 underline-offset-2 duration-200 transition-colors ease-in-out focus:bg-bn-sun-300;
+    color: var(--color-oxford-600);
+    font-weight: 600;
+    text-decoration-color: var(--color-oxford-300);
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+    transition-duration: 200ms;
+    transition-property: color, background-color, border-color,
+      text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via,
+      --tw-gradient-to;
+    transition-timing-function: var(--ease-in-out);
 
     &:hover,
     &:focus {
-      @apply text-oxford-800 decoration-transparent;
+      color: var(--color-oxford-800);
+      text-decoration-color: transparent;
+    }
+
+    &:focus {
+      background-color: var(--color-bn-sun-300);
     }
   }
 }
