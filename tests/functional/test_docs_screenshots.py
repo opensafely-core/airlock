@@ -1,4 +1,3 @@
-import os
 import re
 
 import pytest
@@ -11,7 +10,7 @@ from airlock.types import UrlPath
 from tests import factories
 
 from .conftest import login_as_user
-from .utils import screenshot_element_with_padding
+from .utils import screenshot_element_with_padding, take_screenshot
 
 
 @pytest.fixture(autouse=True)
@@ -54,10 +53,6 @@ def move_mouse_from(page):
     page.mouse.move(0, 0)
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_from_creation_to_release(
     page, live_server, context, release_files_stubber
 ):
@@ -93,33 +88,33 @@ def test_screenshot_from_creation_to_release(
     page.goto(live_server.url)
 
     # workspaces index page
-    page.screenshot(path=settings.SCREENSHOT_DIR / "workspaces_index.png")
+    take_screenshot(page, "workspaces_index.png")
 
     # workspace view page
     page.goto(live_server.url + workspace.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_view.png")
+    take_screenshot(page, "workspace_view.png")
 
     # Directory view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
     # let the data table load
     expect(page.locator(".datatable-table")).to_be_visible()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_directory_view.png")
+    take_screenshot(page, "workspace_directory_view.png")
     # Content only in directory view
     content = page.locator("#selected-contents")
-    content.screenshot(path=settings.SCREENSHOT_DIR / "workspace_directory_content.png")
+    take_screenshot(content, "workspace_directory_content.png")
 
     # File view page
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
     # wait briefly (100ms) for the table to load before screenshotting
     page.wait_for_timeout(100)
-    page.screenshot(path=settings.SCREENSHOT_DIR / "workspace_file_view.png")
+    take_screenshot(page, "workspace_file_view.png")
 
     # More dropdown
     more_locator = page.locator("#file-button-more")
     more_locator.click()
     # Screenshot both the full page and the element; these will be used in different
     # places in the docs
-    page.screenshot(path=settings.SCREENSHOT_DIR / "more_dropdown.png")
+    take_screenshot(page, "more_dropdown.png")
     screenshot_element_with_padding(
         page,
         more_locator,
@@ -132,7 +127,7 @@ def test_screenshot_from_creation_to_release(
 
     # Add file button
     add_file_button = page.locator("button[value=add_files]")
-    content.screenshot(path=settings.SCREENSHOT_DIR / "add_file_button.png")
+    take_screenshot(content, "add_file_button.png")
     screenshot_element_with_padding(
         page, content, "add_file_button.png", crop={"height": 0.25}
     )
@@ -165,10 +160,10 @@ def test_screenshot_from_creation_to_release(
 
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     # screenshot the tree
-    page.locator("#tree").screenshot(path=settings.SCREENSHOT_DIR / "request_tree.png")
+    take_screenshot(page.locator("#tree"), "request_tree.png")
 
     # Add context & controls to the filegroup
-    page.screenshot(path=settings.SCREENSHOT_DIR / "context_and_controls.png")
+    take_screenshot(page, "context_and_controls.png")
 
     context_input = page.locator("#id_context")
     # context_input.click()
@@ -183,9 +178,9 @@ def test_screenshot_from_creation_to_release(
     # Submit request
     page.goto(live_server.url + release_request.get_url())
     page.locator("button[data-modal=submitRequest]").click()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "submit_request.png")
+    take_screenshot(page, "submit_request.png")
     page.locator("#submit-for-review-button").click()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_request.png")
+    take_screenshot(page, "submitted_request.png")
 
     def do_review(screenshot=True):
         # Approve file1.csv
@@ -196,7 +191,7 @@ def test_screenshot_from_creation_to_release(
 
         if screenshot:
             # Screenshot the request file page before voting
-            page.screenshot(path=settings.SCREENSHOT_DIR / "file_review.png")
+            take_screenshot(page, "file_review.png")
 
         page.locator("#file-approve-button").click()
 
@@ -216,12 +211,12 @@ def test_screenshot_from_creation_to_release(
 
             # Click to open the context modal
             page.locator("button[data-modal=group-context]").click()
-            page.screenshot(path=settings.SCREENSHOT_DIR / "context_modal.png")
+            take_screenshot(page, "context_modal.png")
             page.get_by_role("button", name="Close").click()
 
         if screenshot:
             # Screenshot the request file page after voting
-            page.screenshot(path=settings.SCREENSHOT_DIR / "file_approved.png")
+            take_screenshot(page, "file_approved.png")
 
         # Request changes on file2.csv
         page.goto(
@@ -242,32 +237,30 @@ def test_screenshot_from_creation_to_release(
 
         if screenshot:
             # screenshot the tree after voting
-            page.locator("#tree").screenshot(
-                path=settings.SCREENSHOT_DIR / "request_tree_post_voting.png"
-            )
+            take_screenshot(page.locator("#tree"), "request_tree_post_voting.png")
 
         # Submit independent review
         if screenshot:
-            page.screenshot(path=settings.SCREENSHOT_DIR / "submit_review.png")
+            take_screenshot(page, "submit_review.png")
 
         page.locator("#submit-review-button").click()
 
         if screenshot:
             # move mouse off button to avoid screenshotting tooltips
             move_mouse_from(page)
-            page.screenshot(path=settings.SCREENSHOT_DIR / "submitted_review.png")
+            take_screenshot(page, "submitted_review.png")
 
     # Login as output checker and visit pages
     login_as_user(live_server, context, user_dicts["checker1"])
     # Reviews index page
     page.goto(f"{live_server.url}/requests/output_checker")
-    page.screenshot(path=settings.SCREENSHOT_DIR / "reviews_index.png")
+    take_screenshot(page, "reviews_index.png")
     # Request view
     page.goto(live_server.url + release_request.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "request_overview.png")
+    take_screenshot(page, "request_overview.png")
     # File group
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
-    page.screenshot(path=settings.SCREENSHOT_DIR / "file_group.png")
+    take_screenshot(page, "file_group.png")
 
     # Review as each output checker
     do_review()
@@ -283,7 +276,7 @@ def test_screenshot_from_creation_to_release(
 
     comments = page.locator("#comments")
 
-    comments.screenshot(path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png")
+    take_screenshot(comments, "reviewed_request_comments.png")
     comment_button.click()
     # Add public comment
     public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
@@ -291,7 +284,7 @@ def test_screenshot_from_creation_to_release(
     comment_input.fill("Is summmary.txt required for output?")
     comment_button.click()
 
-    comments.screenshot(path=settings.SCREENSHOT_DIR / "reviewed_request_comments.png")
+    take_screenshot(comments, "reviewed_request_comments.png")
 
     # Return to researcher
     page.goto(live_server.url + release_request.get_url())
@@ -306,7 +299,7 @@ def test_screenshot_from_creation_to_release(
 
     # View comments
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
-    comments.screenshot(path=settings.SCREENSHOT_DIR / "returned_request_comments.png")
+    take_screenshot(comments, "returned_request_comments.png")
 
     # Withdraw a file after request returned
     page.goto(
@@ -314,7 +307,7 @@ def test_screenshot_from_creation_to_release(
         + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
     )
     page.locator("#withdraw-file-button").click()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdrawn_file.png")
+    take_screenshot(page, "withdrawn_file.png")
 
     # Update a file after request returned
     # change the file on disk
@@ -325,16 +318,17 @@ def test_screenshot_from_creation_to_release(
     )
     # multiselect view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
-    page.screenshot(path=settings.SCREENSHOT_DIR / "multiselect_update.png")
+    take_screenshot(page, "multiselect_update.png")
     # screenshot the tree icon and the page
-    page.locator("#tree").get_by_role("link", name="file2.csv").screenshot(
-        path=settings.SCREENSHOT_DIR / "changed_tree_file.png"
+    take_screenshot(
+        page.locator("#tree").get_by_role("link", name="file2.csv"),
+        "changed_tree_file.png",
     )
     # file view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file2.csv")))
-    page.screenshot(path=settings.SCREENSHOT_DIR / "file_update.png")
+    take_screenshot(page, "file_update.png")
     page.locator("button[value=update_files]").click()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "file_update_modal.png")
+    take_screenshot(page, "file_update_modal.png")
     # Click the button to update the file in the release request
     page.get_by_role("form").locator("#update-file-button").click()
 
@@ -367,7 +361,7 @@ def test_screenshot_from_creation_to_release(
 
     # Move the mouse off the button so we don't screenshot the tooltip
     move_mouse_from(page)
-    page.screenshot(path=settings.SCREENSHOT_DIR / "ready_to_release.png")
+    take_screenshot(page, "ready_to_release.png")
 
     # Approve for release
     page.locator("#release-files-button").click()
@@ -377,9 +371,7 @@ def test_screenshot_from_creation_to_release(
     )
     # Move the mouse off the button so we don't screenshot the tooltip
     move_mouse_from(page)
-    page.screenshot(
-        path=settings.SCREENSHOT_DIR / "request_approved_upload_in_progress.png"
-    )
+    take_screenshot(page, "request_approved_upload_in_progress.png")
 
     # Progress the release request to all uploads failed
     for relpath in release_request.output_files():
@@ -387,7 +379,7 @@ def test_screenshot_from_creation_to_release(
             bll.register_file_upload_attempt(release_request, relpath)
 
     page.goto(live_server.url + release_request.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "request_approved_upload_failed.png")
+    take_screenshot(page, "request_approved_upload_failed.png")
 
     # Progress the release request to all uploads complete and released
     release_request = factories.refresh_release_request(release_request)
@@ -397,13 +389,9 @@ def test_screenshot_from_creation_to_release(
             bll.register_file_upload(release_request, relpath, checker_user)
     bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
     page.goto(live_server.url + release_request.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "request_released.png")
+    take_screenshot(page, "request_released.png")
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_comments(page, context, live_server):
     author, user_dicts = get_user_data()
 
@@ -429,9 +417,7 @@ def test_screenshot_comments(page, context, live_server):
         # Fill the comment input element with the markdown text
         comment_input.fill(comment_text)
         # Screenshot before submitting
-        add_comment_element.screenshot(
-            path=settings.SCREENSHOT_DIR / f"{filename}_1.png"
-        )
+        take_screenshot(add_comment_element, f"{filename}_1.png")
         comment_button.click()
 
         # get the parent li element for the last submitted comment
@@ -467,10 +453,6 @@ def test_screenshot_comments(page, context, live_server):
     )
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_withdraw_request(page, context, live_server):
     author, user_dicts = get_user_data()
 
@@ -486,18 +468,14 @@ def test_screenshot_withdraw_request(page, context, live_server):
 
     # View submitted request
     page.goto(live_server.url + release_request.get_url())
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request.png")
+    take_screenshot(page, "withdraw_request.png")
 
     page.locator("[data-modal=withdrawRequest]").click()
-    page.screenshot(path=settings.SCREENSHOT_DIR / "withdraw_request_modal.png")
+    take_screenshot(page, "withdraw_request_modal.png")
 
     page.locator("#withdraw-request-confirm").click()
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_request_partially_reviewed_icons(page, context, live_server):
     author, user_dicts = get_user_data()
     checker1 = factories.create_airlock_user(
@@ -543,9 +521,7 @@ def test_screenshot_request_partially_reviewed_icons(page, context, live_server)
     page.goto(live_server.url + release_request.get_url())
 
     # screenshot the tree
-    page.locator("#tree").screenshot(
-        path=settings.SCREENSHOT_DIR / "request_independent_review_file_icons.png"
-    )
+    take_screenshot(page.locator("#tree"), "request_independent_review_file_icons.png")
 
     login_as_user(live_server, context, user_dicts["author"])
 
@@ -553,16 +529,11 @@ def test_screenshot_request_partially_reviewed_icons(page, context, live_server)
     page.goto(live_server.url + release_request.get_url())
 
     # screenshot the tree
-    page.locator("#tree").screenshot(
-        path=settings.SCREENSHOT_DIR
-        / "request_independent_review_researcher_file_icons.png"
+    take_screenshot(
+        page.locator("#tree"), "request_independent_review_researcher_file_icons.png"
     )
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_request_reviewed_icons(page, context, live_server):
     author, user_dicts = get_user_data()
     checker1 = factories.create_airlock_user(
@@ -623,15 +594,9 @@ def test_screenshot_request_reviewed_icons(page, context, live_server):
     page.goto(live_server.url + release_request.get_url())
 
     # screenshot the tree
-    page.locator("#tree").screenshot(
-        path=settings.SCREENSHOT_DIR / "request_reviewed_file_icons.png"
-    )
+    take_screenshot(page.locator("#tree"), "request_reviewed_file_icons.png")
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_SCREENSHOT_TESTS") is None,
-    reason="screenshot tests skipped; set RUN_SCREENSHOT_TESTS env variable",
-)
 def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     author, user_dicts = get_user_data()
     checker1 = factories.create_airlock_user(
@@ -688,6 +653,4 @@ def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     page.goto(live_server.url + workspace.get_url())
 
     # screenshot the tree
-    page.locator("#tree").screenshot(
-        path=settings.SCREENSHOT_DIR / "workspace_file_icons.png"
-    )
+    take_screenshot(page.locator("#tree"), "workspace_file_icons.png")
