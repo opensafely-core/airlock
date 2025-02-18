@@ -25,11 +25,15 @@ def get_user_data():
     author_username = "researcher"
     author_workspaces = ["my-workspace"]
     user_dicts = {
-        "author": dict(
+        "author": factories.create_api_user(
             username=author_username, workspaces=author_workspaces, output_checker=False
         ),
-        "checker1": dict(username="checker1", workspaces=[], output_checker=True),
-        "checker2": dict(username="checker2", workspaces=[], output_checker=True),
+        "checker1": factories.create_api_user(
+            username="checker1", workspaces=[], output_checker=True
+        ),
+        "checker2": factories.create_api_user(
+            username="checker2", workspaces=[], output_checker=True
+        ),
     }
 
     author = factories.create_airlock_user(
