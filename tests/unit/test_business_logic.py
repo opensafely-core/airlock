@@ -1638,6 +1638,40 @@ def test_update_file_to_request_states(
         assert_no_notifications(mock_notifications)
 
 
+@pytest.mark.parametrize(
+    "request_status",
+    [
+        RequestStatus.PENDING,
+        RequestStatus.RETURNED,
+    ],
+)
+def test_replace_file_with_different_file_type(bll, request_status):
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=request_status,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+    # No change to file content, only to file type
+    bll.replace_file_in_request(
+        release_request, relpath, author, "group", RequestFileType.SUPPORTING
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path1 = UrlPath("path/file1.txt")
