@@ -1,4 +1,12 @@
+import os
+
 from django.conf import settings
+
+
+def take_screenshot(context, path):  # pragma: nocover
+    """Only take a screen shot if env var is set."""
+    if os.getenv("TAKE_SCREENSHOTS") is not None:
+        context.screenshot(path=settings.SCREENSHOT_DIR / path)
 
 
 def screenshot_element_with_padding(
@@ -17,6 +25,7 @@ def screenshot_element_with_padding(
     crop: optional dict to crop height and/or width to a percentage of the
     original (from top left corner).
     """
+
     box = element_locator.bounding_box()
 
     clip = {
@@ -33,7 +42,8 @@ def screenshot_element_with_padding(
     for key, crop in crop.items():
         clip[key] *= crop
 
-    page.screenshot(
-        path=settings.SCREENSHOT_DIR / filename,
-        clip=clip,
-    )
+    if os.getenv("TAKE_SCREENSHOTS") is not None:  # pragma: nocover
+        page.screenshot(
+            path=settings.SCREENSHOT_DIR / filename,
+            clip=clip,
+        )
