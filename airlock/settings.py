@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
     # our local applications
     "airlock",
+    "users",
     "assets",
     "local_db",  # TODO: not include this application if we're not configured to use it?
     "markdownify.apps.MarkdownifyConfig",
