@@ -434,7 +434,7 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
     assert [log.type for log in audit_log] == expected_audit_logs
 
 
-def test_provider_register_and_reset_file_upload_attempt(mock_old_api, bll, freezer):
+def test_provider_register_file_upload_attempt(mock_old_api, bll, freezer):
     author = factories.create_airlock_user("author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
@@ -464,12 +464,6 @@ def test_provider_register_and_reset_file_upload_attempt(mock_old_api, bll, free
     assert not request_file.uploaded
     assert request_file.upload_attempts == 1
     assert request_file.upload_attempted_at == parse_datetime("2022-01-01T12:34:56Z")
-
-    bll.reset_file_upload_attempts(release_request, relpath)
-    release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
-    assert not request_file.uploaded
-    assert request_file.upload_attempts == 0
 
 
 def test_provider_get_requests_for_workspace(bll):
@@ -2600,7 +2594,6 @@ DAL_AUDIT_EXCLUDED = {
     "get_released_files_for_workspace",
     "get_released_files_for_request",
     "register_file_upload_attempt",
-    "reset_file_upload_attempts",
 }
 
 

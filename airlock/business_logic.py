@@ -135,9 +135,6 @@ class DataAccessLayerProtocol(Protocol):
     def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
         raise NotImplementedError()
 
-    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
-        raise NotImplementedError()
-
     def register_file_upload(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
@@ -867,14 +864,6 @@ class BusinessLogicLayer:
         return RequestFile.from_dict(
             self._dal.register_file_upload_attempt(release_request.id, relpath)
         )
-
-    def reset_file_upload_attempts(
-        self, release_request: ReleaseRequest, relpath: UrlPath
-    ):
-        """
-        Reset file upload attempts so the upload will be retried
-        """
-        self._dal.reset_file_upload_attempts(release_request.id, relpath)
 
     def register_file_upload(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User
