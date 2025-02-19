@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Self
@@ -540,15 +540,13 @@ class RequestFile:
         ]
 
     def upload_in_progress(self):
-        return (
-            self.released_at is not None
-            and not self.uploaded
-            and self.upload_attempts < settings.UPLOAD_MAX_ATTEMPTS
-        )
+        return self.released_at is not None and not self.uploaded
 
-    def upload_failed(self):
-        return (
-            not self.uploaded and self.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS
+    def can_attempt_upload(self):
+        return self.upload_in_progress() and (
+            self.upload_attempted_at is None
+            or self.upload_attempted_at
+            < (timezone.now() - timedelta(seconds=settings.UPLOAD_RETRY_DELAY))
         )
 
 
