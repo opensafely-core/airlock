@@ -1,7 +1,6 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from django.conf import settings
 from django.core.management import call_command
 from django.utils.dateparse import parse_datetime
 
@@ -86,10 +85,6 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
     factories.write_workspace_file(
         release_request.workspace, relpath, contents="changed"
     )
-    # refresh workspace
-    bll.get_workspace(
-        release_request.workspace, factories.get_default_output_checkers()[0]
-    )
 
     request_file = release_request.get_request_file_from_output_path(relpath)
 
@@ -157,11 +152,12 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
         "workspace": "workspace",
         "group": "group",
         "file": "test/file2.txt",
+        "user": checker.username,
     }
 
 
 @patch("airlock.management.commands.run_file_uploader.time.sleep")
-def test_run_file_uploader_command_no_tasks(mock_sleep):
+def test_run_file_uploader_command_no_tasks(mock_sleep, settings):
     run_fn = Mock(side_effect=[True, False])
     call_command("run_file_uploader", run_fn=run_fn)
     assert mock_sleep.called_with(settings.UPLOAD_DELAY)
@@ -197,7 +193,9 @@ def test_run_file_uploader_command_all_files_uploaded(
         assert request_file.upload_attempts == 0
 
 
-def test_run_file_uploader_command_api_error(upload_files_stubber, bll):
+def test_run_file_uploader_command_api_error(upload_files_stubber, bll, settings):
+    # set upload retry delay to 0 so files that error will be retried in the test
+    settings.UPLOAD_RETRY_DELAY = 0
     # Mock status responses for file uploads; there are 3 files in total -
     # on the first run file 2/3 errors, on the second run only file 2
     # is retried and succeeds
@@ -232,10 +230,53 @@ def test_run_file_uploader_command_api_error(upload_files_stubber, bll):
             request_file.upload_attempts == 1
 
 
-def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
+def test_run_file_uploader_with_retry_delay(
+    upload_files_stubber, bll, settings, freezer
+):
+    freezer.move_to("2022-01-02T12:00:00")
+    settings.UPLOAD_RETRY_DELAY = 30
     # Mock status responses for file uploads; there are 3 files in total -
     # on the first run file 2/3 errors, on the second run only file 2
     # is retried and succeeds
+    release_request, _ = setup_release_request(
+        upload_files_stubber, bll, response_statuses=[201, 201]
+    )
+
+    # register a file upload attempt for test/file.txt at 12:00:00
+    bll.register_file_upload_attempt(release_request, UrlPath("test/file.txt"))
+
+    # move to > UPLOAD_RETRY_DELAY secs later
+    freezer.tick(delta=31)
+    # register a file upload attempt for test/file1.txt at 12:00:31
+    bll.register_file_upload_attempt(release_request, UrlPath("test/file1.txt"))
+
+    # mock the run function so it will loop once only
+    run_fn = Mock(side_effect=[True, False])
+    call_command("run_file_uploader", run_fn=run_fn)
+
+    release_request = factories.refresh_release_request(release_request)
+
+    # file.txt (attempted > 30s ago) and file2.txt (not attempted) are uploaded,
+    # file1.txt was attempted too recently to retry
+    for filename in ["test/file.txt", "test/file2.txt"]:
+        request_file = refresh_request_file(release_request, UrlPath(filename))
+        assert request_file.uploaded
+        assert request_file.uploaded_at is not None
+
+    request_file = refresh_request_file(release_request, UrlPath("test/file1.txt"))
+    assert not request_file.uploaded
+    assert request_file.uploaded_at is None
+
+
+def test_run_file_uploader_command_unexpected_error(
+    upload_files_stubber, bll, settings
+):
+    # set upload retry delay to 0 so files that error will be retried in the test
+    settings.UPLOAD_RETRY_DELAY = 0
+    # Mock status responses for file uploads; there are 3 files in total -
+    # on the first run file 2/3 errors, on the second run only file 2
+    # is retried and succeeds
+    checker = factories.get_default_output_checkers()[0]
     release_request, _ = setup_release_request(
         upload_files_stubber, bll, response_statuses=[]
     )
@@ -273,6 +314,7 @@ def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
         "workspace": "workspace",
         "group": "group",
         "file": "test/file2.txt",
+        "user": checker.username,
     }
     last_trace_event = last_trace.events[0]
     assert last_trace_event.name == "exception"
@@ -280,7 +322,11 @@ def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
     assert last_trace_event.attributes["exception.message"] == "an unknown exception"
 
 
-def test_run_file_uploader_command_exceeds_attempts(upload_files_stubber, bll):
+def test_run_file_uploader_command_multiple_attempts(
+    upload_files_stubber, bll, settings
+):
+    # set upload retry delay to 0 so files that error will be retried in the test
+    settings.UPLOAD_RETRY_DELAY = 0
     # Mock status responses for file uploads; there are 3 files in total -
     # file 1 errors 3 times
     release_request, _ = setup_release_request(
@@ -292,6 +338,7 @@ def test_run_file_uploader_command_exceeds_attempts(upload_files_stubber, bll):
             201,  # loop 1, 2/3 file succeed
             500,  # loop 2, file 1 fails again
             500,  # loop 3, file 1 fails again
+            500,  # loop 4, file 1 fails again
         ],
     )
 
@@ -303,8 +350,8 @@ def test_run_file_uploader_command_exceeds_attempts(upload_files_stubber, bll):
         assert request_file.uploaded_at is None
         assert request_file.upload_attempts == 0
 
-    # mock the run function so it will loop 4 times; the 4th run
-    # should not do anything because file 1 has now had 3 attempts to upload
+    # mock the run function so it will loop 4 times; file 1 fails each time
+    # has now had 3 attempts to upload
     run_fn = Mock(side_effect=[True, True, True, True, False])
     call_command("run_file_uploader", run_fn=run_fn)
 
@@ -318,5 +365,5 @@ def test_run_file_uploader_command_exceeds_attempts(upload_files_stubber, bll):
         assert request_file.upload_attempts == 1
 
     bad_file = refresh_request_file(release_request, UrlPath("test/file.txt"))
-    assert bad_file.upload_attempts == 3
+    assert bad_file.upload_attempts == 4
     assert not bad_file.uploaded
