@@ -23,7 +23,8 @@ class UserMiddleware:
             time_since_authz = time.time() - user.last_refresh
             if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
                 try:
-                    details = login_api.get_user_authz(user.username)
+                    details = login_api.get_user_authz(user)
+                    details["last_refresh"] = time.time()
                 except login_api.LoginError:
                     # TODO: log this, but we should have telemetry for the requests call anyway
                     pass
