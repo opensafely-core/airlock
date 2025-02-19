@@ -1,5 +1,4 @@
 import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   base: "/static/",
@@ -15,9 +14,6 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    tailwindcss(),
-  ],
   server: {
     origin: "http://localhost:5173",
   },
