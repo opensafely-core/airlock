@@ -275,6 +275,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
             request_file.upload_attempts += 1
+            request_file.upload_attempted_at = timezone.now()
             request_file.save()
         return request_file.to_dict()
 

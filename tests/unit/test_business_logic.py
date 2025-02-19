@@ -452,17 +452,20 @@ def test_provider_register_and_reset_file_upload_attempt(mock_old_api, bll, free
         ],
     )
 
+    freezer.move_to("2022-01-01T12:34:56")
     relpath = UrlPath("test/file.txt")
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.get_request_file_from_output_path(relpath)
     assert not request_file.uploaded
     assert request_file.upload_attempts == 0
+    assert request_file.upload_attempted_at is None
 
     bll.register_file_upload_attempt(release_request, relpath)
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.get_request_file_from_output_path(relpath)
     assert not request_file.uploaded
     assert request_file.upload_attempts == 1
+    assert request_file.upload_attempted_at == parse_datetime("2022-01-01T12:34:56Z")
 
     bll.reset_file_upload_attempts(release_request, relpath)
     release_request = factories.refresh_release_request(release_request)

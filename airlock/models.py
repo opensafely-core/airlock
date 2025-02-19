@@ -483,6 +483,7 @@ class RequestFile:
     uploaded: bool = False
     upload_attempts: int = 0
     uploaded_at: datetime | None = None
+    upload_attempted_at: datetime | None = None
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
