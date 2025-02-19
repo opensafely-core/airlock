@@ -3,7 +3,6 @@ import json
 from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import old_api
@@ -248,19 +247,19 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
 
 def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
+    freezer.move_to("2022-01-01T12:34:56")
     author = factories.create_airlock_user("author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
-        status=RequestStatus.APPROVED,
+        status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(
                 group="group",
                 path="test/file.txt",
                 contents="test",
                 approved=True,
-                uploaded=True,
             ),
             factories.request_file(
                 group="group",
@@ -279,30 +278,24 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
 
     uploaded_relpath = UrlPath("test/file.txt")
     not_uploaded_relpath = UrlPath("test/file1.txt")
-    not_uploaded1_relpath = UrlPath("test/file2.txt")
-    freezer.move_to("2022-01-01T12:34:56")
+    not_uploaded_relpath1 = UrlPath("test/file2.txt")
 
-    uploaded_file = release_request.filegroups["group"].files[uploaded_relpath]
-    assert uploaded_file.released_by == checkers[0].username
-    assert uploaded_file.uploaded
-
-    for relpath in [not_uploaded_relpath, not_uploaded1_relpath]:
-        not_uploaded_file = release_request.filegroups["group"].files[relpath]
-        assert not_uploaded_file.released_by == checkers[0].username
-        assert not not_uploaded_file.uploaded
-        assert not_uploaded_file.upload_attempts == 0
-
-    # set max attempts to upload file2
-    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-        bll.register_file_upload_attempt(release_request, not_uploaded1_relpath)
+    # mock the situation where a request is still in APPROVED, but one file has
+    # been released and uploaded, one file has been released but not uploaded yet,
+    # and a third has not been released
+    for relpath in [uploaded_relpath, not_uploaded_relpath]:
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_RELEASE,
+            user=checkers[0],
+            path=relpath,
+        )
+        bll._dal.release_file(release_request.id, relpath, checkers[0].username, audit)
+    bll.register_file_upload(release_request, uploaded_relpath, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
-    assert (
-        release_request.filegroups["group"].files[relpath].upload_attempts
-        == settings.UPLOAD_MAX_ATTEMPTS
-    )
 
-    # try to re-release
+    # release files
     bll.release_files(release_request, checkers[1])
 
     release_request = factories.refresh_release_request(release_request)
@@ -310,13 +303,21 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
     # uploaded file hasn't changed
     uploaded_request_file = release_request.filegroups["group"].files[uploaded_relpath]
     assert uploaded_request_file.released_by == checkers[0].username
+    assert uploaded_request_file.uploaded
 
-    # non-uploaded file has been updated and attempts on
-    # file with max previous attempts has been reset
-    for relpath in [not_uploaded_relpath, not_uploaded1_relpath]:
-        not_uploaded_file = release_request.filegroups["group"].files[relpath]
-        assert not_uploaded_file.released_by == checkers[1].username
-        assert not_uploaded_file.upload_attempts == 0
+    # released but not uploaded file hasn't changed
+    not_uploaded_request_file = release_request.filegroups["group"].files[
+        not_uploaded_relpath
+    ]
+    assert not_uploaded_request_file.released_by == checkers[0].username
+    assert not not_uploaded_request_file.uploaded
+
+    # not released file has been updated
+    not_uploaded_request_file1 = release_request.filegroups["group"].files[
+        not_uploaded_relpath1
+    ]
+    assert not_uploaded_request_file1.released_by == checkers[1].username
+    assert not not_uploaded_request_file1.uploaded
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     expected_audit_logs = [
@@ -339,16 +340,13 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
         AuditEventType.REQUEST_FILE_APPROVE,
         AuditEventType.REQUEST_REVIEW,
         AuditEventType.REQUEST_REVIEW,
-        # approve, change request to released
-        AuditEventType.REQUEST_APPROVE,
+        # mocked initial filed release and upload
         AuditEventType.REQUEST_FILE_RELEASE,
         AuditEventType.REQUEST_FILE_RELEASE,
-        AuditEventType.REQUEST_FILE_RELEASE,
-        # upload one file
         AuditEventType.REQUEST_FILE_UPLOAD,
-        # re-try only releases two un-uploaded files
+        # release one remaining file and
         AuditEventType.REQUEST_FILE_RELEASE,
-        AuditEventType.REQUEST_FILE_RELEASE,
+        AuditEventType.REQUEST_APPROVE,
     ]
     assert [log.type for log in audit_log] == expected_audit_logs
 
