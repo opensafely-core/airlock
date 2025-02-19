@@ -36,3 +36,9 @@ OTEL_EXPORTER_CONSOLE=False
 
 # Uncomment to actually take the screen shots
 # TAKE_SCREENSHOTS=True
+
+# For Playwright:
+# Ensure playwright browser binaries are installed to a path in the
+# mounted volume that the non-root docker user has access to
+PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers/
+PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=.playwright-browsers/chrome-linux/chrome
