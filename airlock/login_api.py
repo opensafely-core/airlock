@@ -20,31 +20,18 @@ def get_user_data(user: str, token: str):
         return get_user_data_prod(user, token)
 
 
-def get_user_data_prod(user: str, token: str):
-    response = session.post(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
-        headers={"Authorization": settings.AIRLOCK_API_TOKEN},
-        json={"user": user, "token": token},
+def get_user_data_prod(username: str, token: str):
+    api_user = auth_api_call(
+        "/releases/authenticate", {"user": username, "token": token}
     )
-    # We don't currently get any more detail about failures than this
-    if response.status_code == requests.codes.forbidden:
-        raise LoginError("Invalid user or token")
-    response.raise_for_status()
-    details = response.json()
-    details["last_refresh"] = time.time()
-    return details
+    api_user["last_refresh"] = time.time()
+    return api_user
 
 
 def get_user_authz(username):
-    response = session.post(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",
-        headers={"Authorization": settings.AIRLOCK_API_TOKEN},
-        json={"user": username},
-    )
-    response.raise_for_status()
-    details = response.json()
-    details["last_refresh"] = time.time()
-    return details
+    api_user = auth_api_call("/releases/authorise", {"user": username})
+    api_user["last_refresh"] = time.time()
+    return api_user
 
 
 def get_user_data_dev(dev_users_file: Path, user: str, token: str):
@@ -62,3 +49,23 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
         # ensure that we never try refresh this user with job-server
         details["last_refresh"] = time.time() + (365 * 24 * 60 * 60)
         return details
+
+
+def auth_api_call(path, json):
+    try:
+        response = session.post(
+            f"{settings.AIRLOCK_API_ENDPOINT}{path}",
+            headers={"Authorization": settings.AIRLOCK_API_TOKEN},
+            json=json,
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:  # pragma: nocover
+        raise LoginError("Could not connect to jobs.opensafely.org")
+    except requests.HTTPError as exc:
+        if exc.response.status_code == requests.codes.forbidden:
+            # We don't currently get any more detail about failures than this
+            raise LoginError("Invalid user or token")
+        else:
+            raise LoginError("Error when logging in")
+
+    return response.json()

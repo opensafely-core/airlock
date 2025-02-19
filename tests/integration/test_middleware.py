@@ -9,9 +9,9 @@ from tests.conftest import get_trace
 
 
 @pytest.mark.django_db
-def test_middleware_expired_user(airlock_client, responses):
-    user = factories.create_airlock_user()
-    airlock_client.login_with_user(user)
+def test_middleware_expired_user(airlock_client, auth_api_stubber):
+    api_user = factories.create_api_user()
+    airlock_client.login(**api_user)
     factories.create_workspace("new_workspace")
 
     response = airlock_client.get("/workspaces/view/new_workspace/")
@@ -22,17 +22,14 @@ def test_middleware_expired_user(airlock_client, responses):
     session["user"]["last_refresh"] = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
     session.save()
 
-    new_workspaces = user.workspaces.copy()
-    new_workspaces["new_workspace"] = factories.create_api_workspace(
-        project="other_project"
-    )
+    new_workspaces = api_user["workspaces"].copy()
+    new_workspaces["new_workspace"] = factories.create_api_workspace()
 
-    responses.post(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",
-        status=200,
+    auth_api_stubber(
+        "authorise",
         json={
-            "username": user.username,
-            "output_checker": user.output_checker,
+            "username": api_user["username"],
+            "output_checker": api_user["output_checker"],
             "workspaces": new_workspaces,
         },
     )
@@ -42,23 +39,18 @@ def test_middleware_expired_user(airlock_client, responses):
 
 
 @pytest.mark.django_db
-def test_middleware_expired_error(airlock_client, responses):
+def test_middleware_expired_error(airlock_client, auth_api_stubber):
     last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
     user = factories.create_airlock_user(last_refresh=last_refresh)
     airlock_client.login_with_user(user)
     factories.create_workspace("new_workspace")
-
-    responses.post(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authorise",
-        status=500,
-    )
-
+    auth_api_stubber("authorise", status=500)
     response = airlock_client.get("/workspaces/")
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
-def test_middleware_user_trace(airlock_client, responses):
+def test_middleware_user_trace(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
     factories.create_workspace("workspace")
@@ -81,7 +73,7 @@ def test_middleware_user_trace(airlock_client, responses):
 
 
 @pytest.mark.django_db
-def test_middleware_user_trace_with_no_user(airlock_client, responses):
+def test_middleware_user_trace_with_no_user(airlock_client):
     # In tests the current span in the middleware is a NonRecordingSpan,
     # so call the endpoint inside another span so we can assert that the
     # user attribute is added during the middleware

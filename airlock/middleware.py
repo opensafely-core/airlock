@@ -1,7 +1,6 @@
 import time
 from urllib.parse import urlencode
 
-import requests
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -25,7 +24,7 @@ class UserMiddleware:
             if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
                 try:
                     details = login_api.get_user_authz(user.username)
-                except requests.HTTPError:
+                except login_api.LoginError:
                     # TODO: log this, but we should have telemetry for the requests call anyway
                     pass
                 else:

@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 
 from tests import factories
@@ -15,34 +13,23 @@ def test_login_get(client):
 
 
 def test_login_already_logged_in(client):
-    session_user = {"id": 1, "username": "test"}
+    api_user = factories.create_api_user()
     session = client.session
-    session["user"] = session_user
+    session["user"] = api_user
     session.save()
     response = client.get("/login/")
     assert response.status_code == 302
     assert response.url == ("/workspaces/")
 
 
-@mock.patch("airlock.login_api.session.post", autospec=True)
-def test_login(requests_post, client, settings):
-    settings.AIRLOCK_API_TOKEN = "test_api_token"
-
-    api_response = requests_post.return_value
-    api_response.status_code = 200
-    api_response.json.return_value = factories.create_api_user()
+def test_login(client, auth_api_stubber):
+    auth_api_stubber("authenticate", json=factories.create_api_user())
 
     assert "user" not in client.session
 
     response = client.post(
         "/login/",
         {"user": "test_user", "token": "foo bar baz"},
-    )
-
-    requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
-        headers={"Authorization": "test_api_token"},
-        json={"user": "test_user", "token": "foo bar baz"},
     )
 
     assert client.session["user"]["username"] == "testuser"
@@ -57,22 +44,12 @@ def test_login(requests_post, client, settings):
     assert response.url == "/workspaces/"
 
 
-@mock.patch("airlock.login_api.session.post")
-def test_login_invalid_token(requests_post, client, settings):
-    settings.AIRLOCK_API_TOKEN = "test_api_token"
-
-    api_response = requests_post.return_value
-    api_response.status_code = 403
+def test_login_invalid_token(client, auth_api_stubber):
+    auth_api_stubber("authenticate", status=403)
 
     response = client.post(
         "/login/",
         {"user": "test_user", "token": "foo bar baz"},
-    )
-
-    requests_post.assert_called_with(
-        f"{settings.AIRLOCK_API_ENDPOINT}/releases/authenticate",
-        headers={"Authorization": "test_api_token"},
-        json={"user": "test_user", "token": "foo bar baz"},
     )
 
     assert "user" not in client.session
@@ -89,12 +66,12 @@ def test_login_invalid_form(client, settings):
     assert "This field is required" in response.rendered_content
 
 
-def test_logout(client):
-    session_user = {"id": 1, "username": "test"}
-    session = client.session
-    session["user"] = session_user
-    session.save()
+def test_logout(airlock_client):
+    airlock_client.login()
 
-    response = client.get("/logout/")
+    response = airlock_client.get("/workspaces", follow=True)
+    assert response.status_code == 200
+
+    response = airlock_client.get("/logout/")
     assert response.url == "/login/"
-    assert "user" not in client.session
+    assert "user" not in airlock_client.session
