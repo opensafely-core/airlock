@@ -907,16 +907,6 @@ class ReleaseRequest:
             and self.all_files_approved()
         )
 
-    def can_be_rereleased(self) -> bool:
-        """
-        An approved request can be re-released if all of its file are
-        either uploaded already, or have have failed to upload after the
-        maximum number of attempts
-        """
-        return self.status == RequestStatus.APPROVED and all(
-            rf.uploaded or rf.upload_failed() for rf in self.output_files().values()
-        )
-
     def upload_in_progress(self) -> bool:
         """
         A request is uploading if it has been approved and not all of its
