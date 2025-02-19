@@ -87,6 +87,26 @@ devenv: virtualenv _dotenv
     done
 
 
+# Fetch and extract the chromium version we need for testing
+get-chromium:
+    #!/bin/bash
+    # We use chromium v108 for consistency with backends
+    # https://www.chromium.org/getting-involved/download-chromium/#downloading-old-builds-of-chrome-chromium
+    # The chrome executable after unzipping is at ../.playwright-browsers/chrome-linux/chrome
+    chrome_executable=.playwright-browsers/chrome-linux/chrome
+    if [[ ! -f $chrome_executable ]]; then
+        mkdir -p .playwright-browsers
+        wget -O .playwright-browsers/chrome-linux.zip https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/1058929/chrome-linux.zip
+        unzip .playwright-browsers/chrome-linux.zip -d .playwright-browsers && rm .playwright-browsers/chrome-linux.zip
+    fi
+    # Exit with an error if the playwright env variable isn't set; we want to ensure that
+    # functional tests are always run with the custom chrome version
+    if [[ -z ${PLAYWRIGHT_BROWSER_EXECUTABLE_PATH} ]]; then
+      echo "ERROR: PLAYWRIGHT_BROWSER_EXECUTABLE_PATH environment variable is not set"
+      exit 1
+    fi
+
+
 # lint and check formatting but don't modify anything
 check: devenv
     #!/usr/bin/env bash
@@ -149,12 +169,12 @@ manage *ARGS: devenv
 
 
 # run tests
-test *ARGS: devenv
+test *ARGS: devenv get-chromium
     $BIN/python -m pytest "$@"
 
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: devenv docs-build
+@test-all: devenv docs-build get-chromium
     #!/usr/bin/env bash
     set -euo pipefail
 

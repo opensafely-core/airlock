@@ -22,8 +22,8 @@ def set_env():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def playwright_install(request):
-    if os.environ.get("PLAYWRIGHT_BROWSER_EXECUTABLE_PATH"):  # pragma: no cover
+def playwright_install(request):  # pragma: no cover
+    if os.environ.get("PLAYWRIGHT_BROWSER_EXECUTABLE_PATH"):
         # No need to install browsers if we're using a custom
         # executable path
         return
@@ -34,7 +34,7 @@ def playwright_install(request):
     command = [sys.executable, "-m", "playwright", "install", "chromium"]
     # Install with dependencies in CI (but not in docker, as they've already
     # been installed in the image)
-    if os.environ.get("CI") and not os.environ.get("DOCKER"):  # pragma: no cover
+    if os.environ.get("CI") and not os.environ.get("DOCKER"):
         command.extend(["--with-deps"])
     with capmanager.global_and_fixture_disabled():
         subprocess.run(command, check=True)
