@@ -658,11 +658,15 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
 
-        request_file = release_request.get_request_file_from_output_path(relpath)
+        # request_file = release_request.get_request_file_from_output_path(relpath)
+        # urlpath includes the group
+        request_file = release_request.get_request_file_from_urlpath(relpath)
+
         old_group = request_file.group
+        output_path = request_file.relpath
         if old_group == group_name:
             raise Exception("group name not changed")
-        group_path = old_group / relpath
+        group_path = relpath
         self.withdraw_file_from_request(release_request, group_path, user=user)
         # refresh workspace
         workspace = self.get_workspace(release_request.workspace, user)
@@ -670,18 +674,18 @@ class BusinessLogicLayer:
         # file must be withdrawn before doing this test, otherwise this test fails
         # TODO: create new check we can do before withdrawing
         permissions.check_user_can_add_file_to_request(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, output_path
         )
 
         # TODO: this doesn't work if the requst is pending, because the file doesn't go to WITHDRAWN (it stays at )
         # breakpoint()
         if release_request.status == RequestStatus.PENDING:
             return self.add_file_to_request(
-                release_request, relpath, user, group_name, filetype
+                release_request, output_path, user, group_name, filetype
             )
         else:
             return self.replace_file_in_request(
-                release_request, relpath, user, group_name, filetype
+                release_request, output_path, user, group_name, filetype
             )
 
     def replace_file_in_request(

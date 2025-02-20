@@ -239,6 +239,13 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
+    add_file_button = ButtonContext.with_request_defaults(req_id, "request_multiselect")
+    # add_file_button = None
+    # TODO: if permissions.user_can_move_file_to_new_group():
+    add_file_button.show = True
+    add_file_button.disabled = False
+    # add_file_button.url =
+
     # Show the voting buttons for output files to any user who can review
     # for requests in currently reviewable status
     if (
@@ -268,6 +275,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
             voting_buttons["reset_review"].disabled = True
 
     return {
+        "add_file_button": add_file_button,
         "withdraw_file": withdraw_btn,
         "user_vote": user_vote,
         "voting": voting_buttons,
@@ -593,23 +601,55 @@ def request_multiselect(request, request_id: str):
         display_form_errors(request, multiform.errors)
     else:
         action = multiform.cleaned_data["action"]
-        if action != "withdraw_files":
+        if action not in ["withdraw_files", "update_files"]:
             raise Http404(f"Invalid action {action}")
 
-        errors = []
-        successes = []
-        for path_str in multiform.cleaned_data["selected"]:
-            path = UrlPath(path_str)
-            try:
-                bll.withdraw_file_from_request(release_request, path, request.user)
-                successes.append(f"The file {path} has been withdrawn from the request")
-            except exceptions.RequestPermissionDenied as exc:
-                errors.append(str(exc))
+        if action == "withdraw_files":
+            errors = []
+            successes = []
+            for path_str in multiform.cleaned_data["selected"]:
+                path = UrlPath(path_str)
+                try:
+                    bll.withdraw_file_from_request(release_request, path, request.user)
+                    successes.append(
+                        f"The file {path} has been withdrawn from the request"
+                    )
+                except exceptions.RequestPermissionDenied as exc:
+                    errors.append(str(exc))
 
-        display_multiple_messages(request, errors, "error")
-        display_multiple_messages(request, successes, "success")
+            display_multiple_messages(request, errors, "error")
+            display_multiple_messages(request, successes, "success")
 
-    url = multiform.cleaned_data["next_url"]
+            url = multiform.cleaned_data["next_url"]
+
+        if action == "update_files":
+            errors = []
+            successes = []
+            for path_str in multiform.cleaned_data["selected"]:
+                path = UrlPath(path_str)
+                # raise Exception(multiform.cleaned_data)
+                new_group = "test-new-group"
+                # TODO: yeah this works, but we still need a UI to choose the group
+                try:
+                    bll.move_file_to_new_group_in_request(
+                        release_request, path, request.user, new_group
+                    )
+                    successes.append(
+                        f"The file {path} has been moved to new group {new_group}"
+                    )
+                except exceptions.RequestPermissionDenied as exc:
+                    errors.append(str(exc))
+
+            display_multiple_messages(request, errors, "error")
+            display_multiple_messages(request, successes, "success")
+
+            
+            # also the next_url points to the old group so 404s
+            # url = multiform.cleaned_data["next_url"]
+            # TODO: need output_path (no group name) instead of relpath (group name) here
+            url = f"/requests/view/{release_request.id}/{new_group}/{path}"
+            # raise Exception(url)
+
     return HttpResponse(headers={"HX-Redirect": url})
 
 
