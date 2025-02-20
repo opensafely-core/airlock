@@ -10,8 +10,14 @@
 
     {% #card title="Requests by "|add:request.user.username %}
       {% #list_group id="authored-requests" %}
-        {% for release_request in authored_requests %}
-          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+        {% for release_request in authored_requests|dictsortreversed:"created_at" %}
+          {% fragment as date %} CREATED AT: {{ release_request.created_at|date:"Y-m-d H:i" }}{% endfragment %}
+          {% fragment as title %}{{ "request ..."|add:release_request.get_id }}{% endfragment %}
+          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=title date=date %}
+            <dt class="sr-only">Group:</dt>
+            <dd class="text-xs text-oxford-600 transition-colors">
+              {{ release_request.workspace }}
+            </dd>
           {% /list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No requests" description="You do not have any authored requests" %}
