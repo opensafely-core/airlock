@@ -651,6 +651,9 @@ class ReleaseRequest:
     def get_id(self):
         return self.id
 
+    def get_short_id(self):
+        return f"{self.id[:3]}...{self.id[-6:]}"
+
     def get_url(self, relpath=""):
         return reverse(
             "request_view",
