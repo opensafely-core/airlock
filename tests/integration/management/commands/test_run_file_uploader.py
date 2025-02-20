@@ -153,6 +153,7 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
     assert last_trace.attributes == {
         "release_request": release_request.id,
         "workspace": "workspace",
+        "group": "group",
         "file": "test/file2.txt",
     }
 
@@ -268,6 +269,7 @@ def test_run_file_uploader_command_unexpected_error(upload_files_stubber, bll):
     assert last_trace.attributes == {
         "release_request": release_request.id,
         "workspace": "workspace",
+        "group": "group",
         "file": "test/file2.txt",
     }
     last_trace_event = last_trace.events[0]

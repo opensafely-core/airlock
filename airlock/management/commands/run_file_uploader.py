@@ -81,6 +81,7 @@ class Command(BaseCommand):
                         attributes={
                             "release_request": approved_request.id,
                             "workspace": approved_request.workspace,
+                            "group": file_for_upload.group,
                             "file": str(file_for_upload.relpath),
                         },
                     ) as span:
