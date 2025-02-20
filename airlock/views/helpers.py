@@ -25,7 +25,6 @@ class ButtonContext:
     disabled: bool = True
     url: str = ""
     tooltip: str = ""
-    display_label: str = ""
 
     @classmethod
     def with_request_defaults(cls, release_request_id, url_name, **extra_kwargs):

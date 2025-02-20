@@ -1,5 +1,4 @@
 import pytest
-from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.enums import RequestFileType, RequestStatus, Visibility
@@ -241,7 +240,7 @@ def _workspace_dict():
         ("researcher", "checker", RequestStatus.RETURNED, False, False, False),
         ("checker", "checker", RequestStatus.RETURNED, False, False, False),
         # APPROVED status - can be released, but other review buttons are hidden
-        ("researcher", "checker", RequestStatus.APPROVED, False, True, False),
+        ("researcher", "checker", RequestStatus.APPROVED, False, False, False),
         ("researcher", "checker", RequestStatus.RELEASED, False, False, False),
         ("researcher", "checker", RequestStatus.REJECTED, False, False, False),
         ("researcher", "checker", RequestStatus.WITHDRAWN, False, False, False),
@@ -581,31 +580,32 @@ def test_request_releaseable(live_server, context, page, bll):
     page.goto(live_server.url + release_request.get_url())
 
     # Request is now approved
-    # output checker cannot return or reject
-    expect(release_files_button).to_be_enabled()
-    for locator in [return_request_button, reject_request_button]:
+    # output checker cannot release, return or reject
+    for locator in [return_request_button, reject_request_button, release_files_button]:
         expect(locator).not_to_be_visible()
 
 
 @pytest.mark.parametrize(
-    "status,uploaded_files,failed_uploaded_files,uploaded_count,release_button_enabled,icon_colour",
+    "status,uploaded_files,uploaded_count,release_button_visible,icon_colour",
     [
-        (RequestStatus.REVIEWED, [], [], 0, True, ""),
-        (RequestStatus.APPROVED, ["file1.txt"], [], 1, False, "text-bn-egg-500"),
-        (RequestStatus.APPROVED, [], ["file1.txt"], 0, False, "text-bn-egg-500"),
-        (RequestStatus.APPROVED, ["file1.txt"], ["file2.txt"], 1, True, "text-red-800"),
+        # not yet released
+        (RequestStatus.REVIEWED, [], 0, True, ""),
+        # approved, still uploading 1 file
+        (RequestStatus.APPROVED, ["file1.txt"], 1, False, "text-bn-egg-500"),
+        # approved, still uploading all files
+        (RequestStatus.APPROVED, [], 0, False, "text-bn-egg-500"),
+        # approved, all files uploaded, hasn't changed status yet
         (
             RequestStatus.APPROVED,
-            [],
             ["file1.txt", "file2.txt"],
-            0,
-            True,
-            "text-red-800",
+            2,
+            False,
+            "text-bn-egg-500",
         ),
+        # released, all files uploaded
         (
             RequestStatus.RELEASED,
             ["file1.txt", "file2.txt"],
-            [],
             2,
             False,
             "text-green-700",
@@ -621,9 +621,8 @@ def test_request_uploaded_files_status(
     mock_notifications,
     status,
     uploaded_files,
-    failed_uploaded_files,
     uploaded_count,
-    release_button_enabled,
+    release_button_visible,
     icon_colour,
 ):
     release_request = factories.create_request_at_status(
@@ -644,10 +643,6 @@ def test_request_uploaded_files_status(
     for path in uploaded_files:
         bll.register_file_upload(release_request, UrlPath(path), output_checker)
 
-    for path in failed_uploaded_files:
-        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-            bll.register_file_upload_attempt(release_request, UrlPath(path))
-
     release_request = factories.refresh_release_request(release_request)
     page.goto(live_server.url + release_request.get_url())
 
@@ -659,14 +654,11 @@ def test_request_uploaded_files_status(
     # is to look for its colour
     assert icon_colour in uploaded_files_count_el.inner_html()
 
-    if status == RequestStatus.RELEASED:
-        expect(release_files_button).not_to_be_visible()
-    else:
+    if release_button_visible:
         expect(release_files_button).to_be_visible()
-        if release_button_enabled:
-            expect(release_files_button).to_be_enabled()
-        else:
-            expect(release_files_button).not_to_be_enabled()
+        expect(release_files_button).to_be_enabled()
+    else:
+        expect(release_files_button).not_to_be_visible()
 
 
 def test_request_uploaded_files_counts(
@@ -675,7 +667,6 @@ def test_request_uploaded_files_counts(
     page,
     bll,
     mock_old_api,
-    mock_notifications,
 ):
     # make a release request in APPROVED status
     release_request = factories.create_request_at_status(
@@ -703,7 +694,10 @@ def test_request_uploaded_files_counts(
 
     page.goto(live_server.url + release_request.get_url())
 
+    # In approved status, the release files button is never visible
     release_files_button = page.locator("#release-files-button")
+    expect(release_files_button).not_to_be_visible()
+
     uploaded_files_count_el = page.locator("#uploaded-files-count")
     uploaded_files_count_parent_el = uploaded_files_count_el.locator("..")
 
@@ -712,7 +706,6 @@ def test_request_uploaded_files_counts(
         expect(uploaded_files_count_parent_el).to_have_attribute(
             "hx-get", release_request.uploaded_files_count_url()
         )
-        expect(release_files_button).to_be_disabled()
 
     assert_still_uploading(0)
 
@@ -721,22 +714,6 @@ def test_request_uploaded_files_counts(
     assert_still_uploading(1)
 
     bll.register_file_upload(release_request, UrlPath("file2.txt"), output_checker)
-    assert_still_uploading(2)
-
-    # make the last file failed
-    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-        bll.register_file_upload_attempt(release_request, UrlPath("file3.txt"))
-    # still shows 2 files; page has refreshed and no htmx attributes on the
-    # parent element anymore, so it doesn't continue to poll, and the release files
-    # button is enabled
-    expect(uploaded_files_count_el).to_contain_text("2")
-    expect(uploaded_files_count_parent_el).not_to_have_attribute(
-        "hx-get", release_request.uploaded_files_count_url()
-    )
-    expect(release_files_button).to_be_enabled()
-
-    # click the button to re-release
-    release_files_button.click()
     assert_still_uploading(2)
 
     # complete the upload
@@ -757,4 +734,3 @@ def test_request_uploaded_files_counts(
     expect(uploaded_files_count_parent_el).not_to_have_attribute(
         "hx-get", release_request.uploaded_files_count_url()
     )
-    expect(release_files_button).not_to_be_visible()

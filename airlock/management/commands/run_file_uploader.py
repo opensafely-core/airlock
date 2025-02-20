@@ -50,26 +50,19 @@ class Command(BaseCommand):
                 continue
 
             for approved_request in approved_requests:
-                # Find incomplete file uploads for this request
-                # This retrieves ALL incomplete file uploads, including those that have
-                # been reached the max attempt limit, so we can check for any
-                # requests that should be set to released
+                # Find incomplete file uploads that have not been attempted within
+                # the past UPLOAD_RETRY_DELAY seconds for this request
+                # This will also check for any requests that should be set to released
                 files_for_upload = get_upload_files_and_update_request_status(
                     approved_request
                 )
                 if not files_for_upload:
-                    # All files are now uploaded, the status has been updated to released,
-                    # nothing to do
+                    # Either all files are now uploaded and the status has been updated to released,
+                    # or files were retried within the past UPLOAD_RETRY_DELAY seconds.
+                    # Either way, there's nothing to do
                     continue
 
                 for file_for_upload in files_for_upload:
-                    if file_for_upload.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
-                        logger.debug(
-                            "Max upload attempts reached for %s - %s, skipping",
-                            approved_request.id,
-                            file_for_upload.relpath,
-                        )
-                        continue
                     # increment the retry attempts; if something goes wrong, we still
                     # want this to be updated
                     file_for_upload = bll.register_file_upload_attempt(
@@ -83,6 +76,7 @@ class Command(BaseCommand):
                             "workspace": approved_request.workspace,
                             "group": file_for_upload.group,
                             "file": str(file_for_upload.relpath),
+                            "user": file_for_upload.released_by,
                         },
                     ) as span:
                         try:
@@ -93,12 +87,11 @@ class Command(BaseCommand):
                             # from running
                             span.record_exception(error)
                             logger.error(
-                                "Upload for %s - %s/%s failed (attempt %d of %d): %s",
+                                "Upload for %s - %s/%s failed (attempt %d): %s",
                                 approved_request.id,
                                 file_for_upload.group,
                                 file_for_upload.relpath,
                                 file_for_upload.upload_attempts,
-                                settings.UPLOAD_MAX_ATTEMPTS,
                                 str(error),
                             )
 
@@ -136,6 +129,7 @@ def get_upload_files_and_update_request_status(release_request):
     Get all files for upload for a given approved release request
     If there are no files left to upload, set status to released
     """
+    # Get all files for upload, irrespective of the last upload attempt time
     files_for_upload = bll.get_released_files_for_upload(release_request)
     if not files_for_upload:
         # All files are now uploaded, set the status to released
@@ -149,7 +143,11 @@ def get_upload_files_and_update_request_status(release_request):
             RequestStatus.RELEASED,
             get_user_for_file(last_uploaded_file),
         )
-    return files_for_upload
+    return [
+        request_file
+        for request_file in files_for_upload
+        if request_file.can_attempt_upload()
+    ]
 
 
 def get_user_for_file(request_file):

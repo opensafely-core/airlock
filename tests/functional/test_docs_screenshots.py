@@ -1,7 +1,6 @@
 import re
 
 import pytest
-from django.conf import settings
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
@@ -375,22 +374,20 @@ def test_screenshot_from_creation_to_release(
     )
     # Move the mouse off the button so we don't screenshot the tooltip
     move_mouse_from(page)
+
+    # upload one file
+    checker_user = factories.create_airlock_user(**user_dicts["checker1"])
+    all_output_relpaths = list(release_request.output_files())
+    bll.register_file_upload_attempt(release_request, all_output_relpaths[0])
+    bll.register_file_upload(release_request, all_output_relpaths[0], checker_user)
+    # wait for the upload count to update
+    expect(page.locator("#uploaded-files-count")).to_contain_text("1")
     take_screenshot(page, "request_approved_upload_in_progress.png")
-
-    # Progress the release request to all uploads failed
-    for relpath in release_request.output_files():
-        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-            bll.register_file_upload_attempt(release_request, relpath)
-
-    page.goto(live_server.url + release_request.get_url())
-    take_screenshot(page, "request_approved_upload_failed.png")
 
     # Progress the release request to all uploads complete and released
     release_request = factories.refresh_release_request(release_request)
-    checker_user = factories.create_airlock_user(**user_dicts["checker1"])
-    for relpath in release_request.output_files():
-        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-            bll.register_file_upload(release_request, relpath, checker_user)
+    for relpath in all_output_relpaths[1:]:
+        bll.register_file_upload(release_request, relpath, checker_user)
     bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
     page.goto(live_server.url + release_request.get_url())
     take_screenshot(page, "request_released.png")

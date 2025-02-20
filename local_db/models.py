@@ -204,6 +204,7 @@ class RequestFileMetadata(models.Model):
     uploaded = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(default=None, null=True)
     upload_attempts = models.IntegerField(default=0)
+    upload_attempted_at = models.DateTimeField(default=None, null=True)
 
     class Meta:
         unique_together = ("relpath", "request")
@@ -227,6 +228,7 @@ class RequestFileMetadata(models.Model):
             uploaded=self.uploaded,
             uploaded_at=self.uploaded_at,
             upload_attempts=self.upload_attempts,
+            upload_attempted_at=self.upload_attempted_at,
         )
 
 
