@@ -69,7 +69,7 @@ def test_do_upload_task(upload_files_stubber, bll, freezer):
     assert request_file.uploaded_at is None
 
     freezer.move_to("2022-01-03T12:34:56")
-    do_upload_task(request_file, release_request, workspace)
+    do_upload_task(request_file, release_request)
 
     request_file = refresh_request_file(release_request, relpath)
     assert request_file.uploaded
@@ -91,7 +91,7 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
 
     request_file = release_request.get_request_file_from_output_path(relpath)
 
-    do_upload_task(request_file, release_request, workspace)
+    do_upload_task(request_file, release_request)
     # 2 calls, to create the release and then to upload one file
     assert len(upload_files_responses.calls) == 2
     upload_call = upload_files_responses.calls[-1]
@@ -111,7 +111,7 @@ def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     request_file = release_request.get_request_file_from_output_path(relpath)
 
     with pytest.raises(FileUploadError):
-        do_upload_task(request_file, release_request, workspace)
+        do_upload_task(request_file, release_request)
 
     request_file = refresh_request_file(release_request, relpath)
     assert not request_file.uploaded
