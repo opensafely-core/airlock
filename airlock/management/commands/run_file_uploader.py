@@ -10,6 +10,7 @@ from opentelemetry import trace
 import old_api
 from airlock.business_logic import bll
 from airlock.enums import RequestStatus
+from airlock.types import UrlPath
 from airlock.users import User
 from services.tracing import instrument
 
@@ -61,7 +62,6 @@ class Command(BaseCommand):
                     # nothing to do
                     continue
 
-                workspace = bll.get_workspace(approved_request.workspace, system_user)
                 for file_for_upload in files_for_upload:
                     if file_for_upload.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
                         logger.debug(
@@ -81,19 +81,21 @@ class Command(BaseCommand):
                         attributes={
                             "release_request": approved_request.id,
                             "workspace": approved_request.workspace,
+                            "group": file_for_upload.group,
                             "file": str(file_for_upload.relpath),
                         },
                     ) as span:
                         try:
-                            do_upload_task(file_for_upload, approved_request, workspace)
+                            do_upload_task(file_for_upload, approved_request)
                         except Exception as error:
                             # The most likely error here is old_api.FileUploadError, however
                             # we catch any unexpected exception here so we don't stop the task runner
                             # from running
                             span.record_exception(error)
                             logger.error(
-                                "Upload for %s - %s failed (attempt %d of %d): %s",
+                                "Upload for %s - %s/%s failed (attempt %d of %d): %s",
                                 approved_request.id,
+                                file_for_upload.group,
                                 file_for_upload.relpath,
                                 file_for_upload.upload_attempts,
                                 settings.UPLOAD_MAX_ATTEMPTS,
@@ -107,7 +109,7 @@ class Command(BaseCommand):
 
 
 @instrument
-def do_upload_task(file_for_upload, release_request, workspace):
+def do_upload_task(file_for_upload, release_request):
     """
     Perform an upload task.
     """
@@ -115,7 +117,9 @@ def do_upload_task(file_for_upload, release_request, workspace):
         release_request.id,
         release_request.workspace,
         file_for_upload.relpath,
-        workspace.abspath(file_for_upload.relpath),
+        release_request.abspath(
+            UrlPath(file_for_upload.group) / file_for_upload.relpath
+        ),
         file_for_upload.released_by,
     )
     # mark the request file as uploaded and set the task completed time
