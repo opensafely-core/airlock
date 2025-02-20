@@ -23,6 +23,15 @@
         <span class="{{ title_class }}">{{ title }}</span>
         {% endif %}
       </dd>
+
+      
+      {% if date %}
+        <dt class="sr-only">Date:</dt>
+        <dd class="flex-shrink-0">
+          {% date_time variant="info" text=date %}
+        </dd>
+      {% endif %}
+      
       {% if status_text or custom_status %}
         <dt class="sr-only">Status:</dt>
         <dd class="ml-auto flex-shrink-0">

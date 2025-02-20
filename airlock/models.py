@@ -649,7 +649,7 @@ class ReleaseRequest:
         return settings.REQUEST_DIR / self.workspace / self.id
 
     def get_id(self):
-        return self.id
+        return f"{self.id[-6:]}"
 
     def get_url(self, relpath=""):
         return reverse(

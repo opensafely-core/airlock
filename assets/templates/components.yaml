@@ -8,6 +8,7 @@ components:
   card: "_components/card/card.html"
   card_footer: "_components/card/card-footer.html"
   code: "_components/code.html"
+  date_time: "_components/date-time.html"
   description_list: "_components/description-list.html"
   description_item: "_components/description-item.html"
   footer: "_components/footer.html"
