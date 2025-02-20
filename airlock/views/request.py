@@ -869,19 +869,14 @@ def uploaded_files_count(request, request_id):
     overview page.
     """
     release_request = get_release_request_or_raise(request.user, request_id)
-    if release_request.upload_in_progress() or (
-        release_request.status == RequestStatus.APPROVED
-        and release_request.all_files_uploaded()
-    ):
+    if release_request.upload_in_progress():
         return TemplateResponse(
             request,
             "file_browser/_includes/uploaded_files_count.html",
             {"release_request": release_request, "upload_in_progress": True},
         )
-    # If the request is no longer uploading, we just reload the whole page. It
-    # will either be released now, or the uploads have all been attempted and
-    # at least one has failed. In either case, we'll need need to update various
-    # other elements on the page (the request status, the release
-    # files button). We could do this with hx-swap-oob for the various different
-    # elements, but it's simpler just to reload.
+    # If the request is no longer uploading, it's been released and we just reload
+    # the whole page as we'll need need to update other elements on the page
+    # (e.g. the request status). We could do this with hx-swap-oob for the various
+    # different elements, but it's simpler just to reload.
     return HttpResponse(headers={"HX-Redirect": release_request.get_url()})

@@ -906,15 +906,11 @@ class ReleaseRequest:
 
     def upload_in_progress(self) -> bool:
         """
-        A request is uploading if it has been approved and not all of its
-        output files have been uploaded
+        A request is uploading if it has been approved irrespective of whether all
+        its files have been uploaded yet. It is still considered to be in uploading
+        state until its status changed to RELEASED
         """
-        return self.status == RequestStatus.APPROVED and any(
-            rf.upload_in_progress() for rf in self.output_files().values()
-        )
-
-    def all_files_uploaded(self) -> bool:
-        return self.uploaded_files_count() == len(self.output_files())
+        return self.status == RequestStatus.APPROVED
 
     def is_final(self):
         return self.status_owner() == RequestStatusOwner.SYSTEM

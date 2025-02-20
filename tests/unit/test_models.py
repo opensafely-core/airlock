@@ -484,8 +484,12 @@ def test_request_upload_in_progress(mock_notifications, mock_old_api, bll):
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
-    # upload file 3
+    # upload file 3; all files are uploaded but the request hasn't moved to released yet
     bll.register_file_upload(release_request, UrlPath("test/file3.txt"), checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.upload_in_progress()
+
+    bll.set_status(release_request, RequestStatus.RELEASED, checker)
     release_request = factories.refresh_release_request(release_request)
     assert not release_request.upload_in_progress()
 
