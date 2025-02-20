@@ -544,8 +544,19 @@ class BusinessLogicLayer:
         else:
             notification_event = self.STATUS_EVENT_NOTIFICATION[to_status]
 
+        updates = None
+        if to_status == RequestStatus.APPROVED:
+            output_file_count = len(release_request.output_files())
+            updates = [
+                {
+                    "update": f"{output_file_count} file{'s' if output_file_count > 1 else ''} will be uploaded"
+                }
+            ]
+
         release_request.status = to_status
-        self.send_notification(release_request, notification_event, user)
+        self.send_notification(
+            release_request, notification_event, user, updates=updates
+        )
 
     def validate_file_types(self, file_paths):
         """

@@ -1161,8 +1161,17 @@ def test_notification_error(bll, notifications_stubber, caplog):
     assert caplog.records[-1].message == "something went wrong"
 
 
-@pytest.mark.parametrize("all_files_approved", (True, False))
-def test_set_status_approved(all_files_approved, bll, mock_notifications):
+@pytest.mark.parametrize(
+    "file_count,all_files_approved,notification_update",
+    [
+        (1, True, "1 file will be uploaded"),
+        (2, True, "2 files will be uploaded"),
+        (1, False, ""),
+    ],
+)
+def test_set_status_approved(
+    file_count, all_files_approved, notification_update, bll, mock_notifications
+):
     author = factories.create_airlock_user("author", ["workspace"], False)
     checker = factories.create_airlock_user(output_checker=True)
     release_request = factories.create_request_at_status(
@@ -1171,15 +1180,21 @@ def test_set_status_approved(all_files_approved, bll, mock_notifications):
         status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(
-                approved=all_files_approved, changes_requested=not all_files_approved
+                approved=all_files_approved,
+                changes_requested=not all_files_approved,
+                contents=str(i),
+                path=f"{i}.txt",
             )
+            for i in range(file_count)
         ],
     )
 
     if all_files_approved:
         bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
         assert release_request.status == RequestStatus.APPROVED
-        assert_last_notification(mock_notifications, "request_approved")
+        last_notification = get_last_notification(mock_notifications)
+        assert last_notification["event_type"] == "request_approved"
+        assert last_notification["updates"] == [{"update": notification_update}]
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.set_status(release_request, RequestStatus.APPROVED, user=checker)
