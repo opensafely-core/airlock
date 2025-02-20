@@ -306,15 +306,11 @@ def test_workspace_view_redirects_to_file(airlock_client):
     "user,can_see_form",
     [
         (
-            factories.create_api_user(
-                workspaces=["workspace"], output_checker=True
-            ),
+            factories.create_api_user(workspaces=["workspace"], output_checker=True),
             True,
         ),
         (
-            factories.create_api_user(
-                workspaces=["workspace"], output_checker=False
-            ),
+            factories.create_api_user(workspaces=["workspace"], output_checker=False),
             True,
         ),
         (factories.create_api_user(workspaces=[], output_checker=True), False),

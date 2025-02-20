@@ -9,8 +9,6 @@ from airlock.types import UrlPath
 from tests import factories
 
 
-
-
 def find_and_click(locator):
     """
     Helper function to find a locator element and click on it.
