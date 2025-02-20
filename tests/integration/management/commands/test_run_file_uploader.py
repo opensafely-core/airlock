@@ -48,7 +48,7 @@ def setup_release_request(upload_files_stubber, bll, response_statuses=None):
     upload_files_responses = upload_files_stubber(release_request, response_statuses)
     bll.release_files(release_request, factories.get_default_output_checkers()[0])
     release_request = factories.refresh_release_request(release_request)
-    return release_request, workspace, upload_files_responses
+    return release_request, upload_files_responses
 
 
 def refresh_request_file(release_request, relpath):
@@ -59,7 +59,7 @@ def refresh_request_file(release_request, relpath):
 
 def test_do_upload_task(upload_files_stubber, bll, freezer):
     freezer.move_to("2022-01-01T12:34:56")
-    release_request, workspace = setup_release_request(
+    release_request, _ = setup_release_request(
         upload_files_stubber, bll, response_statuses=[201]
     )
 
@@ -77,15 +77,17 @@ def test_do_upload_task(upload_files_stubber, bll, freezer):
 
 
 def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
-    release_request, workspace, upload_files_responses = setup_release_request(
+    release_request, upload_files_responses = setup_release_request(
         upload_files_stubber, bll, response_statuses=[201]
     )
 
     relpath = UrlPath("test/file.txt")
     # modify workspace file content
-    factories.write_workspace_file(release_request.workspace, relpath, contents="changed")
+    factories.write_workspace_file(
+        release_request.workspace, relpath, contents="changed"
+    )
     # refresh workspace
-    workspace = bll.get_workspace(
+    bll.get_workspace(
         release_request.workspace, factories.get_default_output_checkers()[0]
     )
 
