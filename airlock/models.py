@@ -902,10 +902,7 @@ class ReleaseRequest:
         return permissions.STATUS_OWNERS[self.status]
 
     def can_be_released(self) -> bool:
-        return (
-            self.status in [RequestStatus.REVIEWED, RequestStatus.APPROVED]
-            and self.all_files_approved()
-        )
+        return self.status == RequestStatus.REVIEWED and self.all_files_approved()
 
     def upload_in_progress(self) -> bool:
         """
