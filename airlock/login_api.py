@@ -3,6 +3,7 @@ from pathlib import Path
 
 import requests
 from django.conf import settings
+from opentelemetry import trace
 
 
 session = requests.Session()
@@ -59,6 +60,7 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
 
 
 def auth_api_call(path, json):
+    span = trace.get_current_span()
     try:
         response = session.post(
             f"{settings.AIRLOCK_API_ENDPOINT}{path}",
@@ -66,9 +68,11 @@ def auth_api_call(path, json):
             json=json,
         )
         response.raise_for_status()
-    except requests.ConnectionError:  # pragma: nocover
+    except requests.ConnectionError as exc:  # pragma: nocover
+        span.record_exception(exc)
         raise LoginError("Could not connect to jobs.opensafely.org")
     except requests.HTTPError as exc:
+        span.record_exception(exc)
         if exc.response.status_code == requests.codes.forbidden:
             # We don't currently get any more detail about failures than this
             raise LoginError("Invalid user or token")
