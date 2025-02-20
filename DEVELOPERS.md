@@ -51,15 +51,25 @@ just manage check
 ```
 
 Create a local database with:
-
 ```
 just manage migrate
+```
+
+Set up the frontend assets with:
+```
+just assets
+```
+
+Build the docs with
+```
+just docs-build
 ```
 
 You can run all the tests with:
 ```
 just test
 ```
+Note that you will need to run `just assets` and `just docs-build` on a clean checkout in order for the tests to run.
 
 To load some initial data for playing with the app locally use:
 ```
