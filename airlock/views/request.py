@@ -133,7 +133,7 @@ def _get_request_button_context(user, release_request):
         ]:
             button.show = True
 
-        # We allow output checkers to review at any time
+        # We allow output checkers to return at any time
         return_btn.disabled = False
 
         try:
@@ -157,36 +157,20 @@ def _get_request_button_context(user, release_request):
                 "author has asked for an early return to make changes."
             )
 
-        if not release_request.can_be_released():
-            release_files_btn.display_label = "Release files"
-            release_files_btn.tooltip = "Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers"
-
-    # A request can be released if it is in REVIEWED status and all files are
-    # approved - a first release attempt
-    # If a request is in APPROVED status, it isn't currently reviewable by a user,
-    # but it can be released by a user with permissions, so we need to show the
-    # release files button
-    # BUT we only enable the button if it can be re-released - i.e. all of its
-    # un-uploaded files have been attempted the max number of times
-    if (
-        permissions.user_can_review_request(user, release_request)
-        and release_request.can_be_released()
-    ):
-        release_files_btn.show = True
-        if release_request.upload_in_progress():
-            release_files_btn.display_label = "Re-release files"
-            release_files_btn.disabled = True
-            release_files_btn.tooltip = "Files are uploading to jobs.opensafely.org"
-        elif release_request.can_be_rereleased():
-            release_files_btn.display_label = "Re-release files"
-            release_files_btn.disabled = False
-            release_files_btn.tooltip = (
-                "Some files failed to upload; re-attempt release to jobs.opensafely.org"
-            )
-        else:
-            release_files_btn.display_label = "Release files"
+        # A request can be released if it is in REVIEWED status and all files are
+        # approved
+        # If something goes wrong during the release process, not all files may be
+        # released - but in this case, the request will NOT have move to APPROVED yet,
+        # and the request is still in under-review state.
+        # If a request is in APPROVED status, all its files have been released and
+        # are in the process to uploading; uploads will be tried until they
+        # succeed, no further interaction from the user is possible.
+        if release_request.can_be_released():
+            release_files_btn.show = True
             release_files_btn.disabled = False
             release_files_btn.tooltip = "Release files to jobs.opensafely.org"
+        else:
+            release_files_btn.tooltip = "Releasing to jobs.opensafely.org is disabled until all files have been approved by by two reviewers"
 
     return {
         "submit": submit_btn,
@@ -885,19 +869,14 @@ def uploaded_files_count(request, request_id):
     overview page.
     """
     release_request = get_release_request_or_raise(request.user, request_id)
-    if release_request.upload_in_progress() or (
-        release_request.status == RequestStatus.APPROVED
-        and release_request.all_files_uploaded()
-    ):
+    if release_request.upload_in_progress():
         return TemplateResponse(
             request,
             "file_browser/_includes/uploaded_files_count.html",
             {"release_request": release_request, "upload_in_progress": True},
         )
-    # If the request is no longer uploading, we just reload the whole page. It
-    # will either be released now, or the uploads have all been attempted and
-    # at least one has failed. In either case, we'll need need to update various
-    # other elements on the page (the request status, the release
-    # files button). We could do this with hx-swap-oob for the various different
-    # elements, but it's simpler just to reload.
+    # If the request is no longer uploading, it's been released and we just reload
+    # the whole page as we'll need need to update other elements on the page
+    # (e.g. the request status). We could do this with hx-swap-oob for the various
+    # different elements, but it's simpler just to reload.
     return HttpResponse(headers={"HX-Redirect": release_request.get_url()})

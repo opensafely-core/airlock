@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Self
@@ -483,6 +483,7 @@ class RequestFile:
     uploaded: bool = False
     upload_attempts: int = 0
     uploaded_at: datetime | None = None
+    upload_attempted_at: datetime | None = None
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
@@ -539,15 +540,13 @@ class RequestFile:
         ]
 
     def upload_in_progress(self):
-        return (
-            self.released_at is not None
-            and not self.uploaded
-            and self.upload_attempts < settings.UPLOAD_MAX_ATTEMPTS
-        )
+        return self.released_at is not None and not self.uploaded
 
-    def upload_failed(self):
-        return (
-            not self.uploaded and self.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS
+    def can_attempt_upload(self):
+        return self.upload_in_progress() and (
+            self.upload_attempted_at is None
+            or self.upload_attempted_at
+            < (timezone.now() - timedelta(seconds=settings.UPLOAD_RETRY_DELAY))
         )
 
 
@@ -903,32 +902,15 @@ class ReleaseRequest:
         return permissions.STATUS_OWNERS[self.status]
 
     def can_be_released(self) -> bool:
-        return (
-            self.status in [RequestStatus.REVIEWED, RequestStatus.APPROVED]
-            and self.all_files_approved()
-        )
-
-    def can_be_rereleased(self) -> bool:
-        """
-        An approved request can be re-released if all of its file are
-        either uploaded already, or have have failed to upload after the
-        maximum number of attempts
-        """
-        return self.status == RequestStatus.APPROVED and all(
-            rf.uploaded or rf.upload_failed() for rf in self.output_files().values()
-        )
+        return self.status == RequestStatus.REVIEWED and self.all_files_approved()
 
     def upload_in_progress(self) -> bool:
         """
-        A request is uploading if it has been approved and not all of its
-        output files have been uploaded
+        A request is uploading if it has been approved irrespective of whether all
+        its files have been uploaded yet. It is still considered to be in uploading
+        state until its status changed to RELEASED
         """
-        return self.status == RequestStatus.APPROVED and any(
-            rf.upload_in_progress() for rf in self.output_files().values()
-        )
-
-    def all_files_uploaded(self) -> bool:
-        return self.uploaded_files_count() == len(self.output_files())
+        return self.status == RequestStatus.APPROVED
 
     def is_final(self):
         return self.status_owner() == RequestStatusOwner.SYSTEM

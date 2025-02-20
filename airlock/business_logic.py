@@ -135,9 +135,6 @@ class DataAccessLayerProtocol(Protocol):
     def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
         raise NotImplementedError()
 
-    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
-        raise NotImplementedError()
-
     def register_file_upload(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
     ):
@@ -815,14 +812,16 @@ class BusinessLogicLayer:
         )
 
         for relpath, _ in file_paths:
-            # If the file has already been released, this is a re-release attempt due
-            # to a file upload issue with one or more files.
-            # Some files may have already been upoaded successfully, so for those
-            # we do nothing.
-            # Otherwise, we call release_file again to record the user that re-tried the
-            # upload attempt in the file metadata and audit log
+            # If a file has already been released, this is a re-release attempt due
+            # to an issue with releasing (note - NOT uploading) one or more files.
+            # If something goes wrong here, we may end up with some, but not all, files
+            # marked as released. Updating the request status to APPROVED is the last
+            # thing that's done in this method, so a request that's only partially
+            # released it's files can be re-released.
+            # For files that have already been released, their upload is in progress,
+            # so for those we do nothing.
             request_file = release_request.get_request_file_from_output_path(relpath)
-            if request_file.uploaded:
+            if request_file.released_at:
                 continue
 
             audit = AuditEvent.from_request(
@@ -831,11 +830,6 @@ class BusinessLogicLayer:
                 user=user,
                 path=relpath,
             )
-
-            if request_file.upload_attempts >= settings.UPLOAD_MAX_ATTEMPTS:
-                # If we're attempting to manually re-release, reset the file
-                # upload attempts so the file uploader will retry it.
-                self._dal.reset_file_upload_attempts(release_request.id, relpath)
 
             # Note: releasing the file updates its released_at and released by
             # attributes, as an indication of intent to release. Actually uploading
@@ -870,14 +864,6 @@ class BusinessLogicLayer:
         return RequestFile.from_dict(
             self._dal.register_file_upload_attempt(release_request.id, relpath)
         )
-
-    def reset_file_upload_attempts(
-        self, release_request: ReleaseRequest, relpath: UrlPath
-    ):
-        """
-        Reset file upload attempts so the upload will be retried
-        """
-        self._dal.reset_file_upload_attempts(release_request.id, relpath)
 
     def register_file_upload(
         self, release_request: ReleaseRequest, relpath: UrlPath, user: User

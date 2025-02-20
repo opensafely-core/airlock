@@ -411,7 +411,10 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
         bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
 
 
-def test_request_file_upload_in_progress_failed(mock_notifications, mock_old_api, bll):
+def test_request_file_uploads(mock_notifications, mock_old_api, bll, settings, freezer):
+    settings.UPLOAD_RETRY_DELAY = 10
+
+    freezer.move_to("2022-01-01T12:00:00")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.APPROVED,
@@ -419,48 +422,42 @@ def test_request_file_upload_in_progress_failed(mock_notifications, mock_old_api
             factories.request_file(contents="1", approved=True, path="test/file1.txt")
         ],
     )
+
     relpath = UrlPath("test/file1.txt")
-    request_file = release_request.get_request_file_from_output_path(relpath)
-    assert request_file.upload_in_progress()
-    assert request_file.upload_attempts == 0
+
+    def assert_upload_status(
+        release_request, attempt_count, upload_in_progress, can_attempt_upload
+    ):
+        request_file = release_request.get_request_file_from_output_path(relpath)
+        assert request_file.upload_in_progress() == upload_in_progress
+        assert request_file.upload_attempts == attempt_count
+        assert request_file.can_attempt_upload() == can_attempt_upload
+
+    assert_upload_status(
+        release_request,
+        attempt_count=0,
+        upload_in_progress=True,
+        can_attempt_upload=True,
+    )
 
     bll.register_file_upload_attempt(release_request, relpath)
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
-    assert request_file.upload_in_progress()
-    assert request_file.upload_attempts == 1
-
-    for _ in range(settings.UPLOAD_MAX_ATTEMPTS - 1):
-        bll.register_file_upload_attempt(release_request, relpath)
-
-    release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
-    assert not request_file.upload_in_progress()
-    assert request_file.upload_attempts == settings.UPLOAD_MAX_ATTEMPTS
-    assert request_file.upload_failed()
-
-
-def test_request_can_be_rereleased(mock_notifications, mock_old_api, bll):
-    release_request = factories.create_request_at_status(
-        "workspace",
-        status=RequestStatus.APPROVED,
-        files=[
-            factories.request_file(contents="1", approved=True, path="test/file1.txt"),
-            factories.request_file(contents="2", approved=True, path="test/file2.txt"),
-        ],
+    assert_upload_status(
+        release_request,
+        attempt_count=1,
+        upload_in_progress=True,
+        can_attempt_upload=False,
     )
-    assert release_request.can_be_released()
-    assert not release_request.can_be_rereleased()
-    assert release_request.upload_in_progress()
 
-    for relpath in [UrlPath("test/file1.txt"), UrlPath("test/file2.txt")]:
-        for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-            bll.register_file_upload_attempt(release_request, relpath)
+    # move time forwards, now we can attempt upload again
+    freezer.tick(settings.UPLOAD_RETRY_DELAY + 1)
     release_request = factories.refresh_release_request(release_request)
-
-    assert release_request.can_be_released()
-    assert release_request.can_be_rereleased()
-    assert not release_request.upload_in_progress()
+    assert_upload_status(
+        release_request,
+        attempt_count=1,
+        upload_in_progress=True,
+        can_attempt_upload=True,
+    )
 
 
 def test_request_upload_in_progress(mock_notifications, mock_old_api, bll):
@@ -482,17 +479,19 @@ def test_request_upload_in_progress(mock_notifications, mock_old_api, bll):
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
-    # max out attempts for file 2, file 3 still in progress
-    for _ in range(settings.UPLOAD_MAX_ATTEMPTS):
-        bll.register_file_upload_attempt(release_request, UrlPath("test/file2.txt"))
+    # # upload file 2, file 3 still in progress
+    bll.register_file_upload(release_request, UrlPath("test/file2.txt"), checker)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
-    # upload file 3
+    # upload file 3; all files are uploaded but the request hasn't moved to released yet
     bll.register_file_upload(release_request, UrlPath("test/file3.txt"), checker)
     release_request = factories.refresh_release_request(release_request)
+    assert release_request.upload_in_progress()
+
+    bll.set_status(release_request, RequestStatus.RELEASED, checker)
+    release_request = factories.refresh_release_request(release_request)
     assert not release_request.upload_in_progress()
-    assert release_request.can_be_rereleased()
 
 
 def test_code_repo_container():

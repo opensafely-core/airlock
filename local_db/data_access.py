@@ -275,16 +275,9 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 request_id=request_id, relpath=relpath
             )
             request_file.upload_attempts += 1
+            request_file.upload_attempted_at = timezone.now()
             request_file.save()
         return request_file.to_dict()
-
-    def reset_file_upload_attempts(self, request_id: str, relpath: UrlPath):
-        with transaction.atomic():
-            request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
-            )
-            request_file.upload_attempts = 0
-            request_file.save()
 
     def register_file_upload(
         self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent

@@ -18,6 +18,7 @@ Notifications are sent at various stages during the release request workflow. No
 ## Request returned
 
 - GitHub issue updated
+- Slack notification to output checkers
 - Author notified by email
 
 ## Request re-submitted

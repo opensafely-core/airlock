@@ -2,7 +2,6 @@ from io import BytesIO
 
 import pytest
 import requests
-from django.conf import settings
 from django.contrib.messages import get_messages
 from django.template.response import TemplateResponse
 
@@ -370,87 +369,26 @@ def test_request_view_with_reviewed_request(airlock_client):
     assert "You have already submitted your review" in response.rendered_content
 
 
-@pytest.mark.parametrize(
-    "files,button_label,button_tooltip",
-    [
-        (  # one file uploaded, one still uploading
-            {
-                "test1.txt": {"uploaded": True, "attempts": 1, "content": "1"},
-                "test2.txt": {"uploaded": False, "attempts": 1, "content": "2"},
-            },
-            "Re-release files",
-            "Files are uploading to jobs.opensafely.org",
-        ),
-        (
-            # one file uploaded, one past max attempts
-            {
-                "test1.txt": {"uploaded": True, "attempts": 1, "content": "1"},
-                "test2.txt": {
-                    "uploaded": False,
-                    "attempts": settings.UPLOAD_MAX_ATTEMPTS,
-                    "content": "2",
-                },
-            },
-            "Re-release files",
-            "Some files failed to upload; re-attempt release to jobs.opensafely.org",
-        ),
-        (
-            # neither file uploaded, one past max attempts
-            {
-                "test1.txt": {"uploaded": False, "attempts": 1, "content": "1"},
-                "test2.txt": {
-                    "uploaded": False,
-                    "attempts": settings.UPLOAD_MAX_ATTEMPTS,
-                    "content": "2",
-                },
-            },
-            "Re-release files",
-            "Files are uploading to jobs.opensafely.org",
-        ),
-        (
-            # one file uploaded on the max attempt, one still uploading
-            {
-                "test1.txt": {"uploaded": False, "attempts": 1, "content": "1"},
-                "test2.txt": {
-                    "uploaded": True,
-                    "attempts": settings.UPLOAD_MAX_ATTEMPTS,
-                    "content": "2",
-                },
-            },
-            "Re-release files",
-            "Files are uploading to jobs.opensafely.org",
-        ),
-    ],
-)
 def test_request_view_with_approved_request(
     mock_old_api,
-    mock_notifications,
     airlock_client,
-    files,
-    button_label,
-    button_tooltip,
 ):
     airlock_client.login(username="output-checker-0", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.APPROVED,
         files=[
-            factories.request_file(approved=True, path=path, contents=file["content"])
-            for path, file in files.items()
+            factories.request_file(approved=True, path="test1.txt", contents="1"),
+            factories.request_file(
+                approved=True, path="test2.txt", contents="2", uploaded=True
+            ),
         ],
     )
-    for path, file in files.items():
-        for _ in range(file["attempts"]):
-            bll.register_file_upload_attempt(release_request, UrlPath(path))
-            if file["uploaded"]:
-                bll.register_file_upload(
-                    release_request, UrlPath(path), airlock_client.user
-                )
 
     response = airlock_client.get(f"/requests/view/{release_request.id}/", follow=True)
-
-    assert button_label in response.rendered_content
-    assert button_tooltip in response.rendered_content
+    # Files are uploading, no action buttons shown
+    for button_label in ["Reject request", "Release files", "Return request"]:
+        assert button_label not in response.rendered_content
 
 
 @pytest.mark.parametrize("status", list(RequestStatus))
