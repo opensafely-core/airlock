@@ -584,6 +584,9 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
+    def incomplete(self):
+        return not (self.context and self.controls)
+
 
 @dataclass(frozen=True)
 class Comment:

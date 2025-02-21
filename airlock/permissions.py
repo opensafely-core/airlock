@@ -263,6 +263,7 @@ def check_user_can_submit_request(user: User, request: "ReleaseRequest"):
         raise exceptions.RequestPermissionDenied(
             "Cannot submit request with no output files"
         )
+    policies.check_can_submit_request(request)
 
 
 def user_can_submit_request(user: User, request: "ReleaseRequest"):  # pragma: no cover
