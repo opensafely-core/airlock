@@ -860,3 +860,62 @@ def test_file_browser_expand_collapse(live_server, page, context):
     expect(page.locator("#file1txt-title")).not_to_be_visible()
     file_link.click(position={"x": file_link.bounding_box()["width"] - 10, "y": 1})
     expect(page.locator("#file1txt-title")).to_be_visible()
+
+
+def test_request_back_link_or_header(live_server, page, context):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "workspace": factories.create_api_workspace(),
+            },
+        ),
+    )
+
+    pending_release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        files=[
+            factories.request_file(group="group", path="folder/file1.txt"),
+        ],
+        status=RequestStatus.PENDING,
+    )
+
+    request_overview_as_link = page.get_by_role("link").get_by_text("Request overview")
+    request_overview_as_header = page.get_by_role("heading").get_by_text(
+        "Request overview"
+    )
+
+    # Test visibility of links with whole page refreshes
+    page.goto(live_server.url + pending_release_request.get_url())
+    expect(request_overview_as_link).not_to_be_visible()
+    expect(request_overview_as_header).to_be_visible()
+    page.goto(live_server.url + pending_release_request.get_url("group"))
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+    page.goto(live_server.url + pending_release_request.get_url("group/folder/"))
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+    page.goto(
+        live_server.url + pending_release_request.get_url("group/folder/file1.txt")
+    )
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+
+    # Now test visibility of links without whole page refreshes
+    page.locator(".tree__folder-name").filter(
+        has_text=pending_release_request.id
+    ).click()
+    expect(request_overview_as_link).not_to_be_visible()
+    expect(request_overview_as_header).to_be_visible()
+    page.locator(".tree__folder-name").filter(has_text="group").click()
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+    page.locator(".tree__folder-name").filter(has_text="folder").click()
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+    page.locator(".tree__file").filter(has_text="file1").click()
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
