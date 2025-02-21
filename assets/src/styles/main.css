@@ -3,9 +3,7 @@
 @tailwind utilities;
 
 .tree__folder-name > .filegroup {
-  @apply
-    font-semibold text-oxford-600 underline underline-offset-2 decoration-oxford-200
-  ;
+  @apply font-semibold;
 }
 
 .tree__folder-name:has(.selected.filegroup) ~ .tree__child-list {
