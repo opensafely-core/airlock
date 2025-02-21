@@ -160,7 +160,7 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
 def test_run_file_uploader_command_no_tasks(mock_sleep, settings):
     run_fn = Mock(side_effect=[True, False])
     call_command("run_file_uploader", run_fn=run_fn)
-    assert mock_sleep.called_with(settings.UPLOAD_DELAY)
+    mock_sleep.assert_called_with(settings.UPLOAD_DELAY)
 
 
 def test_run_file_uploader_command_all_files_uploaded(
