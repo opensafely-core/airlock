@@ -919,3 +919,67 @@ def test_request_back_link_or_header(live_server, page, context):
     page.locator(".tree__file").filter(has_text="file1").click()
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
+
+
+@pytest.mark.parametrize(
+    "status,approved",
+    [
+        (RequestStatus.SUBMITTED, True),
+        (RequestStatus.REVIEWED, True),
+        (RequestStatus.REVIEWED, False),
+    ],
+)
+def test_request_action_required_alert(live_server, page, context, status, approved):
+    checker = login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(username="checker", output_checker=True),
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        files=[
+            factories.request_file(
+                group="group",
+                path="folder/file1.txt",
+                approved=True if approved else None,
+                changes_requested=True if not approved else None,
+                checkers=[factories.get_default_output_checkers()[0], checker],
+            )
+        ],
+        status=status,
+    )
+
+    # The alert should be visible on all pages
+    content_locator = page.locator("#content")
+    content_alert = content_locator.get_by_role("alert")
+    # But links in the alert are only visible on the overview page
+    content_alert_link = content_alert.get_by_role("link")
+
+    # Test visibility of links with whole page refreshes
+    page.goto(live_server.url + release_request.get_url())
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).not_to_be_visible()
+    page.goto(live_server.url + release_request.get_url("group"))
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
+    page.goto(live_server.url + release_request.get_url("group/folder/"))
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
+    page.goto(live_server.url + release_request.get_url("group/folder/file1.txt"))
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
+
+    # Now test visibility of links without whole page refreshes
+    page.locator(".tree__folder-name").filter(has_text=release_request.id).click()
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).not_to_be_visible()
+    page.locator(".tree__folder-name").filter(has_text="group").click()
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
+    page.locator(".tree__folder-name").filter(has_text="folder").click()
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
+    page.locator(".tree__file").filter(has_text="file1").click()
+    expect(content_alert).to_be_visible()
+    expect(content_alert_link).to_be_visible()
