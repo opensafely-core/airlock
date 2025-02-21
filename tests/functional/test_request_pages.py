@@ -734,3 +734,61 @@ def test_request_uploaded_files_counts(
     expect(uploaded_files_count_parent_el).not_to_have_attribute(
         "hx-get", release_request.uploaded_files_count_url()
     )
+
+
+def test_file_browser_expand_collapse(live_server, page, context):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "workspace": factories.create_api_workspace(),
+            },
+        ),
+    )
+
+    pending_release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        files=[
+            factories.request_file(group="group", path="folder/file1.txt"),
+        ],
+        status=RequestStatus.PENDING,
+    )
+
+    file1_locator = page.locator("#tree").get_by_role("link", name="file1.txt")
+
+    page.goto(live_server.url + pending_release_request.get_url())
+
+    # Clicking the far right of the file browser in line with the request id
+    # should not collapse the groups beneath the request
+    request_link = page.locator(".tree__folder-name").filter(
+        has_text=pending_release_request.id
+    )
+    expect(file1_locator).to_be_visible()
+    request_link.click(
+        position={"x": request_link.bounding_box()["width"] - 10, "y": 10}
+    )
+    expect(file1_locator).to_be_visible()
+
+    # Clicking the far right of the file browser in line with the group name
+    # should not collapse the folders beneath the request
+    group_link = page.locator(".tree__folder-name").filter(has_text="group")
+    expect(file1_locator).to_be_visible()
+    group_link.click(position={"x": group_link.bounding_box()["width"] - 10, "y": 1})
+    expect(file1_locator).to_be_visible()
+
+    # Clicking the far right of the file browser in line with the folder name
+    # should not collapse the folders beneath the request
+    folder_link = page.locator(".tree__folder-name").filter(has_text="folder")
+    expect(file1_locator).to_be_visible()
+    folder_link.click(position={"x": folder_link.bounding_box()["width"] - 10, "y": 1})
+    expect(file1_locator).to_be_visible()
+
+    # Clicking the far right of the file browser in line with the file name
+    # should display the file
+    file_link = page.locator(".tree__file").filter(has_text="file1")
+    expect(page.locator("#file1txt-title")).not_to_be_visible()
+    file_link.click(position={"x": file_link.bounding_box()["width"] - 10, "y": 1})
+    expect(page.locator("#file1txt-title")).to_be_visible()
