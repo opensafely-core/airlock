@@ -356,14 +356,27 @@ def test_request_view_with_reviewed_request(airlock_client):
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
 
     expected_buttons = [
-        ("Reject request", "Rejecting a request is disabled"),
-        ("Release files", "Releasing to jobs.opensafely.org is disabled"),
-        ("Return request", "Returning a request is disabled"),
+        (
+            "Reject request",
+            "Rejecting a request is disabled",
+            "Reject request as unsuitable for release",
+        ),
+        (
+            "Release files",
+            "Releasing to jobs.opensafely.org is disabled",
+            "Release files to jobs.opensafely.org",
+        ),
+        (
+            "Return request",
+            "Returning a request is disabled",
+            "Return request for changes/clarification",
+        ),
     ]
 
-    for button_text, diabled_tooltip in expected_buttons:
+    for button_text, disabled_tooltip, expected_tooltip in expected_buttons:
         assert button_text in response.rendered_content
-        assert diabled_tooltip not in response.rendered_content
+        assert disabled_tooltip not in response.rendered_content
+        assert expected_tooltip in response.rendered_content
 
     assert "Submit review" in response.rendered_content
     assert "You have already submitted your review" in response.rendered_content

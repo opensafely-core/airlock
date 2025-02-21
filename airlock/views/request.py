@@ -146,6 +146,7 @@ def _get_request_button_context(user, release_request):
 
         if release_request.status == RequestStatus.REVIEWED:
             reject_btn.disabled = False
+            reject_btn.tooltip = "Reject request as unsuitable for release"
             return_btn.tooltip = "Return request for changes/clarification"
             return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
         else:
