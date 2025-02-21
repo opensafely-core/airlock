@@ -901,7 +901,7 @@ def test_request_submit_missing_context_controls(airlock_client):
 
     response = airlock_client.post(f"/requests/submit/{release_request.id}")
 
-    assert response.status_code == 302
+    assert response.status_code == 403
     persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
     # request has not been submitted
     assert persisted_request.status == RequestStatus.PENDING
