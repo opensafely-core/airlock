@@ -1,9 +1,9 @@
 import json
-import time
 from pathlib import Path
 
 import requests
 from django.conf import settings
+from opentelemetry import trace
 
 
 session = requests.Session()
@@ -20,21 +20,32 @@ def get_user_data(user: str, token: str):
         return get_user_data_prod(user, token)
 
 
+def get_user_authz(user):
+    if settings.AIRLOCK_DEV_USERS_FILE and not settings.AIRLOCK_API_TOKEN:
+        # automatically valid
+        # Note: passing user and returning user.to_dict() is a temporary hack
+        # until we can just return the db user.
+        return user.to_dict()
+    else:
+        return get_user_authz_prod(user.username)
+
+
 def get_user_data_prod(username: str, token: str):
-    api_user = auth_api_call(
-        "/releases/authenticate", {"user": username, "token": token}
+    return auth_api_call(
+        "/releases/authenticate",
+        {"user": username, "token": token},
     )
-    api_user["last_refresh"] = time.time()
-    return api_user
 
 
-def get_user_authz(username):
-    api_user = auth_api_call("/releases/authorise", {"user": username})
-    api_user["last_refresh"] = time.time()
-    return api_user
+def get_user_authz_prod(username: str):
+    return auth_api_call("/releases/authorise", json={"user": username})
 
 
 def get_user_data_dev(dev_users_file: Path, user: str, token: str):
+    """Look up a user from local dev config instead of API.
+
+    Optionally validate token if passed, otherwise return that users data.
+    """
     try:
         dev_users = json.loads(dev_users_file.read_text())
     except FileNotFoundError as e:  # pragma: no cover
@@ -45,13 +56,11 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
     if user not in dev_users or dev_users[user]["token"] != token:
         raise LoginError("Invalid user or token")
     else:
-        details = dev_users[user]["details"]
-        # ensure that we never try refresh this user with job-server
-        details["last_refresh"] = time.time() + (365 * 24 * 60 * 60)
-        return details
+        return dev_users[user]["details"]
 
 
 def auth_api_call(path, json):
+    span = trace.get_current_span()
     try:
         response = session.post(
             f"{settings.AIRLOCK_API_ENDPOINT}{path}",
@@ -59,9 +68,11 @@ def auth_api_call(path, json):
             json=json,
         )
         response.raise_for_status()
-    except requests.ConnectionError:  # pragma: nocover
+    except requests.ConnectionError as exc:  # pragma: nocover
+        span.record_exception(exc)
         raise LoginError("Could not connect to jobs.opensafely.org")
     except requests.HTTPError as exc:
+        span.record_exception(exc)
         if exc.response.status_code == requests.codes.forbidden:
             # We don't currently get any more detail about failures than this
             raise LoginError("Invalid user or token")

@@ -34,7 +34,6 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
             "archived": False,
         },
     }
-    assert "last_refresh" in dev_data
 
 
 def test_get_user_data_with_dev_users_invalid(settings, tmp_path):

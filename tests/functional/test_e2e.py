@@ -9,9 +9,6 @@ from airlock.types import UrlPath
 from tests import factories
 
 
-admin_user = factories.create_airlock_user("admin", output_checker=True)
-
-
 def find_and_click(locator):
     """
     Helper function to find a locator element and click on it.
@@ -107,6 +104,8 @@ def test_e2e_release_files(
         "subdir/supporting.txt",
         "I am the supporting file content",
     )
+
+    admin_user = factories.create_airlock_user("admin", output_checker=True)
 
     # Log in as a researcher
     login_as(live_server, page, "researcher")

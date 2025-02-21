@@ -94,6 +94,7 @@ def create_airlock_user(
     The username, workspaces, and output_checker, are all just passed through to create_api_user.
     """
     api_user = create_api_user(username, workspaces, output_checker)
+
     if last_refresh is None:
         last_refresh = time.time()
 

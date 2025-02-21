@@ -29,7 +29,7 @@ def clear_all_traces():
     test_exporter.clear()
 
 
-# mark every test iwth django_db
+# mark every test with django_db
 def pytest_collection_modifyitems(config, items):
     for item in items:
         item.add_marker(pytest.mark.django_db)
