@@ -41,4 +41,8 @@ OTEL_EXPORTER_CONSOLE=False
 # Ensure playwright browser binaries are installed to a path in the
 # mounted volume that the non-root docker user has access to
 PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers/
+# comment/uncomment as applicable
+# linux
 PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=.playwright-browsers/chrome-linux/chrome
+# mac
+# PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=.playwright-browsers/chrome-mac/Chromium.app/Contents/MacOS/Chromium
