@@ -634,6 +634,8 @@ def request_multiselect(request, request_id: str):
             url = multiform.cleaned_data["next_url"]
 
         if action == "update_files":
+            # TODO: finish this
+            # can we auto-highlight the current group in the modal?
             files_to_add = []
             files_ignored = {}
             workspace = bll.get_workspace(release_request.workspace, request.user)
@@ -710,6 +712,7 @@ def file_approve(request, request_id, path: str):
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
+    # TODO: finish this
     # raise Exception("htnsuth")
 
     release_request = get_release_request_or_raise(request.user, request_id)
