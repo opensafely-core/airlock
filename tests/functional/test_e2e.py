@@ -16,7 +16,7 @@ def find_and_click(locator):
     """
     Helper function to find a locator element and click on it.
     Asserts that the element is visible before trying to click.
-    This avoids playwright hanging on clicking and unavailable
+    This avoids playwright hanging on clicking an unavailable
     element, which happens if we just chain the locator and click
     methods.
     """
@@ -130,18 +130,25 @@ def test_e2e_release_files(
 
     # Get and click on the invalid file
     find_and_click(page.get_by_role("link", name="file.foo").first)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url(UrlPath("subdir/file.foo"))
+
+    # Check the expected iframe content is visible
+    iframe_locator = page.locator("#content-iframe")
+    invalid_file_content = iframe_locator.content_frame.get_by_text(
+        "file.foo is not a valid file type"
     )
+    expect(invalid_file_content).to_be_visible()
     # The add file button is disabled for an invalid file
     add_file_button = page.locator("#add-file-modal-button")
     expect(add_file_button).to_be_disabled()
 
     # Get and click on the valid file
     find_and_click(page.get_by_role("link", name="file.txt").first)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
+
+    # Check the expected iframe content is visible
+    valid_file_content = iframe_locator.content_frame.get_by_text(
+        "I am the file content"
     )
+    expect(valid_file_content).to_be_visible()
 
     # Add file to request, with custom named group
     # Find the add file button and click on it to open the modal
@@ -164,9 +171,8 @@ def test_e2e_release_files(
     expect(page).to_have_url(
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", workspace.get_contents_url(UrlPath("subdir/file.txt"))
-    )
+    # Check the expected iframe content is visible
+    expect(valid_file_content).to_be_visible()
 
     # The "Add file to request" button is disabled
     add_file_button = page.locator("#add-file-modal-button")
@@ -210,9 +216,9 @@ def test_e2e_release_files(
 
     # Tree opens fully expanded, so now the file (in its subdir) is visible
     find_and_click(file_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
-    )
+
+    # Check the expected iframe content is visible
+    expect(valid_file_content).to_be_visible()
 
     # Go back to the Workspace view so we can add a supporting file
     find_and_click(page.locator("#workspace-home-button"))
@@ -256,27 +262,27 @@ def test_e2e_release_files(
     # File is selected, subdir is now unselected
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, subdir_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
-    )
+    # Check the expected iframe content is visible
+    expect(valid_file_content).to_be_visible()
 
     # Click on the supporting file link.
     supporting_file_link = page.get_by_role("link").locator(".supporting.file:scope")
     find_and_click(supporting_file_link)
     assert_tree_element_is_selected(supporting_file_link)
     assert_tree_element_is_not_selected(page, file_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src",
-        release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
+
+    # Check the expected iframe content is visible
+    supporting_file_content = iframe_locator.content_frame.get_by_text(
+        "I am the supporting file content"
     )
+    expect(supporting_file_content).to_be_visible()
 
     # Click back to the output file link and ensure the selected classes are correctly applied
     find_and_click(file_link)
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, supporting_file_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
-    )
+    # Check the expected iframe content is visible
+    expect(valid_file_content).to_be_visible()
 
     # Add context & controls to the filegroup
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
@@ -345,9 +351,8 @@ def test_e2e_release_files(
     # Click to open the filegroup tree
     find_and_click(filegroup_link)
     find_and_click(file_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src", release_request.get_contents_url(UrlPath("my-new-group/subdir/file.txt"))
-    )
+    # Check the expected iframe content is visible
+    expect(valid_file_content).to_be_visible()
 
     # File is not yet approved, so the release button is disabled
     find_and_click(page.locator("#request-home-button"))
@@ -412,10 +417,9 @@ def test_e2e_release_files(
         ".file:scope"
     )
     find_and_click(supporting_file_link)
-    expect(page.locator("iframe")).to_have_attribute(
-        "src",
-        release_request.get_contents_url(UrlPath("my-new-group/subdir/supporting.txt")),
-    )
+    # Check the expected iframe content is visible
+    expect(supporting_file_content).to_be_visible()
+
     expect(page.locator("#file-approve-button")).not_to_be_visible()
     expect(page.locator("#file-request-changes-button")).not_to_be_visible()
     expect(page.locator("#file-reset-button")).not_to_be_visible()
