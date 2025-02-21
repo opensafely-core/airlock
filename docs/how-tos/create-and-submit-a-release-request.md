@@ -49,8 +49,13 @@ Output and supporting files are [differentiated in the tree by colour and icon](
 Context and controls must be added to each file group before the release request
 can be submitted.
 
-To add context and controls to a group, navigate to the current release request and click
-on the name of the relevant group. 
+To add context and controls to a group, navigate to the current release request. A
+list of the file groups on the request will be shown in the request overview, and
+any groups with incomplete context and controls will be highlighted.
+
+![Incomplete file group in request overview](../screenshots/request_overview_incomplete_filegroup.png)
+
+Click on the name of the relevant group. 
 
 ![Add context and controls to a file group](../screenshots/context_and_controls.png)
 

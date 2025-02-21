@@ -385,6 +385,74 @@ def test_submit_button_visibility(
         expect(submit_btn).to_be_disabled()
 
 
+@pytest.mark.parametrize(
+    "status,submit_button_id",
+    [
+        (RequestStatus.PENDING, "#submit-for-review-button"),
+        (RequestStatus.RETURNED, "#resubmit-for-review-button"),
+    ],
+)
+def test_submit_button_missing_context_controls(
+    live_server, context, page, bll, status, submit_button_id
+):
+    user_data = dict(
+        username="researcher", workspaces=_workspace_dict(), output_checker=False
+    )
+    author = factories.create_airlock_user(**user_data)
+    # Create request with one file (group context/controls is added)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=status,
+        files=[
+            factories.request_file(
+                path="file.txt", group="complete group", changes_requested=True
+            )
+        ],
+    )
+    # Add files for 2 more groups, with no context or controls
+    factories.add_request_file(release_request, "group1", "path/test.txt")
+    factories.add_request_file(release_request, "group2", "path/test1.txt")
+    login_as_user(live_server, context, user_data)
+    page.goto(live_server.url + release_request.get_url())
+
+    submit_btn = page.locator(submit_button_id)
+    expect(submit_btn).to_be_disabled()
+    tooltip = "Incomplete context and/or controls for filegroup(s): 'group1', 'group2"
+    submit_btn.hover()
+    expect(submit_btn).to_contain_text(tooltip)
+
+    # add context for both groups
+    for group_name in ["group1", "group2"]:
+        bll.group_edit(
+            release_request, group_name, context="foo", controls="", user=author
+        )
+    page.reload()
+
+    # button still disabled, both groups still incomplete
+    expect(submit_btn).to_be_disabled()
+    submit_btn.hover()
+    expect(submit_btn).to_contain_text(tooltip)
+
+    # Complete info for group1
+    bll.group_edit(
+        release_request, "group1", context="foo", controls="bar", user=author
+    )
+    page.reload()
+    # button still disabled, only group2 still incomplete
+    expect(submit_btn).to_be_disabled()
+    tooltip = "Incomplete context and/or controls for filegroup(s): 'group2'"
+    submit_btn.hover()
+    expect(submit_btn).to_contain_text(tooltip)
+
+    # Complete info for group2
+    bll.group_edit(
+        release_request, "group2", context="foo", controls="bar", user=author
+    )
+    page.reload()
+    expect(submit_btn).to_be_enabled()
+
+
 def test_resubmit_button_visibility(
     live_server,
     context,

@@ -474,9 +474,6 @@ def request_submit(request, request_id):
 
     try:
         bll.submit_request(release_request, request.user)
-    except exceptions.IncompleteContextOrControls as exc:
-        messages.error(request, str(exc))
-        return redirect(release_request.get_url())
     except exceptions.RequestPermissionDenied as exc:
         raise PermissionDenied(str(exc))
 

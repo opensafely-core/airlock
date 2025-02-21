@@ -201,3 +201,17 @@ def check_can_make_comment_publicly_visible(
         raise exceptions.RequestPermissionDenied(
             "Comments visibility cannot be changed after a round finishes"
         )
+
+
+def check_can_submit_request(request: "ReleaseRequest"):
+    check_can_edit_request(request)
+    incomplete_groups = [
+        f"'{filegroup.name}'"
+        for filegroup in request.filegroups.values()
+        if filegroup.incomplete()
+    ]
+    if incomplete_groups:
+        groups = ", ".join(incomplete_groups)
+        raise exceptions.RequestPermissionDenied(
+            f"Incomplete context and/or controls for filegroup(s): {groups}"
+        )
