@@ -149,24 +149,26 @@ def test_screenshot_from_creation_to_release(
         workspace,
         RequestStatus.PENDING,
         author,
-        files=[
-            factories.request_file(group="my-group", path="outputs/file1.csv"),
-            factories.request_file(group="my-group", path="outputs/file2.csv"),
-            factories.request_file(group="my-group", path="outputs/summary.txt"),
-            factories.request_file(
-                group="my-group",
-                path="outputs/supporting.txt",
-                filetype=RequestFileType.SUPPORTING,
-            ),
-        ],
     )
+
+    # Add files separately so we have an incomplete group
+    factories.add_request_file(release_request, "my-group", path="outputs/file1.csv")
+    factories.add_request_file(release_request, "my-group", path="outputs/file2.csv")
+    factories.add_request_file(release_request, "my-group", path="outputs/summary.txt")
+    factories.add_request_file(
+        release_request,
+        "my-group",
+        path="outputs/supporting.txt",
+        filetype=RequestFileType.SUPPORTING,
+    )
+
+    # Go to the overview page to screenshot the incomplete filegroup warning
+    page.goto(live_server.url + release_request.get_url())
+    take_screenshot(page, "request_overview_incomplete_filegroup.png")
 
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     # screenshot the tree
     take_screenshot(page.locator("#tree"), "request_tree.png")
-
-    # Add context & controls to the filegroup
-    take_screenshot(page, "context_and_controls.png")
 
     context_input = page.locator("#id_context")
     # context_input.click()
@@ -175,6 +177,10 @@ def test_screenshot_from_creation_to_release(
     controls_input = page.locator("#id_controls")
     # controls_input.click()
     controls_input.fill("Small numbers have been suppressed.")
+
+    # Add context & controls to the filegroup
+    take_screenshot(page, "context_and_controls.png")
+
     # Save
     page.locator("#edit-group-button").click()
 
