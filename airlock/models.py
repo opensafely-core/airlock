@@ -584,8 +584,12 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
+    def empty(self):
+        return not (self.output_files or self.supporting_files)
+
     def incomplete(self):
-        return not (self.context and self.controls)
+        # Only consider non-empty groups
+        return not self.empty() and not (self.context and self.controls)
 
 
 @dataclass(frozen=True)

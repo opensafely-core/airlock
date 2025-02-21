@@ -907,6 +907,39 @@ def test_request_submit_missing_context_controls(airlock_client):
     assert persisted_request.status == RequestStatus.PENDING
 
 
+def test_request_submit_missing_context_controls_for_empty_group(airlock_client):
+    # Empty groups are not considered incomplete, even if they are missing context/controls
+    airlock_client.login(workspaces=["test1"])
+    release_request = factories.create_request_at_status(
+        workspace="test1",
+        status=RequestStatus.PENDING,
+        author=airlock_client.user,
+        files=[factories.request_file("group1", "path/test1.txt")],
+    )
+    factories.add_request_file(release_request, "group2", "path/test2.txt")
+
+    release_request = factories.refresh_release_request(release_request)
+
+    # group1 is OK, group2 is incomplete; we can't submit
+    assert not release_request.filegroups["group1"].incomplete()
+    assert release_request.filegroups["group2"].incomplete()
+    response = airlock_client.post(f"/requests/submit/{release_request.id}")
+    assert response.status_code == 403
+
+    # withdraw the file from group2, group2 is now empty so we can submit
+    bll.withdraw_file_from_request(
+        release_request, UrlPath("group2/path/test2.txt"), airlock_client.user
+    )
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.filegroups["group2"].empty()
+
+    response = airlock_client.post(f"/requests/submit/{release_request.id}")
+    assert response.status_code == 302
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.SUBMITTED
+
+
 def test_request_withdraw_author(airlock_client):
     airlock_client.login(workspaces=["test1"])
     release_request = factories.create_release_request(
