@@ -161,15 +161,17 @@
     {% #description_item title="Filegroups" %}
       <ul>
         {% for filegroup in release_request.filegroups.values %}
-          <li>
-            <div class="flex flex-row flex-wrap gap-2">
-              <a class="text-oxford-600" href={{ release_request.get_url }}{{ filegroup.name|urlencode }}>{{ filegroup.name }}</a>
-              {% if filegroup.incomplete %}
-                {% icon_exclamation_triangle_outline class="h-5 w-5 text-bn-flamenco-500" %}
-                <small><em>Information incomplete. Click on group name to enter context/controls.</em></small>
-              {% endif %}
-            </div>
-          </li>
+          {% if not filegroup.empty %}
+            <li>
+              <div class="flex flex-row flex-wrap gap-2">
+                <a class="text-oxford-600" href={{ release_request.get_url }}{{ filegroup.name|urlencode }}>{{ filegroup.name }}</a>
+                {% if filegroup.incomplete %}
+                  {% icon_exclamation_triangle_outline class="h-5 w-5 text-bn-flamenco-500" %}
+                  <small><em>Information incomplete. Click on group name to enter context/controls.</em></small>
+                {% endif %}
+              </div>
+            </li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% /description_item %}
