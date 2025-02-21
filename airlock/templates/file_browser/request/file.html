@@ -34,6 +34,29 @@
       </form>
     {% endif %}
 
+    {% if content_buttons.add_file_button %}
+      {% if content_buttons.add_file_button.disabled %}
+        {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="update-file-modal-button" %}
+          Move file to new group
+        {% /button %}
+      {% else %}
+        <form
+          method="POST"
+          hx-post="{{ content_buttons.add_file_button.url }}"
+          hx-target="#multiselect_modal"
+          hx-swap="outerHtml"
+        >
+          {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
+            Move file to new group
+          {% /button %}
+          <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+          <input type=hidden name="next_url" value="{{ request.path }}"/>
+          {% csrf_token %}
+        </form>
+        <div id="multiselect_modal"></div>
+      {% endif %}
+    {% endif %}
+
     {% if content_buttons.user_vote %}
       <div>
         <span>Your review:
