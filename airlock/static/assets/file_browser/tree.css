@@ -85,6 +85,7 @@
 .tree__file {
   --file-bg: white;
   --file-border: white;
+  flex: 1;
 }
 
 .tree__folder-link::before,

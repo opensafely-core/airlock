@@ -458,7 +458,7 @@ def get_request_tree(
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=(
-                f"{name} ({len(group.output_files)} requested file{_pluralise(group.output_files)})"
+                f"Group: {name} ({len(group.output_files)} requested file{_pluralise(group.output_files)})"
             ),
             selected=selected,
             expanded=True,
