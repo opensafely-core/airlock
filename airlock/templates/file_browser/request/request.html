@@ -92,7 +92,7 @@
           {% tooltip class="airlock-tooltip" content=content_buttons.reject.tooltip %}
         {% /button %}
       {% else %}
-        {% #modal id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" %}
+        {% #modal id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" button_tooltip=content_buttons.reject.tooltip %}
           {% #card container=True title="Reject this request" %}
             <form action="{{ content_buttons.reject.url }}" method="POST">
               {% csrf_token %}
