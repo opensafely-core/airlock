@@ -862,7 +862,11 @@ def test_file_browser_expand_collapse(live_server, page, context):
     expect(page.locator("#file1txt-title")).to_be_visible()
 
 
-def test_request_back_link_or_header(live_server, page, context):
+def test_request_header_content(live_server, page, context):
+    # Test header content that differs on overview page, that is:
+    # Request overview title (on overview page) or back link (on other bages)
+    # Group name - hidden on overview page
+
     author = login_as_user(
         live_server,
         context,
@@ -878,7 +882,7 @@ def test_request_back_link_or_header(live_server, page, context):
         "workspace",
         author=author,
         files=[
-            factories.request_file(group="group", path="folder/file1.txt"),
+            factories.request_file(group="the-file-group", path="folder/file1.txt"),
         ],
         status=RequestStatus.PENDING,
     )
@@ -887,22 +891,30 @@ def test_request_back_link_or_header(live_server, page, context):
     request_overview_as_header = page.get_by_role("heading").get_by_text(
         "Request overview"
     )
+    request_header_subtitle = page.locator(".header__subtitle")
 
     # Test visibility of links with whole page refreshes
     page.goto(live_server.url + pending_release_request.get_url())
     expect(request_overview_as_link).not_to_be_visible()
     expect(request_overview_as_header).to_be_visible()
-    page.goto(live_server.url + pending_release_request.get_url("group"))
+    expect(request_header_subtitle).not_to_contain_text("the-file-group")
+    page.goto(live_server.url + pending_release_request.get_url("the-file-group"))
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
-    page.goto(live_server.url + pending_release_request.get_url("group/folder/"))
-    expect(request_overview_as_link).to_be_visible()
-    expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
     page.goto(
-        live_server.url + pending_release_request.get_url("group/folder/file1.txt")
+        live_server.url + pending_release_request.get_url("the-file-group/folder/")
     )
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
+    page.goto(
+        live_server.url
+        + pending_release_request.get_url("the-file-group/folder/file1.txt")
+    )
+    expect(request_overview_as_link).to_be_visible()
+    expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
 
     # Now test visibility of links without whole page refreshes
     page.locator(".tree__folder-name").filter(
@@ -910,15 +922,19 @@ def test_request_back_link_or_header(live_server, page, context):
     ).click()
     expect(request_overview_as_link).not_to_be_visible()
     expect(request_overview_as_header).to_be_visible()
-    page.locator(".tree__folder-name").filter(has_text="group").click()
+    expect(request_header_subtitle).not_to_contain_text("the-file-group")
+    page.locator(".tree__folder-name").filter(has_text="the-file-group").click()
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
     page.locator(".tree__folder-name").filter(has_text="folder").click()
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
     page.locator(".tree__file").filter(has_text="file1").click()
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
+    expect(request_header_subtitle).to_contain_text("the-file-group")
 
 
 @pytest.mark.parametrize(
