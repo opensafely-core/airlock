@@ -22,12 +22,16 @@ from airlock.enums import (
 )
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
+    AddFileForm,
+    FileFormSet,
+    FileTypeFormSet,
     GroupCommentDeleteForm,
     GroupCommentForm,
     GroupEditForm,
     MultiselectForm,
 )
 from airlock.types import ROOT_PATH, UrlPath
+from airlock.views.workspace import add_or_update_form_is_valid
 from services.tracing import instrument
 
 from .helpers import (
@@ -630,31 +634,41 @@ def request_multiselect(request, request_id: str):
             url = multiform.cleaned_data["next_url"]
 
         if action == "update_files":
-            errors = []
-            successes = []
-            for path_str in multiform.cleaned_data["selected"]:
-                path = UrlPath(path_str)
-                # raise Exception(multiform.cleaned_data)
-                new_group = "test-new-group"
-                # TODO: yeah this works, but we still need a UI to choose the group
-                try:
-                    bll.move_file_to_new_group_in_request(
-                        release_request, path, request.user, new_group
-                    )
-                    successes.append(
-                        f"The file {path} has been moved to new group {new_group}"
-                    )
-                except exceptions.RequestPermissionDenied as exc:
-                    errors.append(str(exc))
+            files_to_add = []
+            files_ignored = {}
+            workspace = bll.get_workspace(release_request.workspace, request.user)
+            # validate which files can be added
+            for f in multiform.cleaned_data["selected"]:
+                # workspace.abspath(f)  # validate path
 
-            display_multiple_messages(request, errors, "error")
-            display_multiple_messages(request, successes, "success")
+                # if policies.can_update_file_on_request(workspace, UrlPath(f)):
+                files_to_add.append(f)
+                # else:
+                # files_ignored[f] = "file cannot be updated"
 
-            # also the next_url points to the old group so 404s
-            # url = multiform.cleaned_data["next_url"]
-            # TODO: need output_path (no group name) instead of relpath (group name) here
-            url = f"/requests/view/{release_request.id}/{new_group}/{path}"
-            # raise Exception(url)
+            move_file_form = AddFileForm(
+                release_request=release_request,
+                initial={"next_url": f"/requests/view/{release_request.id}/"},
+            )
+
+            filetype_formset = FileFormSet(
+                initial=[{"file": f} for f in files_to_add],
+            )
+            return TemplateResponse(
+                request,
+                template="change_file_group.html",
+                context={
+                    "form": move_file_form,
+                    "formset": filetype_formset,
+                    "files_ignored": files_ignored,
+                    "no_valid_files": len(files_to_add) == 0,
+                    # "update": True,
+                    "move_file_url": reverse(
+                        "file_move_group",
+                        kwargs={"request_id": release_request.id},
+                    ),
+                },
+            )
 
     return HttpResponse(headers={"HX-Redirect": url})
 
@@ -691,6 +705,48 @@ def file_approve(request, request_id, path: str):
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def file_move_group(request, request_id):
+    # raise Exception("htnsuth")
+
+    release_request = get_release_request_or_raise(request.user, request_id)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileFormSet(request.POST)
+    errors = add_or_update_form_is_valid(request, form, formset)
+
+    if errors:
+        raise Exception("todo")
+    group_name = (
+        form.cleaned_data.get("new_filegroup")
+        or form.cleaned_data.get("filegroup")
+        or ""
+    )
+    error_msgs = []
+    success_msgs = []
+    for formset_form in formset:
+        path = formset_form.cleaned_data["file"]
+
+        try:
+            bll.move_file_to_new_group_in_request(
+                release_request, path, request.user, group_name
+            )
+            success_msgs.append(
+                f"The file {path} has been moved to new group {group_name}"
+            )
+        except exceptions.RequestPermissionDenied as exc:
+            errors.append(str(exc))
+    # try:
+    #     request_file = release_request.get_request_file_from_urlpath(path)
+    # except exceptions.FileNotFound:
+    #     raise Http404()
+
+    display_multiple_messages(request, error_msgs, "error")
+    display_multiple_messages(request, success_msgs, "success")
+
+    return redirect(release_request.get_url(group_name))
 
 
 @instrument(func_attributes={"release_request": "request_id"})
