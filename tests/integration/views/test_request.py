@@ -234,14 +234,12 @@ def test_request_view_submit_review_alert(airlock_client, files, has_message):
 
     # The all-files-reviewed reminder message is only shown if the request has
     # output files and all have been reviewed
-    assert (
-        "You can now submit your review" in response.rendered_content
-    ) == has_message
+    assert ("You have reviewed all files" in response.rendered_content) == has_message
 
     # The all-files-reviewed reminder message is never shown to an author
     airlock_client.login(username=release_request.author, workspaces=["workspace"])
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert "You can now submit your review" not in response.rendered_content
+    assert "You have reviewed all files" not in response.rendered_content
 
 
 @pytest.mark.parametrize(
@@ -1045,7 +1043,7 @@ def test_request_review_output_checker(airlock_client):
 
     response = airlock_client.get(release_request.get_url())
     # Files have been reviewed but review has not been submitted yet
-    assert "You can now submit your review" in response.rendered_content
+    assert "You have reviewed all files" in response.rendered_content
 
     response = airlock_client.post(
         f"/requests/review/{release_request.id}", follow=True
@@ -1061,7 +1059,7 @@ def test_request_review_output_checker(airlock_client):
 
     response = airlock_client.get(release_request.get_url())
     # Reminder message no longer shown now that review is submitted
-    assert "You can now submit your review" not in response.rendered_content
+    assert "You have reviewed all files" not in response.rendered_content
 
 
 def test_request_review_non_output_checker(airlock_client):
