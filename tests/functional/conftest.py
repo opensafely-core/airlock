@@ -5,7 +5,9 @@ import sys
 
 import pytest
 from django.conf import settings
+from django.contrib import auth
 from django.contrib.sessions.models import Session
+from django.test import RequestFactory
 from playwright.sync_api import expect
 
 from tests import factories
@@ -47,12 +49,8 @@ def login_as_user(live_server, context, user_dict):
     """
     user = factories.create_airlock_user(**user_dict)
 
-    from django.contrib import auth
-    from django.test import RequestFactory
-
-    request = RequestFactory().get("/")
-
     # Create and attach session
+    request = RequestFactory().get("/")
     request.session = Session.get_session_store_class()()  # type: ignore
     request.session.create()
     auth.login(request, user)

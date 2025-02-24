@@ -17,12 +17,6 @@ from users.models import User
 
 logger = logging.getLogger(__name__)
 
-# We need a user with the output-checker role to access some
-# bll methods
-system_user = User(
-    user_id="system", api_data={"username": "system", "output_checker": True}
-)
-
 
 class Command(BaseCommand):
     """
@@ -40,6 +34,13 @@ class Command(BaseCommand):
         logger.warning("File uploader started: watching for tasks")
 
         tracer = trace.get_tracer(os.environ.get("OTEL_SERVICE_NAME", "airlock"))
+
+        # We need a user with the output-checker role to access some bll
+        # methods. Note that this user is ephemeral, it does not get persisted
+        # to the db
+        system_user = User(
+            user_id="system", api_data={"username": "system", "output_checker": True}
+        )
 
         while run_fn():  # pragma: no branch
             # Find approved requests
