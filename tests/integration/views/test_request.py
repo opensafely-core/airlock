@@ -1938,7 +1938,7 @@ def test_group_edit_bad_group(airlock_client):
         (False, Visibility.PUBLIC, True),
         (False, Visibility.PRIVATE, False),
         (True, Visibility.PUBLIC, True),
-        (True, Visibility.PRIVATE, True),
+        (True, Visibility.PRIVATE, False),
     ],
 )
 def test_group_comment_create_success(
@@ -1949,6 +1949,7 @@ def test_group_comment_create_success(
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "file.txt")
 
+    # collaborator user - has access to the workspace but is not the author
     user = factories.create_airlock_user(
         output_checker=output_checker, workspaces=["workspace"]
     )

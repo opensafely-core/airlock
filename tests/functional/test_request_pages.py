@@ -150,7 +150,11 @@ def test_request_group_edit_comment_for_checker(
     login_as_user(
         live_server,
         context,
-        user_dict=factories.create_api_user(username="checker", output_checker=True),
+        user_dict=factories.create_api_user(
+            username="checker",
+            workspaces=["returned_collaborator"],
+            output_checker=True,
+        ),
     )
 
     submitted_release_request = factories.create_request_at_status(
@@ -162,6 +166,16 @@ def test_request_group_edit_comment_for_checker(
         "pending",
         files=[factories.request_file(group="group")],
         status=RequestStatus.PENDING,
+    )
+    returned_release_request = factories.create_request_at_status(
+        "returned",
+        files=[factories.request_file(group="group", changes_requested=True)],
+        status=RequestStatus.RETURNED,
+    )
+    returned_collaborator_release_request = factories.create_request_at_status(
+        "returned_collaborator",
+        files=[factories.request_file(group="group", changes_requested=True)],
+        status=RequestStatus.RETURNED,
     )
 
     page.goto(live_server.url + submitted_release_request.get_url("group"))
@@ -182,13 +196,30 @@ def test_request_group_edit_comment_for_checker(
     # in submitted status, output-checker can comment
     expect(comment_button).to_be_visible()
 
-    # cannot edit context/controls for submitted request or add comment
+    # cannot edit context/controls for pending request or add comment
     page.goto(live_server.url + pending_release_request.get_url("group"))
     expect(context_locator).not_to_be_editable()
     expect(controls_locator).not_to_be_editable()
     expect(group_save_button).not_to_be_visible()
     # in pending status, output-checker cannot comment
     expect(comment_button).not_to_be_visible()
+
+    # in returned status, output-checker without access to workspace cannot comment
+    page.goto(live_server.url + returned_release_request.get_url("group"))
+    expect(comment_button).not_to_be_visible()
+
+    # in returned status, output-checker with access to workspace can comment (as
+    # they may be commenting as a collaborator)
+    page.goto(live_server.url + returned_collaborator_release_request.get_url("group"))
+    expect(comment_button).to_be_visible()
+    # but they cannot make a private comment
+    expect(
+        page.get_by_role("radio", name="Only visible to output-checkers")
+    ).not_to_be_visible()
+    # and still only the author can edit context/controls
+    expect(context_locator).not_to_be_editable()
+    expect(controls_locator).not_to_be_editable()
+    expect(group_save_button).not_to_be_visible()
 
 
 def test_request_group_comment_visibility_public_for_checker(
