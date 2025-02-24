@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from airlock import login_api
 from tests import factories
+from users import login_api
 
 
 def test_get_user_data_with_dev_users(settings, tmp_path):

@@ -3,7 +3,7 @@ import logging
 from django.contrib.auth.backends import BaseBackend
 from django.http import HttpRequest
 
-from airlock import login_api
+from users import login_api
 from users.models import User
 
 
