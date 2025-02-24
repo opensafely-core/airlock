@@ -14,6 +14,13 @@ from tests import factories
 expect.set_options(timeout=15_000)
 
 
+def wait_for_htmx(page):
+    # see https://htmx.org/docs/#request-operations
+    # Wait for the htmx-added class to be removed so we know
+    # htmx operations are done
+    expect(page.locator(".htmx-added")).to_have_count(0)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def set_env():
     # This is required for playwright tests with Django
