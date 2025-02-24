@@ -14,10 +14,10 @@ from airlock.models import (
     Workspace,
 )
 from airlock.types import ROOT_PATH, FileMetadata, UrlPath
-from airlock.users import User
 from airlock.utils import is_valid_file_type
 from airlock.visibility import RequestFileStatus
 from services.tracing import instrument
+from users.models import User
 
 
 class AirlockContainer(Protocol):

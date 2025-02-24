@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "users",
     "assets",
     "local_db",  # TODO: not include this application if we're not configured to use it?
+    # external apps
     "markdownify.apps.MarkdownifyConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -101,13 +102,13 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    # "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "airlock.middleware.UserMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
 ]
-
 
 if DJANGO_DEBUG_TOOLBAR:  # pragma: no cover
     INTERNAL_IPS = ["127.0.0.1"]
@@ -209,24 +210,8 @@ DATABASES = {
 ATOMIC_REQUESTS = False
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
-
+AUTH_USER_MODEL = "users.User"
+AUTHENTICATION_BACKENDS = ["users.auth.Level4AuthenticationBackend"]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/

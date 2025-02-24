@@ -46,14 +46,23 @@ def login_as_user(live_server, context, user_dict):
     sets the session cookie.
     """
     user = factories.create_airlock_user(**user_dict)
-    session_store = Session.get_session_store_class()()  # type: ignore
-    session_store["user"] = user.to_dict()
-    session_store.save()
+
+    from django.contrib import auth
+    from django.test import RequestFactory
+
+    request = RequestFactory().get("/")
+
+    # Create and attach session
+    request.session = Session.get_session_store_class()()  # type: ignore
+    request.session.create()
+    auth.login(request, user)
+    request.session.save()
+
     context.add_cookies(
         [
             {
                 "name": settings.SESSION_COOKIE_NAME,
-                "value": session_store._session_key,
+                "value": request.session._session_key,
                 "url": live_server.url,
             }
         ]

@@ -1,10 +1,9 @@
 from django.conf import settings
-from django.contrib import messages
+from django.contrib import auth, messages
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
-from airlock import login_api
 from airlock.forms import TokenLoginForm
 
 from .helpers import login_exempt
@@ -16,17 +15,17 @@ def login(request):
 
     if request.method != "POST":
         next_url = request.GET.get("next", default_next_url)
-        if request.user is not None:
+        if request.user.is_authenticated:
             return redirect(next_url)
         token_login_form = TokenLoginForm()
     else:
         next_url = request.POST.get("next", default_next_url)
         token_login_form = TokenLoginForm(request.POST)
-        user_data = get_user_data_or_set_form_errors(token_login_form)
-        # If `user_data` is None then the form object will have the relevant errors
-        if user_data is not None:
-            request.session["user"] = user_data
-            messages.success(request, f"Logged in as {user_data['username']}")
+        user = get_user_or_set_form_errors(request, token_login_form)
+        # If `user` is None then the form object will have the relevant errors
+        if user is not None:
+            auth.login(request, user)
+            messages.success(request, f"Logged in as {user.username}")
             return redirect(next_url)
 
     return TemplateResponse(
@@ -40,16 +39,20 @@ def login(request):
     )
 
 
-def get_user_data_or_set_form_errors(form):
+def get_user_or_set_form_errors(request, form):
     if not form.is_valid():
         return
-    try:
-        return login_api.get_user_data(
-            user=form.cleaned_data["user"],
-            token=form.cleaned_data["token"],
-        )
-    except login_api.LoginError as exc:
-        form.add_error("token", str(exc))
+
+    user = auth.authenticate(
+        request,
+        username=form.cleaned_data["user"],
+        token=form.cleaned_data["token"],
+    )
+
+    if user:
+        return user
+
+    form.add_error("token", "Invalid user or token")
 
 
 def logout(request):
@@ -57,5 +60,5 @@ def logout(request):
     User information is held in the session. On logout, remove
     session data and redirect to the home page.
     """
-    request.session.flush()
+    auth.logout(request)
     return redirect(reverse("login"))

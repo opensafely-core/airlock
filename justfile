@@ -218,6 +218,7 @@ test *ARGS: devenv get-chromium
       --cov=airlock \
       --cov=assets \
       --cov=local_db \
+      --cov=users \
       --cov=tests \
       --cov=old_api \
       --cov=services \

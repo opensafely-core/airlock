@@ -32,9 +32,9 @@ from airlock.models import (
 )
 from airlock.notifications import send_notification_event
 from airlock.types import UrlPath
-from airlock.users import User
 from airlock.utils import is_valid_file_type
 from airlock.visibility import filter_visible_items
+from users.models import User
 
 
 logger = logging.getLogger(__name__)

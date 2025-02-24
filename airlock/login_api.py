@@ -23,9 +23,7 @@ def get_user_data(user: str, token: str):
 def get_user_authz(user):
     if settings.AIRLOCK_DEV_USERS_FILE and not settings.AIRLOCK_API_TOKEN:
         # automatically valid
-        # Note: passing user and returning user.to_dict() is a temporary hack
-        # until we can just return the db user.
-        return user.to_dict()
+        return user.api_data
     else:
         return get_user_authz_prod(user.username)
 

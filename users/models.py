@@ -31,11 +31,11 @@ class User(AbstractBaseUser):
 
     @property
     def workspaces(self):
-        return self.api_data["workspaces"]
+        return self.api_data.get("workspaces", {})
 
     @property
     def output_checker(self):
-        return self.api_data["output_checker"]
+        return self.api_data.get("output_checker", False)
 
     @classmethod
     def from_api_data(cls, api_data, last_refresh: float | None = None) -> Self:

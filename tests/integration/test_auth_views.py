@@ -12,12 +12,9 @@ def test_login_get(client):
     assert "token_login_form" in response.context
 
 
-def test_login_already_logged_in(client):
-    api_user = factories.create_api_user()
-    session = client.session
-    session["user"] = api_user
-    session.save()
-    response = client.get("/login/")
+def test_login_already_logged_in(airlock_client):
+    airlock_client.login()
+    response = airlock_client.get("/login/")
     assert response.status_code == 302
     assert response.url == ("/workspaces/")
 
@@ -25,23 +22,24 @@ def test_login_already_logged_in(client):
 def test_login(client, auth_api_stubber):
     auth_api_stubber("authenticate", json=factories.create_api_user())
 
-    assert "user" not in client.session
-
     response = client.post(
         "/login/",
         {"user": "test_user", "token": "foo bar baz"},
     )
 
-    assert client.session["user"]["username"] == "testuser"
-    assert client.session["user"]["output_checker"] is False
-    assert client.session["user"]["workspaces"] == {
+    assert response.status_code == 302
+    assert response.headers["location"] == "/workspaces/"
+
+    user = response.wsgi_request.user
+    assert user.is_authenticated
+    assert user.username == "testuser"
+    assert user.output_checker is False
+    assert user.workspaces == {
         "workspace": {
             "project_details": {"name": "project", "ongoing": True},
             "archived": False,
         },
     }
-
-    assert response.url == "/workspaces/"
 
 
 def test_login_invalid_token(client, auth_api_stubber):
@@ -69,9 +67,8 @@ def test_login_invalid_form(client, settings):
 def test_logout(airlock_client):
     airlock_client.login()
 
-    response = airlock_client.get("/workspaces", follow=True)
+    response = airlock_client.get("/workspaces/")
     assert response.status_code == 200
 
     response = airlock_client.get("/logout/")
     assert response.url == "/login/"
-    assert "user" not in airlock_client.session

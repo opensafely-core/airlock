@@ -30,8 +30,8 @@ from airlock.lib.git import (
     read_file_from_repo,
 )
 from airlock.types import ROOT_PATH, FileMetadata, UrlPath
-from airlock.users import User
 from airlock.visibility import RequestFileStatus, filter_visible_items
+from users.models import User
 
 
 AUDIT_MSG_FORMATS = {

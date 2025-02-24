@@ -13,8 +13,8 @@ from airlock.models import (
     Comment,
     ReleaseRequest,
 )
-from airlock.users import User
 from tests import factories
+from users.models import User
 
 
 @dataclass
