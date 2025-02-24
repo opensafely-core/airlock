@@ -1,0 +1,5 @@
+{% if request.htmx %}
+  {% include "file_browser/request/header.html" %}
+{% endif %}
+
+{% include "file_browser/contents.html" %}

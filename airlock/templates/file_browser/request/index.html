@@ -1,18 +1,6 @@
 {% extends "file_browser/index.html" %}
 
 {% block content %}
-  {% #airlock_request_header release_request=release_request title=title workspace=workspace %}
-    <a class="header__link header__nav-link" href="{{ release_request.get_url }}" id="request-home-button">
-      &larr; Request overview
-    </a>
-  {% /airlock_request_header %}
-
-  {% if request_action_required %}
-    <div class="mt-4">
-      {% #alert variant="warning" title="Action required" dismissible=True %}
-        {{ request_action_required }}
-      {% /alert %}
-    </div>
-  {% endif %}
+  {% include "file_browser/request/header.html" %}
 {% endblock content %}
 
