@@ -234,15 +234,19 @@ def _get_file_button_context(user, release_request, workspace, path_item):
             button.show = True
     # Determine whether any of the voting buttons should be enabled
     if permissions.user_can_review_file(user, release_request, relpath):
-        # check what the current vote is, and enable the OTHER options
+        # check what the current vote is, make that button selected and
+        # enable the OTHER options
         match user_vote:
             case RequestFileVote.APPROVED:
+                voting_buttons["approve"].selected = True
                 voting_buttons["request_changes"].disabled = False
                 voting_buttons["reset_review"].disabled = False
             case RequestFileVote.CHANGES_REQUESTED:
+                voting_buttons["request_changes"].selected = True
                 voting_buttons["approve"].disabled = False
                 voting_buttons["reset_review"].disabled = False
             case RequestFileVote.UNDECIDED | None:
+                voting_buttons["reset_review"].selected = True
                 voting_buttons["approve"].disabled = False
                 voting_buttons["request_changes"].disabled = False
             case _:  # pragma: no cover
@@ -250,6 +254,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         # reset review has an extra check for whether the user has
         # submitted their review
         if not permissions.user_can_reset_file_review(user, release_request, relpath):
+            voting_buttons["reset_review"].selected = False
             voting_buttons["reset_review"].disabled = True
 
     return {

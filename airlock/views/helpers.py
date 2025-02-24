@@ -23,6 +23,7 @@ class ButtonContext:
 
     show: bool = False
     disabled: bool = True
+    selected: bool = False
     url: str = ""
     tooltip: str = ""
 

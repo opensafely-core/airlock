@@ -46,8 +46,8 @@
 
     {% if content_buttons.voting.approve.show %}
       <div class="btn-group">
-        {% if content_buttons.voting.approve.disabled %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active whitespace-nowrap" id="file-approve-button" disabled="true">
+        {% if content_buttons.voting.approve.selected %}
+          <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
             Approve file
           </button>
         {% else %}
@@ -59,8 +59,8 @@
           </form>
         {% endif %}
 
-        {% if content_buttons.voting.request_changes.disabled %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--active whitespace-nowrap" id="file-request-changes-button" disabled="true">
+        {% if content_buttons.voting.request_changes.selected %}
+          <button aria-pressed="true" class="btn-group__btn btn-group__btn--active cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
             Request changes
           </button>
         {% else %}
@@ -72,8 +72,12 @@
           </form>
         {% endif %}
 
-        {% if content_buttons.voting.reset_review.disabled %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active" id="file-reset-button" disabled="true">
+        {% if content_buttons.voting.reset_review.selected %}
+          <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active cursor-not-allowed" id="file-reset-button" disabled="true">
+            Undecided
+          </button>
+        {% elif content_buttons.voting.reset_review.disabled %}
+          <button aria-pressed="false" class="btn-group__btn btn-group__btn--right btn-group__btn--disabled cursor-not-allowed" id="file-reset-button" disabled="true">
             Undecided
           </button>
         {% else %}

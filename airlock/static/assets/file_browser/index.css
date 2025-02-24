@@ -185,3 +185,11 @@
   border-color: var(--color-gray-500);
   color: white;
 }
+
+.btn-group__btn--disabled,
+.btn-group__btn--disabled:hover,
+.btn-group__btn--disabled:focus {
+  background-color: var(--color-slate-300);
+  border-color: var(--color-slate-300);
+  color: var(--color-slate-800);
+}
