@@ -4,10 +4,63 @@
 
 {% block content %}
 
-  {% #card title="All requests in workspace "|add:workspace %}
-    {% #list_group id="requests-workspace" %}
-      {% for request in requests_for_workspace %}
-        {% #list_group_item href=request.get_url %}{{ request.workspace }} ({{ request.author }}): {{ request.status.name }} {% /list_group_item %}
+{% fragment as custom_button %}
+  <details-utils close-click-outside close-esc>
+    <details class="group">
+      <summary class="list-none">
+        <span class="text-oxford-600 border border-oxford-600 px-2 py-1 rounded opacity-75 ml-1">Filter by status
+          <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+          <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
+        </span>
+      </summary>
+      <ul class="text-gray-600 text-xs" name="filter">
+        {% if requests_for_workspace %}
+          <li>
+            <a href="{{ request.get_url }}">
+              PARTIALLY REVIEWED
+            </a>
+          </li>
+          <li>
+            <a href="{{ request.get_url }}">
+              REVIEWED
+            </a>
+          </li>
+          <li>
+            <a href="{{ request.get_url }}">
+              APPROVED
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </details>
+  </details-utils>
+
+{% endfragment %}
+  
+  <!--  -->
+  {% #card title="All requests in workspace "|add:workspace custom_button=custom_button %}
+    {% #list_group id="requests-workspace" %}   
+      {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
+      {% fragment as title %}{{ request.get_short_id }} by {{ request.author }}{% endfragment %}
+      {% fragment as status %}{% pill variant="info" text=request.status.name %}{% endfragment %}
+        {% #list_group_rich_item title=title url=request.get_url custom_status=status %}
+            <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+              <div class="flex flex-row gap-1 w-full">
+                <dt>Workspace:</dt>
+                <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                  <span class="truncate">{{ request.workspace }}</span>
+                </dd>
+                <dt class="text-xs ml-auto">Created:</dt>
+                <dd>
+                  <time datetime="{{ release_request.created_at|date:"Y-m-d H:i:sO" }}">
+                    {{ request.created_at|date:"d M Y" }} at
+                    {{ request.created_at|date:"H:i" }}
+                  </time>
+                </dd>
+              </div>
+            </div>
+          {% /list_group_rich_item %}
+
       {% empty %}
         {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
       {% endfor %}

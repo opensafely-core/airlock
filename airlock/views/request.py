@@ -39,7 +39,7 @@ from .helpers import (
     get_release_request_or_raise,
     serve_file,
 )
-
+import pdb
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
 
@@ -601,6 +601,10 @@ def requests_for_workspace(request, workspace_name: str):
     requests_for_workspace = bll.get_requests_for_workspace(
         workspace_name, request.user
     )
+    pdb.set_trace()
+    filter = request.GET.get("status")
+    if filter:
+        requests_for_workspace = requests_for_workspace.filter(status="status")
 
     return TemplateResponse(
         request,
