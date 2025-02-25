@@ -348,17 +348,36 @@ def request_view(request, request_id: str, path: str = ""):
         group_context = group_presenter(release_request, relpath, request)
 
     if permissions.user_can_submit_review(request.user, release_request):
-        request_action_required = (
-            "You have reviewed all files. You can now submit your review."
-        )
+        if relpath == ROOT_PATH:
+            request_action_required = (
+                "You have reviewed all files. Go to individual file groups to add "
+                "comments, or submit your review now."
+            )
+        else:
+            request_action_required = mark_safe(
+                "You have reviewed all files. Go to individual file groups to add "
+                f"comments, or go to the <a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to submit your review."
+            )
     elif (
         release_request.status.name == "REVIEWED"
         and permissions.user_can_review_request(request.user, release_request)
     ):
-        if release_request.can_be_released():
-            request_action_required = "Two independent reviews have been submitted. You can now return, reject or release this request."
+        if relpath == ROOT_PATH:
+            request_action_required = (
+                "Two independent reviews have been submitted. You can now "
+            )
         else:
-            request_action_required = "Two independent reviews have been submitted. You can now return or reject this request."
+            request_action_required = (
+                "Two independent reviews have been submitted. Go to the "
+                f"<a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to "
+            )
+
+        if release_request.can_be_released():
+            request_action_required += "return, reject or release this request."
+        else:
+            request_action_required += "return or reject this request."
+        request_action_required = mark_safe(request_action_required)
+
     else:
         request_action_required = None
 

@@ -31,6 +31,14 @@
           <img class="icon" src="/static/icons/token.svg" alt=""></dt>
         <dd>{{ release_request.id }}</dd>
       </div>
+      {% if group %}
+        <div>
+          <dt>
+            <span class="sr-only">ID</span>
+            <img class="icon" src="/static/icons/layers.svg" alt=""></dt>
+          <dd>{{ group.name }}</dd>
+        </div>
+      {% endif %}
     </dl>
 
   </div>
