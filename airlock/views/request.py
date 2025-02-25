@@ -362,7 +362,10 @@ def request_view(request, request_id: str, path: str = ""):
                 "Two independent reviews have been submitted. You can now "
             )
         else:
-            request_action_required = f"Two independent reviews have been submitted. go to the <a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to "
+            request_action_required = (
+                "Two independent reviews have been submitted. Go to the "
+                f"<a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to "
+            )
 
         if release_request.can_be_released():
             request_action_required += "return, reject or release this request."
