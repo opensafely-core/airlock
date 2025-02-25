@@ -39,7 +39,7 @@ def menu(request):
         NavItem(name="Docs", url_name="docs_home"),
     ]
 
-    if request.user and permissions.user_can_review(request.user):
+    if request.user.is_authenticated and permissions.user_can_review(request.user):
         reviews_menu = NavItem(name="Reviews", url_name="requests_for_output_checker")
         items.insert(2, reviews_menu)
     return {"nav": list(iter_nav(items, request))}

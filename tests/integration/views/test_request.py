@@ -1617,11 +1617,12 @@ def test_requests_release_workspace_403(airlock_client):
 
 
 def test_requests_release_author_403(airlock_client):
-    airlock_client.login(workspaces=["workspace"], output_checker=True)
+    user = factories.create_airlock_user(output_checker=True)
+    airlock_client.login_with_user(user)
 
     release_request = factories.create_request_at_status(
         "workspace",
-        author=airlock_client.user,
+        author=user,
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(approved=True)],
     )

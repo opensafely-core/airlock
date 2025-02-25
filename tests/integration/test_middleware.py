@@ -15,12 +15,11 @@ def test_middleware_expired_user_prod(airlock_client, settings, auth_api_stubber
 
     response = airlock_client.get("/workspaces/view/new_workspace/")
     assert response.status_code == 403
-    refresh = airlock_client.session["user"]["last_refresh"]
+    refresh = user.last_refresh
 
     # skip some time
-    session = airlock_client.session
-    session["user"]["last_refresh"] = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
-    session.save()
+    user.last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
+    user.save()
 
     new_workspaces = user.workspaces.copy()
     new_workspaces["new_workspace"] = factories.create_api_workspace()
@@ -37,7 +36,8 @@ def test_middleware_expired_user_prod(airlock_client, settings, auth_api_stubber
     response = airlock_client.get("/workspaces/view/new_workspace/")
     assert response.status_code == 200
     # check last_refresh was updated
-    assert airlock_client.session["user"]["last_refresh"] > refresh
+    user.refresh_from_db()
+    assert user.last_refresh > refresh
 
 
 @pytest.mark.django_db
@@ -45,21 +45,22 @@ def test_middleware_expired_user_dev(airlock_client, settings):
     # doesn't need to exist on disk, just be set in config
     settings.AIRLOCK_DEV_USERS_FILE = "path/to/file"
     airlock_client.login()
+    user = airlock_client.user
     factories.create_workspace("workspace")
 
     response = airlock_client.get("/workspaces/view/workspace/")
     assert response.status_code == 200
-    refresh = airlock_client.session["user"]["last_refresh"]
+    refresh = user.last_refresh
 
     # skip some time
-    session = airlock_client.session
-    session["user"]["last_refresh"] = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
-    session.save()
+    user.last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
+    user.save()
 
     response = airlock_client.get("/workspaces/view/workspace/")
     assert response.status_code == 200
     # check last_refresh was updated
-    assert airlock_client.session["user"]["last_refresh"] > refresh
+    user.refresh_from_db()
+    assert user.last_refresh > refresh
 
 
 @pytest.mark.django_db

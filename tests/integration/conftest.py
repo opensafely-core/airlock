@@ -5,17 +5,21 @@ from tests import factories
 
 
 class AirlockClient(Client):
-    def login(self, **credentials):
-        username = credentials.get("username", "testuser")
-        workspaces = credentials.get("workspaces")
-        output_checker = credentials.get("output_checker", False)
+    # Note: we do not use the normal Client.login api, which expects a username
+    # and password, because we do not want to have to stub and api call for
+    # every login. Instead, we just pass user details, and we will get or
+    # create that user, and log them in.
+    def login(self, **user_data):
+        username = user_data.get("username", "testuser")
+        workspaces = user_data.get("workspaces")
+        output_checker = user_data.get("output_checker", False)
         user = factories.create_airlock_user(username, workspaces, output_checker)
-        self.login_with_user(user)
+        # bypass authentication, just set up the session
+        self.force_login(user)
+        self.user = user
 
     def login_with_user(self, user):
-        session = self.session
-        session["user"] = user.to_dict()
-        session.save()
+        self.force_login(user)
         self.user = user
 
 

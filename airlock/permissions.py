@@ -11,7 +11,7 @@ from airlock.enums import (
     WorkspaceFileStatus,
 )
 from airlock.types import UrlPath
-from airlock.users import User
+from users.models import User
 
 
 if TYPE_CHECKING:  # pragma: no cover

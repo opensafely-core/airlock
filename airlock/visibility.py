@@ -10,7 +10,7 @@ from airlock.enums import (
     ReviewTurnPhase,
     Visibility,
 )
-from airlock.users import User
+from users.models import User
 
 
 @dataclass

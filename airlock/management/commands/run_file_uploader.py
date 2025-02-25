@@ -11,15 +11,11 @@ import old_api
 from airlock.business_logic import bll
 from airlock.enums import RequestStatus
 from airlock.types import UrlPath
-from airlock.users import User
 from services.tracing import instrument
+from users.models import User
 
 
 logger = logging.getLogger(__name__)
-
-# We need a user with the output-checker role to access some
-# bll methods
-system_user = User("system", output_checker=True)
 
 
 class Command(BaseCommand):
@@ -38,6 +34,13 @@ class Command(BaseCommand):
         logger.warning("File uploader started: watching for tasks")
 
         tracer = trace.get_tracer(os.environ.get("OTEL_SERVICE_NAME", "airlock"))
+
+        # We need a user with the output-checker role to access some bll
+        # methods. Note that this user is ephemeral, it does not get persisted
+        # to the db
+        system_user = User(
+            user_id="system", api_data={"username": "system", "output_checker": True}
+        )
 
         while run_fn():  # pragma: no branch
             # Find approved requests
@@ -151,4 +154,4 @@ def get_upload_files_and_update_request_status(release_request):
 
 
 def get_user_for_file(request_file):
-    return User(username=request_file.released_by, output_checker=True)
+    return User.objects.get(pk=request_file.released_by)
