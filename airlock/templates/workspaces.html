@@ -5,19 +5,30 @@
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
     {% airlock_header title="Workspaces for "|add:request.user.username %}
-
     {% for project, workspaces in projects.items %}
-      {% #card title=project.display_name %}
-        {% #list_group id="workspaces" %}
-          {% for workspace in workspaces %}
-            {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
-          {% endfor %}
-        {% /list_group %}
-      {% /card %}
-    {% empty %}
-      {% #card title="Workspaces" container=True %}
-        {% list_group_empty title="No workspaces available" description="You do not have access to any workspaces" %}
-      {% /card %}
-    {% endfor %}
-  </div>
-{% endblock content %}
+      {% #card %}
+        <details class="group" open>
+          <summary class="list-none">
+            {% fragment as custom_button %}<span class="opacity-75 ml-1"><img height="30" width="30" class="inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+              <img height="30" width="30" class="hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
+            {% card title=project.display_name custom_button=custom_button %}
+              </summary>
+              <ul>
+                <li>
+                  {% #list_group id="workspaces" %}
+                    {% for workspace in workspaces %}
+                      {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
+                    {% endfor %}
+                  {% /list_group %}
+                </li>
+              </ul>
+              </details>
+            {% /card %}
+      {% empty %}
+        {% #card title="Workspaces" container=True %}
+          {% list_group_empty title="No workspaces available" description="You do not have access to any workspaces" %}
+        {% /card %}
+      {% endfor %}
+      </div>
+    {% endblock content %}
+
