@@ -6,7 +6,6 @@ from django.urls import reverse
 
 from airlock import login_api
 from airlock.forms import TokenLoginForm
-from users.models import User as FutureUser
 
 from .helpers import login_exempt
 
@@ -27,8 +26,6 @@ def login(request):
         # If `user_data` is None then the form object will have the relevant errors
         if user_data is not None:
             request.session["user"] = user_data
-            # migration code - ensure db version of the user exists
-            FutureUser.from_api_data(user_data)
             messages.success(request, f"Logged in as {user_data['username']}")
             return redirect(next_url)
 

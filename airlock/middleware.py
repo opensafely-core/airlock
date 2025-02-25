@@ -8,7 +8,6 @@ from opentelemetry import trace
 
 from airlock import login_api
 from airlock.users import User
-from users.models import User as FutureUser
 
 
 class UserMiddleware:
@@ -22,13 +21,11 @@ class UserMiddleware:
         span = trace.get_current_span()
 
         if user:
-            # ensure db version of the user exists
             time_since_authz = time.time() - user.last_refresh
             if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
                 span.set_attribute("auth_refresh", True)
                 try:
                     details = login_api.get_user_authz(user)
-                    FutureUser.from_api_data(details)
                     details["last_refresh"] = time.time()
                 except login_api.LoginError:
                     # TODO: log this, but we should have telemetry for the requests call anyway
