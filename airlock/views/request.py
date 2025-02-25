@@ -203,7 +203,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
     withdraw_btn = ButtonContext.with_request_defaults(
         req_id, "file_withdraw", path=group_relpath
     )
-    # output-checker vote to display and buttons
+    # output-checker voting buttons
     user_vote = path_item.request_status.vote
     voting_buttons = {
         "approve": ButtonContext.with_request_defaults(
@@ -266,7 +266,6 @@ def _get_file_button_context(user, release_request, workspace, path_item):
 
     return {
         "withdraw_file": withdraw_btn,
-        "user_vote": user_vote,
         "voting": voting_buttons,
     }
 

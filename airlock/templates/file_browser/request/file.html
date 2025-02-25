@@ -34,16 +34,6 @@
       </form>
     {% endif %}
 
-    {% if content_buttons.user_vote %}
-      <div>
-        <span>Your review:
-          <span class="file-status file-status--{{ content_buttons.user_vote.name.lower }}">
-            {{ content_buttons.user_vote.description }}
-          </span>
-        </span>
-      </div>
-    {% endif %}
-
     {% if content_buttons.voting.approve.show %}
       <div class="btn-group">
         <div class="btn-subgroup">
