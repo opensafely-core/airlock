@@ -132,6 +132,9 @@ def test_e2e_release_files(
 
     # Check the expected iframe content is visible
     iframe_locator = page.locator("#content-iframe")
+    # First make sure that the iframe container is visible
+    # hover() waits for the element to be visible, stable and receiving events
+    iframe_locator.hover()
     invalid_file_content = iframe_locator.content_frame.get_by_text(
         "file.foo is not a valid file type"
     )
@@ -143,6 +146,7 @@ def test_e2e_release_files(
     # Get and click on the valid file
     find_and_click(page.get_by_role("link", name="file.txt").first)
 
+    iframe_locator.hover()
     # Check the expected iframe content is visible
     valid_file_content = iframe_locator.content_frame.get_by_text(
         "I am the file content"
@@ -270,6 +274,7 @@ def test_e2e_release_files(
     assert_tree_element_is_selected(supporting_file_link)
     assert_tree_element_is_not_selected(page, file_link)
 
+    iframe_locator.hover()
     # Check the expected iframe content is visible
     supporting_file_content = iframe_locator.content_frame.get_by_text(
         "I am the supporting file content"
