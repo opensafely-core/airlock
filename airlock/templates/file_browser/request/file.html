@@ -46,48 +46,52 @@
 
     {% if content_buttons.voting.approve.show %}
       <div class="btn-group">
-        {% if content_buttons.voting.approve.selected %}
-          {% if content_buttons.voting.approve.disabled %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
-              {{ content_buttons.voting.approve.label }}
-            </button>
+        <div class="btn-subgroup">
+          {% if content_buttons.voting.approve.selected %}
+            {% if content_buttons.voting.approve.disabled %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
+                {{ content_buttons.voting.approve.label }}
+              </button>
+            {% else %}
+              <form action="{{ content_buttons.voting.approve.url }}" method="POST">
+                {% csrf_token %}
+                <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+                  {{ content_buttons.voting.approve.label }}
+                </button>
+              </form>
+            {% endif %}
           {% else %}
             <form action="{{ content_buttons.voting.approve.url }}" method="POST">
               {% csrf_token %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
                 {{ content_buttons.voting.approve.label }}
               </button>
             </form>
           {% endif %}
-        {% else %}
-          <form action="{{ content_buttons.voting.approve.url }}" method="POST">
-            {% csrf_token %}
-            <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
-              {{ content_buttons.voting.approve.label }}
-            </button>
-          </form>
-        {% endif %}
-        {% if content_buttons.voting.request_changes.selected %}
-          {% if content_buttons.voting.request_changes.disabled %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
-              {{ content_buttons.voting.request_changes.label }}
-            </button>
+        </div>
+        <div class="btn-subgroup">
+          {% if content_buttons.voting.request_changes.selected %}
+            {% if content_buttons.voting.request_changes.disabled %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
+                {{ content_buttons.voting.request_changes.label }}
+              </button>
+            {% else %}
+              <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
+                {% csrf_token %}
+                <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+                  {{ content_buttons.voting.request_changes.label }}
+                </button>
+              </form>
+            {% endif %}
           {% else %}
             <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
               {% csrf_token %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right whitespace-nowrap" id="file-request-changes-button" type="submit">
                 {{ content_buttons.voting.request_changes.label }}
               </button>
             </form>
           {% endif %}
-        {% else %}
-          <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
-            {% csrf_token %}
-            <button aria-pressed="false" class="btn-group__btn btn-group__btn--right whitespace-nowrap" id="file-request-changes-button" type="submit">
-              {{ content_buttons.voting.request_changes.label }}
-            </button>
-          </form>
-        {% endif %}
+        </div>
       </div>
     {% endif %}
 

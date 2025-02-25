@@ -142,6 +142,11 @@
   align-items: center;
   flex-direction: row;
   gap: 0;
+  width: 20rem;
+}
+
+.btn-subgroup {
+  width: 50%;
 }
 
 .btn-group__btn {
@@ -153,8 +158,9 @@
   line-height: 1.25rem;
   margin-left: -1px;
   padding: 0.5rem 0.75rem;
+  width: 100%;
+  justify-content: center;
 }
-
 
 .btn-group__btn--left {
   border-top-left-radius: 0.375rem;
