@@ -5,7 +5,7 @@ from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 
-from .conftest import login_as_user
+from .conftest import login_as_user, wait_for_htmx
 
 
 @pytest.fixture(autouse=True)
@@ -414,7 +414,7 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
 
     # The above click triggers an htmx request. This waits for that to
     # complete
-    page.wait_for_load_state()
+    wait_for_htmx(page)
     # should load the table but previously didn't
     expect(page.locator(".datatable-table")).to_be_visible()
 
