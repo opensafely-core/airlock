@@ -1149,6 +1149,32 @@ def test_requests_for_workspace(airlock_client):
     assert author2.username in response.rendered_content
 
 
+def test_requests_for_workspace_filter(airlock_client, mock_old_api):
+    airlock_client.login(workspaces=["test1"])
+    author2 = factories.create_airlock_user("author2", ["test1"], False)
+
+    factories.create_request_at_status(
+        "test1",
+        author=author2,
+        status=RequestStatus.APPROVED,
+        files=[factories.request_file(approved=True)],
+    )
+
+    factories.create_request_at_status(
+        "test1",
+        author=author2,
+        status=RequestStatus.PENDING,
+    )
+
+    response = airlock_client.get("/requests/workspace/test1?status=APPROVED")
+
+    response.render()
+    assert response.status_code == 200
+    assert "All requests in workspace test1" in response.rendered_content
+    assert "APPROVED" in response.rendered_content
+    assert author2.username in response.rendered_content
+
+
 @pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
 def test_file_review_bad_user(airlock_client, review):
     workspace = "test1"

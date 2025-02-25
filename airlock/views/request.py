@@ -629,6 +629,28 @@ def requests_for_workspace(request, workspace_name: str):
     requests_for_workspace = bll.get_requests_for_workspace(
         workspace_name, request.user
     )
+    request_filter = request.GET.get("status")
+    if request_filter:
+        filtered_requests = []
+        for r in requests_for_workspace:
+            if r.status.name == request_filter:
+                filtered_requests.append(r)
+
+        requests_for_workspace = filtered_requests
+
+    status_list = [
+        "PENDING",
+        "SUBMITTED",
+        "WITHDRAWN",
+        "APPROVED",
+        "REJECTED",
+        "PARTIALLY_REVIEWED",
+        "REVIEWED",
+        "RETURNED",
+        "RELEASED",
+    ]
+
+    filter_url = request.path
 
     return TemplateResponse(
         request,
@@ -636,6 +658,9 @@ def requests_for_workspace(request, workspace_name: str):
         {
             "workspace": workspace_name,
             "requests_for_workspace": requests_for_workspace,
+            "request_filter": request_filter,
+            "status_list": status_list,
+            "filter_url": filter_url,
         },
     )
 

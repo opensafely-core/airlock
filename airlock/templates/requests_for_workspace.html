@@ -4,10 +4,61 @@
 
 {% block content %}
 
-  {% #card title="All requests in workspace "|add:workspace %}
+  {% fragment as custom_button %}
+    {% if request_filter %}
+      <div class="relative group cursor-pointer ml-auto">
+        <a class="inline-flex bg-oxford-50 rounded-md p-1 text-oxford-700 text-sm" href="{{ filter_url }}"> {{ request_filter|title }} {% icon_x_circle_solid class="text-oxford-600 h-5 w-5" %}
+        </a>
+        {% tooltip position="-bottom-3" content="Clear filter" %}
+      </div>
+    {% endif %}
+
+    <details-utils close-click-outside close-esc>
+      <details class="relative group cursor-pointer">
+        <summary class="list-none">
+          <span class="border text-oxford text-sm px-2 py-1 rounded opacity-75 ml-1">Filter by status
+            <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+            <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
+          </span>
+        </summary>
+
+        <ul class="absolute bg-oxford-50 shadow-md rounded-md text-oxford-600 text-sm w-56 mt-1 right-0 z-10" name="filter">
+          {% for status in status_list %}
+            <li>
+              <a class="block p-1 cursor-pointer hover:bg-oxford-100 hover:text-oxford" href="{{ filter_url }}?status={{ status }}">
+                {{ status|title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </details>
+    </details-utils>
+  {% endfragment %}
+
+
+  {% #card title="All requests in workspace "|add:workspace custom_button=custom_button %}
     {% #list_group id="requests-workspace" %}
-      {% for request in requests_for_workspace %}
-        {% #list_group_item href=request.get_url %}{{ request.workspace }} ({{ request.author }}): {{ request.status.name }} {% /list_group_item %}
+      {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
+        {% fragment as title %}{{ request.get_short_id }} by {{ request.author }}{% endfragment %}
+        {% fragment as status %}{% pill variant="info" text=request.status.name %}{% endfragment %}
+        {% #list_group_rich_item title=title url=request.get_url custom_status=status %}
+          <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+            <div class="flex flex-row gap-1 w-full">
+              <dt>Workspace:</dt>
+              <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                <span class="truncate">{{ request.workspace }}</span>
+              </dd>
+              <dt class="text-xs ml-auto">Created:</dt>
+              <dd>
+                <time datetime="{{ request.created_at|date:"Y-m-d H:i:sO" }}">
+                  {{ request.created_at|date:"d M Y" }} at
+                  {{ request.created_at|date:"H:i" }}
+                </time>
+              </dd>
+            </div>
+          </div>
+        {% /list_group_rich_item %}
+
       {% empty %}
         {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
       {% endfor %}
