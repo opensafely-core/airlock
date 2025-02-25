@@ -34,7 +34,7 @@
       </form>
     {% endif %}
 
-    {% comment %} {% if content_buttons.user_vote %}
+    {% if content_buttons.user_vote %}
       <div>
         <span>Your review:
           <span class="file-status file-status--{{ content_buttons.user_vote.name.lower }}">
@@ -42,11 +42,10 @@
           </span>
         </span>
       </div>
-    {% endif %} {% endcomment %}
-    
+    {% endif %}
+
     {% if content_buttons.voting.approve.show %}
       <div class="btn-group">
-        <div class="btn-subgroup">
         {% if content_buttons.voting.approve.selected %}
           {% if content_buttons.voting.approve.disabled %}
             <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
@@ -54,11 +53,11 @@
             </button>
           {% else %}
             <form action="{{ content_buttons.voting.approve.url }}" method="POST">
-            {% csrf_token %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
-              {{ content_buttons.voting.approve.label }}
-            </button>
-          </form>
+              {% csrf_token %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+                {{ content_buttons.voting.approve.label }}
+              </button>
+            </form>
           {% endif %}
         {% else %}
           <form action="{{ content_buttons.voting.approve.url }}" method="POST">
@@ -68,8 +67,6 @@
             </button>
           </form>
         {% endif %}
-        </div>
-        <div class="btn-subgroup">
         {% if content_buttons.voting.request_changes.selected %}
           {% if content_buttons.voting.request_changes.disabled %}
             <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
@@ -77,11 +74,11 @@
             </button>
           {% else %}
             <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
-            {% csrf_token %}
-            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
-              {{ content_buttons.voting.request_changes.label }}
-            </button>
-          </form>
+              {% csrf_token %}
+              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+                {{ content_buttons.voting.request_changes.label }}
+              </button>
+            </form>
           {% endif %}
         {% else %}
           <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
@@ -91,10 +88,9 @@
             </button>
           </form>
         {% endif %}
-        </div>
       </div>
-    {% endif %}  
-  
+    {% endif %}
+
     {% #modal id="group-context" button_text="View&nbsp;Context" %}
       {% include "file_browser/request/filegroup.html" %}
     {% /modal %}

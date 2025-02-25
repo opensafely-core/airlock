@@ -215,7 +215,8 @@ def _get_file_button_context(user, release_request, workspace, path_item):
     }
 
     reset_review_url = reverse(
-        "file_reset_review", kwargs={"request_id": release_request.id, "path": group_relpath}
+        "file_reset_review",
+        kwargs={"request_id": release_request.id, "path": group_relpath},
     )
 
     if permissions.user_can_withdraw_file_from_request(
@@ -235,22 +236,24 @@ def _get_file_button_context(user, release_request, workspace, path_item):
             button.show = True
     # Determine whether any of the voting buttons should be enabled
     if permissions.user_can_review_file(user, release_request, relpath):
-        can_reset_review = permissions.user_can_reset_file_review(user, release_request, relpath)
+        can_reset_review = permissions.user_can_reset_file_review(
+            user, release_request, relpath
+        )
         # check what the current vote is
         #  - make that button selected
         #  - change its url to the reset-review url so it can be toggled off
-        #  - if resetting votes is not allowed, disable the button 
+        #  - if resetting votes is not allowed, disable the button
         #  - enable the OTHER option; when voting buttons are shown, you can always
         #    change your vote to the opposite, even if you can't reset
         match user_vote:
             case RequestFileVote.APPROVED:
-                voting_buttons["approve"].label = "Approved"
+                voting_buttons["approve"].label = user_vote.description()
                 voting_buttons["approve"].selected = True
                 voting_buttons["approve"].url = reset_review_url
                 voting_buttons["approve"].disabled = not can_reset_review
                 voting_buttons["request_changes"].disabled = False
             case RequestFileVote.CHANGES_REQUESTED:
-                voting_buttons["request_changes"].label = "Changes requested"
+                voting_buttons["request_changes"].label = user_vote.description()
                 voting_buttons["request_changes"].selected = True
                 voting_buttons["request_changes"].url = reset_review_url
                 voting_buttons["request_changes"].disabled = not can_reset_review

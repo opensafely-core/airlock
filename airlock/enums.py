@@ -48,7 +48,7 @@ class RequestFileVote(Enum):
     UNDECIDED = "UNDECIDED"  # set on CHANGES_REQUESTED files by Airlock when a request is re-submitted
 
     def description(self):
-        return self.name.replace("_", " ").title()
+        return self.name.replace("_", " ").capitalize()
 
 
 class RequestStatusOwner(Enum):

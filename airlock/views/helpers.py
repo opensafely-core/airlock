@@ -35,7 +35,7 @@ class ButtonContext:
             url=reverse(
                 url_name, kwargs={"request_id": release_request_id, **extra_kwargs}
             ),
-            label=label
+            label=label,
         )
 
     @classmethod
