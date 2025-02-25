@@ -11,11 +11,21 @@
     {% #card title="Outstanding requests awaiting review" %}
       {% #list_group id="outstanding-requests" %}
         {% for release_request, request_progress in outstanding_requests %}
-          {% fragment as title %}{{ release_request.workspace }} by {{ release_request.author }}{% endfragment %}
-          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=title %}
-            <p class="text-right text-xs">
-              {{ request_progress }}
-            </p>
+          {% fragment as title %}{{ release_request.get_short_id }} by {{ release_request.author }}{% endfragment %}
+          {% fragment as status %}{% pill variant="primary" text=release_request.status.description %}{% endfragment %}
+          {% #list_group_rich_item type="Outstanding request" title=title url=release_request.get_url custom_status=status %}
+            <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+              <div class="flex flex-row gap-1 w-full">
+                <dt>Workspace:</dt>
+                <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                  <span class="truncate">{{ release_request.workspace }}</span>
+                </dd>
+                <dt class="sr-only">Your review:</dt>
+                <dd class="ml-auto">
+                  {{ request_progress }}
+                </dd>
+              </div>
+            </div>
           {% /list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
@@ -26,7 +36,17 @@
     {% #card title="Requests returned for changes/questions" %}
       {% #list_group id="returned-requests" %}
         {% for release_request in returned_requests %}
-          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+          {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
+          {% fragment as status %}{% pill variant="warning" text=release_request.status.description %}{% endfragment %}
+          {% #list_group_rich_item type="Returned request" title=title url=release_request.get_url custom_status=status %}
+            <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+              <div class="flex flex-row gap-1 w-full">
+                <dt>Workspace:</dt>
+                <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                  <span class="truncate">{{ release_request.workspace }}</span>
+                </dd>
+              </div>
+            </div>
           {% /list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
@@ -38,7 +58,17 @@
       {% #card title="Approved requests awaiting release" %}
         {% #list_group id="returned-requests" %}
           {% for release_request in approved_requests %}
-            {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+            {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
+            {% fragment as status %}{% pill variant="success" text=release_request.status.description %}{% endfragment %}
+            {% #list_group_rich_item type="Approved request" title=title url=release_request.get_url custom_status=status %}
+              <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+                <div class="flex flex-row gap-1 w-full">
+                  <dt>Workspace:</dt>
+                  <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                    <span class="truncate">{{ release_request.workspace }}</span>
+                  </dd>
+                </div>
+              </div>
             {% /list_group_rich_item %}
           {% endfor %}
         {% /list_group %}

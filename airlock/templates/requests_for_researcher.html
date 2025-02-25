@@ -10,8 +10,25 @@
 
     {% #card title="Requests by "|add:request.user.username %}
       {% #list_group id="authored-requests" %}
-        {% for release_request in authored_requests %}
-          {% #list_group_rich_item url=release_request.get_url status_text=release_request.status.description title=release_request.workspace %}
+        {% for release_request in authored_requests|dictsortreversed:"created_at" %}
+          {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
+          {% fragment as status %}{% pill variant="info" text=release_request.status.description %}{% endfragment %}
+          {% #list_group_rich_item type="Request" title=title url=release_request.get_url custom_status=status %}
+            <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
+              <div class="flex flex-row gap-1 w-full">
+                <dt>Workspace:</dt>
+                <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                  <span class="truncate">{{ release_request.workspace }}</span>
+                </dd>
+                <dt class="text-xs ml-auto">Created:</dt>
+                <dd>
+                  <time datetime="{{ release_request.created_at|date:"Y-m-d H:i:sO" }}">
+                    {{ release_request.created_at|date:"d M Y" }} at
+                    {{ release_request.created_at|date:"H:i" }}
+                  </time>
+                </dd>
+              </div>
+            </div>
           {% /list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No requests" description="You do not have any authored requests" %}
