@@ -34,7 +34,7 @@
       </form>
     {% endif %}
 
-    {% if content_buttons.user_vote %}
+    {% comment %} {% if content_buttons.user_vote %}
       <div>
         <span>Your review:
           <span class="file-status file-status--{{ content_buttons.user_vote.name.lower }}">
@@ -42,55 +42,59 @@
           </span>
         </span>
       </div>
-    {% endif %}
-
+    {% endif %} {% endcomment %}
+    
     {% if content_buttons.voting.approve.show %}
       <div class="btn-group">
+        <div class="btn-subgroup">
         {% if content_buttons.voting.approve.selected %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--active cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
-            Approve file
-          </button>
+          {% if content_buttons.voting.approve.disabled %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
+              {{ content_buttons.voting.approve.label }}
+            </button>
+          {% else %}
+            <form action="{{ content_buttons.voting.approve.url }}" method="POST">
+            {% csrf_token %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+              {{ content_buttons.voting.approve.label }}
+            </button>
+          </form>
+          {% endif %}
         {% else %}
           <form action="{{ content_buttons.voting.approve.url }}" method="POST">
             {% csrf_token %}
             <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
-              Approve file
+              {{ content_buttons.voting.approve.label }}
             </button>
           </form>
         {% endif %}
-
+        </div>
+        <div class="btn-subgroup">
         {% if content_buttons.voting.request_changes.selected %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--active cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
-            Request changes
-          </button>
+          {% if content_buttons.voting.request_changes.disabled %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
+              {{ content_buttons.voting.request_changes.label }}
+            </button>
+          {% else %}
+            <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
+            {% csrf_token %}
+            <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+              {{ content_buttons.voting.request_changes.label }}
+            </button>
+          </form>
+          {% endif %}
         {% else %}
           <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
             {% csrf_token %}
-            <button aria-pressed="false" class="btn-group__btn whitespace-nowrap" id="file-request-changes-button" type="submit">
-              Request changes
+            <button aria-pressed="false" class="btn-group__btn btn-group__btn--right whitespace-nowrap" id="file-request-changes-button" type="submit">
+              {{ content_buttons.voting.request_changes.label }}
             </button>
           </form>
         {% endif %}
-
-        {% if content_buttons.voting.reset_review.selected %}
-          <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--active cursor-not-allowed" id="file-reset-button" disabled="true">
-            Undecided
-          </button>
-        {% elif content_buttons.voting.reset_review.disabled %}
-          <button aria-pressed="false" class="btn-group__btn btn-group__btn--right btn-group__btn--disabled cursor-not-allowed" id="file-reset-button" disabled="true">
-            Undecided
-          </button>
-        {% else %}
-          <form action="{{ content_buttons.voting.reset_review.url }}" method="POST">
-            {% csrf_token %}
-            <button aria-pressed="false" class="btn-group__btn btn-group__btn--right" id="file-reset-button" type="submit">
-              Undecided
-            </button>
-          </form>
-        {% endif %}
+        </div>
       </div>
-    {% endif %}
-
+    {% endif %}  
+  
     {% #modal id="group-context" button_text="View&nbsp;Context" %}
       {% include "file_browser/request/filegroup.html" %}
     {% /modal %}

@@ -26,13 +26,16 @@ class ButtonContext:
     selected: bool = False
     url: str = ""
     tooltip: str = ""
+    label: str = ""
 
     @classmethod
     def with_request_defaults(cls, release_request_id, url_name, **extra_kwargs):
+        label = extra_kwargs.pop("label", "")
         return cls(
             url=reverse(
                 url_name, kwargs={"request_id": release_request_id, **extra_kwargs}
             ),
+            label=label
         )
 
     @classmethod
