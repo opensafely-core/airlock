@@ -610,12 +610,12 @@ def request_multiselect(request, request_id: str):
 
     if not multiform.is_valid():
         display_form_errors(request, multiform.errors)
-    else:
-        action = multiform.cleaned_data["action"]
-        if action not in ["withdraw_files", "update_files"]:
-            raise Http404(f"Invalid action {action}")
+        url = multiform.cleaned_data["next_url"]
+        return HttpResponse(headers={"HX-Redirect": url})
 
-        if action == "withdraw_files":
+    action = multiform.cleaned_data["action"]
+    match action:
+        case "withdraw_files":
             errors = []
             successes = []
             for path_str in multiform.cleaned_data["selected"]:
@@ -632,8 +632,9 @@ def request_multiselect(request, request_id: str):
             display_multiple_messages(request, successes, "success")
 
             url = multiform.cleaned_data["next_url"]
+            return HttpResponse(headers={"HX-Redirect": url})
 
-        if action == "update_files":
+        case "update_files":
             # TODO: finish this
             # can we auto-highlight the current group in the modal?
             files_to_add = []
@@ -671,8 +672,8 @@ def request_multiselect(request, request_id: str):
                     ),
                 },
             )
-
-    return HttpResponse(headers={"HX-Redirect": url})
+        case _:
+            raise Http404(f"Invalid action {action}")
 
 
 @instrument
