@@ -34,15 +34,15 @@
       </form>
     {% endif %}
 
-    {% if content_buttons.add_file_button %}
-      {% if content_buttons.add_file_button.disabled %}
-        {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="update-file-modal-button" %}
+    {% if content_buttons.move_file_button %}
+      {% if content_buttons.move_file_button.disabled %}
+        {% #button type="button" disabled=True tooltip=content_buttons.move_file_button.tooltip id="update-file-modal-button" %}
           Move file to new group
         {% /button %}
       {% else %}
         <form
           method="POST"
-          hx-post="{{ content_buttons.add_file_button.url }}"
+          hx-post="{{ content_buttons.move_file_button.url }}"
           hx-target="#multiselect_modal"
           hx-swap="outerHtml"
         >
@@ -124,4 +124,3 @@
 {% endfragment %}
 
 {% include "file_browser/_includes/file_content.html" %}
-
