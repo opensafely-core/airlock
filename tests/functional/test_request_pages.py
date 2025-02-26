@@ -749,15 +749,21 @@ def test_returned_request(live_server, context, page, bll):
 
     # checker looks at previously changes_requested/approved files
     login_as_user(live_server, context, user_data["checker1"])
-    status_locator = page.locator(".file-status--approved")
+
+    selected_class_regex = re.compile(r"(^|\s)btn-group__btn--selected(\s|$)")
+
+    approve_button = page.locator("#file-approve-button")
     # go to previously approved file; still shown as approved
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
-    expect(status_locator).to_contain_text("Approved")
+    expect(approve_button).to_contain_text("Approved")
+    expect(approve_button).to_have_class(selected_class_regex)
 
-    # go to previously changes_requested file; now shown as no-status
+    # go to previously changes_requested file; now shown as unselected
     page.goto(live_server.url + release_request.get_url("group/file2.txt"))
-    status_locator = page.locator(".file-status--undecided")
-    expect(status_locator).to_contain_text("Undecided")
+    request_changes_button = page.locator("#file-request-changes-button")
+    expect(request_changes_button).to_contain_text("Request changes")
+    expect(approve_button).not_to_have_class(selected_class_regex)
+    expect(request_changes_button).not_to_have_class(selected_class_regex)
 
 
 def test_request_releaseable(live_server, context, page, bll):
