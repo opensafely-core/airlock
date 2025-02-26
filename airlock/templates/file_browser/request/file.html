@@ -17,7 +17,7 @@
     {% if path_item.is_output %}
       {% with decision=path_item.request_status.decision %}
         <div class="request-file-status">
-          <span>Decision:
+          <span>Overall decision:
             <span class="file-status file-status--{{ decision.name.lower }}">
               {{ decision.description }}
             </span>
