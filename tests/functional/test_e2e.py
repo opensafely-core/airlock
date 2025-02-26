@@ -109,20 +109,21 @@ def test_e2e_release_files(
     expect(page.locator("body")).to_contain_text("Workspaces for researcher")
 
     # Click on the workspace
-    find_and_click(page, page.locator("#workspaces").get_by_role("link"))
+    find_and_click(page, page.get_by_role("link", name="test-workspace"))
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
-    assert page.get_by_role("link", name="file.txt").all() == []
-    assert page.get_by_role("link", name="file.foo").all() == []
+    expect(page.get_by_role("link", name="file.txt")).to_have_count(0)
+    expect(page.get_by_role("link", name="file.foo")).to_have_count(0)
 
     # Click on the subdir and then the file link to view in the workspace
-    # There will be more than one link to the folder/file in the page,
-    # one in the explorer, and one in the main folder view
-    # Click on the first link we find
-    find_and_click(page, page.get_by_role("link", name="subdir").first)
+    expect(page.get_by_role("link", name="subdir")).to_have_count(1)
+    find_and_click(page, page.get_by_role("link", name="subdir"))
 
-    # Get and click on the invalid file
-    find_and_click(page, page.get_by_role("link", name="file.foo").first)
+    # There will be more than one link to the file in the page,
+    # one in the tree, and one in the main folder view
+    # Click on the one in the tree
+    expect(page.get_by_role("link", name="file.foo")).to_have_count(2)
+    find_and_click(page, page.locator("#tree").get_by_role("link", name="file.foo"))
 
     # Check the expected iframe content is visible
     iframe_locator = page.locator("#content-iframe")
@@ -135,7 +136,7 @@ def test_e2e_release_files(
     expect(add_file_button).to_be_disabled()
 
     # Get and click on the valid file
-    find_and_click(page, page.get_by_role("link", name="file.txt").first)
+    find_and_click(page, page.locator("#tree").get_by_role("link", name="file.txt"))
 
     # Check the expected iframe content is visible
     valid_file_content = iframe_locator.content_frame.get_by_text(
@@ -151,10 +152,8 @@ def test_e2e_release_files(
     page.locator("#id_new_filegroup").fill("my-new-group")
 
     # By default, the selected filetype is OUTPUT
-    expect(page.locator("input[name=form-0-filetype][value=OUTPUT]")).to_be_checked()
-    expect(
-        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
-    ).not_to_be_checked()
+    expect(page.get_by_role("radio", name="Output")).to_be_checked()
+    expect(page.get_by_role("radio", name="Supporting")).not_to_be_checked()
 
     form_element = page.get_by_role("form")
 
@@ -218,8 +217,10 @@ def test_e2e_release_files(
     expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
 
     # Expand the tree and click on the supporting file
-    find_and_click(page, page.get_by_role("link", name="subdir").first)
-    find_and_click(page, page.get_by_role("link", name="supporting.txt").first)
+    find_and_click(page, page.get_by_role("link", name="subdir"))
+    find_and_click(
+        page, page.locator("#tree").get_by_role("link", name="supporting.txt")
+    )
 
     # Add supporting file to request, choosing the group we created previously
     # Find the add file button and click on it to open the modal
