@@ -822,6 +822,10 @@ class ReleaseRequest:
         if not user.output_checker:
             return [Visibility.PUBLIC]
 
+        # in editing status, only public comments are allowed, even for output-checkers
+        if self.is_editing():
+            return [Visibility.PUBLIC]
+
         # all other cases - the output-checker can choose to write public or private comments
         return [Visibility.PRIVATE, Visibility.PUBLIC]
 
