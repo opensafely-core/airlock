@@ -1,0 +1,48 @@
+---
+name: trace-functional-tests
+
+on:
+  workflow_dispatch:
+  push: 
+    branches: 
+      - rebkwok/flaky-functional-tests-take2
+
+jobs:
+
+  trace-functional-tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          python-version: "3.11"
+          install-just: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install node_modules
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Set up development environment
+        run: just devenv
+
+      - name: Run functional tests
+        id: run_test
+        run: |
+          just test -k functional --tracing on
+        
+      - name: Upload trace artifact
+        if: failure() || success()
+        uses: actions/upload-artifact@v4
+        with:
+            name: test-results-trace
+            path: test-results/**/trace.zip
