@@ -660,7 +660,8 @@ class BusinessLogicLayer:
         old_group = request_file.group
         output_path = request_file.relpath
         if old_group == group_name:
-            raise Exception("group name not changed")
+            # Nothing to do, so return just return the release_request
+            return release_request
         group_path = relpath
 
         self.withdraw_file_from_request(release_request, group_path, user=user)
