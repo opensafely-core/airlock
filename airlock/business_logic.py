@@ -655,9 +655,6 @@ class BusinessLogicLayer:
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
-
-        # request_file = release_request.get_request_file_from_output_path(relpath)
-        # urlpath includes the group
         request_file = release_request.get_request_file_from_urlpath(relpath)
 
         old_group = request_file.group

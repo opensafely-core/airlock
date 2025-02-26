@@ -1843,10 +1843,11 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
     request_file = release_request.get_request_file_from_output_path(path)
     assert request_file.group == "group"
     assert request_file.filetype == RequestFileType.OUTPUT
+    urlpath = request_file.group / path
 
     bll.move_file_to_new_group_in_request(
         release_request,
-        path,
+        urlpath,
         group_name="new-group",
         user=author,
         filetype=RequestFileType.OUTPUT,
