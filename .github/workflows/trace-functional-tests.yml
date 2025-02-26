@@ -3,9 +3,8 @@ name: trace-functional-tests
 
 on:
   workflow_dispatch:
-  push: 
-    branches: 
-      - rebkwok/flaky-functional-tests-take2
+  schedule:
+    - cron:  "0 * * * *"
 
 jobs:
 
@@ -38,10 +37,10 @@ jobs:
       - name: Run functional tests
         id: run_test
         run: |
-          just test -k functional --tracing on
+          just test -k functional --tracing retain-on-failure
         
       - name: Upload trace artifact
-        if: failure() || success()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
             name: test-results-trace
