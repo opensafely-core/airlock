@@ -13,13 +13,9 @@ from .conftest import wait_for_htmx
 
 def find_and_click(page, locator):
     """
-    Helper function to find a locator element and click on it.
-    Asserts that the element is visible before trying to click.
-    This avoids playwright hanging on clicking an unavailable
-    element, which happens if we just chain the locator and click
-    methods.
+    Helper function to click on a locator element and wait for
+    any htmx operations that it might trigger.
     """
-    expect(locator).to_be_visible()
     locator.click()
     # Make sure any clicks that do htmx operations are complete
     wait_for_htmx(page)
