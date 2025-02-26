@@ -662,7 +662,9 @@ class BusinessLogicLayer:
         if old_group == group_name:
             raise Exception("group name not changed")
         group_path = relpath
+
         self.withdraw_file_from_request(release_request, group_path, user=user)
+
         # refresh workspace
         workspace = self.get_workspace(release_request.workspace, user)
 
@@ -672,8 +674,6 @@ class BusinessLogicLayer:
             user, release_request, workspace, output_path
         )
 
-        # TODO: this doesn't work if the requst is pending, because the file doesn't go to WITHDRAWN (it stays at )
-        # breakpoint()
         if release_request.status == RequestStatus.PENDING:
             return self.add_file_to_request(
                 release_request, output_path, user, group_name, filetype
