@@ -10,6 +10,8 @@ __pycache__/
 
 # browser install location in docker
 .playwright-browsers/
+# playwright traces
+test-results/
 
 # docker temp config
 /job-server/.env.jobserver

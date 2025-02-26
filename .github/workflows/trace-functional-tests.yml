@@ -1,0 +1,63 @@
+---
+name: trace-functional-tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  "0 * * * *"
+
+jobs:
+
+  trace-functional-tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "opensafely-core/setup-action@v1"
+        with:
+          python-version: "3.11"
+          install-just: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install node_modules
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Set up development environment
+        run: just devenv
+
+      - name: Run functional tests
+        id: run_test
+        run: |
+          just test -k functional --tracing retain-on-failure
+        
+      - name: Upload trace artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+            name: test-results-trace
+            path: test-results/**/trace.zip
+
+      - name: Notify slack of failures
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          errors: true
+          method: chat.postMessage
+          token: ${{ secrets.BENNETTBOT_SLACK_BOT_TOKEN }}
+          payload: |
+            channel: "C069YDR4NCA"
+            text: "Airlock functional tests failed: Download the trace at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id}}"
+            blocks:
+              - type: section
+                text:
+                  type: mrkdwn
+                  text: ":warning: Airlock functional tests failed:warning:\nDownload the trace at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id}}"

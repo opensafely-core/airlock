@@ -171,6 +171,8 @@ or to run a single test, run e.g. `just test tests/unit/test_urls.py::test_urls`
 
 #### Debugging
 
+##### Headed mode
+
 Functional tests run headless by default. To see what's going on, they
 can be run in headed mode. The following command will run just the
 functional tests, in headed mode, slowed down by 500ms. See the
@@ -185,6 +187,34 @@ To leave the browser instance open after a test failure you can make
 pytest drop into the debugger using the `--pdb` argument:
 ```
 just test --headed --pdb ... <path/to/test.py>
+```
+
+##### The Playwright Inspector
+
+To use the [Playwright Inspector debugging tool](https://playwright.dev/python/docs/running-tests#debugging-tests), run with:
+```
+PWDEBUG=1 just test ...
+```
+
+This will run the tests and open up a browser window as well as the Playwright Inspector.
+In the inspector you can step throught the test and investigate element locators.
+
+##### Tracing tests
+
+[Record a trace](https://playwright.dev/python/docs/trace-viewer-intro#recording-a-trace)
+for each test with:
+
+```
+just test ... --tracing on
+```
+
+This will record the trace and place it into the file named trace.zip in the `test-results`
+directory.
+
+You can load the trace using Playwright's trace viewer, and see the state of the page
+at each action in each test:
+```
+playwright show-trace /path/to/trace.zip
 ```
 
 
