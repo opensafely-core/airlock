@@ -1455,7 +1455,6 @@ def test_file_move_file_group_pending(airlock_client):
     with pytest.raises(exceptions.FileNotFound):
         release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
-    # TODO: we need to create the new group before this?
     response = airlock_client.post(
         f"/requests/move/{release_request.id}",
         data={
@@ -1478,6 +1477,33 @@ def test_file_move_file_group_pending(airlock_client):
     persisted_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
     with pytest.raises(exceptions.FileNotFound):
         persisted_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+
+
+def test_file_move_file_group_bad_next_url(airlock_client):
+    airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
+    test_relpath = "path/test.txt"
+
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file("group", test_relpath),
+        ],
+    )
+    response = airlock_client.post(
+        f"/requests/move/{release_request.id}",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": f"group/{test_relpath}",
+            "form-0-filetype": "OUTPUT",
+            "next_url": None,
+            "filegroup": "group",
+            # new filegroup overrides a selected existing one (or the default)
+            "new_filegroup": "new_group",
+        },
+    )
 
 
 def test_request_multiselect_withdraw_files(airlock_client):
