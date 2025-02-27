@@ -395,7 +395,11 @@ def test_screenshot_from_creation_to_release(
     for relpath in all_output_relpaths[1:]:
         bll.register_file_upload(release_request, relpath, checker_user)
     bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
-    page.reload()
+
+    # Make sure the htmx polling has refreshed the page now it's released
+    expect(page.get_by_role("heading").get_by_text("Request for")).to_contain_text(
+        "RELEASED"
+    )
     take_screenshot(page, "request_released.png")
 
 
