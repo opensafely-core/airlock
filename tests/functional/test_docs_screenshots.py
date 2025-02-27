@@ -395,7 +395,7 @@ def test_screenshot_from_creation_to_release(
     for relpath in all_output_relpaths[1:]:
         bll.register_file_upload(release_request, relpath, checker_user)
     bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
-    page.goto(live_server.url + release_request.get_url())
+    page.reload()
     take_screenshot(page, "request_released.png")
 
 
