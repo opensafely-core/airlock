@@ -351,6 +351,7 @@ def multiselect_update_files(request, multiform, workspace):
     )
 
 
+# TODO: move this to helpers?
 # also displays errors if present
 def add_or_update_form_is_valid(request, form, formset):
     errors = False
