@@ -1547,6 +1547,38 @@ def test_request_multiselect_withdraw_files(airlock_client):
         assert f"{path} has been withdrawn from the request" in messages
 
 
+def test_request_multiselect_move_files(airlock_client):
+    user = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+            factories.request_file(group="group", path="file2.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "update_files",
+            "selected": [
+                "group/file1.txt",
+                "group/file2.txt",
+            ],
+            "next_url": release_request.get_url(),
+        },
+    )
+
+    assert (
+        f'<form action="/requests/move/{release_request.id}" method="POST"'
+        in response.rendered_content
+    )
+    assert "file1.txt" in response.rendered_content
+
+
 def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
