@@ -1603,7 +1603,7 @@ def test_request_multiselect_withdraw_files_none_selected(airlock_client):
     assert "You must select at least one file" in get_messages_text(response)
 
 
-def test_request_multiselect_withdraw_files_invalid_action(airlock_client):
+def test_request_multiselect_invalid_action(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
