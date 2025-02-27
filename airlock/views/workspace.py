@@ -70,7 +70,8 @@ def _get_dir_button_context(user, workspace):
             multiselect_add_btn.disabled = False
         else:
             multiselect_add_btn.tooltip = (
-                "The current request is under review and cannot be modified."
+                "There is currently a request under review for this workspace and you "
+                "cannot modify it or start a new one until it is reviewed."
             )
     else:
         multiselect_add_btn.tooltip = (
