@@ -709,6 +709,14 @@ def file_approve(request, request_id, path: str):
     return redirect(release_request.get_url(path))
 
 
+def get_next_url(release_request, form):
+    if "next_url" not in form.errors:
+        return form.cleaned_data["next_url"]
+
+    # default redirect in case of error
+    return release_request.get_url()
+
+
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
@@ -718,9 +726,7 @@ def file_move_group(request, request_id):
     formset = FileFormSet(request.POST)
     errors = add_or_update_form_is_valid(request, form, formset)
 
-    next_url = release_request.get_url()
-    if "next_url" not in form.errors:
-        next_url = form.cleaned_data["next_url"]
+    next_url = get_next_url(release_request, form)
 
     if errors:
         return redirect(next_url)

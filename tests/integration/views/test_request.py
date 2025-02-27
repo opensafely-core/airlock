@@ -1491,6 +1491,10 @@ def test_file_move_file_group_bad_next_url(airlock_client):
             factories.request_file("group", test_relpath),
         ],
     )
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
     response = airlock_client.post(
         f"/requests/move/{release_request.id}",
         data={
@@ -1498,12 +1502,16 @@ def test_file_move_file_group_bad_next_url(airlock_client):
             "form-INITIAL_FORMS": "1",
             "form-0-file": f"group/{test_relpath}",
             "form-0-filetype": "OUTPUT",
-            "next_url": None,
+            # missing value for "next_url" causes the form to fail validation
             "filegroup": "group",
             # new filegroup overrides a selected existing one (or the default)
             "new_filegroup": "new_group",
         },
     )
+
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
 
 def test_request_multiselect_withdraw_files(airlock_client):
