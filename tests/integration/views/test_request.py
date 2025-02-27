@@ -1612,7 +1612,8 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
         assert request_file.filetype != RequestFileType.WITHDRAWN
 
 
-def test_request_multiselect_withdraw_files_none_selected(airlock_client):
+@pytest.mark.parametrize("action", ["withdraw_files", "update_files"])
+def test_request_multiselect_none_selected(airlock_client, action):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
