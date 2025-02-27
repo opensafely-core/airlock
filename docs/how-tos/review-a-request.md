@@ -17,7 +17,7 @@ Each request also shows your progress in reviewing the files.
 These requests are currently awaiting updates from the researcher, and do
 not require any action from you as an output checker.
 
-Release requests are labelled by workspace name and author. Click on one to
+Release requests are labelled by release request ID and author. Click on one to
 view it.
 
 ## View files requested for release
@@ -73,12 +73,13 @@ viewed from the file page by clicking on the Context button.
 
 Use the buttons at the top of the file content to submit your file vote. Options are:
 
-* **Approve** — output meets disclosure requirements and is safe to be released
-* **Request Changes** — output is not currently acceptable for release. 
+* **Approve file** — output meets disclosure requirements and is safe to be released
+* **Request changes** — output is not currently acceptable for release. 
 
 After approving or requesting changes to a file, the
-page will display your file vote, as well as the overall file decision. 
-You can change or reset your vote in the same way.
+page will display your file vote, as well as the overall file decision.
+Click on the same button again to reset your vote, or click on the
+opposite button to change your vote.
 
 ![Request file post-approval](../screenshots/file_approved.png)
 

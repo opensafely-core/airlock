@@ -455,7 +455,7 @@ def test_request_view_with_submitted_file_approved(airlock_client):
     response = airlock_client.get(
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
-    assert "Approve file" in response.rendered_content
+    assert "Approved" in response.rendered_content
     assert "Request changes" in response.rendered_content
 
 
@@ -475,7 +475,7 @@ def test_request_view_with_submitted_file_changes_requested(airlock_client):
         f"/requests/view/{release_request.id}/group/file.txt", follow=True
     )
     assert "Approve file" in response.rendered_content
-    assert "Request changes" in response.rendered_content
+    assert "Changes requested" in response.rendered_content
 
 
 def test_request_view_with_404(airlock_client):

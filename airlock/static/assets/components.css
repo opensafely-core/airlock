@@ -104,3 +104,9 @@
   white-space: normal;
   width: 100%;
 }
+
+.decision-status-tooltip {
+  width: 200%;
+  top: -6rem;
+  left: -50%;
+}

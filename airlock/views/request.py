@@ -203,19 +203,21 @@ def _get_file_button_context(user, release_request, workspace, path_item):
     withdraw_btn = ButtonContext.with_request_defaults(
         req_id, "file_withdraw", path=group_relpath
     )
-    # output-checker vote to display and buttons
+    # output-checker voting buttons
     user_vote = path_item.request_status.vote
     voting_buttons = {
         "approve": ButtonContext.with_request_defaults(
-            req_id, "file_approve", path=group_relpath
+            req_id, "file_approve", path=group_relpath, label="Approve file"
         ),
         "request_changes": ButtonContext.with_request_defaults(
-            req_id, "file_request_changes", path=group_relpath
-        ),
-        "reset_review": ButtonContext.with_request_defaults(
-            req_id, "file_reset_review", path=group_relpath
+            req_id, "file_request_changes", path=group_relpath, label="Request changes"
         ),
     }
+
+    reset_review_url = reverse(
+        "file_reset_review",
+        kwargs={"request_id": release_request.id, "path": group_relpath},
+    )
 
     if permissions.user_can_withdraw_file_from_request(
         user, release_request, workspace, relpath
@@ -234,32 +236,36 @@ def _get_file_button_context(user, release_request, workspace, path_item):
             button.show = True
     # Determine whether any of the voting buttons should be enabled
     if permissions.user_can_review_file(user, release_request, relpath):
-        # check what the current vote is, make that button selected and
-        # enable the OTHER options
+        can_reset_review = permissions.user_can_reset_file_review(
+            user, release_request, relpath
+        )
+        # check what the current vote is
+        #  - make that button selected
+        #  - change its url to the reset-review url so it can be toggled off
+        #  - if resetting votes is not allowed, disable the button
+        #  - enable the OTHER option; when voting buttons are shown, you can always
+        #    change your vote to the opposite, even if you can't reset
         match user_vote:
             case RequestFileVote.APPROVED:
+                voting_buttons["approve"].label = user_vote.description()
                 voting_buttons["approve"].selected = True
+                voting_buttons["approve"].url = reset_review_url
+                voting_buttons["approve"].disabled = not can_reset_review
                 voting_buttons["request_changes"].disabled = False
-                voting_buttons["reset_review"].disabled = False
             case RequestFileVote.CHANGES_REQUESTED:
+                voting_buttons["request_changes"].label = user_vote.description()
                 voting_buttons["request_changes"].selected = True
+                voting_buttons["request_changes"].url = reset_review_url
+                voting_buttons["request_changes"].disabled = not can_reset_review
                 voting_buttons["approve"].disabled = False
-                voting_buttons["reset_review"].disabled = False
             case RequestFileVote.UNDECIDED | None:
-                voting_buttons["reset_review"].selected = True
                 voting_buttons["approve"].disabled = False
                 voting_buttons["request_changes"].disabled = False
             case _:  # pragma: no cover
                 assert False, "Invalid RequestFileVote value"
-        # reset review has an extra check for whether the user has
-        # submitted their review
-        if not permissions.user_can_reset_file_review(user, release_request, relpath):
-            voting_buttons["reset_review"].selected = False
-            voting_buttons["reset_review"].disabled = True
 
     return {
         "withdraw_file": withdraw_btn,
-        "user_vote": user_vote,
         "voting": voting_buttons,
     }
 
