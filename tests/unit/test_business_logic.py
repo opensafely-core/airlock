@@ -1849,6 +1849,7 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
         )
 
     urlpath = request_file.group / path
+    assert urlpath == UrlPath("group/path/file1.txt")
 
     bll.move_file_to_new_group_in_request(
         release_request,
