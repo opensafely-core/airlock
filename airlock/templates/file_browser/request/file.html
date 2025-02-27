@@ -18,8 +18,9 @@
       {% with decision=path_item.request_status.decision %}
         <div class="request-file-status">
           <div class="text-xs text-center pb-2">Overall decision</div>
-          <span class="file-decision-status file-decision-status--{{ decision.name.lower }}">
+          <span class="file-decision-status file-decision-status--{{ decision.name.lower }} relative group cursor-pointer">
             {{ decision.description }}
+            {% tooltip class="airlock-tooltip decision-status-tooltip" content=decision.reason %}
           </span>
         </div>
       {% endwith %}

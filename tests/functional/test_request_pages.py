@@ -351,7 +351,7 @@ def test_request_buttons(
 
 
 @pytest.mark.parametrize(
-    "status,current_vote,approved_selected_disabled,changes_requested_selected_disabled",
+    "status,current_vote,approved_selected_disabled,changes_requested_selected_disabled,decision_tooltip",
     # file review buttons: on a file view approve/request changes
     # Just testing the statuses that the voting buttons are visible in
     # The test above asserts that they are only visible in these 3 states, and
@@ -362,42 +362,49 @@ def test_request_buttons(
             None,
             (False, False),
             (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
         ),
         (
             RequestStatus.SUBMITTED,
             RequestFileVote.APPROVED,
             (True, False),
             (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
         ),
         (
             RequestStatus.SUBMITTED,
             RequestFileVote.CHANGES_REQUESTED,
             (False, False),
             (True, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
         ),
         (
             RequestStatus.PARTIALLY_REVIEWED,
             RequestFileVote.APPROVED,
             (True, True),
             (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
         ),
         (
             RequestStatus.PARTIALLY_REVIEWED,
             RequestFileVote.CHANGES_REQUESTED,
             (False, False),
             (True, True),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
         ),
         (
             RequestStatus.REVIEWED,
             RequestFileVote.APPROVED,
             (True, True),
             (False, False),
+            "Two independent output checkers have approved this file",
         ),
         (
             RequestStatus.REVIEWED,
             RequestFileVote.CHANGES_REQUESTED,
             (False, False),
             (True, True),
+            "Two independent output checkers have requested changes to this file",
         ),
     ],
 )
@@ -411,6 +418,7 @@ def test_file_vote_buttons(
     current_vote,
     approved_selected_disabled,
     changes_requested_selected_disabled,
+    decision_tooltip,
 ):
     checker = factories.create_api_user(
         username="checker", workspaces=_workspace_dict(), output_checker=True
@@ -460,6 +468,16 @@ def test_file_vote_buttons(
                 expect(button_locator).to_have_class(class_regex)
             else:
                 expect(button_locator).not_to_have_class(class_regex)
+
+    decision_locator = page.locator(".request-file-status")
+    decision_locator.hover()
+    expect(page.locator("body")).to_contain_text(decision_tooltip)
+
+    # test the conflicted decision state
+    if status == RequestStatus.REVIEWED and current_vote == RequestFileVote.APPROVED:
+        changes_requested_button.click()
+        decision_locator.hover()
+        expect(page.locator("body")).to_contain_text("Output checkers are conflicted")
 
 
 @pytest.mark.parametrize(
