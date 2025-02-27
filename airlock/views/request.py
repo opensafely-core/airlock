@@ -24,7 +24,6 @@ from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
     AddFileForm,
     FileFormSet,
-    FileTypeFormSet,
     GroupCommentDeleteForm,
     GroupCommentForm,
     GroupEditForm,
@@ -714,14 +713,18 @@ def file_approve(request, request_id, path: str):
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
     # TODO: finish this
-
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
     formset = FileFormSet(request.POST)
     errors = add_or_update_form_is_valid(request, form, formset)
 
+    next_url = release_request.get_url()
+    if "next_url" not in form.errors:
+        next_url = form.cleaned_data["next_url"]
+
     if errors:
-        raise Exception("todo")
+        return redirect(next_url)
+
     group_name = (
         form.cleaned_data.get("new_filegroup")
         or form.cleaned_data.get("filegroup")
@@ -741,15 +744,12 @@ def file_move_group(request, request_id):
             )
         except exceptions.RequestPermissionDenied as exc:
             errors.append(str(exc))
-    # try:
-    #     request_file = release_request.get_request_file_from_urlpath(path)
-    # except exceptions.FileNotFound:
-    #     raise Http404()
 
     display_multiple_messages(request, error_msgs, "error")
     display_multiple_messages(request, success_msgs, "success")
 
-    return redirect(release_request.get_url(group_name))
+    next_url = release_request.get_url(group_name)
+    return redirect(next_url)
 
 
 @instrument(func_attributes={"release_request": "request_id"})
