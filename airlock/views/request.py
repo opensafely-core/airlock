@@ -750,7 +750,7 @@ def file_move_group(request, request_id):
             )
             next_url = release_request.get_url(group_name)
         except exceptions.RequestPermissionDenied as exc:
-            errors.append(str(exc))
+            error_msgs.append(str(exc))
 
     display_multiple_messages(request, error_msgs, "error")
     display_multiple_messages(request, success_msgs, "success")
