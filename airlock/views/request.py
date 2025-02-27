@@ -714,7 +714,6 @@ def file_approve(request, request_id, path: str):
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
     # TODO: finish this
-    # raise Exception("htnsuth")
 
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
