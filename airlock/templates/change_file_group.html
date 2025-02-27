@@ -12,14 +12,6 @@
       {{ form.next_url }}
       {{ formset.management_form }}
       {% #list_group %}
-        {% for name, reason in files_ignored.items %}
-          {% #list_group_item %}
-            <div class="flex items-center gap-2 justify-between">
-              <span>{{ name }}</span>
-              <span class="flex flex-row">{{ reason }}</span>
-            </div>
-          {% /list_group_item %}
-        {% endfor %}
         {% for formset_form in formset %}
           {% #list_group_item %}
             <div class="flex items-center gap-2 justify-between">
