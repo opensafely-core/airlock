@@ -1,5 +1,5 @@
 {% fragment as buttons %}
-  <div class="flex items-center gap-2">
+  <div class="flex items-end gap-3">
     {% if path_item.is_supporting %}
       <span class="file-type file-type--supporting relative group cursor-pointer">
         <span class="file-type__icon"></span>
@@ -17,10 +17,9 @@
     {% if path_item.is_output %}
       {% with decision=path_item.request_status.decision %}
         <div class="request-file-status">
-          <span>Overall decision:
-            <span class="file-status file-status--{{ decision.name.lower }}">
-              {{ decision.description }}
-            </span>
+          <div class="text-xs text-center pb-2">Overall decision</div>
+          <span class="file-decision-status file-decision-status--{{ decision.name.lower }}">
+            {{ decision.description }}
           </span>
         </div>
       {% endwith %}
@@ -35,52 +34,55 @@
     {% endif %}
 
     {% if content_buttons.voting.approve.show %}
-      <div class="btn-group">
-        <div class="btn-subgroup">
-          {% if content_buttons.voting.approve.selected %}
-            {% if content_buttons.voting.approve.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
-                {{ content_buttons.voting.approve.label }}
-              </button>
+      <div>
+        <div class="text-xs text-center pb-2">Your review</div>
+        <div class="btn-group">
+          <div class="btn-subgroup">
+            {% if content_buttons.voting.approve.selected %}
+              {% if content_buttons.voting.approve.disabled %}
+                <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-approve-button" disabled="true">
+                  {{ content_buttons.voting.approve.label }}
+                </button>
+              {% else %}
+                <form action="{{ content_buttons.voting.approve.url }}" method="POST">
+                  {% csrf_token %}
+                  <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+                    {{ content_buttons.voting.approve.label }}
+                  </button>
+                </form>
+              {% endif %}
             {% else %}
               <form action="{{ content_buttons.voting.approve.url }}" method="POST">
                 {% csrf_token %}
-                <button aria-pressed="true" class="btn-group__btn btn-group__btn--left btn-group__btn--selected whitespace-nowrap" id="file-approve-button" type="submit">
+                <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
                   {{ content_buttons.voting.approve.label }}
                 </button>
               </form>
             {% endif %}
-          {% else %}
-            <form action="{{ content_buttons.voting.approve.url }}" method="POST">
-              {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn btn-group__btn--left whitespace-nowrap" id="file-approve-button" type="submit">
-                {{ content_buttons.voting.approve.label }}
-              </button>
-            </form>
-          {% endif %}
-        </div>
-        <div class="btn-subgroup">
-          {% if content_buttons.voting.request_changes.selected %}
-            {% if content_buttons.voting.request_changes.disabled %}
-              <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
-                {{ content_buttons.voting.request_changes.label }}
-              </button>
+          </div>
+          <div class="btn-subgroup">
+            {% if content_buttons.voting.request_changes.selected %}
+              {% if content_buttons.voting.request_changes.disabled %}
+                <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected btn-group__btn--disabled cursor-not-allowed whitespace-nowrap" id="file-request-changes-button" disabled="true">
+                  {{ content_buttons.voting.request_changes.label }}
+                </button>
+              {% else %}
+                <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
+                  {% csrf_token %}
+                  <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+                    {{ content_buttons.voting.request_changes.label }}
+                  </button>
+                </form>
+              {% endif %}
             {% else %}
               <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
                 {% csrf_token %}
-                <button aria-pressed="true" class="btn-group__btn btn-group__btn--right btn-group__btn--selected whitespace-nowrap" id="file-request-changes-button" type="submit">
+                <button aria-pressed="false" class="btn-group__btn btn-group__btn--right whitespace-nowrap" id="file-request-changes-button" type="submit">
                   {{ content_buttons.voting.request_changes.label }}
                 </button>
               </form>
             {% endif %}
-          {% else %}
-            <form action="{{ content_buttons.voting.request_changes.url }}" method="POST">
-              {% csrf_token %}
-              <button aria-pressed="false" class="btn-group__btn btn-group__btn--right whitespace-nowrap" id="file-request-changes-button" type="submit">
-                {{ content_buttons.voting.request_changes.label }}
-              </button>
-            </form>
-          {% endif %}
+          </div>
         </div>
       </div>
     {% endif %}
