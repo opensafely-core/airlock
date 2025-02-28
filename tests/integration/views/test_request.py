@@ -513,7 +513,7 @@ def test_request_view_redirects_to_directory(airlock_client):
 
     # test for group
     response = airlock_client.get(f"/requests/view/{release_request.id}/group")
-    assert response.status_code == 302
+    assert response.status_code == 301
     assert response.headers["Location"] == f"/requests/view/{release_request.id}/group/"
 
     # test for dir
