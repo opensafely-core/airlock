@@ -1139,7 +1139,7 @@ def test_requests_for_workspace(airlock_client):
     )
     factories.add_request_file(release_request2, "group", "path/test2.txt")
 
-    response = airlock_client.post("/requests/workspace/test1")
+    response = airlock_client.get("/requests/workspace/test1")
 
     response.render()
     assert response.status_code == 200
