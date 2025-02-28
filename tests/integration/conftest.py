@@ -13,7 +13,9 @@ class AirlockClient(Client):
         username = user_data.get("username", "testuser")
         workspaces = user_data.get("workspaces")
         output_checker = user_data.get("output_checker", False)
-        user = factories.create_airlock_user(username, workspaces, output_checker)
+        user = factories.create_airlock_user(
+            username=username, workspace=workspaces, output_checker=output_checker
+        )
         # bypass authentication, just set up the session
         self.force_login(user)
         self.user = user

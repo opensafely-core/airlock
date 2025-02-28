@@ -48,6 +48,7 @@ def create_api_workspace(
 def create_api_user(
     username: str = "testuser",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
+    copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
 ):
     """Test factory to create a user from the Auth API
@@ -61,11 +62,22 @@ def create_api_user(
     This allows the caller complete control, but makes the common case simple.
     """
 
-    actual_workspaces = {}
     if workspaces is None:
         # default to default test workspace
         workspaces = ["workspace"]
 
+    copiloted_workspaces = copiloted_workspaces or []
+
+    return dict(
+        username=username,
+        workspaces=_create_workspaces(workspaces),
+        copiloted_workspaces=_create_workspaces(copiloted_workspaces),
+        output_checker=output_checker or False,
+    )
+
+
+def _create_workspaces(workspaces):
+    actual_workspaces = {}
     if isinstance(workspaces, list):
         for workspace in workspaces:
             actual_workspaces[workspace] = create_api_workspace()
@@ -74,31 +86,31 @@ def create_api_user(
             actual_workspaces[k] = create_api_workspace(**v)
     else:  # pragma: nocover
         raise Exception("bad workspaces parameter, should be dict, list, or None")
-
-    return dict(
-        username=username,
-        workspaces=actual_workspaces,
-        output_checker=output_checker or False,
-    )
+    return actual_workspaces
 
 
 def create_airlock_user(
     username: str = "testuser",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
+    copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
     last_refresh: float | None = None,
 ) -> User:
     """Factory to create an Airlock User in the db.
 
-    The username, workspaces, and output_checker, are all just passed through to create_api_user.
+    The username, workspaces,copiloted_workspaces, and output_checker, are all
+    just passed through to create_api_user.
     """
-    api_user = create_api_user(username, workspaces, output_checker)
+    api_user = create_api_user(
+        username, workspaces, copiloted_workspaces, output_checker
+    )
     return User.from_api_data(api_user, last_refresh)
 
 
 def get_or_create_airlock_user(
     username: str = "testuser",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
+    copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
     last_refresh: float | None = None,
 ) -> User:
@@ -131,7 +143,9 @@ def get_or_create_airlock_user(
     rather than full User objects, which will change how all this works.
     """
 
-    api_user = create_api_user(username, workspaces, output_checker)
+    api_user = create_api_user(
+        username, workspaces, copiloted_workspaces, output_checker
+    )
     try:
         user = User.objects.get(pk=username)
     except User.DoesNotExist:
@@ -145,6 +159,15 @@ def get_or_create_airlock_user(
     }
     if additional_workspaces:
         user.api_data["workspaces"].update(additional_workspaces)
+        user.save()
+    # add any copiloted workspaces not already present
+    additional_copiloted_workspaces = {
+        k: v
+        for k, v in api_user["copiloted_workspaces"].items()
+        if k not in user.copiloted_workspaces
+    }
+    if additional_copiloted_workspaces:
+        user.api_data["copiloted_workspaces"].update(additional_copiloted_workspaces)
         user.save()
 
     # output_checker=None means the caller did not specify
@@ -703,7 +726,7 @@ def submit_independent_review(request, *users):
 
 def create_filegroup(release_request, group_name, filepaths=None):
     user = get_or_create_airlock_user(
-        release_request.author, [release_request.workspace]
+        release_request.author, workspaces=[release_request.workspace]
     )
     for filepath in filepaths or []:  # pragma: nocover
         bll.add_file_to_request(release_request, filepath, user, group_name)
