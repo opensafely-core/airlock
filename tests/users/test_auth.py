@@ -41,5 +41,5 @@ def test_refresh_failure(rf, auth_api_stubber):
 def test_get_user():
     backend = auth.Level4AuthenticationBackend()
     assert backend.get_user("foo") is None
-    user = factories.create_airlock_user("foo")
+    user = factories.create_airlock_user(username="foo")
     assert backend.get_user("foo") == user

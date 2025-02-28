@@ -51,7 +51,9 @@ def assert_last_notification(mock_notifications, event_type):
 
 
 def setup_empty_release_request():
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
@@ -83,8 +85,8 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
 
 
 def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
-    author = factories.create_airlock_user("author", ["workspace"])
-    checker = factories.create_airlock_user("checker", output_checker=True)
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    checker = factories.create_airlock_user(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -110,14 +112,16 @@ def test_provider_request_release_files_invalid_file_type(bll, mock_notification
             files=[factories.request_file(path="test/file.foo", approved=True)],
         )
 
-    checker = factories.create_airlock_user("checker", [], output_checker=True)
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.release_files(release_request, checker)
     assert_last_notification(mock_notifications, "request_reviewed")
 
 
 def test_provider_request_release_files(mock_old_api, mock_notifications, bll, freezer):
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
@@ -248,7 +252,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
 def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
     freezer.move_to("2022-01-01T12:34:56")
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
@@ -352,7 +356,7 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
 
 
 def test_provider_register_file_upload(mock_old_api, bll, freezer):
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
     release_request = factories.create_request_at_status(
         "workspace",
@@ -435,7 +439,7 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
 
 
 def test_provider_register_file_upload_attempt(mock_old_api, bll, freezer):
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -467,8 +471,12 @@ def test_provider_register_file_upload_attempt(mock_old_api, bll, freezer):
 
 
 def test_provider_get_requests_for_workspace(bll):
-    user = factories.create_airlock_user("test", ["workspace", "workspace2"])
-    other_user = factories.create_airlock_user("other", ["workspace"])
+    user = factories.create_airlock_user(
+        username="test", workspaces=["workspace", "workspace2"]
+    )
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace"]
+    )
     r1 = factories.create_release_request("workspace", user)
     factories.create_release_request("workspace2", user)
     r3 = factories.create_release_request("workspace", other_user)
@@ -480,8 +488,10 @@ def test_provider_get_requests_for_workspace(bll):
 
 
 def test_provider_get_requests_for_workspace_bad_user(bll):
-    user = factories.create_airlock_user("test", ["workspace"])
-    other_user = factories.create_airlock_user("other", ["workspace_2"])
+    user = factories.create_airlock_user(username="test", workspaces=["workspace"])
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace_2"]
+    )
     factories.create_release_request("workspace", user)
     factories.create_release_request("workspace_2", other_user)
 
@@ -490,8 +500,10 @@ def test_provider_get_requests_for_workspace_bad_user(bll):
 
 
 def test_provider_get_requests_for_workspace_output_checker(bll):
-    user = factories.create_airlock_user("test", ["workspace"])
-    other_user = factories.create_airlock_user("other", [], True)
+    user = factories.create_airlock_user(username="test", workspaces=["workspace"])
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=[], output_checker=True
+    )
     r1 = factories.create_release_request("workspace", user)
 
     assert [r.id for r in bll.get_requests_for_workspace("workspace", other_user)] == [
@@ -500,8 +512,10 @@ def test_provider_get_requests_for_workspace_output_checker(bll):
 
 
 def test_provider_get_requests_authored_by_user(bll):
-    user = factories.create_airlock_user("test", ["workspace"])
-    other_user = factories.create_airlock_user("other", ["workspace"])
+    user = factories.create_airlock_user(username="test", workspaces=["workspace"])
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace"]
+    )
     r1 = factories.create_release_request("workspace", user)
     factories.create_release_request("workspace", other_user)
 
@@ -521,8 +535,12 @@ def test_provider_get_requests_authored_by_user(bll):
 def test_provider_get_outstanding_requests_for_review(
     mock_old_api, output_checker, bll
 ):
-    user = factories.create_airlock_user("test", ["workspace"], output_checker)
-    other_user = factories.create_airlock_user("other", ["workspace"], False)
+    user = factories.create_airlock_user(
+        username="test", workspaces=["workspace"], output_checker=output_checker
+    )
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=False
+    )
     # request created by another user, status submitted
     r1 = factories.create_request_at_status(
         "workspace",
@@ -550,7 +568,7 @@ def test_provider_get_outstanding_requests_for_review(
         ]
     ):
         ws = f"workspace{i}"
-        user_n = factories.create_airlock_user(f"test_{i}", [ws])
+        user_n = factories.create_airlock_user(username=f"test_{i}", workspaces=[ws])
         factories.create_request_at_status(
             ws,
             author=user_n,
@@ -579,8 +597,12 @@ def test_provider_get_outstanding_requests_for_review(
     ],
 )
 def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
-    user = factories.create_airlock_user("test", ["workspace"], output_checker)
-    other_user = factories.create_airlock_user("other", ["workspace"], False)
+    user = factories.create_airlock_user(
+        username="test", workspaces=["workspace"], output_checker=output_checker
+    )
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=False
+    )
 
     # request created by another user, status returned
     r1 = factories.create_request_at_status(
@@ -611,7 +633,7 @@ def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
         ]
     ):
         ws = f"workspace{i}"
-        user_n = factories.create_airlock_user(f"test_{i}", [ws])
+        user_n = factories.create_airlock_user(username=f"test_{i}", workspaces=[ws])
         factories.create_request_at_status(
             ws,
             author=user_n,
@@ -638,8 +660,12 @@ def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
     ],
 )
 def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
-    user = factories.create_airlock_user("test", ["workspace"], output_checker)
-    other_user = factories.create_airlock_user("other", ["workspace"], False)
+    user = factories.create_airlock_user(
+        username="test", workspaces=["workspace"], output_checker=output_checker
+    )
+    other_user = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=False
+    )
 
     # request created by another user, status approved
     r1 = factories.create_request_at_status(
@@ -672,7 +698,7 @@ def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
         ]
     ):
         ws = f"workspace{i}"
-        user_n = factories.create_airlock_user(f"test_{i}", [ws])
+        user_n = factories.create_airlock_user(username=f"test_{i}", workspaces=[ws])
         factories.create_request_at_status(
             ws,
             author=user_n,
@@ -727,8 +753,12 @@ def test_provider_get_current_request_for_user(mock_old_api, bll, status, is_cur
 
 def test_provider_get_or_create_current_request_for_user(bll):
     workspace = factories.create_workspace("workspace")
-    user = factories.create_airlock_user("testuser", ["workspace"], False)
-    other_user = factories.create_airlock_user("otheruser", ["workspace"], False)
+    user = factories.create_airlock_user(
+        username="testuser", workspaces=["workspace"], output_checker=False
+    )
+    other_user = factories.create_airlock_user(
+        username="otheruser", workspaces=["workspace"], output_checker=False
+    )
 
     assert bll.get_current_request("workspace", user) is None
 
@@ -767,7 +797,9 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
 def test_provider_get_current_request_for_former_user(bll):
     factories.create_workspace("workspace")
-    user = factories.create_airlock_user("testuser", ["workspace"], False)
+    user = factories.create_airlock_user(
+        username="testuser", workspaces=["workspace"], output_checker=False
+    )
 
     assert bll.get_current_request("workspace", user) is None
 
@@ -786,7 +818,9 @@ def test_provider_get_current_request_for_former_user(bll):
     ]
 
     # let's pretend the user no longer has permission to access the workspace
-    former_user = factories.create_airlock_user("testuser", [], False)
+    former_user = factories.create_airlock_user(
+        username="testuser", workspaces=[], output_checker=False
+    )
 
     with pytest.raises(Exception):
         bll.get_current_request("workspace", former_user)
@@ -795,7 +829,9 @@ def test_provider_get_current_request_for_former_user(bll):
 def test_provider_get_current_request_for_user_output_checker(bll):
     """Output checker must have explict workspace permissions to create requests."""
     factories.create_workspace("workspace")
-    user = factories.create_airlock_user("output_checker", [], True)
+    user = factories.create_airlock_user(
+        username="output_checker", workspaces=[], output_checker=True
+    )
 
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.get_or_create_current_request("workspace", user)
@@ -967,10 +1003,15 @@ def test_set_status(
     current, future, valid_author, valid_checker, withdrawn_after, bll, mock_old_api
 ):
     author = factories.create_airlock_user(
-        "author", ["workspace1", "workspace2"], False
+        username="author", workspaces=["workspace1", "workspace2"], output_checker=False
     )
     checker = factories.create_airlock_user(output_checker=True)
-    file_reviewers = [checker, factories.create_airlock_user("checker1", [], True)]
+    file_reviewers = [
+        checker,
+        factories.create_airlock_user(
+            username="checker1", workspaces=[], output_checker=True
+        ),
+    ]
     audit_type = bll.STATUS_AUDIT_EVENT[future]
 
     release_request1 = factories.create_request_at_status(
@@ -1079,7 +1120,9 @@ def test_set_status_notifications(
     mock_old_api,
 ):
     users = {
-        "author": factories.create_airlock_user("author", ["workspace"], False),
+        "author": factories.create_airlock_user(
+            username="author", workspaces=["workspace"], output_checker=False
+        ),
         "checker": factories.create_airlock_user(output_checker=True),
     }
     release_request = factories.create_request_at_status(
@@ -1141,7 +1184,9 @@ def test_notification_error(bll, notifications_stubber, caplog):
     mock_notifications = notifications_stubber(
         json={"status": "error", "message": "something went wrong"}
     )
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(release_request, "group", "test/file.txt")
     bll.group_edit(release_request, "group", "foo", "bar", author)
@@ -1167,7 +1212,9 @@ def test_notification_error(bll, notifications_stubber, caplog):
 def test_set_status_approved(
     file_count, all_files_approved, notification_update, bll, mock_notifications
 ):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     checker = factories.create_airlock_user(output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
@@ -1225,7 +1272,9 @@ def test_submit_request(bll, mock_notifications):
     """
     From pending
     """
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_release_request(
         "workspace", user=author, status=RequestStatus.PENDING
     )
@@ -1242,7 +1291,9 @@ def test_resubmit_request(bll, mock_notifications):
     From returned
     Files with changes requested status are moved to undecided
     """
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     # Returned request with two files, one is approved by both reviewers, one has changes requested
     release_request = factories.create_request_at_status(
         "workspace",
@@ -1263,7 +1314,9 @@ def test_resubmit_request(bll, mock_notifications):
     assert release_request.status == RequestStatus.SUBMITTED
     assert_last_notification(mock_notifications, "request_resubmitted")
     for i in range(2):
-        user = factories.create_airlock_user(f"output-checker-{i}", output_checker=True)
+        user = factories.create_airlock_user(
+            username=f"output-checker-{i}", output_checker=True
+        )
         # approved file review is still approved
         approved_file = release_request.get_request_file_from_output_path(
             UrlPath("file.txt")
@@ -1284,8 +1337,12 @@ def test_resubmit_request(bll, mock_notifications):
 
 
 def test_add_file_to_request_not_author(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["workspace"], True)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=True
+    )
 
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
@@ -1332,17 +1389,23 @@ def test_add_file_to_request_no_permission(bll, workspaces, exception):
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
         "workspace",
-        user=factories.create_airlock_user("author", ["workspace"], False),
+        user=factories.create_airlock_user(
+            username="author", workspaces=["workspace"], output_checker=False
+        ),
     )
 
     # create duplicate user with test workspaces
-    author = factories.create_airlock_user("author", workspaces, False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=workspaces, output_checker=False
+    )
     with pytest.raises(exception):
         bll.add_file_to_request(release_request, path, author)
 
 
 def test_add_file_to_request_invalid_file_type(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
 
     path = UrlPath("path/file.foo")
     workspace = factories.create_workspace("workspace")
@@ -1371,7 +1434,9 @@ def test_add_file_to_request_invalid_file_type(bll):
     ],
 )
 def test_add_file_to_request_states(status, success, bll, mock_old_api):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
 
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
@@ -1481,7 +1546,9 @@ def test_add_file_to_request_already_released(bll, mock_old_api):
 
 
 def test_update_file_in_request_invalid_file_type(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
 
     relpath = UrlPath("path/file.foo")
     workspace = factories.create_workspace("workspace")
@@ -1501,7 +1568,9 @@ def test_update_file_in_request_invalid_file_type(bll):
 
 
 def test_update_file_in_request_not_updated(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
 
     relpath = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
@@ -1540,7 +1609,9 @@ def test_update_file_to_request_states(
     mock_notifications,
     mock_old_api,
 ):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     checkers = factories.get_default_output_checkers()
     workspace = factories.create_workspace("workspace")
     path = UrlPath("path/file.txt")
@@ -1959,7 +2030,9 @@ def test_approve_file_not_your_own(bll):
 
 def test_approve_file_not_checker(bll):
     release_request, path, author = setup_empty_release_request()
-    author2 = factories.create_airlock_user("author2", [], False)
+    author2 = factories.create_airlock_user(
+        username="author2", workspaces=[], output_checker=False
+    )
 
     bll.add_file_to_request(release_request, path, author)
     bll.group_edit(release_request, "default", "foo", "bar", author)
@@ -2073,9 +2146,15 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
         status=RequestStatus.SUBMITTED,
         files=[factories.request_file(path=path)],
     )
-    checker1 = factories.create_airlock_user("checker1", [], True)
-    checker2 = factories.create_airlock_user("checker2", [], True)
-    checker3 = factories.create_airlock_user("checker3", [], True)
+    checker1 = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
+    checker2 = factories.create_airlock_user(
+        username="checker2", workspaces=[], output_checker=True
+    )
+    checker3 = factories.create_airlock_user(
+        username="checker3", workspaces=[], output_checker=True
+    )
 
     request_file = release_request.get_request_file_from_output_path(path)
 
@@ -2304,7 +2383,9 @@ def test_request_file_status_decision(bll, votes, decision):
     )
 
     for i, vote in enumerate(votes):
-        checker = factories.create_airlock_user(f"checker{i}", [], True)
+        checker = factories.create_airlock_user(
+            username=f"checker{i}", workspaces=[], output_checker=True
+        )
         request_file = release_request.get_request_file_from_output_path(path)
 
         if vote == "APPROVED":
@@ -2345,7 +2426,7 @@ def test_mark_file_undecided(bll):
     )
 
     # first default output-checker
-    checker = factories.create_airlock_user("output-checker-0")
+    checker = factories.create_airlock_user(username="output-checker-0")
 
     # mark file review as undecided
     review = release_request.get_request_file_from_output_path("file.txt").reviews[
@@ -2401,7 +2482,7 @@ def test_mark_file_undecided_permission_errors(
 
 
 def test_review_request(bll):
-    checker = factories.create_airlock_user("checker", output_checker=True)
+    checker = factories.create_airlock_user(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2439,7 +2520,7 @@ def test_review_request(bll):
 
 
 def test_submit_request_no_output_files(bll):
-    checker = factories.create_airlock_user("checker", output_checker=True)
+    checker = factories.create_airlock_user(username="checker", output_checker=True)
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
@@ -2479,7 +2560,7 @@ def test_review_request_non_submitted_status(bll):
 
 
 def test_review_request_non_output_checker(bll):
-    user = factories.create_airlock_user("non-output-checker")
+    user = factories.create_airlock_user(username="non-output-checker")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2496,7 +2577,10 @@ def test_review_request_non_output_checker(bll):
 
 def test_review_request_more_than_2_checkers(bll):
     checkers = [
-        factories.create_airlock_user(f"checker_{i}", [], True) for i in range(3)
+        factories.create_airlock_user(
+            username=f"checker_{i}", workspaces=[], output_checker=True
+        )
+        for i in range(3)
     ]
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2524,10 +2608,10 @@ def test_review_request_race_condition(bll):
     In a potential race condition, a
     """
     checkers = [
-        factories.create_airlock_user("checker", output_checker=True),
-        factories.create_airlock_user("checker1", output_checker=True),
-        factories.create_airlock_user("checker2", output_checker=True),
-        factories.create_airlock_user("checker3", output_checker=True),
+        factories.create_airlock_user(username="checker", output_checker=True),
+        factories.create_airlock_user(username="checker1", output_checker=True),
+        factories.create_airlock_user(username="checker2", output_checker=True),
+        factories.create_airlock_user(username="checker3", output_checker=True),
     ]
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2617,7 +2701,9 @@ def test_dal_methods_have_audit_event_parameter():
 
 
 def test_group_edit_author(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_release_request("workspace", user=author)
     factories.add_request_file(
         release_request,
@@ -2652,7 +2738,9 @@ def test_notifications_org_repo(
 ):
     settings.AIRLOCK_OUTPUT_CHECKING_ORG = org
     settings.AIRLOCK_OUTPUT_CHECKING_REPO = repo
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2678,8 +2766,12 @@ def test_notifications_org_repo(
 
 
 def test_group_edit_not_author(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2703,7 +2795,9 @@ def test_group_edit_not_author(bll):
     ],
 )
 def test_group_edit_not_editable_by_author(bll, status, mock_old_api):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2717,7 +2811,9 @@ def test_group_edit_not_editable_by_author(bll, status, mock_old_api):
 
 
 def test_group_edit_bad_group(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2741,8 +2837,12 @@ def test_group_edit_bad_group(bll):
 def test_group_comment_create_success(
     bll, mock_notifications, status, notification_count
 ):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    checker = factories.create_airlock_user("checker", ["workspace"], True)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=["workspace"], output_checker=True
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2807,12 +2907,20 @@ def test_group_comment_create_success(
 
 
 def test_group_comment_create_permissions_pending_request(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    collaborator = factories.create_airlock_user("collaborator", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["other"], False)
-    checker = factories.create_airlock_user("checker", ["other"], True)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    collaborator = factories.create_airlock_user(
+        username="collaborator", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["other"], output_checker=False
+    )
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=["other"], output_checker=True
+    )
     collaborator_checker = factories.create_airlock_user(
-        "collaborator_checker", ["workspace"], True
+        username="collaborator_checker", workspaces=["workspace"], output_checker=True
     )
 
     release_request = factories.create_request_at_status(
@@ -2870,8 +2978,12 @@ def test_group_comment_create_permissions_pending_request(bll):
 
 
 def test_group_comment_delete_success(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2927,8 +3039,12 @@ def test_group_comment_delete_success(bll):
 
 
 def test_group_comment_visibility_public_success(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    output_checker = factories.create_airlock_user("checker", [], True)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    output_checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2992,9 +3108,13 @@ def test_group_comment_visibility_public_success(bll):
 
 
 def test_group_comment_visibility_public_bad_user(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     # checker who does not have access to workspace
-    checker = factories.create_airlock_user("checker1", [], True)
+    checker = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3014,9 +3134,13 @@ def test_group_comment_visibility_public_bad_user(bll):
 
 
 def test_group_comment_visibility_public_bad_round(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     # checker who does not have access to workspace
-    checker = factories.create_airlock_user("checker1", [], True)
+    checker = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3058,9 +3182,13 @@ def test_group_comment_visibility_public_bad_round(bll):
 def test_group_comment_visibility_public_permissions(
     bll, mock_old_api, status, checker_can_change_visibility
 ):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     # checker who does not have access to workspace
-    checker = factories.create_airlock_user("checker1", [], True)
+    checker = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -3113,11 +3241,19 @@ def test_group_comment_visibility_public_permissions(
 def test_group_comment_delete_permissions(
     bll, mock_old_api, status, author_can_delete, checker_can_delete
 ):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    collaborator = factories.create_airlock_user("collaborator", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["other"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    collaborator = factories.create_airlock_user(
+        username="collaborator", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["other"], output_checker=False
+    )
     # checker who does not have access to workspace
-    checker = factories.create_airlock_user("checker", [], True)
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
 
     # users can never delete someone else's comment
     not_permitted_to_delete_author = [collaborator, other, checker]
@@ -3174,7 +3310,9 @@ def test_group_comment_delete_permissions(
 
 
 def test_group_comment_delete_invalid_params(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",

@@ -166,7 +166,7 @@ def get_or_create_airlock_user(
         for k, v in api_user["copiloted_workspaces"].items()
         if k not in user.copiloted_workspaces
     }
-    if additional_copiloted_workspaces:
+    if additional_copiloted_workspaces:  # pragma: no cover
         user.api_data["copiloted_workspaces"].update(additional_copiloted_workspaces)
         user.save()
 
@@ -287,7 +287,7 @@ def update_manifest(workspace: Workspace | str, files=None):
 def create_workspace(name: str, user=None) -> Workspace:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
-        user = get_or_create_airlock_user("author", workspaces=[name])
+        user = get_or_create_airlock_user(username="author", workspaces=[name])
 
     workspace_dir = settings.WORKSPACE_DIR / name
     if not workspace_dir.exists():
@@ -382,7 +382,9 @@ def create_release_request(
 
     # create a default user with permission on workspace
     if user is None:
-        user = get_or_create_airlock_user("author", workspaces=[workspace.name])
+        user = get_or_create_airlock_user(
+            username="author", workspaces=[workspace.name]
+        )
 
     release_request = bll.get_or_create_current_request(
         workspace=workspace.name, user=user, **kwargs
@@ -426,7 +428,7 @@ def create_request_at_status(
     will be used.
     """
     author = author or create_airlock_user(
-        "author",
+        username="author",
         workspaces=[workspace if isinstance(workspace, str) else workspace.name],
     )
     if status == RequestStatus.WITHDRAWN:
@@ -603,8 +605,8 @@ def create_request_file_bad_path(request_file: RequestFile, bad_path) -> Request
 
 def get_default_output_checkers():
     return [
-        create_airlock_user("output-checker-0", output_checker=True),
-        create_airlock_user("output-checker-1", output_checker=True),
+        create_airlock_user(username="output-checker-0", output_checker=True),
+        create_airlock_user(username="output-checker-1", output_checker=True),
     ]
 
 
@@ -726,7 +728,7 @@ def submit_independent_review(request, *users):
 
 def create_filegroup(release_request, group_name, filepaths=None):
     user = get_or_create_airlock_user(
-        release_request.author, workspaces=[release_request.workspace]
+        username=release_request.author, workspaces=[release_request.workspace]
     )
     for filepath in filepaths or []:  # pragma: nocover
         bll.add_file_to_request(release_request, filepath, user, group_name)
@@ -737,7 +739,7 @@ def refresh_release_request(release_request, user=None) -> ReleaseRequest:
     # create a default user with permission on workspace
     if user is None:  # pragma: nocover
         user = get_or_create_airlock_user(
-            "author", workspaces=[release_request.workspace]
+            username="author", workspaces=[release_request.workspace]
         )
     return bll.get_release_request(release_request.id, user)
 

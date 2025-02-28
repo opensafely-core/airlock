@@ -116,9 +116,11 @@ def test_workspace_directory_and_request_can_multiselect_add(
     airlock_client, bll, mock_old_api, login_as, status, can_multiselect_add
 ):
     users = {
-        "author": factories.create_airlock_user("author", workspaces=["workspace"]),
+        "author": factories.create_airlock_user(
+            username="author", workspaces=["workspace"]
+        ),
         "checker": factories.create_airlock_user(
-            "checker", workspaces=[], output_checker=True
+            username="checker", workspaces=[], output_checker=True
         ),
     }
     airlock_client.login_with_user(users[login_as])
@@ -164,7 +166,9 @@ def test_workspace_view_with_file(airlock_client):
     ],
 )
 def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
-    author = factories.create_airlock_user("author", workspaces=["test-workspace"])
+    author = factories.create_airlock_user(
+        username="author", workspaces=["test-workspace"]
+    )
 
     airlock_client.login_with_user(author)
     # set up a returned file & request
@@ -656,7 +660,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
 def test_workspace_multiselect_update_files(
     airlock_client, bll, path1_updated, path2_updated, ignored_count
 ):
-    author = factories.create_airlock_user("author", workspaces=["test1"])
+    author = factories.create_airlock_user(username="author", workspaces=["test1"])
     airlock_client.login_with_user(author)
 
     workspace = factories.create_workspace("test1")

@@ -170,10 +170,14 @@ def test_get_request_tree_general(release_request):
 
 def test_get_request_tree_status(bll):
     author = factories.create_airlock_user(
-        "author", output_checker=True, workspaces=["workspace"]
+        username="author", output_checker=True, workspaces=["workspace"]
     )
-    checker1 = factories.create_airlock_user("checker1", [], True)
-    checker2 = factories.create_airlock_user("checker2", [], True)
+    checker1 = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
+    checker2 = factories.create_airlock_user(
+        username="checker2", workspaces=[], output_checker=True
+    )
 
     path = UrlPath("some_dir/file_a.txt")
     release_request = factories.create_request_at_status(

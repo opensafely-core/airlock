@@ -225,8 +225,12 @@ def test_delete_file_from_request_bad_path():
     ],
 )
 def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
-    author = factories.create_airlock_user("author", ["workspace"], False)
-    other = factories.create_airlock_user("other", ["other-workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    other = factories.create_airlock_user(
+        username="other", workspaces=["other-workspace"], output_checker=False
+    )
 
     release_request = factories.create_request_at_status(
         "workspace",

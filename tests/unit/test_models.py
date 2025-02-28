@@ -139,7 +139,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
     factories.create_workspace("archived_workspace")
     factories.create_workspace("not_ongoing")
     user = factories.create_airlock_user(
-        "user",
+        username="user",
         workspaces={
             "normal_workspace": factories.create_api_workspace(project="project-1"),
             "archived_workspace": factories.create_api_workspace(
@@ -150,7 +150,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
             ),
         },
     )
-    checker = factories.create_airlock_user("checker", output_checker=True)
+    checker = factories.create_airlock_user(username="checker", output_checker=True)
 
     active_workspace = bll.get_workspace("normal_workspace", user)
     archived_workspace = bll.get_workspace("archived_workspace", user)
@@ -228,7 +228,7 @@ def test_workspace_get_released_files(bll, mock_old_api):
             ),
         ],
     )
-    user = factories.create_airlock_user("test", workspaces=["workspace"])
+    user = factories.create_airlock_user(username="test", workspaces=["workspace"])
     workspace = bll.get_workspace("workspace", user)
     # supporting file is not considered a released file
     assert len(workspace.released_files) == 1
@@ -282,7 +282,9 @@ def test_request_pending_not_author_get_workspace_file_status(bll):
 def test_request_pending_author_get_workspace_file_status(bll):
     status = RequestStatus.PENDING
 
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     workspace = factories.create_workspace("workspace")
     path = UrlPath("path/file.txt")
 
@@ -311,7 +313,9 @@ def test_request_pending_author_get_workspace_file_status(bll):
 def test_request_returned_author_get_workspace_file_status(bll):
     status = RequestStatus.RETURNED
 
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     workspace = factories.create_workspace("workspace")
     path = UrlPath("path/file.txt")
 
@@ -626,7 +630,9 @@ def test_request_release_request_filetype(bll):
 
 
 def setup_empty_release_request():
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     path = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
@@ -638,7 +644,7 @@ def setup_empty_release_request():
 
 
 def test_get_visible_comments_for_group_class(bll):
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checkers = factories.get_default_output_checkers()
 
     release_request = factories.create_request_at_status(

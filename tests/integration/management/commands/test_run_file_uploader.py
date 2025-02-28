@@ -18,7 +18,7 @@ pytestmark = pytest.mark.django_db
 def setup_release_request(upload_files_stubber, bll, response_statuses=None):
     # create an approved released request, with files waiting for upload
     workspace = factories.create_workspace("workspace")
-    author = factories.create_airlock_user("author", workspaces=["workspace"])
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         workspace,
         author=author,
