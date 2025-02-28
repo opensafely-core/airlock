@@ -315,7 +315,7 @@ def request_view(request, request_id: str, path: str = ""):
         path_item, request.user, release_request, workspace
     )
 
-    is_author = release_request.author == request.user.username
+    is_author = release_request.author == request.user
 
     code_url = None
 
@@ -478,9 +478,7 @@ def request_contents(request, request_id: str, path: str):
     # Downloads are not allowed for request authors (including those that are also
     # output checkers)
     if download:
-        if not request.user.output_checker or (
-            release_request.author == request.user.username
-        ):
+        if not request.user.output_checker or (release_request.author == request.user):
             raise PermissionDenied()
 
         bll.audit_request_file_download(release_request, UrlPath(path), request.user)

@@ -169,7 +169,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.filegroups["group"].files[relpath]
-    assert request_file.released_by == checkers[0].username
+    assert request_file.released_by == checkers[0]
     assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
     assert not request_file.uploaded
 
@@ -290,7 +290,7 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
             user=checkers[0],
             path=relpath,
         )
-        bll._dal.release_file(release_request.id, relpath, checkers[0].username, audit)
+        bll._dal.release_file(release_request.id, relpath, checkers[0], audit)
     bll.register_file_upload(release_request, uploaded_relpath, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
@@ -302,21 +302,21 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
 
     # uploaded file hasn't changed
     uploaded_request_file = release_request.filegroups["group"].files[uploaded_relpath]
-    assert uploaded_request_file.released_by == checkers[0].username
+    assert uploaded_request_file.released_by == checkers[0]
     assert uploaded_request_file.uploaded
 
     # released but not uploaded file hasn't changed
     not_uploaded_request_file = release_request.filegroups["group"].files[
         not_uploaded_relpath
     ]
-    assert not_uploaded_request_file.released_by == checkers[0].username
+    assert not_uploaded_request_file.released_by == checkers[0]
     assert not not_uploaded_request_file.uploaded
 
     # not released file has been updated
     not_uploaded_request_file1 = release_request.filegroups["group"].files[
         not_uploaded_relpath1
     ]
-    assert not_uploaded_request_file1.released_by == checkers[1].username
+    assert not_uploaded_request_file1.released_by == checkers[1]
     assert not not_uploaded_request_file1.uploaded
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
@@ -737,13 +737,13 @@ def test_provider_get_or_create_current_request_for_user(bll):
 
     release_request = bll.get_or_create_current_request("workspace", user)
     assert release_request.workspace == "workspace"
-    assert release_request.author == user.username
+    assert release_request.author == user
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
         AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
-            user=user.username,
+            user=user,
             workspace=workspace.name,
             request=release_request.id,
         )
@@ -752,11 +752,11 @@ def test_provider_get_or_create_current_request_for_user(bll):
     # reach around an simulate 2 active requests for same user
     bll._dal.create_release_request(
         workspace="workspace",
-        author=user.username,
+        author=user,
         status=RequestStatus.PENDING,
         audit=AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
-            user=user.username,
+            user=user,
             workspace=workspace.name,
         ),
     )
@@ -773,13 +773,13 @@ def test_provider_get_current_request_for_former_user(bll):
 
     release_request = bll.get_or_create_current_request("workspace", user)
     assert release_request.workspace == "workspace"
-    assert release_request.author == user.username
+    assert release_request.author == user
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log == [
         AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
-            user=user.username,
+            user=user,
             workspace="workspace",
             request=release_request.id,
         )
@@ -995,7 +995,7 @@ def test_set_status(
         assert release_request1.status == future
         audit_log = bll._dal.get_audit_log(request=release_request1.id)
         assert audit_log[0].type == audit_type
-        assert audit_log[0].user == author.username
+        assert audit_log[0].user == author
         assert audit_log[0].request == release_request1.id
         assert audit_log[0].workspace == "workspace1"
     else:
@@ -1009,7 +1009,7 @@ def test_set_status(
         assert release_request2.status == future
         audit_log = bll._dal.get_audit_log(request=release_request2.id)
         assert audit_log[0].type == audit_type
-        assert audit_log[0].user == checker.username
+        assert audit_log[0].user == checker
         assert audit_log[0].request == release_request2.id
         assert audit_log[0].workspace == "workspace2"
     else:
@@ -2638,7 +2638,7 @@ def test_group_edit_author(bll):
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_EDIT
-    assert audit_log[0].user == author.username
+    assert audit_log[0].user == author
     assert audit_log[0].extra["group"] == "group"
     assert audit_log[0].extra["context"] == "foo"
     assert audit_log[0].extra["controls"] == "bar"
@@ -2779,10 +2779,10 @@ def test_group_comment_create_success(
     comments = release_request.filegroups["group"].comments
     assert comments[0].comment == "public"
     assert comments[0].visibility == Visibility.PUBLIC
-    assert comments[0].author == "author"
+    assert comments[0].author.username == "author"
     assert comments[1].comment == "private"
     assert comments[1].visibility == Visibility.PRIVATE
-    assert comments[1].author == "checker"
+    assert comments[1].author.username == "checker"
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
 
@@ -2795,13 +2795,13 @@ def test_group_comment_create_success(
 
     assert author_log.request == release_request.id
     assert author_log.type == AuditEventType.REQUEST_COMMENT
-    assert author_log.user == checker.username
+    assert author_log.user == checker
     assert author_log.extra["group"] == "group"
     assert author_log.extra["comment"] == "private"
 
     assert checker_log.request == release_request.id
     assert checker_log.type == AuditEventType.REQUEST_COMMENT
-    assert checker_log.user == "author"
+    assert checker_log.author.username == "author"
     assert checker_log.extra["group"] == "group"
     assert checker_log.extra["comment"] == "public"
 
@@ -2894,9 +2894,9 @@ def test_group_comment_delete_success(bll):
     good_comment = release_request.filegroups["group"].comments[1]
 
     assert bad_comment.comment == "typo comment"
-    assert bad_comment.author == "other"
+    assert bad_comment.author.username == "other"
     assert good_comment.comment == "not-a-typo comment"
-    assert good_comment.author == "other"
+    assert good_comment.author.username == "other"
 
     bll.group_comment_delete(release_request, "group", bad_comment.id, other)
 
@@ -2904,24 +2904,24 @@ def test_group_comment_delete_success(bll):
 
     current_comment = release_request.filegroups["group"].comments[0]
     assert current_comment.comment == "not-a-typo comment"
-    assert current_comment.author == "other"
+    assert current_comment.author.username == "other"
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[2].request == release_request.id
     assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[2].user == other.username
+    assert audit_log[2].user == other
     assert audit_log[2].extra["group"] == "group"
     assert audit_log[2].extra["comment"] == "typo comment"
 
     assert audit_log[1].request == release_request.id
     assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[1].user == other.username
+    assert audit_log[1].user == other
     assert audit_log[1].extra["group"] == "group"
     assert audit_log[1].extra["comment"] == "not-a-typo comment"
 
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_COMMENT_DELETE
-    assert audit_log[0].user == other.username
+    assert audit_log[0].user == other
     assert audit_log[0].extra["group"] == "group"
     assert audit_log[0].extra["comment"] == "typo comment"
 
@@ -2955,9 +2955,9 @@ def test_group_comment_visibility_public_success(bll):
     public_comment = release_request.filegroups["group"].comments[1]
 
     assert private_comment.comment == "private comment"
-    assert private_comment.author == "checker"
+    assert private_comment.author.username == "checker"
     assert public_comment.comment == "to-be-public comment"
-    assert public_comment.author == "checker"
+    assert public_comment.author.username == "checker"
 
     bll.group_comment_visibility_public(
         release_request, "group", public_comment.id, output_checker
@@ -2974,19 +2974,19 @@ def test_group_comment_visibility_public_success(bll):
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[2].request == release_request.id
     assert audit_log[2].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[2].user == output_checker.username
+    assert audit_log[2].user == output_checker
     assert audit_log[2].extra["group"] == "group"
     assert audit_log[2].extra["comment"] == "private comment"
 
     assert audit_log[1].request == release_request.id
     assert audit_log[1].type == AuditEventType.REQUEST_COMMENT
-    assert audit_log[1].user == output_checker.username
+    assert audit_log[1].user == output_checker
     assert audit_log[1].extra["group"] == "group"
     assert audit_log[1].extra["comment"] == "to-be-public comment"
 
     assert audit_log[0].request == release_request.id
     assert audit_log[0].type == AuditEventType.REQUEST_COMMENT_VISIBILITY_PUBLIC
-    assert audit_log[0].user == output_checker.username
+    assert audit_log[0].user == output_checker
     assert audit_log[0].extra["group"] == "group"
     assert audit_log[0].extra["comment"] == "to-be-public comment"
 

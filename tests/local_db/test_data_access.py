@@ -34,7 +34,7 @@ def test_audits():
         ),
         "other_user": factories.create_audit_event(
             AuditEventType.REQUEST_CREATE,
-            user="other",
+            user=factories.create_airlock_user("other"),
             path=None,
         ),
     }
@@ -248,7 +248,7 @@ def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
         "author comment",
         Visibility.PUBLIC,
         release_request.review_turn,
-        author.username,
+        author,
         audit,
     )
 
@@ -260,9 +260,7 @@ def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        comment_modify_function(
-            release_request.id, "badgroup", "1", author.username, audit
-        )
+        comment_modify_function(release_request.id, "badgroup", "1", author, audit)
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -272,9 +270,7 @@ def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
         comment="other comment",
     )
     with pytest.raises(models.FileGroupComment.DoesNotExist):
-        comment_modify_function(
-            release_request.id, "group", "50", author.username, audit
-        )
+        comment_modify_function(release_request.id, "group", "50", author, audit)
 
     audit = AuditEvent.from_request(
         request=release_request,
@@ -284,4 +280,4 @@ def test_group_comment_modify_bad_params(comment_modify_function, audit_event):
         comment="author comment",
     )
     with pytest.raises(exceptions.APIException):
-        comment_modify_function(release_request.id, "group", "1", other.username, audit)
+        comment_modify_function(release_request.id, "group", "1", other, audit)

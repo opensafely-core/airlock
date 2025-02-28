@@ -68,13 +68,13 @@ class DataAccessLayerProtocol(Protocol):
     def create_release_request(
         self,
         workspace: str,
-        author: str,
+        author: User,
         status: RequestStatus,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
 
-    def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+    def get_active_requests_for_workspace_by_user(self, workspace: str, user: User):
         raise NotImplementedError()
 
     def get_requests_for_workspace(self, workspace: str):
@@ -83,7 +83,7 @@ class DataAccessLayerProtocol(Protocol):
     def get_released_files_for_workspace(self, workspace: str):
         raise NotImplementedError()
 
-    def get_requests_authored_by_user(self, username: str):
+    def get_requests_authored_by_user(self, user: User):
         raise NotImplementedError()
 
     def get_requests_by_status(self, *states: RequestStatus):
@@ -92,7 +92,7 @@ class DataAccessLayerProtocol(Protocol):
     def set_status(self, request_id: str, status: RequestStatus, audit: AuditEvent):
         raise NotImplementedError()
 
-    def record_review(self, request_id: str, reviewer: str):
+    def record_review(self, request_id: str, reviewer: User):
         raise NotImplementedError()
 
     def start_new_turn(self, request_id: str):
@@ -125,7 +125,7 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def release_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
@@ -136,7 +136,7 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def register_file_upload(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, audit: AuditEvent
     ):
         raise NotImplementedError()
 
@@ -149,22 +149,22 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def reset_review_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
@@ -199,7 +199,7 @@ class DataAccessLayerProtocol(Protocol):
         comment: str,
         visibility: Visibility,
         review_turn: int,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -209,7 +209,7 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment_id: str,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -219,7 +219,7 @@ class DataAccessLayerProtocol(Protocol):
         request_id: str,
         group: str,
         comment_id: str,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
@@ -298,7 +298,7 @@ class BusinessLogicLayer:
 
         active_requests = self._dal.get_active_requests_for_workspace_by_user(
             workspace=workspace,
-            username=user.username,
+            user=user,
         )
 
         n = len(active_requests)
@@ -308,7 +308,7 @@ class BusinessLogicLayer:
             return ReleaseRequest.from_dict(active_requests[0])
         else:
             raise Exception(
-                f"Multiple active release requests for user {user.username} in "
+                f"Multiple active release requests for user {user} in "
                 f"workspace {workspace}"
             )
 
@@ -331,7 +331,7 @@ class BusinessLogicLayer:
 
         audit = AuditEvent(
             type=AuditEventType.REQUEST_CREATE,
-            user=user.username,
+            user=user,
             workspace=workspace,
             # for this specific audit, the DAL will set request id once its
             # created, as we do not know it yet
@@ -339,7 +339,7 @@ class BusinessLogicLayer:
         return ReleaseRequest.from_dict(
             self._dal.create_release_request(
                 workspace=workspace,
-                author=user.username,
+                author=user,
                 status=RequestStatus.PENDING,
                 audit=audit,
             )
@@ -363,7 +363,7 @@ class BusinessLogicLayer:
         """Get all current requests authored by user."""
         return [
             ReleaseRequest.from_dict(attrs)
-            for attrs in self._dal.get_requests_authored_by_user(username=user.username)
+            for attrs in self._dal.get_requests_authored_by_user(user=user)
         ]
 
     def _get_reviewable_requests_by_status(self, user: User, *statuses: RequestStatus):
@@ -465,10 +465,7 @@ class BusinessLogicLayer:
         # check permissions
         owner = release_request.status_owner()
         # author transitions
-        if (
-            owner == RequestStatusOwner.AUTHOR
-            and user.username != release_request.author
-        ):
+        if owner == RequestStatusOwner.AUTHOR and user != release_request.author:
             raise exceptions.RequestPermissionDenied(
                 f"only the request author {release_request.author} can set status from {release_request.status} to {to_status.name}"
             )
@@ -485,7 +482,7 @@ class BusinessLogicLayer:
                     f"only an output checker can set status to {to_status.name}"
                 )
 
-            if user.username == release_request.author:
+            if user == release_request.author:
                 raise exceptions.RequestPermissionDenied(
                     f"Can not set your own request to {to_status.name}"
                 )
@@ -671,7 +668,8 @@ class BusinessLogicLayer:
         old_group = request_file.group
         old_filetype = request_file.filetype
 
-        for reviewer_username in request_file.reviews:
+        for reviewer_user_id in request_file.reviews:
+            reviewer = User.objects.get(pk=reviewer_user_id)
             audit = AuditEvent.from_request(
                 request=release_request,
                 type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
@@ -679,13 +677,13 @@ class BusinessLogicLayer:
                 path=relpath,
                 group=old_group,
                 filetype=old_filetype.name,
-                reviewer=reviewer_username,
+                reviewer=reviewer.user_id,
             )
             self._dal.reset_review_file(
                 request_id=release_request.id,
                 relpath=relpath,
                 audit=audit,
-                username=reviewer_username,
+                user=reviewer,
             )
 
         audit = AuditEvent.from_request(
@@ -824,7 +822,7 @@ class BusinessLogicLayer:
             # Note: releasing the file updates its released_at and released by
             # attributes, as an indication of intent to release. Actually uploading
             # the file will be handled by the asychronous file uploader.
-            self._dal.release_file(release_request.id, relpath, user.username, audit)
+            self._dal.release_file(release_request.id, relpath, user, audit)
 
         # Change status to approved if necessary.
         if release_request.status != RequestStatus.APPROVED:
@@ -868,9 +866,7 @@ class BusinessLogicLayer:
             user=user,
             path=relpath,
         )
-        self._dal.register_file_upload(
-            release_request.id, relpath, user.username, audit
-        )
+        self._dal.register_file_upload(release_request.id, relpath, audit)
 
     def submit_request(self, request: ReleaseRequest, user: User):
         """
@@ -909,9 +905,7 @@ class BusinessLogicLayer:
             group=request_file.group,
         )
 
-        self._dal.approve_file(
-            release_request.id, request_file.relpath, user.username, audit
-        )
+        self._dal.approve_file(release_request.id, request_file.relpath, user, audit)
 
     def request_changes_to_file(
         self,
@@ -933,7 +927,7 @@ class BusinessLogicLayer:
         )
 
         self._dal.request_changes_to_file(
-            release_request.id, request_file.relpath, user.username, audit
+            release_request.id, request_file.relpath, user, audit
         )
 
     def reset_review_file(
@@ -950,7 +944,7 @@ class BusinessLogicLayer:
             path=relpath,
         )
 
-        self._dal.reset_review_file(release_request.id, relpath, user.username, audit)
+        self._dal.reset_review_file(release_request.id, relpath, user, audit)
 
     def review_request(self, release_request: ReleaseRequest, user: User):
         """
@@ -960,7 +954,7 @@ class BusinessLogicLayer:
         """
         permissions.check_user_can_submit_review(user, release_request)
 
-        self._dal.record_review(release_request.id, user.username)
+        self._dal.record_review(release_request.id, user)
 
         release_request = self.get_release_request(release_request.id, user)
         n_reviews = release_request.submitted_reviews_count()
@@ -1010,7 +1004,7 @@ class BusinessLogicLayer:
             request=release_request,
             type=AuditEventType.REQUEST_FILE_UNDECIDED,
             user=user,
-            reviewer=review.reviewer,
+            reviewer=review.reviewer.user_id,
             path=relpath,
         )
 
@@ -1065,7 +1059,7 @@ class BusinessLogicLayer:
             comment,
             visibility,
             release_request.review_turn,
-            user.username,
+            user,
             audit,
         )
 
@@ -1094,7 +1088,7 @@ class BusinessLogicLayer:
         )
 
         self._dal.group_comment_delete(
-            release_request.id, group, comment_id, user.username, audit
+            release_request.id, group, comment_id, user, audit
         )
 
     def group_comment_visibility_public(
@@ -1124,7 +1118,7 @@ class BusinessLogicLayer:
         )
 
         self._dal.group_comment_visibility_public(
-            release_request.id, group, comment_id, user.username, audit
+            release_request.id, group, comment_id, user, audit
         )
 
     # can filter out these audit events
@@ -1166,7 +1160,7 @@ class BusinessLogicLayer:
     ):
         audit = AuditEvent(
             type=AuditEventType.WORKSPACE_FILE_VIEW,
-            user=user.username,
+            user=user,
             workspace=workspace.name,
             path=path,
         )
@@ -1227,7 +1221,7 @@ class BusinessLogicLayer:
             "event_type": event_type.value,
             "workspace": request.workspace,
             "request": request.id,
-            "request_author": request.author,
+            "request_author": request.author.username,
             "user": user.username,
             "updates": updates,
         }

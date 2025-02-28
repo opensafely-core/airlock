@@ -39,14 +39,14 @@ class VisibleItemsHelper:
 
     def is_comment_visible(self, text: str, author: User) -> bool:
         for c, _ in self.comments:
-            if c.comment == text and c.author == author.username:
+            if c.comment == text and c.author == author:
                 return True
 
         return False
 
     def is_audit_visible(self, type_: AuditEventType, author: User) -> bool:
         for audit in self.audits:
-            if audit.type == type_ and audit.user == author.username:
+            if audit.type == type_ and audit.user == author:
                 return True
 
         return False

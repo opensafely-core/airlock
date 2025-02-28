@@ -237,7 +237,9 @@ def test_request_view_submit_review_alert(airlock_client, files, has_message):
     assert ("You have reviewed all files" in response.rendered_content) == has_message
 
     # The all-files-reviewed reminder message is never shown to an author
-    airlock_client.login(username=release_request.author, workspaces=["workspace"])
+    airlock_client.login(
+        username=release_request.author.username, workspaces=["workspace"]
+    )
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
     assert "You have reviewed all files" not in response.rendered_content
 
@@ -1219,7 +1221,7 @@ def test_file_approve(airlock_client):
         .reviews[airlock_client.user.username]
     )
     assert review.status == RequestFileVote.APPROVED
-    assert review.reviewer == "testuser"
+    assert review.reviewer.username == "testuser"
 
 
 def test_file_request_changes(airlock_client):
@@ -1246,7 +1248,7 @@ def test_file_request_changes(airlock_client):
         .reviews[airlock_client.user.username]
     )
     assert review.status == RequestFileVote.CHANGES_REQUESTED
-    assert review.reviewer == "testuser"
+    assert review.reviewer.username == "testuser"
 
 
 def test_file_reset_review(airlock_client):
@@ -1272,7 +1274,7 @@ def test_file_reset_review(airlock_client):
         airlock_client.user.username
     ]
     assert review.status == RequestFileVote.CHANGES_REQUESTED
-    assert review.reviewer == "testuser"
+    assert review.reviewer.username == "testuser"
 
     # then reset it to have no review
     response = airlock_client.post(
@@ -1968,7 +1970,7 @@ def test_group_comment_create_success(
         assert "Comment added" in messages[0].message
         release_request = bll.get_release_request(release_request.id, author)
         assert release_request.filegroups["group"].comments[0].comment == "opinion"
-        assert release_request.filegroups["group"].comments[0].author == user.username
+        assert release_request.filegroups["group"].comments[0].author == user
     else:
         assert "visibility: Select a valid choice" in messages[0].message
 

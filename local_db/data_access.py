@@ -21,6 +21,7 @@ from local_db.models import (
     RequestFileMetadata,
     RequestMetadata,
 )
+from users.models import User
 
 
 class LocalDBDataAccessLayer(DataAccessLayerProtocol):
@@ -31,7 +32,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def create_release_request(
         self,
         workspace: str,
-        author: str,
+        author: User,
         status: RequestStatus,
         audit: AuditEvent,
     ):
@@ -39,7 +40,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         with transaction.atomic():
             metadata = RequestMetadata.objects.create(
                 workspace=workspace,
-                author=author,
+                author=author.user_id,
                 status=status,
             )
             # special case: ensure audit has correct id now that we know it
@@ -64,7 +65,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def get_release_request(self, request_id: str):
         return self._find_metadata(request_id).to_dict()
 
-    def get_active_requests_for_workspace_by_user(self, workspace: str, username: str):
+    def get_active_requests_for_workspace_by_user(self, workspace: str, user: User):
         # Requests in these statuses are still editable by either an
         # author or a reviewer, and are considered active
         editable_status = [
@@ -76,15 +77,15 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             request.to_dict()
             for request in RequestMetadata.objects.filter(
                 workspace=workspace,
-                author=username,
+                author=user.user_id,
                 status__in=editable_status,
             )
         ]
 
-    def get_requests_authored_by_user(self, username: str):
+    def get_requests_authored_by_user(self, user: User):
         return [
             request.to_dict()
-            for request in RequestMetadata.objects.filter(author=username).order_by(
+            for request in RequestMetadata.objects.filter(author=user.user_id).order_by(
                 "status"
             )
         ]
@@ -118,11 +119,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             metadata.save()
             self._create_audit_log(audit)
 
-    def record_review(self, request_id: str, reviewer: str):
+    def record_review(self, request_id: str, reviewer: User):
         with transaction.atomic():
             # persist reviewer state
             metadata = self._find_metadata(request_id)
-            metadata.submitted_reviews[reviewer] = timezone.now().isoformat()
+            metadata.submitted_reviews[reviewer.user_id] = timezone.now().isoformat()
             metadata.save()
 
     def start_new_turn(self, request_id: str):
@@ -247,7 +248,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return metadata.get_filegroups_to_dict()
 
     def release_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer release_file() should confirm that this path
@@ -257,7 +258,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
 
             request_file.released_at = timezone.now()
-            request_file.released_by = username
+            request_file.released_by = user.user_id
             request_file.save()
 
             self._create_audit_log(audit)
@@ -280,7 +281,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return request_file.to_dict()
 
     def register_file_upload(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer register_file_upload() should confirm that
@@ -295,7 +296,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
@@ -305,7 +306,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
 
             review, _ = FileReview.objects.get_or_create(
-                file=request_file, reviewer=username
+                file=request_file, reviewer=user.user_id
             )
             review.status = RequestFileVote.APPROVED
             review.save()
@@ -313,7 +314,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -321,7 +322,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
 
             review, _ = FileReview.objects.get_or_create(
-                file=request_file, reviewer=username
+                file=request_file, reviewer=user.user_id
             )
             review.status = RequestFileVote.CHANGES_REQUESTED
             review.save()
@@ -329,29 +330,33 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def reset_review_file(
-        self, request_id: str, relpath: UrlPath, username: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 request_id=request_id, relpath=relpath
             )
             try:
-                review = FileReview.objects.get(file=request_file, reviewer=username)
+                review = FileReview.objects.get(
+                    file=request_file, reviewer=user.user_id
+                )
             except FileReview.DoesNotExist:
-                raise exceptions.FileReviewNotFound(relpath, username)
+                raise exceptions.FileReviewNotFound(relpath, user.user_id)
 
             review.delete()
 
             self._create_audit_log(audit)
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: str, audit: AuditEvent
+        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 request_id=request_id, relpath=relpath
             )
-            review = FileReview.objects.get(file=request_file, reviewer=reviewer)
+            review = FileReview.objects.get(
+                file=request_file, reviewer=reviewer.user_id
+            )
             review.status = RequestFileVote.UNDECIDED
             review.save()
 
@@ -360,7 +365,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def _create_audit_log(self, audit: AuditEvent) -> AuditLog:
         event = AuditLog.objects.create(
             type=audit.type,
-            user=audit.user,
+            user=audit.user.user_id,
             workspace=audit.workspace,
             request=audit.request,
             path=str(audit.path) if audit.path else None,
@@ -408,7 +413,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return [
             AuditEvent(
                 type=audit.type,  # type: ignore
-                user=audit.user,
+                user=User.objects.get(pk=audit.user),
                 workspace=audit.workspace,
                 request=audit.request,
                 path=UrlPath(audit.path) if audit.path else None,
@@ -446,7 +451,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         comment: str,
         visibility: Visibility,
         review_turn: int,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -455,7 +460,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             FileGroupComment.objects.create(
                 filegroup=filegroup,
                 comment=comment,
-                author=username,
+                author=user.user_id,
                 visibility=visibility,
                 review_turn=review_turn,
             )
@@ -467,7 +472,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment_id: str,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -477,7 +482,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             # but let's verify we're looking at the right thing
             if not (
-                comment.author == username
+                comment.author == user.user_id
                 and comment.filegroup.name == group
                 and comment.filegroup.request.id == request_id
             ):
@@ -494,7 +499,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         request_id: str,
         group: str,
         comment_id: str,
-        username: str,
+        user: User,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -507,7 +512,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             )
             # but let's verify we're looking at the right thing
             if not (
-                comment.author == username
+                comment.author == user.user_id
                 and comment.filegroup.name == group
                 and comment.filegroup.request.id == request_id
                 and release_request.review_turn == comment.review_turn

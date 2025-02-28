@@ -122,7 +122,7 @@ def user_can_review(user: User):
 
 def check_user_can_review_request(user: User, request: "ReleaseRequest"):
     """This user can be a reviewer for a specific request"""
-    if request.author == user.username or not user_can_review(user):
+    if request.author == user or not user_can_review(user):
         raise exceptions.RequestPermissionDenied(
             "You do not have permission to review this request"
         )
@@ -158,7 +158,7 @@ def check_user_can_edit_request(user: User, request: "ReleaseRequest"):
     This user has permission to edit the request, AND the request is in an
     editable state
     """
-    if user.username != request.author:
+    if user != request.author:
         raise exceptions.RequestPermissionDenied(
             f"only author {request.author} can edit this request"
         )
@@ -294,7 +294,7 @@ def check_user_can_reset_file_review(
     user: User, request: "ReleaseRequest", relpath: UrlPath
 ):
     check_user_can_review_file(user, request, relpath)
-    if user.username in request.submitted_reviews:
+    if user.user_id in request.submitted_reviews:
         raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
 
 
@@ -313,7 +313,7 @@ def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
             "You must review all files to submit your review"
         )
 
-    if user.username in request.submitted_reviews:
+    if user.user_id in request.submitted_reviews:
         raise exceptions.RequestReviewDenied(
             "You have already submitted your review of this request"
         )
@@ -368,7 +368,7 @@ def check_user_can_delete_comment(
     user: User, request: "ReleaseRequest", comment: "Comment"
 ):
     # Only the author of a comment can delete it
-    if not user.username == comment.author:
+    if not user == comment.author:
         raise exceptions.RequestPermissionDenied(
             f"User {user.username} is not the author of this comment, so cannot delete"
         )
@@ -402,7 +402,7 @@ def check_user_can_make_comment_publicly_visible(
     user: User, request: "ReleaseRequest", comment: "Comment"
 ):
     # Only the author of a comment can make it public
-    if not user.username == comment.author:
+    if not user == comment.author:
         raise exceptions.RequestPermissionDenied(
             f"User {user.username} is not the author of this comment, so cannot delete"
         )

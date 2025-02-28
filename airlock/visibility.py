@@ -24,7 +24,7 @@ class RequestFileStatus:
 
 class VisibleItem(Protocol):
     @property
-    def author(self) -> str:
+    def author(self) -> User:
         raise NotImplementedError()
 
     @property
@@ -52,7 +52,7 @@ def filter_visible_items(
         # you can always see things you've authored. Doing this first
         # simplifies later logic, and avoids potential bugs with users adding
         # items but then they can not see the item they just added
-        if item.author == user.username:
+        if item.author == user:
             yield item
             continue
 
