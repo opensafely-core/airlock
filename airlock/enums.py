@@ -86,7 +86,7 @@ class RequestFileDecision(Enum):
             case RequestFileDecision.CHANGES_REQUESTED:
                 return "Two independent output checkers have requested changes to this file"
             case RequestFileDecision.CONFLICTED:
-                return "Output checkers are conflicted in their review of this file"
+                return "Output checkers have reviewed this file and disagree about whether it should be released"
             case _:  # pragma: no cover
                 assert False
 

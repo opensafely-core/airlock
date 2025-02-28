@@ -477,7 +477,9 @@ def test_file_vote_buttons(
     if status == RequestStatus.REVIEWED and current_vote == RequestFileVote.APPROVED:
         changes_requested_button.click()
         decision_locator.hover()
-        expect(page.locator("body")).to_contain_text("Output checkers are conflicted")
+        expect(page.locator("body")).to_contain_text(
+            "Output checkers have reviewed this file and disagree"
+        )
 
 
 @pytest.mark.parametrize(
