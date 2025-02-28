@@ -375,7 +375,7 @@ class CodeRepo:
 
     def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
         kwargs = {
-            "workspace_name": self.name,
+            "workspace_name": self.workspace,
             "commit": self.commit,
         }
         if relpath != ROOT_PATH:
