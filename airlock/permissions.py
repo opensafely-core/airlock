@@ -122,7 +122,7 @@ def user_can_review(user: User):
 
 def check_user_can_review_request(user: User, request: "ReleaseRequest"):
     """This user can be a reviewer for a specific request"""
-    if not (user_can_review(user) and request.author != user.username):
+    if request.author == user.username or not user_can_review(user):
         raise exceptions.RequestPermissionDenied(
             "You do not have permission to review this request"
         )
