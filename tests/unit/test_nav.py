@@ -47,3 +47,21 @@ def test_iter_nav_output_checker(rf):
             "is_active": True,
         }
     ]
+
+
+def test_iter_nav_copilot(rf):
+    factories.create_airlock_user(
+        username="user", workspaces=["test"], copiloted_workspaces=["test1"]
+    )
+    items = [
+        nav.NavItem("Copiloted Workspaces", "copiloted_workspace_index"),
+    ]
+
+    request = rf.get("/copiloted-workspaces/")
+    assert list(nav.iter_nav(items, request)) == [
+        {
+            "name": "Copiloted Workspaces",
+            "url": "/copiloted-workspaces/",
+            "is_active": True,
+        }
+    ]

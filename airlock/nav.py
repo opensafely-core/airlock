@@ -39,9 +39,17 @@ def menu(request):
         NavItem(name="Docs", url_name="docs_home"),
     ]
 
-    if request.user.is_authenticated and permissions.user_can_review(request.user):
-        reviews_menu = NavItem(name="Reviews", url_name="requests_for_output_checker")
-        items.insert(2, reviews_menu)
+    if request.user.is_authenticated:
+        if request.user.copiloted_workspaces:
+            copiloted_workspaces_menu = NavItem(
+                name="Copiloted Workspaces", url_name="copiloted_workspace_index"
+            )
+            items.insert(1, copiloted_workspaces_menu)
+        if permissions.user_can_review(request.user):
+            reviews_menu = NavItem(
+                name="Reviews", url_name="requests_for_output_checker"
+            )
+            items.insert(3, reviews_menu)
     return {"nav": list(iter_nav(items, request))}
 
 
