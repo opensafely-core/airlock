@@ -84,6 +84,39 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
     ]
 
 
+@pytest.mark.parametrize("output_checker", [False, True])
+def test_provider_get_copiloted_workspaces_for_user(bll, output_checker):
+    factories.create_workspace("test")
+    factories.create_workspace("test1")
+    factories.create_workspace("copiloted")
+
+    test_ws = factories.create_api_workspace(project="project 1")
+    workspaces = {
+        "test": test_ws,
+        "test1": factories.create_api_workspace(project="project 3"),
+    }
+    copiloted_workspaces = {
+        "copiloted": factories.create_api_workspace(project="project 2"),
+        "test": test_ws,
+    }
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces=workspaces,
+        copiloted_workspaces=copiloted_workspaces,
+        output_checker=output_checker,
+    )
+
+    assert bll.get_workspaces_for_user(user) == [
+        bll.get_workspace("test", user),
+        bll.get_workspace("test1", user),
+    ]
+
+    assert bll.get_copiloted_workspaces_for_user(user) == [
+        bll.get_workspace("copiloted", user),
+        bll.get_workspace("test", user),
+    ]
+
+
 def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checker = factories.create_airlock_user(username="checker", output_checker=True)
