@@ -24,6 +24,7 @@ from .request import (
     uploaded_files_count,
 )
 from .workspace import (
+    copilot_workspace_index,
     workspace_add_file_to_request,
     workspace_contents,
     workspace_index,
@@ -58,6 +59,7 @@ __all__ = [
     "group_comment_delete",
     "group_comment_visibility_public",
     "uploaded_files_count",
+    "copilot_workspace_index",
     "workspace_add_file_to_request",
     "workspace_multiselect",
     "workspace_contents",

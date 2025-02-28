@@ -50,7 +50,22 @@ def grouped_workspaces(workspaces):
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
-    return TemplateResponse(request, "workspaces.html", {"projects": projects})
+    return TemplateResponse(
+        request,
+        "workspaces.html",
+        {"projects": projects, "workspace_type": "workspaces"},
+    )
+
+
+@instrument
+def copilot_workspace_index(request):
+    workspaces = bll.get_copiloted_workspaces_for_user(request.user)
+    projects = dict(grouped_workspaces(workspaces))
+    return TemplateResponse(
+        request,
+        "workspaces.html",
+        {"projects": projects, "workspace_type": "copiloted workspaces"},
+    )
 
 
 def _get_dir_button_context(user, workspace):

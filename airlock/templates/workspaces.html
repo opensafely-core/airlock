@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block metatitle %}Workspaces for {{ request.user.username }} |  Airlock{% endblock metatitle %}
+{% block metatitle %}{{ workspace_type|title }} for {{ request.user.username }} |  Airlock{% endblock metatitle %}
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title="Workspaces for "|add:request.user.username %}
+    {% airlock_header title=workspace_type|title|add:" for "|add:request.user.username %}
     {% for project, workspaces in projects.items %}
       {% #card %}
         <details class="group" open>
@@ -25,8 +25,8 @@
               </details>
             {% /card %}
       {% empty %}
-        {% #card title="Workspaces" container=True %}
-          {% list_group_empty title="No workspaces available" description="You do not have access to any workspaces" %}
+        {% #card title=workspace_type.title container=True %}
+          {% list_group_empty title="No "|add:workspace_type|add:" available" description="You do not have access to any "|add:workspace_type %}
         {% /card %}
       {% endfor %}
       </div>
