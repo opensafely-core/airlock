@@ -1,7 +1,9 @@
+import re
+
 import pytest
 from playwright.sync_api import expect
 
-from airlock.enums import RequestFileType, RequestStatus, Visibility
+from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
 from airlock.types import UrlPath
 from tests import factories
 from tests.functional.conftest import login_as_user
@@ -260,7 +262,7 @@ def _workspace_dict():
 @pytest.mark.parametrize(
     "author,login_as,status,reviewer_buttons_visible,release_button_visible,file_review_buttons_visible",
     # reviewer buttons: return/reject/submit review
-    # file review buttons: on a file view approve/request changes/reset
+    # file review buttons: on a file view approve/request changes
     [
         ("researcher", "researcher", RequestStatus.SUBMITTED, False, False, False),
         ("researcher", "checker", RequestStatus.SUBMITTED, True, True, True),
@@ -339,7 +341,6 @@ def test_request_buttons(
     file_review_buttons = [
         "#file-approve-button",
         "#file-request-changes-button",
-        "#file-reset-button",
     ]
     if file_review_buttons_visible:
         for button_id in file_review_buttons:
@@ -347,6 +348,138 @@ def test_request_buttons(
     else:
         for button_id in file_review_buttons:
             expect(page.locator(button_id)).not_to_be_visible()
+
+
+@pytest.mark.parametrize(
+    "status,current_vote,approved_selected_disabled,changes_requested_selected_disabled,decision_tooltip",
+    # file review buttons: on a file view approve/request changes
+    # Just testing the statuses that the voting buttons are visible in
+    # The test above asserts that they are only visible in these 3 states, and
+    # only for output-checkers
+    [
+        (
+            RequestStatus.SUBMITTED,
+            None,
+            (False, False),
+            (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
+        ),
+        (
+            RequestStatus.SUBMITTED,
+            RequestFileVote.APPROVED,
+            (True, False),
+            (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
+        ),
+        (
+            RequestStatus.SUBMITTED,
+            RequestFileVote.CHANGES_REQUESTED,
+            (False, False),
+            (True, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
+        ),
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            RequestFileVote.APPROVED,
+            (True, True),
+            (False, False),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
+        ),
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            RequestFileVote.CHANGES_REQUESTED,
+            (False, False),
+            (True, True),
+            "Overall decision will be displayed after two independent output checkers have submitted their review",
+        ),
+        (
+            RequestStatus.REVIEWED,
+            RequestFileVote.APPROVED,
+            (True, True),
+            (False, False),
+            "Two independent output checkers have approved this file",
+        ),
+        (
+            RequestStatus.REVIEWED,
+            RequestFileVote.CHANGES_REQUESTED,
+            (False, False),
+            (True, True),
+            "Two independent output checkers have requested changes to this file",
+        ),
+    ],
+)
+def test_file_vote_buttons(
+    live_server,
+    context,
+    page,
+    bll,
+    mock_old_api,
+    status,
+    current_vote,
+    approved_selected_disabled,
+    changes_requested_selected_disabled,
+    decision_tooltip,
+):
+    checker = factories.create_api_user(
+        username="checker", workspaces=_workspace_dict(), output_checker=True
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(
+            username="researcher", workspaces=_workspace_dict(), output_checker=False
+        ),
+        status=status,
+        withdrawn_after=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                group="group",
+                path="file1.txt",
+                approved=current_vote == RequestFileVote.APPROVED,
+                changes_requested=current_vote == RequestFileVote.CHANGES_REQUESTED,
+                checkers=[
+                    factories.create_airlock_user(**checker),
+                    factories.get_default_output_checkers()[0],
+                ],
+            ),
+        ],
+    )
+
+    login_as_user(live_server, context, checker)
+    page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+
+    approve_button = page.locator("#file-approve-button")
+    changes_requested_button = page.locator("#file-request-changes-button")
+
+    expected_button_state = {
+        approve_button: {
+            "selected": approved_selected_disabled[0],
+            "disabled": approved_selected_disabled[1],
+        },
+        changes_requested_button: {
+            "selected": changes_requested_selected_disabled[0],
+            "disabled": changes_requested_selected_disabled[1],
+        },
+    }
+    for button_locator, expected_state in expected_button_state.items():
+        for state, expected in expected_state.items():
+            class_regex = re.compile(rf"(^|\s)btn-group__btn--{state}(\s|$)")
+            if expected:
+                expect(button_locator).to_have_class(class_regex)
+            else:
+                expect(button_locator).not_to_have_class(class_regex)
+
+    decision_locator = page.locator(".request-file-status")
+    decision_locator.hover()
+    expect(page.locator("body")).to_contain_text(decision_tooltip)
+
+    # test the conflicted decision state
+    if status == RequestStatus.REVIEWED and current_vote == RequestFileVote.APPROVED:
+        changes_requested_button.click()
+        decision_locator.hover()
+        expect(page.locator("body")).to_contain_text(
+            "Output checkers have reviewed this file and disagree"
+        )
 
 
 @pytest.mark.parametrize(
@@ -636,15 +769,21 @@ def test_returned_request(live_server, context, page, bll):
 
     # checker looks at previously changes_requested/approved files
     login_as_user(live_server, context, user_data["checker1"])
-    status_locator = page.locator(".file-status--approved")
+
+    selected_class_regex = re.compile(r"(^|\s)btn-group__btn--selected(\s|$)")
+
+    approve_button = page.locator("#file-approve-button")
     # go to previously approved file; still shown as approved
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
-    expect(status_locator).to_contain_text("Approved")
+    expect(approve_button).to_contain_text("Approved")
+    expect(approve_button).to_have_class(selected_class_regex)
 
-    # go to previously changes_requested file; now shown as no-status
+    # go to previously changes_requested file; now shown as unselected
     page.goto(live_server.url + release_request.get_url("group/file2.txt"))
-    status_locator = page.locator(".file-status--undecided")
-    expect(status_locator).to_contain_text("Undecided")
+    request_changes_button = page.locator("#file-request-changes-button")
+    expect(request_changes_button).to_contain_text("Request changes")
+    expect(approve_button).not_to_have_class(selected_class_regex)
+    expect(request_changes_button).not_to_have_class(selected_class_regex)
 
 
 def test_request_releaseable(live_server, context, page, bll):
