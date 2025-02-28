@@ -58,7 +58,10 @@ def test_workspaces_index_as_researcher(live_server, page, researcher_user):
             RequestStatus.SUBMITTED,
             True,
             False,
-            "The current request is under review and cannot be modified.",
+            (
+                "There is currently a request under review for this workspace and you "
+                "cannot modify it or start a new one until it is reviewed."
+            ),
         ),
     ],
 )
@@ -206,7 +209,10 @@ def test_content_buttons(
             RequestFileType.OUTPUT,
             "txt",
             False,
-            "The current request is under review and cannot be modified.",
+            (
+                "There is currently a request under review for this workspace and you "
+                "cannot modify it or start a new one until it is reviewed."
+            ),
         ),
     ],
 )
