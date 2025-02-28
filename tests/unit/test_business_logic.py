@@ -1892,6 +1892,9 @@ def test_readd_withdrawn_file_to_request_returned_new_group(bll):
     assert request_file.group == "group"
     assert request_file.filetype == RequestFileType.OUTPUT
 
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
     bll.withdraw_file_from_request(release_request, "group" / path, user=author)
 
     workspace = bll.get_workspace("workspace", author)
@@ -1913,6 +1916,152 @@ def test_readd_withdrawn_file_to_request_returned_new_group(bll):
 
     assert request_file.group == "new-group"
     assert request_file.filetype == RequestFileType.SUPPORTING
+
+
+@pytest.mark.parametrize(
+    "status, approved",
+    [
+        (RequestStatus.PENDING, False),
+        (RequestStatus.RETURNED, True),
+    ],
+)
+def test_move_file_to_new_group_in_request(status, approved, bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=status,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=approved,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    if approved:
+        assert (
+            request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
+        )
+
+    urlpath = request_file.group / path
+    assert urlpath == UrlPath("group/path/file1.txt")
+
+    bll.move_file_to_new_group_in_request(
+        release_request,
+        urlpath,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.OUTPUT,
+    )
+
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    assert request_file.group == "new-group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.reviews == {}
+
+
+def test_move_file_to_new_group_in_request_same_group(bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
+    urlpath = request_file.group / path
+
+    bll.move_file_to_new_group_in_request(
+        release_request,
+        urlpath,
+        group_name="group",
+        user=author,
+        filetype=RequestFileType.OUTPUT,
+    )
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    assert request_file.group == "group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
+    assert request_file.reviews != {}
+
+
+def test_move_file_to_new_group_in_request_permission_denied(bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
+    urlpath = request_file.group / path
+
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.move_file_to_new_group_in_request(
+            release_request,
+            urlpath,
+            group_name="new_group",
+            user=author,
+            filetype=RequestFileType.OUTPUT,
+        )
+
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    assert request_file.group == "group"
+    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
+    assert request_file.reviews != {}
 
 
 @pytest.mark.parametrize(
