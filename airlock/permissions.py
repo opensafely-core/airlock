@@ -49,7 +49,8 @@ def check_user_can_view_workspace(user: User | None, workspace_name: str):
     of the workspace's archive or project ongoing status)
     """
     if user is None or (
-        not user.output_checker and workspace_name not in user.workspaces
+        not user.output_checker
+        and workspace_name not in (user.workspaces | user.copiloted_workspaces)
     ):
         raise exceptions.WorkspacePermissionDenied(
             f"you do not have permission to view {workspace_name} or its requests"

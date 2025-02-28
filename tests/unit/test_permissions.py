@@ -6,17 +6,26 @@ from tests import factories
 
 
 @pytest.mark.parametrize(
-    "output_checker,workspaces,can_view",
+    "output_checker,workspaces,copiloted_workspaces,can_view",
     [
-        (True, {}, True),
-        (True, {"other": {}, "other1": {}}, True),
-        (False, {"test": {}, "other": {}, "other1": {}}, True),
-        (False, {"other": {}, "other1": {}}, False),
+        (True, {}, {}, True),
+        (True, {"other": {}, "other1": {}}, {}, True),
+        (True, {"other": {}, "other1": {}}, {"test1": {}}, True),
+        (True, {"other": {}, "other1": {}}, {"test": {}}, True),
+        (False, {"test": {}, "other": {}, "other1": {}}, {}, True),
+        (False, {"other": {}, "other1": {}}, {}, False),
+        (False, {"other": {}, "other1": {}}, {"test1": {}}, False),
+        (False, {"other": {}, "other1": {}}, {"test": {}}, True),
     ],
 )
-def test_user_can_view_workspace(output_checker, workspaces, can_view):
+def test_user_can_view_workspace(
+    output_checker, workspaces, copiloted_workspaces, can_view
+):
     user = factories.create_airlock_user(
-        username="test", workspaces=workspaces, output_checker=output_checker
+        username="test",
+        workspaces=workspaces,
+        copiloted_workspaces=copiloted_workspaces,
+        output_checker=output_checker,
     )
     assert permissions.user_can_view_workspace(user, "test") == can_view
 
