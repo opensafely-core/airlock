@@ -29,6 +29,27 @@ def test_workspaces_index_as_researcher(live_server, page, researcher_user):
     expect(page.locator("body")).not_to_contain_text("test-dir2")
 
 
+def test_copiloted_workspaces_index_no_workspaces(live_server, page, researcher_user):
+    # Copiloted workspaces nav item is not visible
+    page.goto(live_server.url + "/workspaces/")
+    expect(page.locator("body")).not_to_contain_text("Copiloted Workspaces")
+
+    page.goto(live_server.url + "/copiloted-workspaces/")
+    expect(page.locator("body")).to_contain_text("No copiloted workspaces available")
+    expect(page.locator("body")).to_contain_text(
+        "You do not have access to any copiloted workspaces"
+    )
+
+
+def test_copiloted_workspaces_index_as_copilot(live_server, page, copilot_user):
+    # Copiloted workspaces nav item is visible
+    page.goto(live_server.url + "/workspaces/")
+    expect(page.locator("body")).to_contain_text("Copiloted Workspaces")
+
+    page.goto(live_server.url + "/copiloted-workspaces/")
+    expect(page.locator("body")).to_contain_text("test-dir1")
+
+
 @pytest.mark.parametrize(
     "archived,ongoing,login_as,request_status,is_visible,is_enabled,tooltip",
     [
