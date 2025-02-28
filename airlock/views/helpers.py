@@ -29,8 +29,9 @@ class ButtonContext:
     label: str = ""
 
     @classmethod
-    def with_request_defaults(cls, release_request_id, url_name, **extra_kwargs):
-        label = extra_kwargs.pop("label", "")
+    def with_request_defaults(
+        cls, release_request_id, url_name, label="", **extra_kwargs
+    ):
         return cls(
             url=reverse(
                 url_name, kwargs={"request_id": release_request_id, **extra_kwargs}
