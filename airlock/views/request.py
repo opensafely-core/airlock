@@ -715,6 +715,55 @@ def file_approve(request, request_id, path: str):
     return redirect(release_request.get_url(path))
 
 
+def get_next_url(release_request, form):
+    if "next_url" not in form.errors:
+        return form.cleaned_data["next_url"]
+
+    # default redirect in case of error
+    return release_request.get_url()
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def file_move_group(request, request_id):
+    # TODO: finish this
+    release_request = get_release_request_or_raise(request.user, request_id)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileFormSet(request.POST)
+    errors = add_or_update_form_is_valid(request, form, formset)
+
+    next_url = get_next_url(release_request, form)
+
+    if errors:
+        return redirect(next_url)
+
+    group_name = (
+        form.cleaned_data.get("new_filegroup")
+        or form.cleaned_data.get("filegroup")
+        or ""
+    )
+    error_msgs = []
+    success_msgs = []
+    for formset_form in formset:
+        path = formset_form.cleaned_data["file"]
+
+        try:
+            bll.move_file_to_new_group_in_request(
+                release_request, path, request.user, group_name
+            )
+            success_msgs.append(
+                f"The file {path} has been moved to new group {group_name}"
+            )
+            next_url = release_request.get_url(group_name)
+        except exceptions.RequestPermissionDenied as exc:
+            error_msgs.append(str(exc))
+
+    display_multiple_messages(request, error_msgs, "error")
+    display_multiple_messages(request, success_msgs, "success")
+
+    return redirect(next_url)
+
+
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_request_changes(request, request_id, path: str):
