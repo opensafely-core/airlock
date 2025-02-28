@@ -195,22 +195,33 @@ def _get_dir_button_context(user, release_request):
 
 
 def _get_file_button_context(user, release_request, workspace, path_item):
-    group_relpath = path_item.relpath
-    relpath = UrlPath(*group_relpath.parts[1:])
+    group_name = path_item.relpath.parts[0]
+    relpath = UrlPath(*path_item.relpath.parts[1:])
 
     # author buttons
     req_id = release_request.id
     withdraw_btn = ButtonContext.with_request_defaults(
-        req_id, "file_withdraw", path=group_relpath
+        req_id, "file_withdraw", group_name=group_name, path=relpath
     )
     # output-checker voting buttons
     user_vote = path_item.request_status.vote
     voting_buttons = {
         "approve": ButtonContext.with_request_defaults(
-            req_id, "file_approve", path=group_relpath, label="Approve file"
+            req_id,
+            "file_approve",
+            group_name=group_name,
+            path=relpath,
+            label="Approve file",
         ),
         "request_changes": ButtonContext.with_request_defaults(
-            req_id, "file_request_changes", path=group_relpath, label="Request changes"
+            req_id,
+            "file_request_changes",
+            group_name=group_name,
+            path=relpath,
+            label="Request changes",
+        ),
+        "reset_review": ButtonContext.with_request_defaults(
+            req_id, "file_reset_review", group_name=group_name, path=relpath
         ),
     }
 
@@ -291,10 +302,10 @@ def get_button_context(path_item, user, release_request, workspace):
 @vary_on_headers("HX-Request")
 @require_http_methods(["GET"])
 @instrument(func_attributes={"release_request": "request_id"})
-def request_view(request, request_id: str, path: str = ""):
+def request_view(request, request_id: str, group_name: str = "", path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    relpath = UrlPath(path)
+    relpath = UrlPath(group_name, path)
     template_dir = "file_browser/request/"
     template = template_dir + "index.html"
     selected_only = False
@@ -306,9 +317,9 @@ def request_view(request, request_id: str, path: str = ""):
     tree = get_request_tree(release_request, request.user, relpath, selected_only)
     path_item = get_path_item_from_tree_or_404(tree, relpath)
 
-    is_directory_url = path.endswith("/") or relpath == ROOT_PATH
+    is_file_url = path != "" and not path.endswith("/")
 
-    if path_item.is_directory() != is_directory_url:
+    if path_item.is_directory() == is_file_url:
         return redirect(path_item.url())
 
     workspace = bll.get_workspace(release_request.workspace, request.user)
@@ -325,19 +336,19 @@ def request_view(request, request_id: str, path: str = ""):
 
     code_url = None
 
-    if not is_directory_url:
+    if is_file_url:
         code_url = (
             reverse(
                 "code_view",
                 kwargs={
                     "workspace_name": release_request.workspace,
                     "commit": release_request.get_request_file_from_urlpath(
-                        path
+                        relpath
                     ).commit,
                     "path": "project.yaml",
                 },
             )
-            + f"?return_url={release_request.get_url(path)}"
+            + f"?return_url={release_request.get_url(relpath)}"
         )
 
     activity = []
@@ -471,11 +482,12 @@ def group_presenter(release_request, relpath, request):
 @instrument(func_attributes={"release_request": "request_id"})
 @xframe_options_sameorigin
 @require_http_methods(["GET"])
-def request_contents(request, request_id: str, path: str):
+def request_contents(request, request_id: str, group_name: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
+    relpath = UrlPath(group_name, path)
 
     try:
-        abspath = release_request.abspath(path)
+        abspath = release_request.abspath(relpath)
     except exceptions.FileNotFound:
         raise Http404()
 
@@ -489,12 +501,12 @@ def request_contents(request, request_id: str, path: str):
         ):
             raise PermissionDenied()
 
-        bll.audit_request_file_download(release_request, UrlPath(path), request.user)
-        return download_file(abspath, filename=path)
+        bll.audit_request_file_download(release_request, relpath, request.user)
+        return download_file(abspath, filename=relpath)
 
-    bll.audit_request_file_access(release_request, UrlPath(path), request.user)
+    bll.audit_request_file_access(release_request, relpath, request.user)
     plaintext = request.GET.get("plaintext", False)
-    renderer = release_request.get_renderer(UrlPath(path), plaintext=plaintext)
+    renderer = release_request.get_renderer(relpath, plaintext=plaintext)
     return serve_file(request, renderer)
 
 
@@ -568,9 +580,9 @@ def request_return(request, request_id):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_withdraw(request, request_id, path: str):
+def file_withdraw(request, request_id, group_name: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
-    grouppath = UrlPath(path)
+    grouppath = UrlPath(group_name, path)
 
     try:
         release_request.get_request_file_from_urlpath(grouppath)
@@ -644,11 +656,12 @@ def requests_for_workspace(request, workspace_name: str):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_approve(request, request_id, path: str):
+def file_approve(request, request_id, group_name: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
+    relpath = UrlPath(group_name, path)
 
     try:
-        request_file = release_request.get_request_file_from_urlpath(path)
+        request_file = release_request.get_request_file_from_urlpath(relpath)
     except exceptions.FileNotFound:
         raise Http404()
 
@@ -657,16 +670,17 @@ def file_approve(request, request_id, path: str):
     except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
 
-    return redirect(release_request.get_url(path))
+    return redirect(release_request.get_url(relpath))
 
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_request_changes(request, request_id, path: str):
+def file_request_changes(request, request_id, group_name: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
+    relpath = UrlPath(group_name, path)
 
     try:
-        request_file = release_request.get_request_file_from_urlpath(path)
+        request_file = release_request.get_request_file_from_urlpath(relpath)
     except exceptions.FileNotFound:
         raise Http404()
 
@@ -675,16 +689,17 @@ def file_request_changes(request, request_id, path: str):
     except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
 
-    return redirect(release_request.get_url(path))
+    return redirect(release_request.get_url(relpath))
 
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_reset_review(request, request_id, path: str):
+def file_reset_review(request, request_id, group_name: str, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
+    group_path = UrlPath(group_name, path)
 
     try:
-        relpath = release_request.get_request_file_from_urlpath(path).relpath
+        relpath = release_request.get_request_file_from_urlpath(group_path).relpath
     except exceptions.FileNotFound:
         raise Http404()
 
@@ -696,7 +711,7 @@ def file_reset_review(request, request_id, path: str):
         raise Http404()
 
     messages.success(request, "File review has been reset")
-    return redirect(release_request.get_url(path))
+    return redirect(release_request.get_url(group_path))
 
 
 @vary_on_headers("HX-Request")

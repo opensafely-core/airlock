@@ -661,20 +661,28 @@ class ReleaseRequest:
         return f"{self.id[:3]}...{self.id[-6:]}"
 
     def get_url(self, relpath=""):
-        return reverse(
-            "request_view",
-            kwargs={
-                "request_id": self.id,
-                "path": relpath,
-            },
-        )
+        kwargs = {
+            "request_id": self.id,
+        }
+        path = UrlPath(relpath)
+        if len(path.parts) > 0:
+            kwargs["group_name"] = path.parts[0]
+            kwargs["path"] = UrlPath(*path.parts[1:])
+
+        return reverse("request_view", kwargs=kwargs)
 
     def get_contents_url(
         self, relpath: UrlPath, download: bool = False, plaintext: bool = False
     ):
+        # This is to get the url to the content of a file in a request. Therefore
+        # this will ALWAYS be part of a group, so the relpath can be split as below
         url = reverse(
             "request_contents",
-            kwargs={"request_id": self.id, "path": relpath},
+            kwargs={
+                "request_id": self.id,
+                "group_name": relpath.parts[0],
+                "path": UrlPath(*relpath.parts[1:]),
+            },
         )
         if download:
             url += "?download"
