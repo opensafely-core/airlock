@@ -34,10 +34,10 @@
       </form>
     {% endif %}
 
-    {% if content_buttons.move_file_button %}
+    {% if content_buttons.move_file_button.show %}
       {% if content_buttons.move_file_button.disabled %}
         {% #button type="button" disabled=True tooltip=content_buttons.move_file_button.tooltip id="update-file-modal-button" %}
-          Move file to new group
+          Change file group
         {% /button %}
       {% else %}
         <form
@@ -47,7 +47,7 @@
           hx-swap="outerHtml"
         >
           {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
-            Move file to new group
+            Change file group
           {% /button %}
           <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
           <input type=hidden name="next_url" value="{{ request.path }}"/>

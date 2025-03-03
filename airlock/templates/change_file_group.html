@@ -6,7 +6,7 @@
   div.filetype-radio label { display: inline; }
 </style>
 {% #modal id="moveRequestFile" custom_button=button autoshow=True %}
-  {% #card container=True title="Move Files to new group in Request" %}
+  {% #card container=True title="Move files to new group in request" %}
     <form action="{{ move_file_url }}" method="POST" aria-label="move-file-form">
       {% csrf_token %}
       {{ form.next_url }}
@@ -36,7 +36,7 @@
       {% endif %}
 
       <div class="mt-2">
-        {% #button type="submit" variant="success" id="move-file-button" disabled=no_valid_files %}Update File groups{% /button %}
+        {% #button type="submit" variant="success" id="move-file-button" disabled=no_valid_files %}Update File Group{% /button %}
         {% #button variant="danger" type="cancel" %}Cancel{% /button %}
       </div>
     </form>
