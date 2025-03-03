@@ -1971,13 +1971,15 @@ def test_readd_withdrawn_file_to_request_returned_new_group(bll):
 
 
 @pytest.mark.parametrize(
-    "status, approved",
+    "status, approved, filetype",
     [
-        (RequestStatus.PENDING, False),
-        (RequestStatus.RETURNED, True),
+        (RequestStatus.PENDING, False, RequestFileType.OUTPUT),
+        (RequestStatus.PENDING, False, RequestFileType.SUPPORTING),
+        (RequestStatus.RETURNED, True, RequestFileType.OUTPUT),
+        (RequestStatus.RETURNED, False, RequestFileType.SUPPORTING),
     ],
 )
-def test_move_file_to_new_group_in_request(status, approved, bll):
+def test_move_file_to_new_group_in_request(status, approved, filetype, bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -1991,6 +1993,14 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
                 contents="1",
                 user=author,
                 approved=approved,
+                filetype=filetype,
+            ),
+            factories.request_file(
+                group="group",
+                path="an-output-file.txt",
+                contents="2",
+                user=author,
+                approved=True,
                 filetype=RequestFileType.OUTPUT,
             ),
         ],
@@ -1998,7 +2008,7 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
 
     request_file = release_request.get_request_file_from_output_path(path)
     assert request_file.group == "group"
-    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.filetype == filetype
     if approved:
         assert (
             request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
@@ -2012,7 +2022,7 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
         path,
         group_name="new-group",
         user=author,
-        filetype=RequestFileType.OUTPUT,
+        filetype=filetype,
     )
 
     workspace = bll.get_workspace("workspace", author)
@@ -2022,7 +2032,7 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
     request_file = release_request.get_request_file_from_output_path(path)
 
     assert request_file.group == "new-group"
-    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.filetype == filetype
     assert request_file.reviews == {}
 
 
