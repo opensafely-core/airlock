@@ -91,9 +91,14 @@ def test_middleware_user_trace(airlock_client):
     traces = {span.name: span.attributes for span in get_trace()}
     assert traces["mock_django_span"] == {
         "workspace": "workspace",
-        "user": user.username,
+        "username": user.username,
+        "user_id": user.user_id,
     }
-    assert traces["workspace_view"] == {"workspace": "workspace", "user": user.username}
+    assert traces["workspace_view"] == {
+        "workspace": "workspace",
+        "username": user.username,
+        "user_id": user.user_id,
+    }
 
 
 @pytest.mark.django_db
@@ -107,4 +112,7 @@ def test_middleware_user_trace_with_no_user(airlock_client):
 
     assert response.status_code == 200
     traces = {span.name: span.attributes for span in get_trace()}
-    assert traces["mock_django_span"] == {"user": ""}
+    assert traces["mock_django_span"] == {
+        "user_id": "anonymous",
+        "username": "anonymous",
+    }
