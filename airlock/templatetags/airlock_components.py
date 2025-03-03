@@ -12,6 +12,7 @@ register_components(
         "airlock_request_header": "_components/header/request/header.html",
         "airlock_repo_header": "_components/header/repo/header.html",
         "datatable": "_components/datatable.html",
+        "airlock_user": "_components/user.html",
     },
     register,
 )
