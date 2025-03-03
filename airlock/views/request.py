@@ -232,6 +232,9 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
+    if permissions.user_can_change_request_file_group(
+        user, release_request, workspace, relpath
+    ):
         move_file_button.show = True
         move_file_button.disabled = False
         move_file_button.tooltip = "Move this file to different group"

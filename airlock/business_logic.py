@@ -661,6 +661,10 @@ class BusinessLogicLayer:
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
+        workspace = self.get_workspace(release_request.workspace, user)
+        permissions.check_user_can_change_request_file_group(
+            user, release_request, workspace, relpath
+        )
         return self.replace_file_in_request(
             release_request, relpath, user, group_name, filetype
         )
