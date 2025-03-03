@@ -198,7 +198,7 @@ def check_user_can_replace_file_in_request(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    filegroup: str | None = None
+    filegroup: str | None = None,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
@@ -210,7 +210,7 @@ def user_can_replace_file_in_request(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    filegroup: str | None = None
+    filegroup: str | None = None,
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_replace_file_in_request(

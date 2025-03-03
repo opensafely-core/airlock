@@ -653,12 +653,9 @@ def multiselect_update_files(request, multiform, release_request):
     files_ignored = {}
     # validate which files can be added
     for f in multiform.cleaned_data["selected"]:
-        # validate path
-        release_request.abspath(f)
-
         workspace = bll.get_workspace(release_request.workspace, request.user)
         relpath = release_request.get_request_file_from_urlpath(f).relpath
-        if permissions.user_can_withdraw_file_from_request(
+        if permissions.user_can_change_request_file_group(
             request.user, release_request, workspace, relpath
         ):
             files_to_add.append(f)
@@ -735,7 +732,6 @@ def get_next_url(release_request, form):
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
-    # TODO: finish this
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
     formset = FileFormSet(request.POST)
@@ -755,13 +751,13 @@ def file_move_group(request, request_id):
     success_msgs = []
     for formset_form in formset:
         path = formset_form.cleaned_data["file"]
-
+        relpath = release_request.get_request_file_from_urlpath(path).relpath
         try:
             bll.move_file_to_new_group_in_request(
-                release_request, path, request.user, group_name
+                release_request, relpath, request.user, group_name
             )
             success_msgs.append(
-                f"The file {path} has been moved to new group {group_name}"
+                f"The file {relpath} has been moved to new group {group_name}"
             )
             next_url = release_request.get_url(group_name)
         except exceptions.RequestPermissionDenied as exc:

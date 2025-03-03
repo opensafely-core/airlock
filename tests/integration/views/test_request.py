@@ -1697,12 +1697,7 @@ def test_request_multiselect_move_files_not_permitted(airlock_client):
 
     airlock_client.login_with_user(user)
 
-    # TODO: can't get the factory to do the correct thing with a withdrawn file
-    # (it removes it from the request) so withdraw it here
-    response = airlock_client.post(
-        f"/requests/withdraw/{release_request.id}/group/file2.txt",
-        follow=True,
-    )
+    bll.withdraw_file_from_request(release_request, UrlPath("group/file2.txt"), user)
 
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.get_request_file_from_urlpath("group/file2.txt")
