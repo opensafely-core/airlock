@@ -46,6 +46,7 @@ def create_api_workspace(
 
 
 def create_api_user(
+    *,
     username: str = "testuser",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
@@ -90,6 +91,7 @@ def _create_workspaces(workspaces):
 
 
 def create_airlock_user(
+    *,
     username: str = "testuser",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
@@ -102,7 +104,10 @@ def create_airlock_user(
     just passed through to create_api_user.
     """
     api_user = create_api_user(
-        username, workspaces, copiloted_workspaces, output_checker
+        username=username,
+        workspaces=workspaces,
+        copiloted_workspaces=copiloted_workspaces,
+        output_checker=output_checker,
     )
     return User.from_api_data(api_user, last_refresh)
 
@@ -144,7 +149,10 @@ def get_or_create_airlock_user(
     """
 
     api_user = create_api_user(
-        username, workspaces, copiloted_workspaces, output_checker
+        username=username,
+        workspaces=workspaces,
+        copiloted_workspaces=copiloted_workspaces,
+        output_checker=output_checker,
     )
     try:
         user = User.objects.get(pk=username)
