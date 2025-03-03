@@ -1153,5 +1153,6 @@ def test_workspace_view_tracing_with_workspace_attribute(
     last_trace = traces[-1]
     assert last_trace.attributes == {
         "workspace": "test-workspace",
-        "user": airlock_client.user.username,
+        "username": airlock_client.user.username,
+        "user_id": airlock_client.user.user_id,
     }

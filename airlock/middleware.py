@@ -30,7 +30,8 @@ class UserMiddleware:
         span = trace.get_current_span()
 
         if request.user.is_authenticated:
-            span.set_attribute("user", request.user.username)
+            span.set_attribute("username", request.user.username)
+            span.set_attribute("user_id", request.user.user_id)
             time_since_authz = time.time() - request.user.last_refresh
             if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
                 span.set_attribute("auth_refresh", True)
@@ -38,7 +39,8 @@ class UserMiddleware:
                 if user:  # refresh may have failed for some reason
                     request.user = user
         else:
-            span.set_attribute("user", "")
+            span.set_attribute("username", "anonymous")
+            span.set_attribute("user_id", "anonymous")
 
         return self.get_response(request)
 

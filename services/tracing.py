@@ -115,7 +115,12 @@ def instrument(
             bound_args = func_signature.bind(*args, **kwargs).arguments
             if "request" in bound_args:
                 user = bound_args["request"].user
-                attributes_dict["user"] = user.username if user else ""
+                if user and user.is_authenticated:
+                    attributes_dict["user_id"] = user.user_id
+                    attributes_dict["username"] = user.username
+                else:  # pragma: nocover
+                    attributes_dict["user_id"] = "anonymous"
+                    attributes_dict["username"] = "anonymous"
 
             if func_attributes is not None:
                 bound_args = func_signature.bind(*args, **kwargs).arguments

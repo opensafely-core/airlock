@@ -1823,7 +1823,8 @@ def test_request_view_tracing_with_request_attribute(
     last_trace = traces[-1]
     assert last_trace.attributes == {
         "release_request": release_request.id,
-        "user": login_as,
+        "username": login_as,
+        "user_id": login_as,
     }
 
 
