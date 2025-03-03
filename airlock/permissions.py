@@ -194,18 +194,28 @@ def user_can_add_file_to_request(
 
 
 def check_user_can_replace_file_in_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filegroup: str | None = None
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_replace_file_in_request(workspace, relpath)
+    policies.check_can_replace_file_in_request(workspace, relpath, filegroup)
 
 
 def user_can_replace_file_in_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filegroup: str | None = None
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_replace_file_in_request(user, request, workspace, relpath)
+        check_user_can_replace_file_in_request(
+            user, request, workspace, relpath, filegroup
+        )
     except exceptions.RequestPermissionDenied:
         return False
     return True

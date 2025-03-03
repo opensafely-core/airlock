@@ -1752,6 +1752,58 @@ def test_update_file_to_request_states(
         assert_no_notifications(mock_notifications)
 
 
+def test_replace_unchanged_file_with_new_filegroup(bll):
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+    # No change to file content, same file type
+    bll.replace_file_in_request(
+        release_request, relpath, author, "new-group", RequestFileType.OUTPUT
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.group == "new-group"
+
+
+def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
+    author = factories.create_airlock_user("author", ["workspace"], False)
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+    # No change to file content, same file type
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.replace_file_in_request(
+            release_request, relpath, author, "group", RequestFileType.OUTPUT
+        )
+
+
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path1 = UrlPath("path/file1.txt")
