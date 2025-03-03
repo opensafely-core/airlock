@@ -622,66 +622,72 @@ def request_multiselect(request, request_id: str):
     action = multiform.cleaned_data["action"]
     match action:
         case "withdraw_files":
-            errors = []
-            successes = []
-            for path_str in multiform.cleaned_data["selected"]:
-                path = UrlPath(path_str)
-                try:
-                    bll.withdraw_file_from_request(release_request, path, request.user)
-                    successes.append(
-                        f"The file {path} has been withdrawn from the request"
-                    )
-                except exceptions.RequestPermissionDenied as exc:
-                    errors.append(str(exc))
-
-            display_multiple_messages(request, errors, "error")
-            display_multiple_messages(request, successes, "success")
-
-            url = multiform.cleaned_data["next_url"]
-            return HttpResponse(headers={"HX-Redirect": url})
-
+            return multiselect_withdraw_files(request, multiform, release_request)
         case "update_files":
-            files_to_add = []
-            files_ignored = {}
-            # validate which files can be added
-            for f in multiform.cleaned_data["selected"]:
-                # validate path
-                release_request.abspath(f)
+            return multiselect_update_files(request, multiform, release_request)
 
-                workspace = bll.get_workspace(release_request.workspace, request.user)
-                relpath = release_request.get_request_file_from_urlpath(f).relpath
-                if permissions.user_can_withdraw_file_from_request(
-                    request.user, release_request, workspace, relpath
-                ):
-                    files_to_add.append(f)
-                else:
-                    files_ignored[f] = "file cannot be moved"
-
-            move_file_form = AddFileForm(
-                release_request=release_request,
-                initial={"next_url": f"/requests/view/{release_request.id}/"},
-            )
-
-            filetype_formset = FileFormSet(
-                initial=[{"file": f} for f in files_to_add],
-            )
-            return TemplateResponse(
-                request,
-                template="change_file_group.html",
-                context={
-                    "form": move_file_form,
-                    "formset": filetype_formset,
-                    "files_ignored": files_ignored,
-                    "no_valid_files": len(files_to_add) == 0,
-                    # "update": True,
-                    "move_file_url": reverse(
-                        "file_move_group",
-                        kwargs={"request_id": release_request.id},
-                    ),
-                },
-            )
         case _:
             raise Http404(f"Invalid action {action}")
+
+
+def multiselect_withdraw_files(request, multiform, release_request):
+    errors = []
+    successes = []
+    for path_str in multiform.cleaned_data["selected"]:
+        path = UrlPath(path_str)
+        try:
+            bll.withdraw_file_from_request(release_request, path, request.user)
+            successes.append(f"The file {path} has been withdrawn from the request")
+        except exceptions.RequestPermissionDenied as exc:
+            errors.append(str(exc))
+
+    display_multiple_messages(request, errors, "error")
+    display_multiple_messages(request, successes, "success")
+
+    url = multiform.cleaned_data["next_url"]
+    return HttpResponse(headers={"HX-Redirect": url})
+
+
+def multiselect_update_files(request, multiform, release_request):
+    files_to_add = []
+    files_ignored = {}
+    # validate which files can be added
+    for f in multiform.cleaned_data["selected"]:
+        # validate path
+        release_request.abspath(f)
+
+        workspace = bll.get_workspace(release_request.workspace, request.user)
+        relpath = release_request.get_request_file_from_urlpath(f).relpath
+        if permissions.user_can_withdraw_file_from_request(
+            request.user, release_request, workspace, relpath
+        ):
+            files_to_add.append(f)
+        else:
+            files_ignored[f] = "file cannot be moved"
+
+    move_file_form = AddFileForm(
+        release_request=release_request,
+        initial={"next_url": f"/requests/view/{release_request.id}/"},
+    )
+
+    filetype_formset = FileFormSet(
+        initial=[{"file": f} for f in files_to_add],
+    )
+    return TemplateResponse(
+        request,
+        template="change_file_group.html",
+        context={
+            "form": move_file_form,
+            "formset": filetype_formset,
+            "files_ignored": files_ignored,
+            "no_valid_files": len(files_to_add) == 0,
+            # "update": True,
+            "move_file_url": reverse(
+                "file_move_group",
+                kwargs={"request_id": release_request.id},
+            ),
+        },
+    )
 
 
 @instrument
