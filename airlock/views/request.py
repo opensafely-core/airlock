@@ -38,6 +38,7 @@ from .helpers import (
     display_form_errors,
     display_multiple_messages,
     download_file,
+    get_next_url_from_form,
     get_path_item_from_tree_or_404,
     get_release_request_or_raise,
     serve_file,
@@ -616,7 +617,7 @@ def request_multiselect(request, request_id: str):
 
     if not multiform.is_valid():
         display_form_errors(request, multiform.errors)
-        url = multiform.cleaned_data["next_url"]
+        url = get_next_url_from_form(release_request, multiform)
         return HttpResponse(headers={"HX-Redirect": url})
 
     action = multiform.cleaned_data["action"]
@@ -644,7 +645,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
     display_multiple_messages(request, errors, "error")
     display_multiple_messages(request, successes, "success")
 
-    url = multiform.cleaned_data["next_url"]
+    url = get_next_url_from_form(release_request, multiform)
     return HttpResponse(headers={"HX-Redirect": url})
 
 
@@ -721,14 +722,6 @@ def file_approve(request, request_id, path: str):
     return redirect(release_request.get_url(path))
 
 
-def get_next_url(release_request, form):
-    if "next_url" not in form.errors:
-        return form.cleaned_data["next_url"]
-
-    # default redirect in case of error
-    return release_request.get_url()
-
-
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
 def file_move_group(request, request_id):
@@ -737,7 +730,7 @@ def file_move_group(request, request_id):
     formset = FileFormSet(request.POST)
     errors = add_or_update_form_is_valid(request, form, formset)
 
-    next_url = get_next_url(release_request, form)
+    next_url = get_next_url_from_form(release_request, form)
 
     if errors:
         return redirect(next_url)
