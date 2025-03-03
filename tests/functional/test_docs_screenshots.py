@@ -316,11 +316,17 @@ def test_screenshot_from_creation_to_release(
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     take_screenshot(comments, "returned_request_comments.png")
 
-    # Withdraw a file after request returned
     page.goto(
         live_server.url
         + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
     )
+    # Change file group modal
+    page.locator("#update-file-modal-button").click()
+    form_element = page.get_by_role("form")
+    screenshot_element_with_padding(page, form_element, "change_file_group.png")
+    # exit modal
+    page.keyboard.press("Escape")
+    # Withdraw a file after request returned
     page.locator("#withdraw-file-button").click()
     take_screenshot(page, "withdrawn_file.png")
 
