@@ -84,13 +84,11 @@
           {% #list_group_item %}
             <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
               {% csrf_token %}
-              {% if request.user.output_checker and release_request.get_turn_phase.name == "INDEPENDENT" %}
-                {% #alert variant="warning" title="Comments are hidden" dismissible=True %}
-                  Only you will see this comment until two independent reviews have been submitted
-                {% /alert %}
-              {% else %}
+
+              {% if group.comment_form.visibility.field.choices|length == 1 %}
                 {% #alert variant="info" title="Comments are pending" no_icon=True %}
-                  Any comments will be shown to other users once you submit or return a request
+                  Comments are initially only visible to you. Once you submit the request,
+                  comments will be visible to other users.
                 {% /alert %}
               {% endif %}
 
@@ -98,8 +96,14 @@
               {% if group.comment_form.visibility.field.choices|length == 1 %}
                 <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
               {% else %}
+                {% if group.comment_form.visibility.label %}
+                  <div class="text-bn-flamenco-500 w-full max-w-lg">
+                    {% icon_exclamation_triangle_outline class="h-5 w-5 text-bn-flamenco-500 inline" %}
+                    {{ group.comment_form.visibility.label }}
+                  </div>
+                {% endif %}
                 {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
-              {% endif%}
+              {% endif %}
               <div class="mt-2">
                 {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
               </div>
