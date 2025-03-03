@@ -33,6 +33,12 @@ def get_user_data():
         "checker2": factories.create_api_user(
             username="checker2", workspaces=[], output_checker=True
         ),
+        "copilot": factories.create_api_user(
+            username="copilot",
+            workspaces=[],
+            copiloted_workspaces=["workspace-1"],
+            output_checker=False,
+        ),
     }
 
     author = factories.create_airlock_user(
@@ -665,3 +671,36 @@ def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
 
     # screenshot the tree
     take_screenshot(page.locator("#tree"), "workspace_file_icons.png")
+
+
+def test_screenshot_copiloted_workspace(page, live_server, context):
+    author, user_dicts = get_user_data()
+
+    # set up a workspace with files in a subdirectory
+    workspace = factories.create_workspace("workspace-1")
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "Age Band,Mean\n0-20,10\n21-40,20\n41-60,30\n60+,40",
+    )
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file2.csv",
+        "Variable 1,Variable 2\nA,1\nB,2\nC,3\nD,4",
+    )
+
+    # Log in as a copilot
+    login_as_user(live_server, context, user_dicts["copilot"])
+    page.goto(live_server.url + "/copiloted-workspaces")
+
+    # workspaces index page
+    take_screenshot(page, "copiloted_workspaces_index.png")
+
+    # workspace file view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
+    page.locator("#add-file-modal-button").hover()
+    expect(page.get_by_text("You do not have permission to add files")).to_be_visible()
+    take_screenshot(
+        page.locator("#selected-contents"), "copiloted_workspace_file_add.png"
+    )

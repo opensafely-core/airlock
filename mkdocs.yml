@@ -22,6 +22,8 @@ nav:
       - Respond to a returned request: how-tos/respond-to-returned-request.md
       - Edit a file on a request: how-tos/edit-file-on-request.md
       - Withdraw a request: how-tos/withdraw-request.md
+    - For copilots:
+      - View output files in a copiloted workspace: how-tos/view-copiloted-workspace-files.md
     - For output checkers:
       - Review a request: how-tos/review-a-request.md
       - Release files: how-tos/release-files.md
