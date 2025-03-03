@@ -67,5 +67,29 @@
         }
       }
     }
+  },
+  "copilot": {
+    "token": "copilot",
+    "details": {
+      "username": "copilot",
+      "fullname": "copilot Checker 2",
+      "output_checker": false,
+      "staff": true,
+      "workspaces": {},
+      "copiloted_workspaces": {
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_1": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        "example-workspace_2": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": true
+        }
+      }
+    }
   }
 }

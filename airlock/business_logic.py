@@ -259,7 +259,10 @@ class BusinessLogicLayer:
         # It will be None for output checkers who don't have explicit access to
         # the workspace; this is OK as they also won't be able to create requests
         # for the workspace, and they only have access to browse the files.
-        metadata = user.workspaces.get(name, {})
+        # Try to get workspace metadata from the user's workspaces first, then
+        # their copiloted workspaces. The actual workspace metadata does not differ
+        # between users and copilots
+        metadata = user.workspaces.get(name, user.copiloted_workspaces.get(name, {}))
 
         return Workspace.from_directory(
             name,
@@ -268,19 +271,26 @@ class BusinessLogicLayer:
             released_files=self.get_released_files_for_workspace(name),
         )
 
-    def get_workspaces_for_user(self, user: User) -> list[Workspace]:
-        """Get all the local workspace directories that a user has permission for."""
-
-        workspaces = []
-        for workspace_name in user.workspaces:
+    def _build_workspace_list(self, user, workspaces) -> list[Workspace]:
+        valid_workspaces = []
+        for workspace_name in workspaces:
             try:
                 workspace = self.get_workspace(workspace_name, user)
             except exceptions.WorkspaceNotFound:
                 continue
 
-            workspaces.append(workspace)
+            valid_workspaces.append(workspace)
 
-        return workspaces
+        return valid_workspaces
+
+    def get_workspaces_for_user(self, user: User) -> list[Workspace]:
+        """Get all the local workspace directories that a user has permission for."""
+
+        return self._build_workspace_list(user, user.workspaces)
+
+    def get_copiloted_workspaces_for_user(self, user: User) -> list[Workspace]:
+        """Get all the local workspace directories that a user is a copilot for."""
+        return self._build_workspace_list(user, user.copiloted_workspaces)
 
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""

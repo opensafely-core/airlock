@@ -106,6 +106,22 @@ def researcher_user(live_server, context):
 
 
 @pytest.fixture
+def copilot_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        factories.create_api_user(
+            username="test_copilot",
+            workspaces={},
+            copiloted_workspaces={
+                "test-dir1": factories.create_api_workspace(project="Test Project")
+            },
+            output_checker=False,
+        ),
+    )
+
+
+@pytest.fixture
 def dev_users(tmp_path, settings):
     settings.AIRLOCK_DEV_USERS_FILE = tmp_path / "dev_users.json"
     settings.AIRLOCK_DEV_USERS_FILE.write_text(

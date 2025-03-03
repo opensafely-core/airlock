@@ -116,9 +116,11 @@ def test_workspace_directory_and_request_can_multiselect_add(
     airlock_client, bll, mock_old_api, login_as, status, can_multiselect_add
 ):
     users = {
-        "author": factories.create_airlock_user("author", workspaces=["workspace"]),
+        "author": factories.create_airlock_user(
+            username="author", workspaces=["workspace"]
+        ),
         "checker": factories.create_airlock_user(
-            "checker", workspaces=[], output_checker=True
+            username="checker", workspaces=[], output_checker=True
         ),
     }
     airlock_client.login_with_user(users[login_as])
@@ -164,7 +166,9 @@ def test_workspace_view_with_file(airlock_client):
     ],
 )
 def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
-    author = factories.create_airlock_user("author", workspaces=["test-workspace"])
+    author = factories.create_airlock_user(
+        username="author", workspaces=["test-workspace"]
+    )
 
     airlock_client.login_with_user(author)
     # set up a returned file & request
@@ -525,6 +529,52 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
     assert [ws.name for ws in projects[inactive_project1]] == ["test2a", "test2b"]
 
 
+def test_copiloted_workspaces_index(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={
+            "test1a": factories.create_api_workspace(
+                project="Project 1", archived=True
+            ),
+            "test1b": factories.create_api_workspace(project="Project 1"),
+            "test1c": factories.create_api_workspace(project="Project 1"),
+        },
+        copiloted_workspaces={
+            "test2b": factories.create_api_workspace(
+                project="Project 2", ongoing=False
+            ),
+            "test2a": factories.create_api_workspace(
+                project="Project 2", ongoing=False
+            ),
+            "test3": factories.create_api_workspace(project="Project 3"),
+        },
+    )
+
+    airlock_client.login_with_user(user)
+    factories.create_workspace("test1a")
+    factories.create_workspace("test1b")
+    factories.create_workspace("test1c")
+    factories.create_workspace("test2b")
+    factories.create_workspace("test2a")
+    factories.create_workspace("test3")
+    response = airlock_client.get("/copiloted-workspaces/")
+
+    projects = response.context["projects"]
+    inactive_project1 = Project(name="Project 2", is_ongoing=False)
+    ongoing_project2 = Project(name="Project 3", is_ongoing=True)
+
+    # Only copiloted workspaces are shown
+    # projects are ordered by ongoing first, then by name
+    assert list(projects.keys()) == [
+        ongoing_project2,
+        inactive_project1,
+    ]
+
+    # within a project, workspaces are ordered by unarchived first and then by name
+    assert [ws.name for ws in projects[ongoing_project2]] == ["test3"]
+    assert [ws.name for ws in projects[inactive_project1]] == ["test2a", "test2b"]
+
+
 def test_workspace_multiselect_add_files_all_valid(airlock_client, bll):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
@@ -656,7 +706,7 @@ def test_workspace_multiselect_add_files_updated_file(airlock_client, bll):
 def test_workspace_multiselect_update_files(
     airlock_client, bll, path1_updated, path2_updated, ignored_count
 ):
-    author = factories.create_airlock_user("author", workspaces=["test1"])
+    author = factories.create_airlock_user(username="author", workspaces=["test1"])
     airlock_client.login_with_user(author)
 
     workspace = factories.create_workspace("test1")

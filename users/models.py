@@ -37,6 +37,10 @@ class User(AbstractBaseUser):
         return self.api_data.get("workspaces", {})
 
     @property
+    def copiloted_workspaces(self):
+        return self.api_data.get("copiloted_workspaces", {})
+
+    @property
     def output_checker(self):
         return self.api_data.get("output_checker", False)
 

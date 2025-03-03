@@ -232,7 +232,9 @@ def test_request_group_comment_visibility_public_for_checker(
         context,
         user_dict=factories.create_api_user(username="checker", output_checker=True),
     )
-    checker = factories.create_airlock_user("checker", [], True)
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
 
     submitted_release_request = factories.create_request_at_status(
         "workspace",

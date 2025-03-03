@@ -36,6 +36,11 @@ urlpatterns = [
         name="workspace_index",
     ),
     path(
+        "copiloted-workspaces/",
+        airlock.views.copilot_workspace_index,
+        name="copiloted_workspace_index",
+    ),
+    path(
         "workspaces/view/<str:workspace_name>/",
         airlock.views.workspace_view,
         kwargs={"path": ""},

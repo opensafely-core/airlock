@@ -15,6 +15,9 @@ For researchers:
     * [Move a file to a different group](edit-file-on-request.md#move-a-file-to-a-different-group)
 * [Withdraw a request](withdraw-request.md)
 
+For copilots:
+
+* [View output files in a copiloted workspace](view-copiloted-workspace-files.md)
 
 For output checkers:
 

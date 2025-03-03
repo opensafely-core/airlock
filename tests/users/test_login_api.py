@@ -20,6 +20,9 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
                         workspaces={
                             "test1": factories.create_api_workspace(project="project1")
                         },
+                        copiloted_workspaces={
+                            "test2": factories.create_api_workspace(project="project2")
+                        },
                     ),
                 },
             },
@@ -31,6 +34,12 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
     assert dev_data["workspaces"] == {
         "test1": {
             "project_details": {"name": "project1", "ongoing": True},
+            "archived": False,
+        },
+    }
+    assert dev_data["copiloted_workspaces"] == {
+        "test2": {
+            "project_details": {"name": "project2", "ongoing": True},
             "archived": False,
         },
     }

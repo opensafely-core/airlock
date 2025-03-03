@@ -99,7 +99,7 @@ def test_e2e_release_files(
         "I am the supporting file content",
     )
 
-    admin_user = factories.create_airlock_user("admin", output_checker=True)
+    admin_user = factories.create_airlock_user(username="admin", output_checker=True)
 
     # Log in as a researcher
     login_as(live_server, page, "researcher")
@@ -471,7 +471,9 @@ def test_e2e_update_file(page, live_server, dev_users, multiselect):
     Test researcher updates a modified file in a returned request
     """
     # set up a returned file & request
-    author = factories.create_airlock_user("researcher", ["test-workspace"], False)
+    author = factories.create_airlock_user(
+        username="researcher", workspaces=["test-workspace"], output_checker=False
+    )
 
     path = "subdir/file.txt"
 
@@ -516,7 +518,9 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     Test researcher updates a modified file in a returned request
     """
     # Set up a returned request with an approved file
-    author = factories.create_airlock_user("researcher", ["test-workspace"], False)
+    author = factories.create_airlock_user(
+        username="researcher", workspaces=["test-workspace"], output_checker=False
+    )
     path1 = "subdir/file1.txt"
     path2 = "subdir/file2.txt"
 
@@ -580,7 +584,9 @@ def test_e2e_reject_request(page, live_server, dev_users):
     # set up a reviewed request
     release_request = factories.create_request_at_status(
         "test-workspace",
-        author=factories.create_airlock_user("author", workspaces=["test-workspace"]),
+        author=factories.create_airlock_user(
+            username="author", workspaces=["test-workspace"]
+        ),
         status=RequestStatus.REVIEWED,
         files=[factories.request_file(changes_requested=True)],
     )
@@ -606,7 +612,9 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     Request author withdraws their request
     """
     # set up a submitted request
-    user = factories.create_airlock_user("researcher", ["test-workspace"], False)
+    user = factories.create_airlock_user(
+        username="researcher", workspaces=["test-workspace"], output_checker=False
+    )
     release_request = factories.create_request_at_status(
         "test-workspace",
         author=user,
