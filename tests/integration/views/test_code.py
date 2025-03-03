@@ -12,7 +12,9 @@ def test_code_view_index(airlock_client):
     repo = factories.create_repo("workspace")
 
     response = airlock_client.get(f"/code/view/workspace/{repo.commit}/")
-    assert "project.yaml" in response.rendered_content
+    assert (
+        f"/code/view/workspace/{repo.commit}/project.yaml" in response.rendered_content
+    )
 
 
 def test_code_view_index_return_url(airlock_client):

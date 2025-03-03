@@ -285,7 +285,7 @@ def write_workspace_file(workspace: Workspace | str, path, contents="", manifest
 
 def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeRepo:
     workspace = ensure_workspace(workspace)
-    repo_dir = settings.GIT_REPO_DIR / workspace.name
+    repo_dir = settings.GIT_REPO_DIR / f"{workspace.name}-repo"
 
     if files is None:
         files = [

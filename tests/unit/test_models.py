@@ -499,7 +499,7 @@ def test_code_repo_container():
     factories.write_workspace_file(workspace, "foo.txt")
     repo = factories.create_repo(workspace)
 
-    assert repo.get_id() == f"workspace@{repo.commit[:7]}"
+    assert repo.get_id() == f"{repo.name}@{repo.commit[:7]}"
     assert (
         repo.get_url(UrlPath("project.yaml"))
         == f"/code/view/workspace/{repo.commit}/project.yaml"
