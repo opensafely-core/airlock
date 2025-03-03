@@ -79,7 +79,8 @@ class Command(BaseCommand):
                             "workspace": approved_request.workspace,
                             "group": file_for_upload.group,
                             "file": str(file_for_upload.relpath),
-                            "user": file_for_upload.released_by,
+                            "username": file_for_upload.released_by.username,
+                            "user_id": file_for_upload.released_by.user_id,
                         },
                     ) as span:
                         try:
@@ -116,13 +117,13 @@ def do_upload_task(file_for_upload, release_request):
         release_request.abspath(
             UrlPath(file_for_upload.group) / file_for_upload.relpath
         ),
-        file_for_upload.released_by,
+        file_for_upload.released_by.username,
     )
     # mark the request file as uploaded and set the task completed time
     # we use the released_by user for this, for consistency with the
     # user who initiated the release
     bll.register_file_upload(
-        release_request, file_for_upload.relpath, get_user_for_file(file_for_upload)
+        release_request, file_for_upload.relpath, file_for_upload.released_by
     )
     logger.info("File uploaded: %s - %s", release_request.id, file_for_upload.relpath)
 
@@ -144,14 +145,10 @@ def get_upload_files_and_update_request_status(release_request):
         bll.set_status(
             release_request,
             RequestStatus.RELEASED,
-            get_user_for_file(last_uploaded_file),
+            last_uploaded_file.released_by,
         )
     return [
         request_file
         for request_file in files_for_upload
         if request_file.can_attempt_upload()
     ]
-
-
-def get_user_for_file(request_file):
-    return User.objects.get(pk=request_file.released_by)

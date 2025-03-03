@@ -152,7 +152,8 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
         "workspace": "workspace",
         "group": "group",
         "file": "test/file2.txt",
-        "user": checker.username,
+        "username": checker.username,
+        "user_id": checker.user_id,
     }
 
 
@@ -314,7 +315,8 @@ def test_run_file_uploader_command_unexpected_error(
         "workspace": "workspace",
         "group": "group",
         "file": "test/file2.txt",
-        "user": checker.username,
+        "username": checker.username,
+        "user_id": checker.user_id,
     }
     last_trace_event = last_trace.events[0]
     assert last_trace_event.name == "exception"

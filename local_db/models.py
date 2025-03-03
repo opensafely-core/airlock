@@ -88,11 +88,11 @@ class RequestMetadata(models.Model):
 
     workspace = models.TextField()
     status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
-    author = models.TextField()  # just username, as we have no User model
+    author = models.TextField()  # just user id, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
     submitted_reviews = models.JSONField(default=dict)
     review_turn = models.IntegerField(default=0)
-    # comma-separated list of submitted reviewers' usernames
+    # comma-separated list of submitted reviewers' user ids
     # we need to store this at the end of a turn
     turn_reviewers = models.TextField(null=True)
 

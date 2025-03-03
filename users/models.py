@@ -25,6 +25,9 @@ class User(AbstractBaseUser):
     # Time of last authentication refresh
     last_refresh = models.FloatField(default=time.time)
 
+    def __str__(self):
+        return self.username
+
     @property
     def username(self):
         return self.api_data["username"]

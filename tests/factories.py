@@ -721,12 +721,14 @@ def refresh_release_request(release_request, user=None) -> ReleaseRequest:
 
 def create_audit_event(
     type_,
-    user="user",
+    user=None,
     workspace: str = "workspace",
     request="request",
     path=UrlPath("foo/bar"),
     extra={"foo": "bar"},
 ):
+    if user is None:
+        user = create_airlock_user("user")
     event = AuditEvent(
         type=type_,
         user=user,

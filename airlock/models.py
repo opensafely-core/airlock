@@ -65,7 +65,7 @@ AUDIT_MSG_FORMATS = {
 @dataclass
 class AuditEvent:
     type: AuditEventType
-    user: str
+    user: User
     workspace: str | None = None
     request: str | None = None
     path: UrlPath | None = None
@@ -89,7 +89,7 @@ class AuditEvent:
         kwargs["review_turn"] = str(request.review_turn)
         event = cls(
             type=type,
-            user=user.username,
+            user=user,
             workspace=request.workspace,
             request=request.id,
             extra=kwargs,
@@ -123,7 +123,7 @@ class AuditEvent:
         return int(self.extra.get("review_turn", 0))
 
     @property
-    def author(self) -> str:
+    def author(self) -> User:
         return self.user
 
     @property
@@ -450,14 +450,17 @@ class FileReview:
     Represents a review of a file in the context of a release request
     """
 
-    reviewer: str
+    reviewer: User
     status: RequestFileVote
     created_at: datetime
     updated_at: datetime
 
     @classmethod
     def from_dict(cls, attrs):
-        return cls(**attrs)
+        return cls(
+            **{k: v for k, v in attrs.items() if k != "reviewer"},
+            reviewer=User.objects.get(pk=attrs["reviewer"]),
+        )
 
 
 @dataclass(frozen=True)
@@ -475,7 +478,7 @@ class RequestFile:
     job_id: str
     commit: str
     repo: str
-    released_by: str | None = None
+    released_by: User | None = None
     row_count: int | None = None
     col_count: int | None = None
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -487,12 +490,18 @@ class RequestFile:
 
     @classmethod
     def from_dict(cls, attrs) -> Self:
+        released_by = (
+            User.objects.get(pk=attrs["released_by"])
+            if attrs.get("released_by")
+            else None
+        )
         return cls(
-            **{k: v for k, v in attrs.items() if k != "reviews"},
+            **{k: v for k, v in attrs.items() if k not in ["reviews", "released_by"]},
             reviews={
                 value["reviewer"]: FileReview.from_dict(value)
                 for value in attrs.get("reviews", ())
             },
+            released_by=released_by,
         )
 
     def get_decision(self, submitted_reviewers) -> RequestFileDecision:
@@ -508,7 +517,9 @@ class RequestFile:
         a file APPROVED to unblock things if one of the initial reviewers is unavailable.
         """
         all_reviews = [
-            v.status for v in self.reviews.values() if v.reviewer in submitted_reviewers
+            v.status
+            for v in self.reviews.values()
+            if v.reviewer.user_id in submitted_reviewers
         ]
 
         if len(all_reviews) < 2:
@@ -598,7 +609,7 @@ class Comment:
 
     id: str
     comment: str
-    author: str
+    author: User
     created_at: datetime
     visibility: Visibility
     review_turn: int
@@ -609,8 +620,9 @@ class Comment:
         # in the BLL, so we need to add a conversion here (instead of just passing
         # it straight through with the other `attrs`)
         return cls(
-            **{k: v for k, v in attrs.items() if k not in ["id"]},
+            **{k: v for k, v in attrs.items() if k not in ["id", "author"]},
             id=str(attrs["id"]),
+            author=User.objects.get(pk=attrs["author"]),
         )
 
 
@@ -626,7 +638,7 @@ class ReleaseRequest:
 
     id: str
     workspace: str
-    author: str
+    author: User
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
@@ -637,8 +649,9 @@ class ReleaseRequest:
     @classmethod
     def from_dict(cls, attrs) -> Self:
         return cls(
-            **{k: v for k, v in attrs.items() if k != "filegroups"},
+            **{k: v for k, v in attrs.items() if k not in ["filegroups", "author"]},
             filegroups=cls._filegroups_from_dict(attrs.get("filegroups", {})),
+            author=User.objects.get(pk=attrs["author"]),
         )
 
     @staticmethod
@@ -812,7 +825,7 @@ class ReleaseRequest:
         self, user: User
     ) -> list[Visibility]:
         """What comment visibilities should this user be able to write for this request?"""
-        is_author = user.username == self.author
+        is_author = user == self.author
 
         # author can only ever create public comments
         if is_author:
