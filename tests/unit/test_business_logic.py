@@ -2009,7 +2009,7 @@ def test_move_file_to_new_group_in_request(status, approved, bll):
 
     bll.move_file_to_new_group_in_request(
         release_request,
-        urlpath,
+        path,
         group_name="new-group",
         user=author,
         filetype=RequestFileType.OUTPUT,
@@ -2049,15 +2049,15 @@ def test_move_file_to_new_group_in_request_same_group(bll):
     assert request_file.group == "group"
     assert request_file.filetype == RequestFileType.OUTPUT
     assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
-    urlpath = request_file.group / path
 
-    bll.move_file_to_new_group_in_request(
-        release_request,
-        urlpath,
-        group_name="group",
-        user=author,
-        filetype=RequestFileType.OUTPUT,
-    )
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.move_file_to_new_group_in_request(
+            release_request,
+            path,
+            group_name="group",
+            user=author,
+            filetype=RequestFileType.OUTPUT,
+        )
     workspace = bll.get_workspace("workspace", author)
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
 
