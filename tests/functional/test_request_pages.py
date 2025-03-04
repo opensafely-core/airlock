@@ -56,7 +56,9 @@ def test_request_file_update_properties(live_server, context, page, bll):
         author=author,
         status=RequestStatus.PENDING,
         files=[
-            factories.request_file(group="group", path="file1.txt"),
+            factories.request_file(
+                group="group", path="file1.txt", filetype=RequestFileType.SUPPORTING
+            ),
             factories.request_file(group="group", path="file2.txt"),
         ],
     )
@@ -68,6 +70,11 @@ def test_request_file_update_properties(live_server, context, page, bll):
 
     # The filegroup field is populated with the file's current group
     expect(page.get_by_label("Select a file group")).to_have_value("group")
+
+    # The filetype field is populated with the file's current type
+    expect(
+        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
+    ).to_be_checked()
 
     page.locator("#id_new_filegroup").fill("new-group")
 
