@@ -312,16 +312,18 @@ def multiselect_add_files(request, multiform, workspace):
 
     return TemplateResponse(
         request,
-        template="add_files.html",
+        template="add_or_change_files.html",
         context={
             "form": add_file_form,
             "formset": filetype_formset,
             "files_ignored": files_ignored,
             "no_valid_files": len(files_to_add) == 0,
-            "add_file_url": reverse(
+            "form_url": reverse(
                 "workspace_add_file",
                 kwargs={"workspace_name": workspace.name},
             ),
+            "modal_title": "Add Files to Request",
+            "modal_button_text": "Add Files to Request",
         },
     )
 

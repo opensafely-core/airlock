@@ -158,7 +158,7 @@ def test_e2e_release_files(
     form_element = page.get_by_role("form")
 
     # Click the button to add the file to a release request
-    find_and_click(page, form_element.locator("#add-file-button"))
+    find_and_click(page, form_element.locator("#add-or-change-file-button"))
 
     expect(page).to_have_url(
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
@@ -231,7 +231,7 @@ def test_e2e_release_files(
     page.locator("input[name=form-0-filetype][value=SUPPORTING]").check()
 
     # Click the button to add the file to a release request
-    find_and_click(page, page.get_by_role("form").locator("#add-file-button"))
+    find_and_click(page, page.get_by_role("form").locator("#add-or-change-file-button"))
 
     # refresh release_request
     release_request = bll.get_release_request(request_id, admin_user)
@@ -554,7 +554,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     # Change our mind on file 2: go to file page and re-add it
     page.goto(live_server.url + workspace.get_url(UrlPath(path2)))
     find_and_click(page, page.locator("button[value=add_files]"))
-    find_and_click(page, page.get_by_role("form").locator("#add-file-button"))
+    find_and_click(page, page.get_by_role("form").locator("#add-or-change-file-button"))
 
     # Confirm it's been re-added
     expect(page.locator("body")).to_contain_text(
@@ -569,7 +569,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
     find_and_click(page, page.locator(f'input[name="selected"][value="{path1}"]'))
 
     find_and_click(page, page.locator("button[value=add_files]"))
-    find_and_click(page, page.get_by_role("form").locator("#add-file-button"))
+    find_and_click(page, page.get_by_role("form").locator("#add-or-change-file-button"))
 
     # Confirm it's been re-added
     expect(page.locator("body")).to_contain_text(
