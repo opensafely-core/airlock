@@ -1469,7 +1469,7 @@ def test_file_withdraw_file_bad_request(airlock_client):
     assert response.status_code == 404
 
 
-def test_file_move_file_group_pending(airlock_client):
+def test_file_change_file_properties_pending(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
     test_relpath = "path/test.txt"
 
@@ -1488,7 +1488,7 @@ def test_file_move_file_group_pending(airlock_client):
         release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
     response = airlock_client.post(
-        f"/requests/move/{release_request.id}",
+        f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
@@ -1510,7 +1510,7 @@ def test_file_move_file_group_pending(airlock_client):
         persisted_request.get_request_file_from_urlpath(f"group/{test_relpath}")
 
 
-def test_file_move_file_group_bad_next_url(airlock_client):
+def test_change_file_properties_bad_next_url(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
     test_relpath = "path/test.txt"
 
@@ -1527,7 +1527,7 @@ def test_file_move_file_group_bad_next_url(airlock_client):
         release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
     response = airlock_client.post(
-        f"/requests/move/{release_request.id}",
+        f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
@@ -1548,7 +1548,7 @@ def test_file_move_file_group_bad_next_url(airlock_client):
         release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
 
-def test_file_move_file_group_permission_denied(airlock_client):
+def test_change_file_properties_permission_denied(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
     test_relpath = "path/test.txt"
 
@@ -1565,7 +1565,7 @@ def test_file_move_file_group_permission_denied(airlock_client):
         release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
 
     response = airlock_client.post(
-        f"/requests/move/{release_request.id}",
+        f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
@@ -1619,7 +1619,7 @@ def test_request_multiselect_withdraw_files(airlock_client):
         assert f"{path} has been withdrawn from the request" in messages
 
 
-def test_request_multiselect_move_files(airlock_client):
+def test_request_multiselect_change_file_properties(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
@@ -1645,7 +1645,7 @@ def test_request_multiselect_move_files(airlock_client):
     )
 
     assert (
-        f'<form action="/requests/move/{release_request.id}" method="POST"'
+        f'<form action="/requests/change-properties/{release_request.id}" method="POST"'
         in response.rendered_content
     )
     assert "file1.txt" in response.rendered_content
@@ -1684,7 +1684,7 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
         assert request_file.filetype != RequestFileType.WITHDRAWN
 
 
-def test_request_multiselect_move_files_not_permitted(airlock_client):
+def test_request_multiselect_change_file_properties_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
@@ -1719,9 +1719,9 @@ def test_request_multiselect_move_files_not_permitted(airlock_client):
     )
 
     assert "file2.txt" in response.rendered_content
-    assert "file cannot be moved" in response.rendered_content
+    assert "cannot change file group or type" in response.rendered_content
     assert (
-        f'<form action="/requests/move/{release_request.id}" method="POST"'
+        f'<form action="/requests/change-properties/{release_request.id}" method="POST"'
         in response.rendered_content
     )
 
