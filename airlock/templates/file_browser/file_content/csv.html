@@ -12,6 +12,21 @@
     {% vite_hmr_client %}
     {% vite_asset "assets/src/scripts/main.js" %}
     {% vite_asset "assets/src/scripts/datatable.js" %}
+    <style>
+      #airlock-table td.datatable-row-number {
+        text-align: right;
+        color: rgb(186 189 197);
+      }
+      #airlock-table thead tr {
+        position: sticky;
+      }
+      #airlock-table thead tr:first-child {
+        top: 0;
+      }
+      #airlock-table thead tr:nth-child(2) {
+        top: 2.374em; /* determined via binary search  */
+      }
+    </style>
   </head>
 
   <body>
@@ -21,6 +36,11 @@
         {% #datatable column_filter searchable sortable %}
           <thead>
             <tr>
+              <th data-searchable="false">
+                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                  {% datatable_sort_icon %}
+                </span>
+              </th>
               {% for header in headers %}
                 <th>
                   <div class="flex flex-row gap-2 items-center">
@@ -34,8 +54,9 @@
             </tr>
           </thead>
           <tbody>
-            {% for row in rows %}
+            {% for index, row in rows %}
               <tr>
+                <td class="datatable-row-number" data-order="{{ index }}">{{ index }}</td>
                 {% for cell in row %}
                   <td data-order="{{ cell }}">{{ cell }}</td>
                 {% endfor %}
@@ -47,6 +68,7 @@
         <table>
           <thead>
             <tr>
+              <th></th>
               {% for header in headers %}
                 <th>
                   {{ header }}
@@ -55,8 +77,9 @@
             </tr>
           </thead>
           <tbody>
-            {% for row in rows %}
+            {% for index, row in rows %}
               <tr>
+                <td>{{ index }}</td>
                 {% for cell in row %}
                   <td>{{ cell }}</td>
                 {% endfor %}

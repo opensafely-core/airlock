@@ -129,9 +129,9 @@ class CSVRenderer(Renderer):
         reader = csv.reader(self.stream)
         headers = next(reader, [])
         header_col_count = len(headers)
-        rows = list(reader)
+        rows = list(enumerate(reader, start=1))
         ctx = {"headers": headers, "rows": rows, "use_datatables": True}
-        if any(len(row) != header_col_count for row in rows):
+        if any(len(row) != header_col_count for _, row in rows):
             ctx["use_datatables"] = False
         return ctx
 
