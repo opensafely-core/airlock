@@ -1983,7 +1983,7 @@ def test_readd_withdrawn_file_to_request_returned_new_group(bll):
         (RequestStatus.RETURNED, False, RequestFileType.SUPPORTING),
     ],
 )
-def test_move_file_to_new_group_in_request(status, approved, filetype, bll):
+def test_change_file_properties_in_request(status, approved, filetype, bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2021,7 +2021,7 @@ def test_move_file_to_new_group_in_request(status, approved, filetype, bll):
     urlpath = request_file.group / path
     assert urlpath == UrlPath("group/path/file1.txt")
 
-    bll.move_file_to_new_group_in_request(
+    bll.change_file_properties_in_request(
         release_request,
         path,
         group_name="new-group",
@@ -2040,7 +2040,7 @@ def test_move_file_to_new_group_in_request(status, approved, filetype, bll):
     assert request_file.reviews == {}
 
 
-def test_move_file_to_new_group_in_request_same_group(bll):
+def test_change_file_properties_in_request_same_group(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2065,7 +2065,7 @@ def test_move_file_to_new_group_in_request_same_group(bll):
     assert request_file.reviews["output-checker-0"].status == RequestFileVote.APPROVED
 
     with pytest.raises(exceptions.RequestPermissionDenied):
-        bll.move_file_to_new_group_in_request(
+        bll.change_file_properties_in_request(
             release_request,
             path,
             group_name="group",
@@ -2111,9 +2111,9 @@ def test_move_withdrawn_file_to_new_group_in_request(bll):
 
     with pytest.raises(
         exceptions.RequestPermissionDenied,
-        match="Cannot change file group for a withdrawn file",
+        match="Cannot change file group or type for a withdrawn file",
     ):
-        bll.move_file_to_new_group_in_request(
+        bll.change_file_properties_in_request(
             release_request,
             path,
             group_name="new-group",
@@ -2122,7 +2122,7 @@ def test_move_withdrawn_file_to_new_group_in_request(bll):
         )
 
 
-def test_move_file_to_new_group_in_request_not_allowed(bll):
+def test_change_file_properties_in_request_not_allowed(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2144,9 +2144,9 @@ def test_move_file_to_new_group_in_request_not_allowed(bll):
 
     with pytest.raises(
         exceptions.RequestPermissionDenied,
-        match="Cannot change file group for request file path/file1.txt",
+        match="Cannot change file group or type for request file path/file1.txt",
     ):
-        bll.move_file_to_new_group_in_request(
+        bll.change_file_properties_in_request(
             release_request,
             path,
             group_name="new-group",
@@ -2155,7 +2155,7 @@ def test_move_file_to_new_group_in_request_not_allowed(bll):
         )
 
 
-def test_move_file_to_new_group_in_request_permission_denied(bll):
+def test_change_file_properties_in_request_permission_denied(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
@@ -2181,7 +2181,7 @@ def test_move_file_to_new_group_in_request_permission_denied(bll):
     urlpath = request_file.group / path
 
     with pytest.raises(exceptions.RequestPermissionDenied):
-        bll.move_file_to_new_group_in_request(
+        bll.change_file_properties_in_request(
             release_request,
             urlpath,
             group_name="new_group",
