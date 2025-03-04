@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block metatitle %}{{ workspace_type|title }} for {{ request.user.username }} |  Airlock{% endblock metatitle %}
+{% block metatitle %}{{ workspace_type|title }} for {% airlock_user user=request.user %} |  Airlock{% endblock metatitle %}
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title=workspace_type|title|add:" for "|add:request.user.username %}
+    {% airlock_header title=workspace_type|title|add:" for "|add:request.user.fullname %}
     {% for project, workspaces in projects.items %}
       {% #card %}
         <details class="group" open>

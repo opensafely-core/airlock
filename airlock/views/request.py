@@ -22,12 +22,15 @@ from airlock.enums import (
 )
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
+    AddFileForm,
+    FileFormSet,
     GroupCommentDeleteForm,
     GroupCommentForm,
     GroupEditForm,
     MultiselectForm,
 )
 from airlock.types import ROOT_PATH, UrlPath
+from airlock.views.workspace import add_or_update_form_is_valid
 from services.tracing import instrument
 
 from .helpers import (
@@ -35,6 +38,7 @@ from .helpers import (
     display_form_errors,
     display_multiple_messages,
     download_file,
+    get_next_url_from_form,
     get_path_item_from_tree_or_404,
     get_release_request_or_raise,
     serve_file,
@@ -219,12 +223,22 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         kwargs={"request_id": release_request.id, "path": group_relpath},
     )
 
+    move_file_button = ButtonContext.with_request_defaults(
+        req_id, "request_multiselect"
+    )
     if permissions.user_can_withdraw_file_from_request(
         user, release_request, workspace, relpath
     ):
         withdraw_btn.show = True
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
+
+    if permissions.user_can_change_request_file_group(
+        user, release_request, workspace, relpath
+    ):
+        move_file_button.show = True
+        move_file_button.disabled = False
+        move_file_button.tooltip = "Move this file to different group"
 
     # Show the voting buttons for output files to any user who can review
     # for requests in currently reviewable status
@@ -265,6 +279,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
                 assert False, "Invalid RequestFileVote value"
 
     return {
+        "move_file_button": move_file_button,
         "withdraw_file": withdraw_btn,
         "voting": voting_buttons,
     }
@@ -602,26 +617,75 @@ def request_multiselect(request, request_id: str):
 
     if not multiform.is_valid():
         display_form_errors(request, multiform.errors)
-    else:
-        action = multiform.cleaned_data["action"]
-        if action != "withdraw_files":
+        url = get_next_url_from_form(release_request, multiform)
+        return HttpResponse(headers={"HX-Redirect": url})
+
+    action = multiform.cleaned_data["action"]
+    match action:
+        case "withdraw_files":
+            return multiselect_withdraw_files(request, multiform, release_request)
+        case "update_files":
+            return multiselect_update_files(request, multiform, release_request)
+
+        case _:
             raise Http404(f"Invalid action {action}")
 
-        errors = []
-        successes = []
-        for path_str in multiform.cleaned_data["selected"]:
-            path = UrlPath(path_str)
-            try:
-                bll.withdraw_file_from_request(release_request, path, request.user)
-                successes.append(f"The file {path} has been withdrawn from the request")
-            except exceptions.RequestPermissionDenied as exc:
-                errors.append(str(exc))
 
-        display_multiple_messages(request, errors, "error")
-        display_multiple_messages(request, successes, "success")
+def multiselect_withdraw_files(request, multiform, release_request):
+    errors = []
+    successes = []
+    for path_str in multiform.cleaned_data["selected"]:
+        path = UrlPath(path_str)
+        try:
+            bll.withdraw_file_from_request(release_request, path, request.user)
+            successes.append(f"The file {path} has been withdrawn from the request")
+        except exceptions.RequestPermissionDenied as exc:
+            errors.append(str(exc))
 
-    url = multiform.cleaned_data["next_url"]
+    display_multiple_messages(request, errors, "error")
+    display_multiple_messages(request, successes, "success")
+
+    url = get_next_url_from_form(release_request, multiform)
     return HttpResponse(headers={"HX-Redirect": url})
+
+
+def multiselect_update_files(request, multiform, release_request):
+    files_to_add = []
+    files_ignored = {}
+    # validate which files can be added
+    for f in multiform.cleaned_data["selected"]:
+        workspace = bll.get_workspace(release_request.workspace, request.user)
+        relpath = release_request.get_request_file_from_urlpath(f).relpath
+        if permissions.user_can_change_request_file_group(
+            request.user, release_request, workspace, relpath
+        ):
+            files_to_add.append(f)
+        else:
+            files_ignored[f] = "file cannot be moved"
+
+    move_file_form = AddFileForm(
+        release_request=release_request,
+        initial={"next_url": f"/requests/view/{release_request.id}/"},
+    )
+
+    filetype_formset = FileFormSet(
+        initial=[{"file": f} for f in files_to_add],
+    )
+    return TemplateResponse(
+        request,
+        template="change_file_group.html",
+        context={
+            "form": move_file_form,
+            "formset": filetype_formset,
+            "files_ignored": files_ignored,
+            "no_valid_files": len(files_to_add) == 0,
+            # "update": True,
+            "move_file_url": reverse(
+                "file_move_group",
+                kwargs={"request_id": release_request.id},
+            ),
+        },
+    )
 
 
 @instrument
@@ -681,6 +745,46 @@ def file_approve(request, request_id, path: str):
         raise PermissionDenied(str(exc))
 
     return redirect(release_request.get_url(path))
+
+
+@instrument(func_attributes={"release_request": "request_id"})
+@require_http_methods(["POST"])
+def file_move_group(request, request_id):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    form = AddFileForm(request.POST, release_request=release_request)
+    formset = FileFormSet(request.POST)
+    errors = add_or_update_form_is_valid(request, form, formset)
+
+    next_url = get_next_url_from_form(release_request, form)
+
+    if errors:
+        return redirect(next_url)
+
+    group_name = (
+        form.cleaned_data.get("new_filegroup")
+        or form.cleaned_data.get("filegroup")
+        or ""
+    )
+    error_msgs = []
+    success_msgs = []
+    for formset_form in formset:
+        path = formset_form.cleaned_data["file"]
+        relpath = release_request.get_request_file_from_urlpath(path).relpath
+        try:
+            bll.move_file_to_new_group_in_request(
+                release_request, relpath, request.user, group_name
+            )
+            success_msgs.append(
+                f"The file {relpath} has been moved to new group {group_name}"
+            )
+            next_url = release_request.get_url(group_name)
+        except exceptions.RequestPermissionDenied as exc:
+            error_msgs.append(str(exc))
+
+    display_multiple_messages(request, error_msgs, "error")
+    display_multiple_messages(request, success_msgs, "success")
+
+    return redirect(next_url)
 
 
 @instrument(func_attributes={"release_request": "request_id"})

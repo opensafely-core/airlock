@@ -83,20 +83,25 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
         )
 
 
-def can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+def can_replace_file_in_request(
+    workspace: "Workspace", relpath: UrlPath, filegroup: str | None = None
+):
     try:
-        check_can_replace_file_in_request(workspace, relpath)
+        check_can_replace_file_in_request(workspace, relpath, filegroup)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
+def check_can_replace_file_in_request(
+    workspace: "Workspace", relpath: UrlPath, filegroup: str | None = None
+):
     """
     This file can replace an existing file in the request, which currently happens
-    in two scenarios:
+    in 3 scenarios:
     * when a file on a request is updated;
     * or when a file on a request in the withdrawn state is re-added.
+    * or when a file is moved to a different group
     We expect that check_can_edit_request has already been called.
     """
     # The file is an allowed type
@@ -115,10 +120,17 @@ def check_can_replace_file_in_request(workspace: "Workspace", relpath: UrlPath):
         WorkspaceFileStatus.WITHDRAWN,
         WorkspaceFileStatus.CONTENT_UPDATED,
     ]:
-        status = workspace.get_workspace_file_status(relpath)
-        raise exceptions.RequestPermissionDenied(
-            f"Cannot add or update file in request if it is in status {status}"
+        request_filegroup = (
+            workspace.current_request.get_request_file_from_output_path(relpath).group
+            if workspace.current_request
+            else None
         )
+
+        # We can replace a file that hasn't been withdrawn/updated if we are changing its filegroup
+        if filegroup is None or request_filegroup == filegroup:
+            raise exceptions.RequestPermissionDenied(
+                f"Cannot add or update file in request if it is in status {status}"
+            )
 
 
 def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):

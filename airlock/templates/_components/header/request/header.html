@@ -23,7 +23,7 @@
           <span class="sr-only">User</span>
           <img class="icon" src="/static/icons/person.svg" alt="">
         </dt>
-        <dd>{{ release_request.author }}</dd>
+        <dd>{% airlock_user user=release_request.author %}</dd>
       </div>
       <div>
         <dt>

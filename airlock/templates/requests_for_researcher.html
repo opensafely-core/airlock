@@ -8,7 +8,7 @@
   <div class="flex flex-col gap-4 max-w-3xl">
     {% airlock_header title="Requests" %}
 
-    {% #card title="Requests by "|add:request.user.username %}
+    {% #card title="Requests by "|add:request.user.fullname %}
       {% #list_group id="authored-requests" %}
         {% for release_request in authored_requests|dictsortreversed:"created_at" %}
           {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}

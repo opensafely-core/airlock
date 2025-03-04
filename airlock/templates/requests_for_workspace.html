@@ -39,7 +39,7 @@
   {% #card title="All requests in workspace "|add:workspace custom_button=custom_button %}
     {% #list_group id="requests-workspace" %}
       {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
-        {% fragment as title %}{{ request.get_short_id }} by {{ request.author }}{% endfragment %}
+        {% fragment as title %}{{ request.get_short_id }} by {% airlock_user user=request.author %}{% endfragment %}
         {% fragment as status %}{% pill variant="info" text=request.status.name %}{% endfragment %}
         {% #list_group_rich_item title=title url=request.get_url custom_status=status %}
           <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">

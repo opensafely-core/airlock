@@ -24,6 +24,7 @@ from airlock.views.helpers import (
     ButtonContext,
     display_form_errors,
     display_multiple_messages,
+    get_next_url_from_form,
     get_path_item_from_tree_or_404,
     get_workspace_or_raise,
     serve_file,
@@ -274,10 +275,7 @@ def workspace_multiselect(request, workspace_name: str):
         display_form_errors(request, multiform.errors)
 
         # redirect back where we came from
-        if "next_url" not in multiform.errors:
-            url = multiform.cleaned_data["next_url"]
-        else:
-            url = workspace.get_url()
+        url = get_next_url_from_form(workspace, multiform)
 
         # tell HTMX to redirect us
         response = HttpResponse("", status=400)
@@ -386,14 +384,6 @@ def add_or_update_form_is_valid(request, form, formset):
     return errors
 
 
-def get_next_url(workspace, form):
-    if "next_url" not in form.errors:
-        return form.cleaned_data["next_url"]
-
-    # default redirect in case of error
-    return workspace.get_url()
-
-
 def check_all_files_exist(workspace, formset):
     try:
         for formset_form in formset:
@@ -412,7 +402,7 @@ def workspace_add_file_to_request(request, workspace_name):
     formset = FileTypeFormSet(request.POST)
 
     errors = add_or_update_form_is_valid(request, form, formset)
-    next_url = get_next_url(workspace, form)
+    next_url = get_next_url_from_form(workspace, form)
 
     if errors:
         # redirect back where we came from with errors
@@ -468,7 +458,7 @@ def workspace_update_file_in_request(request, workspace_name):
     formset = FileFormSet(request.POST)
 
     errors = add_or_update_form_is_valid(request, form, formset)
-    next_url = get_next_url(workspace, form)
+    next_url = get_next_url_from_form(workspace, form)
 
     if errors:
         # redirect back where we came from with errors

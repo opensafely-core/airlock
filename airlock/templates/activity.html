@@ -44,7 +44,7 @@
         {% for log in activity %}
           <tr>
             <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
-            <td>{{ log.user }}</td>
+            <td>{% airlock_user user=log.user %}</td>
             <td>{{ log.description }}</td>
             <td>
               <ul>
