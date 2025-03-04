@@ -1753,7 +1753,9 @@ def test_update_file_to_request_states(
 
 
 def test_replace_unchanged_file_with_new_filegroup(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     relpath = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
@@ -1780,7 +1782,9 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
 
 
 def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
-    author = factories.create_airlock_user("author", ["workspace"], False)
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
     relpath = UrlPath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
