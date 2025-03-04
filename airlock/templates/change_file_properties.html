@@ -31,7 +31,7 @@
       {% /list_group %}
 
       {% if not no_valid_files %}
-        {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices %}
+        {% form_select class="w-full max-w-lg mx-auto" label="Select a file group" field=form.filegroup choices=form.filegroup.field.choices selected=form.filegroup.initial %}
         {% form_input class="w-full max-w-lg mx-auto" label="Or create a new file group" field=form.new_filegroup %}
       {% endif %}
 

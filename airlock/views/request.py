@@ -673,12 +673,19 @@ def multiselect_withdraw_files(request, multiform, release_request):
 def multiselect_update_files(request, multiform, release_request):
     files_to_add = []
     files_ignored = {}
+    filegroup = None
     # validate which files can be added
     for f in multiform.cleaned_data["selected"]:
         workspace = bll.get_workspace(release_request.workspace, request.user)
-        relpath = release_request.get_request_file_from_urlpath(f).relpath
+        request_file = release_request.get_request_file_from_urlpath(f)
+        if filegroup is None:
+            filegroup = request_file.group
+        else:
+            # We should always be updating files from the same group
+            assert filegroup == request_file.group
+
         if permissions.user_can_change_request_file_properties(
-            request.user, release_request, workspace, relpath
+            request.user, release_request, workspace, request_file.relpath
         ):
             files_to_add.append(f)
         else:
@@ -686,7 +693,10 @@ def multiselect_update_files(request, multiform, release_request):
 
     change_file_properties_form = AddFileForm(
         release_request=release_request,
-        initial={"next_url": f"/requests/view/{release_request.id}/"},
+        initial={
+            "next_url": f"/requests/view/{release_request.id}/",
+            "filegroup": filegroup,
+        },
     )
 
     filetype_formset = FileFormSet(
