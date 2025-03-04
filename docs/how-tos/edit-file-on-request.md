@@ -43,19 +43,10 @@ If the request is in Returned status, the file will still be visible on the requ
 In either case, the file can be [re-added](create-and-submit-a-release-request.md#adding-files) from the workspace view,.
 
 
-## Move a file to a different group
+## Move a file to a different group or change file type
 
-To move a file to a different, navigate to view the file within the release request,
-and use "Change File Group". You will have the option to select an existing file group,
-or create a new one to move the file to.
+To move a file to a different group or to change a file's type, navigate to view the file
+within the release request, and use "Change File Properties". You will have the option to
+change the file type, select an existing file group, or create a new one to move the file to.
 
-![Change a file group](../screenshots/change_file_group.png)
-
-
-
-## Change a file type
-
-In order to change a file type (e.g. change a file initially added as an output file to a
-supporting file), first [withdraw the file](#withdraw-a-file) from the request and then
-[add it again](create-and-submit-a-release-request.md#adding-files) with the new file type.
-
+![Change file properties](../screenshots/change_file_properties.png)
