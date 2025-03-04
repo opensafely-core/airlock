@@ -1151,7 +1151,9 @@ def test_requests_for_workspace(airlock_client):
 
 def test_requests_for_workspace_filter(airlock_client, mock_old_api):
     airlock_client.login(workspaces=["test1"])
-    author2 = factories.create_airlock_user("author2", ["test1"], False)
+    author2 = factories.create_airlock_user(
+        username="author2", workspaces=["test1"], output_checker=False
+    )
 
     factories.create_request_at_status(
         "test1",

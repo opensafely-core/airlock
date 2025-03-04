@@ -34,7 +34,7 @@ def test_audits():
         ),
         "other_user": factories.create_audit_event(
             AuditEventType.REQUEST_CREATE,
-            user=factories.create_airlock_user("other"),
+            user=factories.create_airlock_user(username="other"),
             path=None,
         ),
     }

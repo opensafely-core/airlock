@@ -761,7 +761,7 @@ def create_audit_event(
     extra={"foo": "bar"},
 ):
     if user is None:
-        user = create_airlock_user("user")
+        user = create_airlock_user(username="user")
     event = AuditEvent(
         type=type_,
         user=user,
