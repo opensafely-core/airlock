@@ -84,7 +84,8 @@ def test_request_view_root_summary(airlock_client):
     # supporting files
     assert ">\n      1\n    <" in response.rendered_content
     assert "Recent activity" in response.rendered_content
-    assert "audit_user" in response.rendered_content
+    assert audit_user.username in response.rendered_content
+    assert audit_user.fullname in response.rendered_content
 
 
 def test_request_view_root_group(airlock_client):
@@ -117,7 +118,8 @@ def test_request_view_root_group(airlock_client):
     response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
     assert response.status_code == 200
     assert "Recent activity" in response.rendered_content
-    assert "audit_user" in response.rendered_content
+    assert audit_user.username in response.rendered_content
+    assert audit_user.fullname in response.rendered_content
     assert "private comment" in response.rendered_content
 
 
@@ -1146,7 +1148,9 @@ def test_requests_for_workspace(airlock_client):
     assert "All requests in workspace test1" in response.rendered_content
     assert "PENDING" in response.rendered_content
     assert author1.username in response.rendered_content
+    assert author1.fullname in response.rendered_content
     assert author2.username in response.rendered_content
+    assert author2.fullname in response.rendered_content
 
 
 @pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])

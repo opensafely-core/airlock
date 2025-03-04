@@ -33,6 +33,10 @@ class User(AbstractBaseUser):
         return self.api_data["username"]
 
     @property
+    def fullname(self):
+        return self.api_data.get("fullname", self.username)
+
+    @property
     def workspaces(self):
         return self.api_data.get("workspaces", {})
 
