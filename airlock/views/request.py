@@ -16,6 +16,7 @@ from airlock import exceptions, permissions
 from airlock.business_logic import bll
 from airlock.enums import (
     PathType,
+    RequestFileType,
     RequestFileVote,
     RequestStatus,
     ReviewTurnPhase,
@@ -24,7 +25,7 @@ from airlock.enums import (
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
     AddFileForm,
-    FileFormSet,
+    FileTypeFormSet,
     GroupCommentDeleteForm,
     GroupCommentForm,
     GroupEditForm,
@@ -671,7 +672,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
 
 
 def multiselect_update_files(request, multiform, release_request):
-    files_to_add = []
+    files_to_add = {}
     files_ignored = {}
     filegroup = None
     # validate which files can be added
@@ -687,7 +688,7 @@ def multiselect_update_files(request, multiform, release_request):
         if permissions.user_can_change_request_file_properties(
             request.user, release_request, workspace, request_file.relpath
         ):
-            files_to_add.append(f)
+            files_to_add[f] = request_file.filetype.name
         else:
             files_ignored[f] = "cannot change file group or type"
 
@@ -699,8 +700,10 @@ def multiselect_update_files(request, multiform, release_request):
         },
     )
 
-    filetype_formset = FileFormSet(
-        initial=[{"file": f} for f in files_to_add],
+    filetype_formset = FileTypeFormSet(
+        initial=[
+            {"file": f, "filetype": filetype} for f, filetype in files_to_add.items()
+        ],
     )
     return TemplateResponse(
         request,
@@ -758,7 +761,7 @@ def file_approve(request, request_id, path: str):
 def file_change_properties(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
-    formset = FileFormSet(request.POST)
+    formset = FileTypeFormSet(request.POST)
     errors = add_or_update_form_is_valid(request, form, formset)
 
     next_url = get_next_url_from_form(release_request, form)
@@ -775,14 +778,31 @@ def file_change_properties(request, request_id):
     success_msgs = []
     for formset_form in formset:
         path = formset_form.cleaned_data["file"]
-        relpath = release_request.get_request_file_from_urlpath(path).relpath
+        request_file = release_request.get_request_file_from_urlpath(path)
+        filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
+
+        group_change = request_file.group != group_name
+        filetype_change = request_file.filetype != filetype
+
+        if not (group_change or filetype_change):
+            next_url = release_request.get_url(group_name)
+            continue
         try:
             bll.change_file_properties_in_request(
-                release_request, relpath, request.user, group_name
+                release_request,
+                request_file.relpath,
+                request.user,
+                group_name,
+                filetype,
             )
-            success_msgs.append(
-                f"The file {relpath} has been moved to new group {group_name}"
-            )
+            if group_change:
+                success_msgs.append(
+                    f"The file {request_file.relpath} has been moved to new group {group_name}"
+                )
+            if filetype_change:
+                success_msgs.append(
+                    f"The filetype for {request_file.relpath} has been changed to {filetype.name}"
+                )
             next_url = release_request.get_url(group_name)
         except exceptions.RequestPermissionDenied as exc:
             error_msgs.append(str(exc))
