@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from airlock import exceptions, policies
 from airlock.enums import (
+    RequestFileType,
     RequestStatus,
     RequestStatusOwner,
     WorkspaceFileStatus,
@@ -199,10 +200,11 @@ def check_user_can_replace_file_in_request(
     workspace: "Workspace",
     relpath: UrlPath,
     filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_replace_file_in_request(workspace, relpath, filegroup)
+    policies.check_can_replace_file_in_request(workspace, relpath, filegroup, filetype)
 
 
 def user_can_replace_file_in_request(
@@ -211,10 +213,11 @@ def user_can_replace_file_in_request(
     workspace: "Workspace",
     relpath: UrlPath,
     filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_replace_file_in_request(
-            user, request, workspace, relpath, filegroup
+            user, request, workspace, relpath, filegroup, filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
