@@ -34,15 +34,15 @@
       </form>
     {% endif %}
 
-    {% if content_buttons.move_file_button.show %}
+    {% if content_buttons.change_file_properties_button.show %}
       <form
         method="POST"
-        hx-post="{{ content_buttons.move_file_button.url }}"
+        hx-post="{{ content_buttons.change_file_properties_button.url }}"
         hx-target="#multiselect_modal"
         hx-swap="outerHtml"
       >
-        {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
-          Change file group
+        {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.change_file_properties_button.tooltip %}
+          Update file properties
         {% /button %}
         <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
         <input type=hidden name="next_url" value="{{ request.path }}"/>

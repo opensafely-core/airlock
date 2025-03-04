@@ -320,10 +320,10 @@ def test_screenshot_from_creation_to_release(
         live_server.url
         + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
     )
-    # Change file group modal
+    # Change file properties modal
     page.locator("#update-file-modal-button").click()
     form_element = page.get_by_role("form")
-    screenshot_element_with_padding(page, form_element, "change_file_group.png")
+    screenshot_element_with_padding(page, form_element, "update_file_properties.png")
     # exit modal
     page.keyboard.press("Escape")
     # Withdraw a file after request returned

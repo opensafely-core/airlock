@@ -224,7 +224,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         kwargs={"request_id": release_request.id, "path": group_relpath},
     )
 
-    move_file_button = ButtonContext.with_request_defaults(
+    change_file_properties_button = ButtonContext.with_request_defaults(
         req_id, "request_multiselect"
     )
     if permissions.user_can_withdraw_file_from_request(
@@ -237,9 +237,11 @@ def _get_file_button_context(user, release_request, workspace, path_item):
     if permissions.user_can_change_request_file_properties(
         user, release_request, workspace, relpath
     ):
-        move_file_button.show = True
-        move_file_button.disabled = False
-        move_file_button.tooltip = "Move this file to different group"
+        change_file_properties_button.show = True
+        change_file_properties_button.disabled = False
+        change_file_properties_button.tooltip = (
+            "Change this file's type or move to different group"
+        )
 
     # Show the voting buttons for output files to any user who can review
     # for requests in currently reviewable status
@@ -280,7 +282,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
                 assert False, "Invalid RequestFileVote value"
 
     return {
-        "move_file_button": move_file_button,
+        "change_file_properties_button": change_file_properties_button,
         "withdraw_file": withdraw_btn,
         "voting": voting_buttons,
     }
@@ -680,9 +682,9 @@ def multiselect_update_files(request, multiform, release_request):
         ):
             files_to_add.append(f)
         else:
-            files_ignored[f] = "file cannot be moved"
+            files_ignored[f] = "cannot change file group or type"
 
-    move_file_form = AddFileForm(
+    change_file_properties_form = AddFileForm(
         release_request=release_request,
         initial={"next_url": f"/requests/view/{release_request.id}/"},
     )
@@ -692,15 +694,15 @@ def multiselect_update_files(request, multiform, release_request):
     )
     return TemplateResponse(
         request,
-        template="change_file_group.html",
+        template="change_file_properties.html",
         context={
-            "form": move_file_form,
+            "form": change_file_properties_form,
             "formset": filetype_formset,
             "files_ignored": files_ignored,
             "no_valid_files": len(files_to_add) == 0,
             # "update": True,
-            "move_file_url": reverse(
-                "file_move_group",
+            "file_change_properties_url": reverse(
+                "file_change_properties",
                 kwargs={"request_id": release_request.id},
             ),
         },
@@ -743,7 +745,7 @@ def file_approve(request, request_id, path: str):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_move_group(request, request_id):
+def file_change_properties(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
     formset = FileFormSet(request.POST)
