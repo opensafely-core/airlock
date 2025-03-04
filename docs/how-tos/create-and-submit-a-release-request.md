@@ -1,6 +1,12 @@
 Researchers construct a release request by adding, and if necessary, withdrawing
 files.
 
+!!! warning
+    You can only have one active release request for a workspace at any one time.
+    If you already have a release request that is pending or under review, you
+    will not be able to create a new one.
+
+
 ## Adding files
 
 While [navigating a workspace](view-workspace-files.md), files can be added to a request in
