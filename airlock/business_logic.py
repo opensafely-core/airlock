@@ -683,7 +683,7 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_replace_file_in_request(
-            user, release_request, workspace, relpath, group_name
+            user, release_request, workspace, relpath, group_name, filetype
         )
 
         src = workspace.abspath(relpath)

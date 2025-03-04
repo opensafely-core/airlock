@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from airlock import exceptions
 from airlock.enums import (
+    RequestFileType,
     RequestFileVote,
     RequestStatus,
     WorkspaceFileStatus,
@@ -84,24 +85,31 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
 
 
 def can_replace_file_in_request(
-    workspace: "Workspace", relpath: UrlPath, filegroup: str | None = None
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):
     try:
-        check_can_replace_file_in_request(workspace, relpath, filegroup)
+        check_can_replace_file_in_request(workspace, relpath, filegroup, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def check_can_replace_file_in_request(
-    workspace: "Workspace", relpath: UrlPath, filegroup: str | None = None
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):
     """
     This file can replace an existing file in the request, which currently happens
-    in 3 scenarios:
+    in 4 scenarios:
     * when a file on a request is updated;
     * or when a file on a request in the withdrawn state is re-added.
     * or when a file is moved to a different group
+    * or when a file's type is changed
     We expect that check_can_edit_request has already been called.
     """
     # The file is an allowed type
@@ -120,14 +128,19 @@ def check_can_replace_file_in_request(
         WorkspaceFileStatus.WITHDRAWN,
         WorkspaceFileStatus.CONTENT_UPDATED,
     ]:
-        request_filegroup = (
-            workspace.current_request.get_request_file_from_output_path(relpath).group
+        request_file = (
+            workspace.current_request.get_request_file_from_output_path(relpath)
             if workspace.current_request
             else None
         )
 
-        # We can replace a file that hasn't been withdrawn/updated if we are changing its filegroup
-        if filegroup is None or request_filegroup == filegroup:
+        # We can replace a file that hasn't been withdrawn/updated if we are changing
+        # its filegroup or type
+        if (
+            request_file is not None
+            and (filegroup is None or (request_file.group == filegroup))
+            and (filetype is None or (request_file.filetype == filetype))
+        ):
             raise exceptions.RequestPermissionDenied(
                 f"Cannot add or update file in request if it is in status {status}"
             )
