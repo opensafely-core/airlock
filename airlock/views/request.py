@@ -234,7 +234,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
-    if permissions.user_can_change_request_file_group(
+    if permissions.user_can_change_request_file_properties(
         user, release_request, workspace, relpath
     ):
         move_file_button.show = True
@@ -675,7 +675,7 @@ def multiselect_update_files(request, multiform, release_request):
     for f in multiform.cleaned_data["selected"]:
         workspace = bll.get_workspace(release_request.workspace, request.user)
         relpath = release_request.get_request_file_from_urlpath(f).relpath
-        if permissions.user_can_change_request_file_group(
+        if permissions.user_can_change_request_file_properties(
             request.user, release_request, workspace, relpath
         ):
             files_to_add.append(f)
@@ -765,7 +765,7 @@ def file_move_group(request, request_id):
         path = formset_form.cleaned_data["file"]
         relpath = release_request.get_request_file_from_urlpath(path).relpath
         try:
-            bll.move_file_to_new_group_in_request(
+            bll.change_file_properties_in_request(
                 release_request, relpath, request.user, group_name
             )
             success_msgs.append(
