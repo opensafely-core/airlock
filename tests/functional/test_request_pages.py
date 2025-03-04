@@ -79,7 +79,7 @@ def test_request_file_update_properties(live_server, context, page, bll):
     page.locator("#id_new_filegroup").fill("new-group")
 
     # Click the button to move the file's to a new group
-    page.locator("#change-file-properties-button").click()
+    page.locator("#add-or-change-file-button").click()
 
     expect(page).to_have_url(
         live_server.url + release_request.get_url("new-group/file1.txt")

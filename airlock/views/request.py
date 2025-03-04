@@ -705,17 +705,18 @@ def multiselect_update_files(request, multiform, release_request):
     )
     return TemplateResponse(
         request,
-        template="change_file_properties.html",
+        template="add_or_change_files.html",
         context={
             "form": change_file_properties_form,
             "formset": filetype_formset,
             "files_ignored": files_ignored,
             "no_valid_files": len(files_to_add) == 0,
-            # "update": True,
-            "file_change_properties_url": reverse(
+            "form_url": reverse(
                 "file_change_properties",
                 kwargs={"request_id": release_request.id},
             ),
+            "modal_title": "Change group or type for files in request",
+            "modal_button_text": "Update Files",
         },
     )
 
