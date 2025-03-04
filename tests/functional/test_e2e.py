@@ -106,7 +106,7 @@ def test_e2e_release_files(
 
     # Click on to workspaces link
     find_and_click(page, page.get_by_test_id("nav-workspaces"))
-    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
+    expect(page.locator("body")).to_contain_text("Workspaces for Researcher")
 
     # Click on the workspace
     find_and_click(page, page.get_by_role("link", name="test-workspace"))

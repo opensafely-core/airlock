@@ -82,6 +82,7 @@ def output_checker_user(live_server, context):
         context,
         factories.create_api_user(
             username="test_output_checker",
+            fullname="Test Output Checker",
             workspaces={
                 "test-dir2": factories.create_api_workspace(project="Project 2")
             },
@@ -97,6 +98,7 @@ def researcher_user(live_server, context):
         context,
         factories.create_api_user(
             username="test_researcher",
+            fullname="Test Researcher",
             workspaces={
                 "test-dir1": factories.create_api_workspace(project="Test Project")
             },
@@ -112,6 +114,7 @@ def copilot_user(live_server, context):
         context,
         factories.create_api_user(
             username="test_copilot",
+            fullname="Test Copilot",
             workspaces={},
             copiloted_workspaces={
                 "test-dir1": factories.create_api_workspace(project="Test Project")
@@ -131,6 +134,7 @@ def dev_users(tmp_path, settings):
                     "token": "output_checker",
                     "details": factories.create_api_user(
                         username="output_checker",
+                        fullname="Output Checker",
                         output_checker=True,
                         workspaces={},
                     ),
@@ -139,6 +143,7 @@ def dev_users(tmp_path, settings):
                     "token": "output_checker_1",
                     "details": factories.create_api_user(
                         username="output_checker_1",
+                        fullname="Output Checker 2",
                         output_checker=True,
                         workspaces={},
                     ),
@@ -147,6 +152,7 @@ def dev_users(tmp_path, settings):
                     "token": "researcher",
                     "details": factories.create_api_user(
                         username="researcher",
+                        fullname="Researcher",
                         output_checker=False,
                         workspaces={
                             "test-workspace": factories.create_api_workspace(
