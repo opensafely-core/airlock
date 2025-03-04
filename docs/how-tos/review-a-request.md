@@ -97,8 +97,6 @@ provide information on why changes have been requested to any files.
 To add a comment, navigate to the file group by clicking on it in
 the file browser. Enter your comment text and click Save. You can [write your comments in markdown](../reference/formatting-comments.md) for additional formatting.
 
-![Comment form](../screenshots/reviewed_request_comment_in_progress.png)
-
 You can choose to make a comment public and visible to everyone, or 
 private, visible only to other output checkers. In either case, comments are
 hidden from the researcher until the request is returned (or approved/released). 

@@ -18,6 +18,7 @@ from airlock.enums import (
     PathType,
     RequestFileVote,
     RequestStatus,
+    ReviewTurnPhase,
     Visibility,
 )
 from airlock.file_browser_api import get_request_tree
@@ -444,6 +445,26 @@ def group_presenter(release_request, relpath, request):
         request.user, release_request
     )
 
+    user_can_comment = permissions.user_can_comment_on_group(
+        request.user, release_request
+    )
+    comment_form = GroupCommentForm(visibilities=visibilities)
+    if user_can_comment and len(visibilities) > 1 and request.user.output_checker:
+        match release_request.get_turn_phase():
+            case ReviewTurnPhase.INDEPENDENT:
+                comment_form.fields["visibility"].label = (
+                    "Comments are initially only visible to you. Once two independent reviews "
+                    "have been submitted, or you return/release/reject the request, this comment "
+                    "will be visible to:"
+                )
+            case ReviewTurnPhase.CONSOLIDATING:
+                comment_form.fields["visibility"].label = (
+                    "Comments are currently only visible to ouput-checkers. Once you "
+                    "return/release/reject the request, this comment will be visible to:"
+                )
+            case _:  # pragma: no cover
+                comment_form.fields["visibility"].label = ""
+
     return {
         "name": group,
         "title": f"{group} group",
@@ -456,11 +477,9 @@ def group_presenter(release_request, relpath, request):
             kwargs={"request_id": release_request.id, "group": group},
         ),
         # group comments
-        "user_can_comment": permissions.user_can_comment_on_group(
-            request.user, release_request
-        ),
+        "user_can_comment": user_can_comment,
         "comments": release_request.get_visible_comments_for_group(group, request.user),
-        "comment_form": GroupCommentForm(visibilities=visibilities),
+        "comment_form": comment_form,
         "comment_create_url": reverse(
             "group_comment_create",
             kwargs={"request_id": release_request.id, "group": group},

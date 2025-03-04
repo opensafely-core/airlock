@@ -102,8 +102,8 @@ class Visibility(Enum):
     @classmethod
     def choices(cls):
         return {
-            Visibility.PRIVATE: "Only visible to output-checkers",
-            Visibility.PUBLIC: "Visible to all users",
+            Visibility.PRIVATE: "Output-checkers only",
+            Visibility.PUBLIC: "All users",
         }
 
     # These will be for tooltips once those are working inside of pills
