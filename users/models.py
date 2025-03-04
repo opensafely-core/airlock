@@ -34,7 +34,7 @@ class User(AbstractBaseUser):
 
     @property
     def fullname(self):
-        return self.api_data.get("fullname", self.username)
+        return self.api_data.get("fullname") or self.username
 
     @property
     def workspaces(self):
