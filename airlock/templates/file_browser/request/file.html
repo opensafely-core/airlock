@@ -34,6 +34,23 @@
       </form>
     {% endif %}
 
+    {% if content_buttons.move_file_button.show %}
+      <form
+        method="POST"
+        hx-post="{{ content_buttons.move_file_button.url }}"
+        hx-target="#multiselect_modal"
+        hx-swap="outerHtml"
+      >
+        {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
+          Change file group
+        {% /button %}
+        <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+        <input type=hidden name="next_url" value="{{ request.path }}"/>
+        {% csrf_token %}
+      </form>
+      <div id="multiselect_modal"></div>
+    {% endif %}
+
     {% if content_buttons.voting.approve.show %}
       <div>
         <div class="text-xs text-center pb-2">Your review</div>
@@ -98,4 +115,3 @@
 {% endfragment %}
 
 {% include "file_browser/_includes/file_content.html" %}
-

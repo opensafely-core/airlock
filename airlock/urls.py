@@ -124,6 +124,11 @@ urlpatterns = [
         name="file_withdraw",
     ),
     path(
+        "requests/move/<str:request_id>",
+        airlock.views.file_move_group,
+        name="file_move_group",
+    ),
+    path(
         "requests/multiselect/<str:request_id>",
         airlock.views.request_multiselect,
         name="request_multiselect",

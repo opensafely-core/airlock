@@ -1465,6 +1465,123 @@ def test_file_withdraw_file_bad_request(airlock_client):
     assert response.status_code == 404
 
 
+def test_file_move_file_group_pending(airlock_client):
+    airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
+    test_relpath = "path/test.txt"
+
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file("group", test_relpath),
+        ],
+    )
+
+    # ensure it does exist
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
+    response = airlock_client.post(
+        f"/requests/move/{release_request.id}",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": f"group/{test_relpath}",
+            "form-0-filetype": "OUTPUT",
+            "next_url": release_request.get_url(),
+            "filegroup": "group",
+            # new filegroup overrides a selected existing one (or the default)
+            "new_filegroup": "new_group",
+        },
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url("new_group")
+
+    persisted_request = factories.refresh_release_request(release_request)
+
+    persisted_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        persisted_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+
+
+def test_file_move_file_group_bad_next_url(airlock_client):
+    airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
+    test_relpath = "path/test.txt"
+
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file("group", test_relpath),
+        ],
+    )
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
+    response = airlock_client.post(
+        f"/requests/move/{release_request.id}",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": f"group/{test_relpath}",
+            "form-0-filetype": "OUTPUT",
+            # missing value for "next_url" causes the form to fail validation
+            "filegroup": "group",
+            # new filegroup overrides a selected existing one (or the default)
+            "new_filegroup": "new_group",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url()
+
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
+
+def test_file_move_file_group_permission_denied(airlock_client):
+    airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
+    test_relpath = "path/test.txt"
+
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", test_relpath),
+        ],
+    )
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
+    response = airlock_client.post(
+        f"/requests/move/{release_request.id}",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": f"group/{test_relpath}",
+            "form-0-filetype": "OUTPUT",
+            "next_url": release_request.get_url(),
+            "filegroup": "group",
+            # new filegroup overrides a selected existing one (or the default)
+            "new_filegroup": "new_group",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url()
+
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+
+
 def test_request_multiselect_withdraw_files(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
@@ -1496,6 +1613,38 @@ def test_request_multiselect_withdraw_files(airlock_client):
         request_file = persisted_request.get_request_file_from_urlpath(path)
         assert request_file.filetype == RequestFileType.WITHDRAWN
         assert f"{path} has been withdrawn from the request" in messages
+
+
+def test_request_multiselect_move_files(airlock_client):
+    user = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(group="group", path="file1.txt", approved=True),
+            factories.request_file(group="group", path="file2.txt", approved=True),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "update_files",
+            "selected": [
+                "group/file1.txt",
+                "group/file2.txt",
+            ],
+            "next_url": release_request.get_url(),
+        },
+    )
+
+    assert (
+        f'<form action="/requests/move/{release_request.id}" method="POST"'
+        in response.rendered_content
+    )
+    assert "file1.txt" in response.rendered_content
 
 
 def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
@@ -1531,7 +1680,50 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
         assert request_file.filetype != RequestFileType.WITHDRAWN
 
 
-def test_request_multiselect_withdraw_files_none_selected(airlock_client):
+def test_request_multiselect_move_files_not_permitted(airlock_client):
+    user = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group",
+                path="file2.txt",
+                changes_requested=True,
+            ),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+
+    bll.withdraw_file_from_request(release_request, UrlPath("group/file2.txt"), user)
+
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_urlpath("group/file2.txt")
+    assert request_file.filetype == RequestFileType.WITHDRAWN
+
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "update_files",
+            "selected": [
+                "group/file2.txt",
+            ],
+            "next_url": release_request.get_url(),
+        },
+    )
+
+    assert "file2.txt" in response.rendered_content
+    assert "file cannot be moved" in response.rendered_content
+    assert (
+        f'<form action="/requests/move/{release_request.id}" method="POST"'
+        in response.rendered_content
+    )
+
+
+@pytest.mark.parametrize("action", ["withdraw_files", "update_files"])
+def test_request_multiselect_none_selected(airlock_client, action):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],
@@ -1554,7 +1746,7 @@ def test_request_multiselect_withdraw_files_none_selected(airlock_client):
     assert "You must select at least one file" in get_messages_text(response)
 
 
-def test_request_multiselect_withdraw_files_invalid_action(airlock_client):
+def test_request_multiselect_invalid_action(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
         list(user.workspaces)[0],

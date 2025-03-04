@@ -129,3 +129,11 @@ def display_form_errors(request, *form_errors):
                 msgs.append(msg)
 
     display_multiple_messages(request, msgs, "error")
+
+
+def get_next_url_from_form(container, form):
+    if "next_url" not in form.errors:
+        return form.cleaned_data["next_url"]
+
+    # default redirect in case of error
+    return container.get_url()

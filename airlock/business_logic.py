@@ -652,6 +652,23 @@ class BusinessLogicLayer:
             release_request, relpath, user, group_name, filetype
         )
 
+    def move_file_to_new_group_in_request(
+        self,
+        release_request: ReleaseRequest,
+        relpath: UrlPath,
+        user: User,
+        group_name: str = "default",
+        filetype: RequestFileType = RequestFileType.OUTPUT,
+    ) -> ReleaseRequest:
+        relpath = UrlPath(relpath)
+        workspace = self.get_workspace(release_request.workspace, user)
+        permissions.check_user_can_change_request_file_group(
+            user, release_request, workspace, relpath
+        )
+        return self.replace_file_in_request(
+            release_request, relpath, user, group_name, filetype
+        )
+
     def replace_file_in_request(
         self,
         release_request: ReleaseRequest,
@@ -663,7 +680,7 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_replace_file_in_request(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, relpath, group_name
         )
 
         src = workspace.abspath(relpath)
