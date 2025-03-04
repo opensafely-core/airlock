@@ -17,6 +17,15 @@
         text-align: right;
         color: rgb(186 189 197);
       }
+      #airlock-table thead tr {
+        position: sticky;
+      }
+      #airlock-table thead tr:first-child {
+        top: 0;
+      }
+      #airlock-table thead tr:nth-child(2) {
+        top: 2.374em; /* determined via binary search  */
+      }
     </style>
   </head>
 
