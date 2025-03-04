@@ -634,9 +634,7 @@ def file_withdraw(request, request_id, path: str):
 @require_http_methods(["POST"])
 def request_multiselect(request, request_id: str):
     release_request = get_release_request_or_raise(request.user, request_id)
-
     multiform = MultiselectForm(request.POST)
-
     if not multiform.is_valid():
         display_form_errors(request, multiform.errors)
         url = get_next_url_from_form(release_request, multiform)
@@ -695,7 +693,7 @@ def multiselect_update_files(request, multiform, release_request):
     change_file_properties_form = AddFileForm(
         release_request=release_request,
         initial={
-            "next_url": f"/requests/view/{release_request.id}/",
+            "next_url": get_next_url_from_form(release_request, multiform),
             "filegroup": filegroup,
         },
     )
@@ -765,7 +763,6 @@ def file_change_properties(request, request_id):
     errors = add_or_update_form_is_valid(request, form, formset)
 
     next_url = get_next_url_from_form(release_request, form)
-
     if errors:
         return redirect(next_url)
 
@@ -776,16 +773,18 @@ def file_change_properties(request, request_id):
     )
     error_msgs = []
     success_msgs = []
+    group_change_next_url = None
+
     for formset_form in formset:
         path = formset_form.cleaned_data["file"]
         request_file = release_request.get_request_file_from_urlpath(path)
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-        group_change = request_file.group != group_name
+        old_group = request_file.group
+        group_change = old_group != group_name
         filetype_change = request_file.filetype != filetype
 
         if not (group_change or filetype_change):
-            next_url = release_request.get_url(group_name)
             continue
         try:
             bll.change_file_properties_in_request(
@@ -803,7 +802,8 @@ def file_change_properties(request, request_id):
                 success_msgs.append(
                     f"The filetype for {request_file.relpath} has been changed to {filetype.name}"
                 )
-            next_url = release_request.get_url(group_name)
+            if group_change and group_change_next_url is None:
+                next_url = next_url.replace(f"/{old_group}/", f"/{group_name}/")
         except exceptions.RequestPermissionDenied as exc:
             error_msgs.append(str(exc))
 

@@ -82,7 +82,7 @@ def test_request_file_update_properties(live_server, context, page, bll):
     page.locator("#change-file-properties-button").click()
 
     expect(page).to_have_url(
-        live_server.url + release_request.get_url("new-group") + "/"
+        live_server.url + release_request.get_url("new-group/file1.txt")
     )
 
 
