@@ -534,7 +534,7 @@ def create_request_at_status(
         return request
 
     if status in [RequestStatus.RETURNED, RequestStatus.WITHDRAWN]:
-        bll.set_status(request, RequestStatus.RETURNED, checker)
+        bll.return_request(request, checker)
         request = refresh_release_request(request)
 
         if not (

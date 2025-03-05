@@ -1339,7 +1339,8 @@ def test_resubmit_request(bll, mock_notifications):
             ),
         ],
     )
-    assert release_request.submitted_reviews_count() == 2
+    # returning a request starts a new turn, so there are no submitted reviews
+    assert release_request.submitted_reviews_count() == 0
 
     # author re-submits with no changes to files
     bll.submit_request(release_request, author)
@@ -3495,11 +3496,13 @@ def test_group_comment_visibility_public_bad_round(bll):
         checker_comments=[("group", "checker comment", Visibility.PRIVATE)],
         withdrawn_after=RequestStatus.PENDING,
     )
-
-    assert release_request.review_turn == 1
+    # Turn 0 = pending
+    # Turn 1 = submitted, under review
+    # Turn 2 = returned
+    assert release_request.review_turn == 2
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
-    assert release_request.review_turn == 2
+    assert release_request.review_turn == 3
 
     checker_comment = release_request.filegroups["group"].comments[0]
     assert checker_comment.review_turn == 1
