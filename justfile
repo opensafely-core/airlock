@@ -254,6 +254,15 @@ load-example-data: devenv && manifests
       mkdir -p "$workspace_dir/sub_dir_empty"
     done
 
+    # Make a deep directory and long file names
+    workspace_dir="${workspace}_1/sub_dir_deep"
+    mkdir -p "${workspace_dir}"
+    echo "A large file name to test wrapping behaviour" > "${workspace_dir}/a_very_long_file_name_without_any_spaces_at_all.txt"
+    for i in {1..9}; do
+      workspace_dir="${workspace_dir}/another_sub_dir"
+      mkdir -p "${workspace_dir}"
+    done
+
     mkdir -p "$workspace/sub_dir_empty"
 
     tmp=$(mktemp)
