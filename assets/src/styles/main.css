@@ -9,3 +9,17 @@
 .tree__folder-name:has(.selected.filegroup) ~ .tree__child-list {
   @apply border-solid border-l-oxford-700;
 }
+
+/* 
+Make the group context modal bigger than a normal modal
+The width of the modal is 80% of the screen width, and the
+context/controls textareas are 40% of the screen height to
+allow some space for comments which appear below them.
+*/
+#group-context {
+  @apply w-screen max-w-[80vw]
+}
+
+#group-context textarea {
+  @apply h-screen max-h-[40vh]
+}
