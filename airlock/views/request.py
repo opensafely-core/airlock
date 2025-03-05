@@ -139,8 +139,15 @@ def _get_request_button_context(user, release_request):
         ]:
             button.show = True
 
-        # We allow output checkers to return at any time
-        return_btn.disabled = False
+        # We allow output checkers to return at any time, except when the
+        # request has been fully reviewed, and there are files with changes
+        # requested and their file group is missing a public comment
+        try:
+            permissions.check_user_can_return_request(user, release_request)
+        except exceptions.RequestPermissionDenied as err:
+            return_btn.tooltip = str(err)
+        else:
+            return_btn.disabled = False
 
         try:
             permissions.check_user_can_submit_review(user, release_request)
@@ -153,8 +160,9 @@ def _get_request_button_context(user, release_request):
         if release_request.status == RequestStatus.REVIEWED:
             reject_btn.disabled = False
             reject_btn.tooltip = "Reject request as unsuitable for release"
-            return_btn.tooltip = "Return request for changes/clarification"
-            return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
+            if not return_btn.disabled:
+                return_btn.tooltip = "Return request for changes/clarification"
+                return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
         else:
             reject_btn.tooltip = "Rejecting a request is disabled until review has been submitted by two reviewers"
             return_btn.tooltip = "Return request before full review"
