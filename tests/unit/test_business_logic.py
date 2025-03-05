@@ -2476,6 +2476,10 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
 
     bll.approve_file(release_request, request_file, checker1)
     bll.request_changes_to_file(release_request, request_file, checker2)
+    # If changes are requested, the checker needs to comment on the group
+    bll.group_comment_create(
+        release_request, request_file.group, "a comment", Visibility.PRIVATE, checker2
+    )
 
     # Reviewers must submit their independent review before we can assess
     # a file's decision
@@ -2708,6 +2712,14 @@ def test_request_file_status_decision(bll, votes, decision):
             bll.approve_file(release_request, request_file, checker)
         else:
             bll.request_changes_to_file(release_request, request_file, checker)
+            # changes requested require a comment before we can submit the review
+            bll.group_comment_create(
+                release_request,
+                request_file.group,
+                "A comment",
+                Visibility.PRIVATE,
+                checker,
+            )
 
         rfile = _get_request_file(release_request, path)
         assert rfile.get_file_vote_for_user(checker) == RequestFileVote[vote]
@@ -2804,7 +2816,10 @@ def test_review_request(bll):
         status=RequestStatus.SUBMITTED,
         files=[
             factories.request_file(
-                path="test.txt", changes_requested=True, checkers=[checker]
+                path="test.txt",
+                changes_requested=True,
+                checkers=[checker],
+                comment=False,
             ),
             factories.request_file(path="test1.txt"),
         ],
@@ -2821,6 +2836,19 @@ def test_review_request(bll):
     # approved second file
     factories.review_file(
         release_request, UrlPath("test1.txt"), RequestFileVote.APPROVED, checker
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    # All files are reviewed, but there are no comments on the group yet
+    with pytest.raises(
+        exceptions.RequestReviewDenied,
+        match="You must add a comment",
+    ):
+        bll.review_request(release_request, checker)
+
+    # Add comment
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PRIVATE, checker
     )
     release_request = factories.refresh_release_request(release_request)
     bll.review_request(release_request, checker)

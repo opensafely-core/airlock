@@ -651,7 +651,11 @@ def test_get_visible_comments_for_group_class(bll):
         "workspace",
         status=RequestStatus.SUBMITTED,
         author=author,
-        files=[factories.request_file(group="group", path="file.txt", approved=True)],
+        files=[
+            factories.request_file(
+                group="group", path="file.txt", approved=True, comment=False
+            )
+        ],
     )
 
     bll.group_comment_create(
