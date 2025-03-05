@@ -241,6 +241,10 @@ def check_can_submit_request(request: "ReleaseRequest"):
             f"Incomplete context and/or controls for filegroup(s): {groups}"
         )
 
+    # for resubmissions, any filegroup with changes requested
+    # must have a comment this turn
+    check_for_missing_filegroup_comments(request)
+
 
 def check_can_return_request(request: "ReleaseRequest"):
     """
@@ -250,6 +254,10 @@ def check_can_return_request(request: "ReleaseRequest"):
     for which changes have been requested
     """
     check_can_review_request(request)
+    check_for_missing_filegroup_comments(request)
+
+
+def check_for_missing_filegroup_comments(request):
     filegroups_missing_comments = request.filegroups_missing_public_comment()
     if filegroups_missing_comments:
         groups = ", ".join(filegroups_missing_comments)

@@ -1343,8 +1343,18 @@ def test_resubmit_request(bll, mock_notifications):
     assert release_request.submitted_reviews_count() == 0
 
     # author re-submits with no changes to files
+    # and no new comments
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.submit_request(release_request, author)
+
+    # add a comment and try again
+    bll.group_comment_create(
+        release_request, "test", "comment", Visibility.PUBLIC, author
+    )
+    release_request = factories.refresh_release_request(release_request)
     bll.submit_request(release_request, author)
     release_request = factories.refresh_release_request(release_request)
+
     assert release_request.status == RequestStatus.SUBMITTED
     assert_last_notification(mock_notifications, "request_resubmitted")
     for i in range(2):

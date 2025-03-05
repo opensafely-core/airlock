@@ -973,24 +973,50 @@ class ReleaseRequest:
 
     def filegroups_missing_public_comment(self) -> list[str]:
         """
-        A filegroup requires a public comment in the current turn if
-        independent reivew is complete and any of its
-        output files have CONFLICTED or CHANGES_REQUESTED decisions.
+        A filegroup requires a public comment in the current turn if:
+        - it is currently RETURNED OR
+        - it is under review and independent review is complete
+        AND:
+        - any of its files have CONFLICTED or CHANGES_REQUESTED decisions
+        - any of its output files have INCOMPLETE decisions
+        (INCOMPLETE output files will be files on a returned request that have been
+        newly added, moved between groups, changed from supporting to output type,
+        or withdrawn and re-added)
+        Note for returned requests we look at turn_reviewers - reviewers in the
+        previous turn. For under-review requests, we look at submitted reviews
+        in the current turn.
         """
         if self.all_files_approved():
             return []
-        if self.submitted_reviews_count() < 2:
-            # public comments are not enforced until independent reivew is complete
-            return []
-        submitted_reviewers_this_turn = self.submitted_reviews.keys()
+
+        match self.status:
+            case RequestStatus.RETURNED:
+                reviewers = self.turn_reviewers
+            case RequestStatus.REVIEWED:
+                # public comments are not enforced until independent reivew is complete
+                reviewers = set(self.submitted_reviews.keys())
+            case _:
+                return []
+
+        def _requires_public_comment(rfile):
+            decision = rfile.get_decision(reviewers)
+            if (
+                decision == RequestFileDecision.INCOMPLETE
+                and rfile.filetype == RequestFileType.OUTPUT
+            ):
+                return True
+            return decision in [
+                RequestFileDecision.CHANGES_REQUESTED,
+                RequestFileDecision.CONFLICTED,
+            ]
+
         return [
             group_name
             for group_name, filegroup in self.filegroups.items()
             if not filegroup.has_public_comment_for_turn(self.review_turn)
             and any(
-                output_file.get_decision(submitted_reviewers_this_turn)
-                != RequestFileDecision.APPROVED
-                for output_file in filegroup.output_files
+                _requires_public_comment(request_file)
+                for request_file in filegroup.files.values()
             )
         ]
 
