@@ -925,6 +925,44 @@ class ReleaseRequest:
     def submitted_reviews_count(self):
         return len(self.submitted_reviews)
 
+    def filegroups_missing_comment_by_reviewer(self, reviewer) -> set[str]:
+        groups_with_missing_comments = set()
+        comments_checked = set()
+        for rfile in self.output_files().values():
+            if rfile.group in groups_with_missing_comments:
+                # We already know this group is missing a comment, no need to check this
+                # file
+                continue
+            if rfile.group in comments_checked:
+                # We've already checked for comments for a file with changes requested
+                # and we know the group has a comment, no need to check this file
+                continue
+            if (
+                rfile.get_file_vote_for_user(reviewer)
+                != RequestFileVote.CHANGES_REQUESTED
+            ):
+                # comments are only required for files with changes requested
+                continue
+            filegroup = self.filegroups[rfile.group]
+            user_comments_this_turn = [
+                comment
+                for comment in filegroup.comments
+                if comment.author == reviewer
+                and comment.review_turn == self.review_turn
+            ]
+            comments_checked.add(rfile.group)
+            if not user_comments_this_turn:
+                groups_with_missing_comments.add(rfile.group)
+
+        return groups_with_missing_comments
+
+    def all_filegroups_commented_by_reviewer(self, reviewer: User) -> bool:
+        """
+        Reviewer has commented on all filegroups that contain files for which
+        they have requested changes in this turn.
+        """
+        return not bool(self.filegroups_missing_comment_by_reviewer(reviewer))
+
     def status_owner(self) -> RequestStatusOwner:
         return permissions.STATUS_OWNERS[self.status]
 

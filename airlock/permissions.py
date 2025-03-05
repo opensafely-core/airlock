@@ -357,6 +357,12 @@ def check_user_can_submit_review(user: User, request: "ReleaseRequest"):
             "You must review all files to submit your review"
         )
 
+    if not request.all_filegroups_commented_by_reviewer(user):
+        raise exceptions.RequestReviewDenied(
+            "You must add a comment on any groups for which you have "
+            "requested file changes before you can submit your review"
+        )
+
     if user.user_id in request.submitted_reviews:
         raise exceptions.RequestReviewDenied(
             "You have already submitted your review of this request"
