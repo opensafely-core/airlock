@@ -835,6 +835,33 @@ def test_release_request_add_same_file(bll):
 
 
 @pytest.mark.parametrize(
+    "status,approved,changes_requested,expected_missing",
+    [
+        (RequestStatus.SUBMITTED, False, True, []),
+        (RequestStatus.PARTIALLY_REVIEWED, False, True, []),
+        (RequestStatus.REVIEWED, False, True, ["test-group"]),
+        (RequestStatus.REVIEWED, True, False, []),
+        (RequestStatus.RETURNED, False, True, []),
+    ],
+)
+def test_release_request_filegroups_missing_public_comment(
+    status, approved, changes_requested, expected_missing
+):
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        status=status,
+        files=[
+            factories.request_file(
+                group="test-group",
+                approved=approved,
+                changes_requested=changes_requested,
+            )
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == expected_missing
+
+
+@pytest.mark.parametrize(
     "manifest",
     [
         {},

@@ -534,6 +534,13 @@ def create_request_at_status(
         return request
 
     if status in [RequestStatus.RETURNED, RequestStatus.WITHDRAWN]:
+        # add a public comment for any group with changes requested
+        for group_name in request.filegroups_missing_public_comment():
+            bll.group_comment_create(
+                request, group_name, "A public comment", Visibility.PUBLIC, checker
+            )
+        request = refresh_release_request(request)
+
         bll.return_request(request, checker)
         request = refresh_release_request(request)
 

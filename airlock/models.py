@@ -595,6 +595,14 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
+    def has_public_comment_for_turn(self, review_turn):
+        return any(
+            comment
+            for comment in self.comments
+            if comment.review_turn == review_turn
+            and comment.visibility == Visibility.PUBLIC
+        )
+
     def empty(self):
         return not (self.output_files or self.supporting_files)
 
@@ -962,6 +970,29 @@ class ReleaseRequest:
         they have requested changes in this turn.
         """
         return not bool(self.filegroups_missing_comment_by_reviewer(reviewer))
+
+    def filegroups_missing_public_comment(self) -> list[str]:
+        """
+        A filegroup requires a public comment in the current turn if
+        independent reivew is complete and any of its
+        output files have CONFLICTED or CHANGES_REQUESTED decisions.
+        """
+        if self.all_files_approved():
+            return []
+        if self.submitted_reviews_count() < 2:
+            # public comments are not enforced until independent reivew is complete
+            return []
+        submitted_reviewers_this_turn = self.submitted_reviews.keys()
+        return [
+            group_name
+            for group_name, filegroup in self.filegroups.items()
+            if not filegroup.has_public_comment_for_turn(self.review_turn)
+            and any(
+                output_file.get_decision(submitted_reviewers_this_turn)
+                != RequestFileDecision.APPROVED
+                for output_file in filegroup.output_files
+            )
+        ]
 
     def status_owner(self) -> RequestStatusOwner:
         return permissions.STATUS_OWNERS[self.status]

@@ -1025,8 +1025,15 @@ def test_request_return_output_checker(airlock_client):
             factories.request_file("group", "path/test1.txt", changes_requested=True),
         ],
     )
+    # no public comment on group, 403
     response = airlock_client.post(f"/requests/return/{release_request.id}")
+    assert response.status_code == 403
 
+    # add comment and try again
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PUBLIC, airlock_client.user
+    )
+    response = airlock_client.post(f"/requests/return/{release_request.id}")
     assert response.status_code == 302
     persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
     assert persisted_request.status == RequestStatus.RETURNED

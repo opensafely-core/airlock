@@ -461,3 +461,8 @@ def check_user_can_make_comment_publicly_visible(
     # comments can't be modified at all after a request has moved into a final state
     check_user_can_comment_on_group(user, request)
     policies.check_can_make_comment_publicly_visible(request, comment)
+
+
+def check_user_can_return_request(user: User, request: "ReleaseRequest"):
+    check_user_can_review_request(user, request)
+    policies.check_can_return_request(request)
