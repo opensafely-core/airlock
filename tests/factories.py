@@ -48,6 +48,7 @@ def create_api_workspace(
 def create_api_user(
     *,
     username: str = "testuser",
+    fullname: str = "Test User",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
@@ -71,6 +72,7 @@ def create_api_user(
 
     return dict(
         username=username,
+        fullname=fullname,
         workspaces=_create_workspaces(workspaces),
         copiloted_workspaces=_create_workspaces(copiloted_workspaces),
         output_checker=output_checker or False,
@@ -93,6 +95,7 @@ def _create_workspaces(workspaces):
 def create_airlock_user(
     *,
     username: str = "testuser",
+    fullname: str = "Test User",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
@@ -105,6 +108,7 @@ def create_airlock_user(
     """
     api_user = create_api_user(
         username=username,
+        fullname=fullname,
         workspaces=workspaces,
         copiloted_workspaces=copiloted_workspaces,
         output_checker=output_checker,
@@ -114,6 +118,7 @@ def create_airlock_user(
 
 def get_or_create_airlock_user(
     username: str = "testuser",
+    fullname: str = "Test User",
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
@@ -150,6 +155,7 @@ def get_or_create_airlock_user(
 
     api_user = create_api_user(
         username=username,
+        fullname=fullname,
         workspaces=workspaces,
         copiloted_workspaces=copiloted_workspaces,
         output_checker=output_checker,
