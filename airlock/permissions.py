@@ -377,6 +377,18 @@ def user_can_submit_review(user: User, request: "ReleaseRequest"):
     return True
 
 
+def user_can_submit_review_pending_comment(user: User, request: "ReleaseRequest"):
+    """
+    This user can submit their review once comments are completed
+    """
+    try:
+        check_user_can_submit_review(user, request)
+    except (exceptions.RequestReviewDenied, exceptions.RequestPermissionDenied) as e:
+        if "You must add a comment" in str(e):
+            return True
+    return False
+
+
 def check_user_can_comment_on_group(user: User, request: "ReleaseRequest"):
     # Users with no permission to view workspace can never comment
     if not user_can_view_workspace(user, request.workspace):
