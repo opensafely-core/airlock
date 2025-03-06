@@ -362,7 +362,21 @@ def test_e2e_release_files(
     expect(request_changes_button).to_have_attribute("aria-pressed", "true")
     expect(request_changes_button).to_contain_text("Changes requested")
 
-    # output checker has now reviewed all output files
+    # output checker has now reviewed all output files but needs to add a comment
+    # to group
+    find_and_click(page, page.locator("#request-home-button"))
+    expect(submit_review_button).to_be_visible()
+    expect(submit_review_button).to_be_disabled()
+    # find the group link in the alert and click on it to go to the group
+    find_and_click(
+        page, page.get_by_role("alert").get_by_role("link").get_by_text("my-new-group")
+    )
+    group_comment_locator = page.get_by_role("form", name="group-comment-form")
+    comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
+    comment_locator.fill("test _comment_")
+    group_comment_locator.get_by_role("button", name="Comment").click()
+
+    # now the submit review button is enabled
     find_and_click(page, page.locator("#request-home-button"))
     expect(submit_review_button).to_be_visible()
     expect(submit_review_button).to_be_enabled()
