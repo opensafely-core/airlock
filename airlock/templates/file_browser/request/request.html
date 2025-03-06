@@ -166,7 +166,7 @@
       {% include "file_browser/_includes/uploaded_files_count.html" %}
     {% /description_item %}
     {% #description_item title="Filegroups" %}
-      <ul>
+      <ul class="list-disc">
         {% for filegroup in release_request.filegroups.values %}
           {% if not filegroup.empty %}
             <li>

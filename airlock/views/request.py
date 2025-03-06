@@ -476,7 +476,7 @@ def _build_group_list_html(release_request, group_names):
             for (group, url) in group_urls
         ]
     )
-    return f"<ul>{groups}</ul>"
+    return f"<ul class='list-disc pl-4'>{groups}</ul>"
 
 
 def group_presenter(release_request, relpath, request):
