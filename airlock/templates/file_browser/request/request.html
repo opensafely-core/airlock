@@ -81,7 +81,7 @@
       {% else %}
         <form action="{{ content_buttons.submit_review.url }}" method="POST">
           {% csrf_token %}
-          {% #button type="submit" small=True tooltip=content_buttons.submit_review.tooltip variant="secondary" id="submit-review-button" %}Submit review{% /button %}
+          {% #button type="submit" small=True tooltip=content_buttons.submit_review.tooltip variant="success" id="submit-review-button" %}Submit review{% /button %}
         </form>
       {% endif %}
     {% endif %}
@@ -111,15 +111,15 @@
       {% endif %}
     {% endif %}
     {% if content_buttons.return.show %}
-      {% #modal id="returnRequest" button_small=True button_text="Return request" button_variant="secondary" button_tooltip=content_buttons.return.tooltip %}
+      {% #modal id="returnRequest" button_small=True button_text="Return request" button_tooltip=content_buttons.return.tooltip %}
         {% #card container=True title="Return this request" %}
           <form action="{{ content_buttons.return.url }}" method="POST">
             {% csrf_token %}
             <div class="pb-8">
               {{content_buttons.return.modal_confirm_message}}
             </div>
-            {% #button type="submit" variant="warning" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
-            {% #button variant="primary" type="cancel" small=True %}Cancel{% /button %}
+            {% #button type="submit" variant="primary" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
+            {% #button variant="secondary-outline" type="cancel" small=True %}Cancel{% /button %}
           </form>
         {% /card %}
       {% /modal %}
