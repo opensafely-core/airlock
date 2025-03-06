@@ -94,6 +94,12 @@ files that you have voted on.
 Comments can be added to each file group, to ask questions, or
 provide information on why changes have been requested to any files.
 
+If you request changes to a file, you must also add a comment to that file's
+group before you can submit your review. When you have reviewed all files, a
+message will indicate if there are filegroups missing comments.
+
+![Comments required before submitting reivew](../screenshots/comments_required_before_submitting_review.png)
+
 To add a comment, navigate to the file group by clicking on it in
 the file browser. Enter your comment text and click Save. You can [write your comments in markdown](../reference/formatting-comments.md) for additional formatting.
 
@@ -110,9 +116,9 @@ they would like to ask without revision.
 
 ### Submit your independent review
 
-After you have reviewed all files, you must submit your review. Navigate to
-the request overview page, and click the Submit review button, which will now
-be enabled.
+After you have reviewed all files and added any required comments, you must submit
+your review. Navigate to the request overview page, and click the Submit review button,
+which will now be enabled.
 
 ![Submit independent review](../screenshots/submit_review.png)
 
@@ -152,9 +158,22 @@ Depending on the status of the file decisions, you will have the options to:
 ### Return request to researcher
 
 If there are questions or changes have been requested, you will need to
-return the request to the researcher. 
+return the request to the researcher.
+
+In order to return a request with requested changes, you must [add a comment](#add-comments)
+that is visible to everyone to the relevant file groups to provide feedback to the
+researcher on the changes requested. Once independent review is complete, a message
+will indicate if there are filegroups missing public comments.
+
+![Public comments required before returning request](../screenshots/public_comments_required_before_returning_request.png)
 
 Click the Return request button from the [request overview page](#navigate-to-the-request-overview-page).
+
+!!! note "Returning requests early"
+    If you are returning a request early (i.e. before two independent reviews have been
+    completed), comments are not enforced. This is because early return is
+    usually at the request of the researcher, to make corrections.
+
 
 ### Reject request
 

@@ -247,6 +247,21 @@ def test_screenshot_from_creation_to_release(
         )
         page.locator("#file-request-changes-button").click()
 
+        # we need a comment on this group before we can submit the review
+        if screenshot:
+            # take a screenshot of the action required alert
+            move_mouse_from(page)
+            take_screenshot(page, "comments_required_before_submitting_review.png")
+
+        # Add private comment
+        page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+        comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
+        comment_input = page.locator("#id_comment")
+        comment_input.fill(
+            "Please update file2.csv with more descriptive variable names"
+        )
+        comment_button.click()
+
         # return to request homepage
         page.goto(live_server.url + release_request.get_url())
 
@@ -282,22 +297,20 @@ def test_screenshot_from_creation_to_release(
     login_as_user(live_server, context, user_dicts["checker2"])
     do_review(screenshot=False)
 
-    # Add private comment
+    # take a screenshot of the action required alert
+    # reload page to get rid of the "review submitted" success message alert
+    page.reload()
+    take_screenshot(page, "public_comments_required_before_returning_request.png")
+
+    # Add public comment
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
     comment_input = page.locator("#id_comment")
-
-    comment_input.fill("Please update file2.csv with more descriptive variable names")
-
-    comments = page.locator("#comments")
-
-    take_screenshot(comments, "reviewed_request_comments.png")
-    comment_button.click()
-    # Add public comment
     public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
     public_visibility_radio.check()
     comment_input.fill("Is summmary.txt required for output?")
     comment_button.click()
+    comments = page.locator("#comments")
 
     take_screenshot(comments, "reviewed_request_comments.png")
 
@@ -326,6 +339,11 @@ def test_screenshot_from_creation_to_release(
     screenshot_element_with_padding(page, form_element, "update_file_properties.png")
     # exit modal
     page.keyboard.press("Escape")
+    move_mouse_from(page)
+
+    # take a screenshot of the action required alert
+    take_screenshot(page, "comments_required_before_resubmitting_request.png")
+
     # Withdraw a file after request returned
     page.locator("#withdraw-file-button").click()
     take_screenshot(page, "withdrawn_file.png")
@@ -352,6 +370,14 @@ def test_screenshot_from_creation_to_release(
     take_screenshot(page, "file_update_modal.png")
     # Click the button to update the file in the release request
     page.get_by_role("form").locator("#update-file-button").click()
+
+    # Add comment to group
+    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
+    comment_input = page.locator("#id_comment")
+    comment_input.fill("File 2 has been updated")
+    comment_button.click()
+    comments = page.locator("#comments")
 
     # resubmit
     page.goto(live_server.url + release_request.get_url())
