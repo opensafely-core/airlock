@@ -702,7 +702,7 @@ class TestRequestFile:
 def request_file(
     group="group",
     path: UrlPath | str = "test/file.txt",
-    contents="",
+    contents: str = "",
     filetype=RequestFileType.OUTPUT,
     user: User | None = None,
     approved=False,
@@ -716,6 +716,11 @@ def request_file(
     At the right points, this metadata will be used to populate and act on
     a request.
     """
+    # Files with the same contents cannot be uploaded in the same workspace, so if no
+    # contents are provided we use the path to ensure that different files have
+    # different contents.
+    contents = contents or str(path)
+
     return TestRequestFile(
         group=group,
         path=UrlPath(path),
