@@ -142,7 +142,8 @@ def check_can_replace_file_in_request(
             and (filetype is None or (request_file.filetype == filetype))
         ):
             raise exceptions.RequestPermissionDenied(
-                f"Cannot add or update file in request if it is in status {status}"
+                "Cannot add or update file with same type and group in request "
+                f"if it is in status {status}"
             )
 
 
