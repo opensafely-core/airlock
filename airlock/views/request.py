@@ -674,14 +674,13 @@ def multiselect_update_files(request, multiform, release_request):
     files_ignored = {}
     filegroup = None
     # validate which files can be added
-    for f in multiform.cleaned_data["selected"]:
+    for i, f in enumerate(multiform.cleaned_data["selected"]):
         workspace = bll.get_workspace(release_request.workspace, request.user)
         request_file = release_request.get_request_file_from_urlpath(f)
-        if filegroup is None:
+        if i == 0:
             filegroup = request_file.group
-        else:
-            # We should always be updating files from the same group
-            assert filegroup == request_file.group
+        # We should always be updating files from the same group
+        assert request_file.group == filegroup
 
         if permissions.user_can_change_request_file_properties(
             request.user, release_request, workspace, request_file.relpath
