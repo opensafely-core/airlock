@@ -588,6 +588,9 @@ def test_request_view_with_reviewed_request(airlock_client):
         assert disabled_tooltip not in response.rendered_content
         assert expected_tooltip in response.rendered_content
 
+    assert "author will need to resubmit" in response.rendered_content
+    assert "Are you ready to return the request" not in response.rendered_content
+
     assert "Submit review" in response.rendered_content
     assert "You have already submitted your review" in response.rendered_content
 
