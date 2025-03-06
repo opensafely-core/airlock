@@ -44,6 +44,48 @@ def test_request_file_withdraw(live_server, context, page, bll):
     expect(page.locator("#withdraw-file-button")).not_to_be_visible()
 
 
+def test_request_file_update_properties(live_server, context, page, bll):
+    author = login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(username="author"),
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                group="group", path="file1.txt", filetype=RequestFileType.SUPPORTING
+            ),
+            factories.request_file(group="group", path="file2.txt"),
+        ],
+    )
+
+    page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+
+    # click to open modal
+    page.locator("#update-file-modal-button").click()
+
+    # The filegroup field is populated with the file's current group
+    expect(page.get_by_label("Select a file group")).to_have_value("group")
+
+    # The filetype field is populated with the file's current type
+    expect(
+        page.locator("input[name=form-0-filetype][value=SUPPORTING]")
+    ).to_be_checked()
+
+    page.locator("#id_new_filegroup").fill("new-group")
+
+    # Click the button to move the file's to a new group
+    page.locator("#add-or-change-file-button").click()
+
+    expect(page).to_have_url(
+        live_server.url + release_request.get_url("new-group/file1.txt")
+    )
+
+
 def test_request_file_group_context_modal(live_server, context, page):
     author = login_as_user(
         live_server,

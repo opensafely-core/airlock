@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from airlock import exceptions, policies
 from airlock.enums import (
+    RequestFileType,
     RequestStatus,
     RequestStatusOwner,
     WorkspaceFileStatus,
@@ -199,10 +200,11 @@ def check_user_can_replace_file_in_request(
     workspace: "Workspace",
     relpath: UrlPath,
     filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_replace_file_in_request(workspace, relpath, filegroup)
+    policies.check_can_replace_file_in_request(workspace, relpath, filegroup, filetype)
 
 
 def user_can_replace_file_in_request(
@@ -211,10 +213,11 @@ def user_can_replace_file_in_request(
     workspace: "Workspace",
     relpath: UrlPath,
     filegroup: str | None = None,
+    filetype: RequestFileType | None = None,
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_replace_file_in_request(
-            user, request, workspace, relpath, filegroup
+            user, request, workspace, relpath, filegroup, filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
@@ -269,24 +272,24 @@ def user_can_withdraw_file_from_request(
     return True
 
 
-def user_can_change_request_file_group(
+def user_can_change_request_file_properties(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
     try:
-        check_user_can_change_request_file_group(user, request, workspace, relpath)
+        check_user_can_change_request_file_properties(user, request, workspace, relpath)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_user_can_change_request_file_group(
+def check_user_can_change_request_file_properties(
     user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
 ):
     assert workspace.name == request.workspace
 
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot change file group for request file {relpath}"
+            f"Cannot change file group or type for request file {relpath}"
         )
 
     # If the user has permission to edit the request, check that the file
@@ -295,7 +298,7 @@ def check_user_can_change_request_file_group(
     status = workspace.get_workspace_file_status(relpath)
     if status == WorkspaceFileStatus.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
-            "Cannot change file group for a withdrawn file"
+            "Cannot change file group or type for a withdrawn file"
         )
 
 

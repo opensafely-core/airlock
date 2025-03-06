@@ -16,6 +16,7 @@ from airlock import exceptions, permissions
 from airlock.business_logic import bll
 from airlock.enums import (
     PathType,
+    RequestFileType,
     RequestFileVote,
     RequestStatus,
     ReviewTurnPhase,
@@ -24,7 +25,7 @@ from airlock.enums import (
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
     AddFileForm,
-    FileFormSet,
+    FileTypeFormSet,
     GroupCommentDeleteForm,
     GroupCommentForm,
     GroupEditForm,
@@ -224,7 +225,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         kwargs={"request_id": release_request.id, "path": group_relpath},
     )
 
-    move_file_button = ButtonContext.with_request_defaults(
+    change_file_properties_button = ButtonContext.with_request_defaults(
         req_id, "request_multiselect"
     )
     if permissions.user_can_withdraw_file_from_request(
@@ -234,12 +235,14 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
-    if permissions.user_can_change_request_file_group(
+    if permissions.user_can_change_request_file_properties(
         user, release_request, workspace, relpath
     ):
-        move_file_button.show = True
-        move_file_button.disabled = False
-        move_file_button.tooltip = "Move this file to different group"
+        change_file_properties_button.show = True
+        change_file_properties_button.disabled = False
+        change_file_properties_button.tooltip = (
+            "Change this file's type or move to different group"
+        )
 
     # Show the voting buttons for output files to any user who can review
     # for requests in currently reviewable status
@@ -280,7 +283,7 @@ def _get_file_button_context(user, release_request, workspace, path_item):
                 assert False, "Invalid RequestFileVote value"
 
     return {
-        "move_file_button": move_file_button,
+        "change_file_properties_button": change_file_properties_button,
         "withdraw_file": withdraw_btn,
         "voting": voting_buttons,
     }
@@ -631,9 +634,7 @@ def file_withdraw(request, request_id, path: str):
 @require_http_methods(["POST"])
 def request_multiselect(request, request_id: str):
     release_request = get_release_request_or_raise(request.user, request_id)
-
     multiform = MultiselectForm(request.POST)
-
     if not multiform.is_valid():
         display_form_errors(request, multiform.errors)
         url = get_next_url_from_form(release_request, multiform)
@@ -669,40 +670,52 @@ def multiselect_withdraw_files(request, multiform, release_request):
 
 
 def multiselect_update_files(request, multiform, release_request):
-    files_to_add = []
+    files_to_add = {}
     files_ignored = {}
+    filegroup = None
     # validate which files can be added
-    for f in multiform.cleaned_data["selected"]:
+    for i, f in enumerate(multiform.cleaned_data["selected"]):
         workspace = bll.get_workspace(release_request.workspace, request.user)
-        relpath = release_request.get_request_file_from_urlpath(f).relpath
-        if permissions.user_can_change_request_file_group(
-            request.user, release_request, workspace, relpath
-        ):
-            files_to_add.append(f)
-        else:
-            files_ignored[f] = "file cannot be moved"
+        request_file = release_request.get_request_file_from_urlpath(f)
+        if i == 0:
+            filegroup = request_file.group
+        # We should always be updating files from the same group
+        assert request_file.group == filegroup
 
-    move_file_form = AddFileForm(
+        if permissions.user_can_change_request_file_properties(
+            request.user, release_request, workspace, request_file.relpath
+        ):
+            files_to_add[f] = request_file.filetype.name
+        else:
+            files_ignored[f] = "cannot change file group or type"
+
+    change_file_properties_form = AddFileForm(
         release_request=release_request,
-        initial={"next_url": f"/requests/view/{release_request.id}/"},
+        initial={
+            "next_url": get_next_url_from_form(release_request, multiform),
+            "filegroup": filegroup,
+        },
     )
 
-    filetype_formset = FileFormSet(
-        initial=[{"file": f} for f in files_to_add],
+    filetype_formset = FileTypeFormSet(
+        initial=[
+            {"file": f, "filetype": filetype} for f, filetype in files_to_add.items()
+        ],
     )
     return TemplateResponse(
         request,
-        template="change_file_group.html",
+        template="add_or_change_files.html",
         context={
-            "form": move_file_form,
+            "form": change_file_properties_form,
             "formset": filetype_formset,
             "files_ignored": files_ignored,
             "no_valid_files": len(files_to_add) == 0,
-            # "update": True,
-            "move_file_url": reverse(
-                "file_move_group",
+            "form_url": reverse(
+                "file_change_properties",
                 kwargs={"request_id": release_request.id},
             ),
+            "modal_title": "Change group or type for files in request",
+            "modal_button_text": "Update Files",
         },
     )
 
@@ -743,14 +756,13 @@ def file_approve(request, request_id, path: str):
 
 @instrument(func_attributes={"release_request": "request_id"})
 @require_http_methods(["POST"])
-def file_move_group(request, request_id):
+def file_change_properties(request, request_id):
     release_request = get_release_request_or_raise(request.user, request_id)
     form = AddFileForm(request.POST, release_request=release_request)
-    formset = FileFormSet(request.POST)
+    formset = FileTypeFormSet(request.POST)
     errors = add_or_update_form_is_valid(request, form, formset)
 
     next_url = get_next_url_from_form(release_request, form)
-
     if errors:
         return redirect(next_url)
 
@@ -761,17 +773,37 @@ def file_move_group(request, request_id):
     )
     error_msgs = []
     success_msgs = []
+    group_change_next_url = None
+
     for formset_form in formset:
         path = formset_form.cleaned_data["file"]
-        relpath = release_request.get_request_file_from_urlpath(path).relpath
+        request_file = release_request.get_request_file_from_urlpath(path)
+        filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
+
+        old_group = request_file.group
+        group_change = old_group != group_name
+        filetype_change = request_file.filetype != filetype
+
+        if not (group_change or filetype_change):
+            continue
         try:
-            bll.move_file_to_new_group_in_request(
-                release_request, relpath, request.user, group_name
+            bll.change_file_properties_in_request(
+                release_request,
+                request_file.relpath,
+                request.user,
+                group_name,
+                filetype,
             )
-            success_msgs.append(
-                f"The file {relpath} has been moved to new group {group_name}"
-            )
-            next_url = release_request.get_url(group_name)
+            if group_change:
+                success_msgs.append(
+                    f"The file {request_file.relpath} has been moved to new group {group_name}"
+                )
+            if filetype_change:
+                success_msgs.append(
+                    f"The filetype for {request_file.relpath} has been changed to {filetype.name}"
+                )
+            if group_change and group_change_next_url is None:
+                next_url = next_url.replace(f"/{old_group}/", f"/{group_name}/")
         except exceptions.RequestPermissionDenied as exc:
             error_msgs.append(str(exc))
 
