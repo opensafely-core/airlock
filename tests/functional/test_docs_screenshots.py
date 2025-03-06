@@ -25,15 +25,25 @@ def get_user_data():
     author_workspaces = ["my-workspace"]
     user_dicts = {
         "author": factories.create_api_user(
-            username=author_username, workspaces=author_workspaces, output_checker=False
+            fullname="Author",
+            username=author_username,
+            workspaces=author_workspaces,
+            output_checker=False,
         ),
         "checker1": factories.create_api_user(
-            username="checker1", workspaces=[], output_checker=True
+            fullname="Output Checker 1",
+            username="checker1",
+            workspaces=[],
+            output_checker=True,
         ),
         "checker2": factories.create_api_user(
-            username="checker2", workspaces=[], output_checker=True
+            fullname="Output Checker 2",
+            username="checker2",
+            workspaces=[],
+            output_checker=True,
         ),
         "copilot": factories.create_api_user(
+            fullname="Copilot",
             username="copilot",
             workspaces=[],
             copiloted_workspaces=["workspace-1"],
