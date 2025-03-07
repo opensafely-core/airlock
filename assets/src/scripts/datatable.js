@@ -107,8 +107,8 @@ function buildTables() {
       if (container) {
         const spinner = container.querySelector("[data-datatable-spinner]");
         const wrapper = container.querySelector("[data-datatable-wrapper]");
-        spinner?.classList.toggle("hidden");
-        wrapper.classList.toggle("hidden");
+        spinner.style.display = 'none'
+        wrapper.style.display = 'block'
       }
 
       // We want to display some visual indication when the table is sorting

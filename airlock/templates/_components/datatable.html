@@ -1,6 +1,11 @@
+{% load static %}
+
 <div class="table-container">
-  <p class="spinner p-4" data-datatable-spinner>Loading table data...</p>
-  <div class="hidden" data-datatable-wrapper >
+  <p style="padding:24px;font-family:sans-serif;" data-datatable-spinner>
+    Loading table data...
+    <img height="16" width="16" class="icon animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
+  </p>
+  <div style="display:none" data-datatable-wrapper >
     <table
       class="{{ class }}"
       data-datatable
