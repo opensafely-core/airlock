@@ -1963,6 +1963,52 @@ def test_request_multiselect_withdraw_files(airlock_client):
         assert f"{path} has been withdrawn from the request" in messages
 
 
+def test_request_multiselect_withdraw_all_files_pending_request(airlock_client):
+    user = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        list(user.workspaces)[0],
+        author=user,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(group="group", path="subdir/file1.txt"),
+            factories.request_file(group="group", path="subdir/file2.txt"),
+        ],
+    )
+
+    airlock_client.login_with_user(user)
+
+    # withdraw one file; redirects to directory
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "withdraw_files",
+            "selected": [
+                "group/subdir/file1.txt",
+            ],
+            "next_url": release_request.get_url("group/subdir/"),
+        },
+    )
+
+    assert response.headers["HX-Redirect"] == release_request.get_url("group/subdir/")
+
+    # withdraw last file; no files left in directory, redirects to group
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "withdraw_files",
+            "selected": [
+                "group/subdir/file2.txt",
+            ],
+            "next_url": release_request.get_url("group/subdir/"),
+        },
+    )
+    assert response.headers["HX-Redirect"] == release_request.get_url("group")
+
+    assert (
+        airlock_client.get(release_request.get_url("group/subdir/")).status_code == 404
+    )
+
+
 def test_request_multiselect_change_file_properties(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
