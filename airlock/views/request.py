@@ -1173,6 +1173,60 @@ def group_request_changes(request, request_id, group):
     return redirect(release_request.get_url(group))
 
 
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_reset_votes(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    filegroup = release_request.filegroups.get(group)
+    if filegroup is None:
+        raise Http404(f"bad group {group}")
+
+    try:
+        permissions.check_user_can_currently_review_request(
+            request.user, release_request
+        )
+        permissions.check_user_can_reset_review(request.user, release_request)
+    except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied) as exc:
+        raise PermissionDenied(str(exc))
+
+    reset = 0
+    errors = []
+    for output_file in filegroup.output_files:
+        try:
+            bll.reset_review_file(release_request, output_file.relpath, request.user)
+            reset += 1
+        except exceptions.FileReviewNotFound:
+            # File has not been reviewed, nothing to reset
+            ...
+        except exceptions.RequestReviewDenied as exc:
+            # We've already checked that the user is allowed to reset the
+            # request at this point, so it's unlikely there will be a
+            # permission error here. It would be possible for another
+            # output checker to return/reject the request while we're in the
+            # process of updating the votes here, which would put it into an
+            # un-reviewable status, so we catch and report on the errors.
+            # We don't want to raise this error immediately, because we still want
+            # to be able to tell the user what succeeded.
+            errors.append(f"Error resetting vote for {output_file.relpath}: {exc}")
+            span = trace.get_current_span()
+            span.record_exception(exc)
+
+    if reset:
+        plural_suffix = "s" if reset > 1 else ""
+        messages.success(
+            request,
+            f"Votes on {reset} file{plural_suffix} have been reset",
+        )
+    else:
+        messages.info(
+            request,
+            "No votes to reset",
+        )
+    display_multiple_messages(request, errors, "error")
+
+    return redirect(release_request.get_url(group))
+
+
 def uploaded_files_count(request, request_id):
     """
     This view is called with htmx when a request is in the process of

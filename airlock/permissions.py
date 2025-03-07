@@ -334,12 +334,24 @@ def user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath
     return True
 
 
+def check_user_can_reset_review(user: User, request: "ReleaseRequest"):
+    if user.user_id in request.submitted_reviews:
+        raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
+
+
+def user_can_reset_review(user: User, request: "ReleaseRequest"):
+    try:
+        check_user_can_reset_review(user, request)
+    except exceptions.RequestReviewDenied:
+        return False
+    return True
+
+
 def check_user_can_reset_file_review(
     user: User, request: "ReleaseRequest", relpath: UrlPath
 ):
     check_user_can_review_file(user, request, relpath)
-    if user.user_id in request.submitted_reviews:
-        raise exceptions.RequestReviewDenied("cannot reset file from submitted review")
+    check_user_can_reset_review(user, request)
 
 
 def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: UrlPath):
