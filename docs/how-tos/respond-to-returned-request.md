@@ -33,5 +33,15 @@ You can opt to respond to a request to change a file by:
 
 ## Re-submitting the request
 
+There will be a comment from output checkers on any file group that contains files with
+requested changes. You are required to add a comment to describe how you have addressed
+the requested changes before you can resubmit the request. If you have added new files,
+withdrawn files or updated files in the request, you will also need to add a comment to
+the relevant file group.
+
+A message will indicate the groups that require attention:
+
+![Comments required before resubmitting a request](../screenshots/comments_required_before_resubmitting_request.png)
+
 When you are happy that you have responded to feedback and questions, 
 [submit the request](create-and-submit-a-release-request.md#submit-the-request) again for review.

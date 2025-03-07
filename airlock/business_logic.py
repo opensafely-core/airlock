@@ -1017,6 +1017,7 @@ class BusinessLogicLayer:
                 self.set_status(release_request, RequestStatus.REVIEWED, user)
 
     def return_request(self, release_request: ReleaseRequest, user: User):
+        permissions.check_user_can_return_request(user, release_request)
         self.set_status(release_request, RequestStatus.RETURNED, user)
         self._dal.start_new_turn(release_request.id)
 

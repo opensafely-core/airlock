@@ -207,148 +207,352 @@ def test_request_view_with_submitted_request(airlock_client):
 
 
 @pytest.mark.parametrize(
-    "files,has_message",
+    "request_status,author,login_as,files,message,public_comment_user",
     [
-        ([factories.request_file()], False),
         (
+            # comments required on changes-requested file, alert not shown to checker
+            RequestStatus.PENDING,
+            "researcher",
+            "researcher",
+            [factories.request_file(group="group")],
+            None,
+            None,
+        ),
+        (
+            # comments required on changes-requested file, alert not shown to checker
+            RequestStatus.RETURNED,
+            "researcher",
+            "checker",
+            [factories.request_file(group="group", changes_requested=True)],
+            None,
+            None,
+        ),
+        (
+            # comments required on changes-requested file, alert shown to author
+            RequestStatus.RETURNED,
+            "researcher",
+            "researcher",
+            [factories.request_file(group="group", changes_requested=True)],
+            "Please explain how you have updated the request",
+            None,
+        ),
+        (
+            # comments made on changes-requested file, no alert
+            RequestStatus.RETURNED,
+            "researcher",
+            "researcher",
+            [factories.request_file(group="group", changes_requested=True)],
+            None,
+            "researcher",
+        ),
+        (
+            # comments made on changes-requested file by other user, no alert
+            RequestStatus.RETURNED,
+            "researcher",
+            "researcher",
+            [factories.request_file(group="group", changes_requested=True)],
+            None,
+            "researcher",
+        ),
+        (
+            # comments not required on approved file, no alert
+            RequestStatus.RETURNED,
+            "researcher",
+            "researcher",
+            [factories.request_file(group="group", approved=True)],
+            None,
+            None,
+        ),
+    ],
+)
+def test_request_view_submit_request_alert(
+    airlock_client,
+    request_status,
+    author,
+    login_as,
+    files,
+    message,
+    public_comment_user,
+):
+    """
+    Alert message shown when a request is in returned status
+    and does not yet have comments on all groups with changes requested
+    """
+    checkers = factories.get_default_output_checkers()
+    users = {
+        "researcher": factories.create_airlock_user(
+            username="researcher", workspaces=["workspace"]
+        ),
+        "researcher1": factories.create_airlock_user(
+            username="researcher1", output_checker=False
+        ),
+        "checker": checkers[0],
+    }
+    airlock_client.login(
+        username=users[login_as].username, output_checker=users[login_as].output_checker
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=users[author],
+        status=request_status,
+        files=files,
+        checker=users["checker"],
+    )
+    if public_comment_user:
+        bll.group_comment_create(
+            release_request,
+            "group",
+            "A public comment",
+            Visibility.PUBLIC,
+            users[public_comment_user],
+        )
+
+    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
+
+    # The reminder message is only shown if the request in REVIEWED status
+    # and the user is an output checker and not the author
+    if message:
+        assert message in response.context_data["request_action_required"]
+    else:
+        assert not response.context_data["request_action_required"]
+
+
+@pytest.mark.parametrize(
+    "author, login_as, files, message",
+    [
+        # not all files reviewed
+        ("researcher", "checker", [factories.request_file()], None),
+        # changes requested, has comments
+        (
+            "researcher",
+            "checker",
+            [factories.request_file(changes_requested=True, comment=True)],
+            "submit your review now",
+        ),
+        # all approved
+        (
+            "researcher",
+            "checker",
+            [factories.request_file(changes_requested=True, comment=True)],
+            "submit your review now",
+        ),
+        # approved, no comments
+        (
+            "researcher",
+            "checker",
+            [factories.request_file(approved=True, comment=False)],
+            "submit your review now",
+        ),
+        # changes requested, needs comments
+        (
+            "researcher",
+            "checker",
+            [factories.request_file(changes_requested=True, comment=False)],
+            "The following group(s) require comments",
+        ),
+        # changes requested, needs comments, author view
+        (
+            "researcher",
+            "researcher",
+            [factories.request_file(changes_requested=True, comment=False)],
+            None,
+        ),
+        # changes requested, needs comments, author view, author is output-checker
+        (
+            "collaborator_checker",
+            "collaborator_checker",
+            [factories.request_file(changes_requested=True, comment=False)],
+            None,
+        ),
+        # one file still needs reviewed, one approved
+        (
+            "researcher",
+            "checker",
             [
                 factories.request_file(approved=True),
                 factories.request_file(path="unapproved.txt"),
             ],
-            False,
+            None,
         ),
-        ([factories.request_file(changes_requested=True)], True),
+        # one file still needs reviewed, one changes requested and missing comments
         (
+            "researcher",
+            "checker",
             [
-                factories.request_file(approved=True),
+                factories.request_file(changes_requested=True, comment=False),
+                factories.request_file(path="unapproved.txt"),
+            ],
+            None,
+        ),
+        # one file with changes requested and comments, other supporting
+        (
+            "researcher",
+            "checker",
+            [
                 factories.request_file(
-                    path="supporting.txt", filetype=RequestFileType.SUPPORTING
+                    group="group1", changes_requested=True, comment=True
+                ),
+                factories.request_file(
+                    group="group2",
+                    path="supporting.txt",
+                    filetype=RequestFileType.SUPPORTING,
+                    comment=False,
                 ),
             ],
-            True,
+            "You have reviewed all files",
         ),
     ],
 )
-def test_request_view_submit_review_alert(airlock_client, files, has_message):
+def test_request_view_submit_review_alert(
+    airlock_client, author, login_as, files, message
+):
+    """
+    Alert shown if:
+    - this user has reviewed all files but has not yet submitted their review
+    - this user has reviewed all files and needs to comment on groups with
+      changes requested
+    """
     checker = factories.get_default_output_checkers()[0]
-    airlock_client.login(username=checker.username, output_checker=True)
+    users = {
+        "researcher": factories.create_airlock_user(
+            username="researcher", workspaces=["workspace"]
+        ),
+        "collaborator_checker": factories.create_airlock_user(
+            username="checker", output_checker=True, workspaces=["workspace"]
+        ),
+        "checker": checker,
+    }
+    airlock_client.login(
+        username=users[login_as].username, output_checker=users[login_as].output_checker
+    )
+
     release_request = factories.create_request_at_status(
-        "workspace", status=RequestStatus.SUBMITTED, files=files
+        "workspace", author=users[author], status=RequestStatus.SUBMITTED, files=files
     )
 
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
 
     # The all-files-reviewed reminder message is only shown if the request has
     # output files and all have been reviewed
-    assert ("You have reviewed all files" in response.rendered_content) == has_message
-
-    # The all-files-reviewed reminder message is never shown to an author
-    airlock_client.login(
-        username=release_request.author.username, workspaces=["workspace"]
-    )
-    response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
-    assert "You have reviewed all files" not in response.rendered_content
+    # If comments on groups are missing, the alert lists them
+    # These alerts are never shown to an author
+    if message:
+        assert message in response.context_data["request_action_required"]
+    else:
+        assert not response.context_data["request_action_required"]
 
 
 @pytest.mark.parametrize(
-    "request_status,author,login_as,files,has_message,can_release",
+    "author,login_as,files,message,public_comment_user",
     [
         (
-            # invalid status for message
-            RequestStatus.PARTIALLY_REVIEWED,
-            "researcher",
-            "checker",
-            [factories.request_file(approved=True)],
-            False,
-            False,
-        ),
-        (
             # reviewed and all approved, output-checker can return/reject/release
-            RequestStatus.REVIEWED,
             "researcher",
             "checker",
-            [factories.request_file(approved=True)],
-            True,
-            True,
+            [factories.request_file(group="group", approved=True)],
+            "You can now return, reject or release this request",
+            None,
         ),
         (
             # reviewed and not all approved, output-checker can return/reject
-            RequestStatus.REVIEWED,
             "researcher",
             "checker",
             [
-                factories.request_file(approved=True, path="foo.txt"),
-                factories.request_file(changes_requested=True, path="bar.txt"),
+                factories.request_file(group="group", approved=True, path="foo.txt"),
+                factories.request_file(
+                    group="group", changes_requested=True, path="bar.txt"
+                ),
             ],
-            True,
-            False,
+            "You can now return or reject this request",
+            "checker",
         ),
         (
-            # reviewed and all approved, output-checker is author
-            RequestStatus.REVIEWED,
+            # reviewed and not all approved, comments missing
+            "researcher",
             "checker",
-            "checker",
-            [factories.request_file(approved=True)],
-            False,
-            False,
+            [
+                factories.request_file(group="group", approved=True, path="foo.txt"),
+                factories.request_file(
+                    group="group", changes_requested=True, path="bar.txt"
+                ),
+            ],
+            "The following group(s) require a public comment",
+            None,
+        ),
+        (
+            # reviewed and all approved, logged in as author who is also an output-checker
+            "collaborator_checker",
+            "collaborator_checker",
+            [factories.request_file(group="group", approved=True)],
+            None,
+            None,
         ),
         (
             # reviewed and all approved, logged in as non output-checker
-            RequestStatus.REVIEWED,
             "researcher",
             "researcher1",
-            [factories.request_file(approved=True)],
-            False,
-            False,
+            [factories.request_file(group="group", approved=True)],
+            None,
+            None,
         ),
         (
             # reviewed and all approved, logged in as author
-            RequestStatus.REVIEWED,
             "researcher",
             "researcher",
-            [factories.request_file(approved=True)],
-            False,
-            False,
+            [factories.request_file(group="group", approved=True)],
+            None,
+            None,
         ),
     ],
 )
 def test_request_view_complete_turn_alert(
-    airlock_client, request_status, author, login_as, files, has_message, can_release
+    airlock_client, author, login_as, files, message, public_comment_user
 ):
     """
     Alert message shown when a request has two submitted reviews and
-    can now be progressed by returning/rejecting/releasing
+    1) still requires public comments on any groups with changes requested OR
+    2) has comments/is all approved and can now be progressed by returning/rejecting/releasing
     """
+    checkers = factories.get_default_output_checkers()
     users = {
         "researcher": factories.create_airlock_user(
             username="researcher", workspaces=["workspace"]
         ),
         "researcher1": factories.create_airlock_user(
-            username="researcher", output_checker=False
+            username="researcher1", output_checker=False
         ),
-        "checker": factories.create_airlock_user(
+        "collaborator_checker": factories.create_airlock_user(
             username="checker", output_checker=True, workspaces=["workspace"]
         ),
+        "checker": checkers[0],
     }
-    airlock_client.login(username=users[login_as].username, output_checker=True)
-    release_request = factories.create_request_at_status(
-        "workspace", author=users[author], status=request_status, files=files
+    airlock_client.login(
+        username=users[login_as].username, output_checker=users[login_as].output_checker
     )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=users[author],
+        status=RequestStatus.REVIEWED,
+        files=files,
+        checker=users["checker"],
+    )
+    if public_comment_user:
+        bll.group_comment_create(
+            release_request,
+            "group",
+            "A public comment",
+            Visibility.PUBLIC,
+            users[public_comment_user],
+        )
 
     response = airlock_client.get(f"/requests/view/{release_request.id}", follow=True)
 
     # The reminder message is only shown if the request in REVIEWED status
     # and the user is an output checker and not the author
-    if has_message:
-        if can_release:
-            assert (
-                "You can now return, reject or release this request"
-                in response.rendered_content
-            )
-        else:
-            assert "You can now return or reject" in response.rendered_content
+    if message:
+        assert message in response.context_data["request_action_required"]
     else:
-        assert "You can now return" not in response.rendered_content
+        assert not response.context_data["request_action_required"]
 
 
 def test_request_view_with_reviewed_request(airlock_client):
@@ -1025,8 +1229,15 @@ def test_request_return_output_checker(airlock_client):
             factories.request_file("group", "path/test1.txt", changes_requested=True),
         ],
     )
+    # no public comment on group, 403
     response = airlock_client.post(f"/requests/return/{release_request.id}")
+    assert response.status_code == 403
 
+    # add comment and try again
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PUBLIC, airlock_client.user
+    )
+    response = airlock_client.post(f"/requests/return/{release_request.id}")
     assert response.status_code == 302
     persisted_request = bll.get_release_request(release_request.id, airlock_client.user)
     assert persisted_request.status == RequestStatus.RETURNED

@@ -658,6 +658,23 @@ def test_submit_button_missing_context_controls(
         release_request, "group2", context="foo", controls="bar", user=author
     )
     page.reload()
+
+    if status == RequestStatus.RETURNED:
+        # For returned requests, groups with changes requested require a comment
+        # button still disabled; "complete group" has changes requested
+        expect(submit_btn).to_be_disabled()
+        submit_btn.hover()
+        expect(submit_btn).to_contain_text(
+            "Filegroup(s) are missing comments: complete group, group1, group2"
+        )
+
+        # Add a public comment to each group
+        for group in ["complete group", "group1", "group2"]:
+            bll.group_comment_create(
+                release_request, group, "a comment", Visibility.PUBLIC, author
+            )
+        page.reload()
+
     expect(submit_btn).to_be_enabled()
 
 
@@ -706,16 +723,25 @@ def test_resubmit_button_visibility(
 
 
 @pytest.mark.parametrize(
-    "login_as,status,checkers, can_return",
+    "login_as,status,checkers,has_public_comment,can_return",
     [
-        ("author", RequestStatus.SUBMITTED, None, False),
-        ("checker1", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], True),
-        ("checker2", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], True),
-        ("checker1", RequestStatus.REVIEWED, ["checker1", "checker2"], True),
+        ("author", RequestStatus.SUBMITTED, None, False, False),
+        ("checker1", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False, True),
+        ("checker2", RequestStatus.PARTIALLY_REVIEWED, ["checker1"], False, True),
+        ("checker1", RequestStatus.REVIEWED, ["checker1", "checker2"], False, False),
+        ("checker1", RequestStatus.REVIEWED, ["checker1", "checker2"], True, True),
     ],
 )
 def test_request_returnable(
-    live_server, context, page, bll, login_as, status, checkers, can_return
+    live_server,
+    context,
+    page,
+    bll,
+    login_as,
+    status,
+    checkers,
+    has_public_comment,
+    can_return,
 ):
     user_data = {
         "author": dict(
@@ -752,6 +778,11 @@ def test_request_returnable(
             ),
         ],
     )
+
+    if has_public_comment:
+        bll.group_comment_create(
+            release_request, "group", "a comment", Visibility.PUBLIC, checkers[0]
+        )
 
     login_as_user(live_server, context, user_data[login_as])
     return_request_button = page.locator("button[data-modal=returnRequest]")
@@ -794,7 +825,7 @@ def test_returned_request(live_server, context, page, bll):
                 group="group", path="file1.txt", checkers=checkers, approved=True
             ),
             factories.request_file(
-                group="group",
+                group="group1",
                 path="file2.txt",
                 checkers=checkers,
                 changes_requested=True,
@@ -805,6 +836,19 @@ def test_returned_request(live_server, context, page, bll):
     # author resubmits
     login_as_user(live_server, context, user_data["author"])
     page.goto(live_server.url + release_request.get_url())
+
+    resubmit_button = page.locator("#resubmit-for-review-button")
+    # Can't resubmit without a comment on the request-changes group
+    expect(resubmit_button).to_be_disabled()
+    resubmit_button.hover()
+    expect(resubmit_button).to_contain_text("Filegroup(s) are missing comments: group1")
+
+    # Add a comment for group1 only
+    bll.group_comment_create(
+        release_request, "group1", "a comment", Visibility.PUBLIC, author
+    )
+    page.reload()
+
     # Can re-submit a returned request
     page.locator("#resubmit-for-review-button").click()
 
@@ -823,7 +867,7 @@ def test_returned_request(live_server, context, page, bll):
     expect(approve_button).to_have_class(selected_class_regex)
 
     # go to previously changes_requested file; now shown as unselected
-    page.goto(live_server.url + release_request.get_url("group/file2.txt"))
+    page.goto(live_server.url + release_request.get_url("group1/file2.txt"))
     request_changes_button = page.locator("#file-request-changes-button")
     expect(request_changes_button).to_contain_text("Request changes")
     expect(approve_button).not_to_have_class(selected_class_regex)
@@ -1155,11 +1199,18 @@ def test_request_header_content(live_server, page, context):
     "status,approved",
     [
         (RequestStatus.SUBMITTED, True),
+        (RequestStatus.SUBMITTED, False),
         (RequestStatus.REVIEWED, True),
         (RequestStatus.REVIEWED, False),
     ],
 )
-def test_request_action_required_alert(live_server, page, context, status, approved):
+def test_request_action_required_alert(
+    live_server, page, context, bll, status, approved
+):
+    # This tests the different alerts on the overview page and group/dir/file pages
+    # for requests that have all required group comments and the user can now
+    # submit their review, or return/reject/release
+    # Missing filegroup comments are tested elsewhere
     checker = login_as_user(
         live_server,
         context,
@@ -1178,6 +1229,10 @@ def test_request_action_required_alert(live_server, page, context, status, appro
             )
         ],
         status=status,
+    )
+    # Add a public comment for the group
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PUBLIC, checker
     )
 
     # The alert should be visible on all pages

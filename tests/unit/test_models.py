@@ -651,7 +651,11 @@ def test_get_visible_comments_for_group_class(bll):
         "workspace",
         status=RequestStatus.SUBMITTED,
         author=author,
-        files=[factories.request_file(group="group", path="file.txt", approved=True)],
+        files=[
+            factories.request_file(
+                group="group", path="file.txt", approved=True, comment=False
+            )
+        ],
     )
 
     bll.group_comment_create(
@@ -828,6 +832,192 @@ def test_release_request_add_same_file(bll):
     # No additional files or groups have been created
     assert len(release_request.filegroups) == 1
     assert len(release_request.filegroups["default"].files) == 1
+
+
+@pytest.mark.parametrize(
+    "status,approved,changes_requested,expected_missing",
+    [
+        # public comments are never enforced in these statuses
+        (RequestStatus.PENDING, False, False, []),
+        (RequestStatus.SUBMITTED, False, True, []),
+        (RequestStatus.PARTIALLY_REVIEWED, False, True, []),
+        # public comments are required if there are files with changes requested
+        (RequestStatus.REVIEWED, False, True, ["test-group"]),
+        (RequestStatus.REVIEWED, True, False, []),
+        (RequestStatus.RETURNED, False, True, ["test-group"]),
+        (RequestStatus.RETURNED, True, False, []),
+    ],
+)
+def test_release_request_filegroups_missing_public_comment(
+    status, approved, changes_requested, expected_missing
+):
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        status=status,
+        files=[
+            factories.request_file(
+                group="test-group",
+                approved=approved,
+                changes_requested=changes_requested,
+            )
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == expected_missing
+
+
+def test_returned_release_request_filegroups_missing_public_comment_file_withdrawn(bll):
+    author = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                path="file1.txt",
+                changes_requested=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+            factories.request_file(
+                group="test-group-approved",
+                path="file2.txt",
+                approved=True,
+            ),
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == ["test-group"]
+    assert len(release_request.output_files()) == 2
+
+    # withdraw the file; group still required comment
+    bll.withdraw_file_from_request(
+        release_request, UrlPath("test-group/file1.txt"), author
+    )
+    release_request = factories.refresh_release_request(release_request)
+    assert len(release_request.output_files()) == 1
+    assert release_request.filegroups_missing_public_comment() == ["test-group"]
+
+
+def test_returned_release_request_filegroups_missing_public_comment_file_new_file(bll):
+    author = factories.create_airlock_user(workspaces=["workspace"])
+    factories.write_workspace_file("workspace", "new-file.txt")
+
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                path="file1.txt",
+                changes_requested=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == ["test-group"]
+    assert len(release_request.output_files()) == 1
+
+    # add a new file
+    bll.add_file_to_request(
+        release_request, UrlPath("new-file.txt"), author, "new-group"
+    )
+    release_request = factories.refresh_release_request(release_request)
+    assert len(release_request.output_files()) == 2
+    assert release_request.filegroups_missing_public_comment() == [
+        "test-group",
+        "new-group",
+    ]
+
+
+def test_returned_release_request_filegroups_missing_public_comment_file_changed_group(
+    bll,
+):
+    author = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                path="file1.txt",
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == []
+
+    # change group
+    bll.change_file_properties_in_request(
+        release_request, UrlPath("file1.txt"), author, "new-group"
+    )
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.filegroups_missing_public_comment() == ["new-group"]
+
+
+def test_returned_release_request_filegroups_missing_public_comment_file_changed_type(
+    bll,
+):
+    author = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                path="file1.txt",
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+            factories.request_file(
+                group="test-group",
+                path="file2.txt",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == []
+    assert len(release_request.output_files()) == 1
+
+    # change group
+    bll.change_file_properties_in_request(
+        release_request,
+        UrlPath("file2.txt"),
+        author,
+        "test-group",
+        RequestFileType.OUTPUT,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    assert len(release_request.output_files()) == 2
+    assert release_request.filegroups_missing_public_comment() == ["test-group"]
+
+
+def test_returned_release_request_filegroups_missing_public_comment_file_updated(
+    bll,
+):
+    author = factories.create_airlock_user(workspaces=["workspace"])
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                path="file1.txt",
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+    assert release_request.filegroups_missing_public_comment() == []
+
+    factories.write_workspace_file("workspace", "file1.txt", "new-content")
+    # change group
+    bll.update_file_in_request(release_request, UrlPath("file1.txt"), author)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.filegroups_missing_public_comment() == ["test-group"]
 
 
 @pytest.mark.parametrize(

@@ -595,6 +595,14 @@ class FileGroup:
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
         )
 
+    def has_public_comment_for_turn(self, review_turn):
+        return any(
+            comment
+            for comment in self.comments
+            if comment.review_turn == review_turn
+            and comment.visibility == Visibility.PUBLIC
+        )
+
     def empty(self):
         return not (self.output_files or self.supporting_files)
 
@@ -924,6 +932,93 @@ class ReleaseRequest:
 
     def submitted_reviews_count(self):
         return len(self.submitted_reviews)
+
+    def filegroups_missing_comment_by_reviewer(self, reviewer) -> set[str]:
+        groups_with_missing_comments = set()
+        comments_checked = set()
+        for rfile in self.output_files().values():
+            if rfile.group in groups_with_missing_comments:
+                # We already know this group is missing a comment, no need to check this
+                # file
+                continue
+            if rfile.group in comments_checked:
+                # We've already checked for comments for a file with changes requested
+                # and we know the group has a comment, no need to check this file
+                continue
+            if (
+                rfile.get_file_vote_for_user(reviewer)
+                != RequestFileVote.CHANGES_REQUESTED
+            ):
+                # comments are only required for files with changes requested
+                continue
+            filegroup = self.filegroups[rfile.group]
+            user_comments_this_turn = [
+                comment
+                for comment in filegroup.comments
+                if comment.author == reviewer
+                and comment.review_turn == self.review_turn
+            ]
+            comments_checked.add(rfile.group)
+            if not user_comments_this_turn:
+                groups_with_missing_comments.add(rfile.group)
+
+        return groups_with_missing_comments
+
+    def all_filegroups_commented_by_reviewer(self, reviewer: User) -> bool:
+        """
+        Reviewer has commented on all filegroups that contain files for which
+        they have requested changes in this turn.
+        """
+        return not bool(self.filegroups_missing_comment_by_reviewer(reviewer))
+
+    def filegroups_missing_public_comment(self) -> list[str]:
+        """
+        A filegroup requires a public comment in the current turn if:
+        - it is currently RETURNED OR
+        - it is under review and independent review is complete
+        AND:
+        - any of its files have CONFLICTED or CHANGES_REQUESTED decisions
+        - any of its output files have INCOMPLETE decisions
+        (INCOMPLETE output files will be files on a returned request that have been
+        newly added, moved between groups, changed from supporting to output type,
+        or withdrawn and re-added)
+        Note for returned requests we look at turn_reviewers - reviewers in the
+        previous turn. For under-review requests, we look at submitted reviews
+        in the current turn.
+        """
+        if self.all_files_approved():
+            return []
+
+        match self.status:
+            case RequestStatus.RETURNED:
+                reviewers = self.turn_reviewers
+            case RequestStatus.REVIEWED:
+                # public comments are not enforced until independent reivew is complete
+                reviewers = set(self.submitted_reviews.keys())
+            case _:
+                return []
+
+        def _requires_public_comment(rfile):
+            decision = rfile.get_decision(reviewers)
+            if (
+                decision == RequestFileDecision.INCOMPLETE
+                and rfile.filetype == RequestFileType.OUTPUT
+            ):
+                return True
+            return decision in [
+                RequestFileDecision.CHANGES_REQUESTED,
+                RequestFileDecision.CONFLICTED,
+            ]
+
+        return [
+            group_name
+            for group_name, filegroup in self.filegroups.items()
+            if not filegroup.has_public_comment_for_turn(self.review_turn)
+            and any(
+                _requires_public_comment(request_file)
+                for request_file in filegroup.files.values()
+            )
+        ]
 
     def status_owner(self) -> RequestStatusOwner:
         return permissions.STATUS_OWNERS[self.status]

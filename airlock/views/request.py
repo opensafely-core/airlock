@@ -139,8 +139,15 @@ def _get_request_button_context(user, release_request):
         ]:
             button.show = True
 
-        # We allow output checkers to return at any time
-        return_btn.disabled = False
+        # We allow output checkers to return at any time, except when the
+        # request has been fully reviewed, and there are files with changes
+        # requested and their file group is missing a public comment
+        try:
+            permissions.check_user_can_return_request(user, release_request)
+        except exceptions.RequestPermissionDenied as err:
+            return_btn.tooltip = str(err)
+        else:
+            return_btn.disabled = False
 
         try:
             permissions.check_user_can_submit_review(user, release_request)
@@ -153,8 +160,9 @@ def _get_request_button_context(user, release_request):
         if release_request.status == RequestStatus.REVIEWED:
             reject_btn.disabled = False
             reject_btn.tooltip = "Reject request as unsuitable for release"
-            return_btn.tooltip = "Return request for changes/clarification"
-            return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
+            if not return_btn.disabled:
+                return_btn.tooltip = "Return request for changes/clarification"
+                return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
         else:
             reject_btn.tooltip = "Rejecting a request is disabled until review has been submitted by two reviewers"
             return_btn.tooltip = "Return request before full review"
@@ -383,26 +391,59 @@ def request_view(request, request_id: str, path: str = ""):
                 "You have reviewed all files. Go to individual file groups to add "
                 f"comments, or go to the <a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to submit your review."
             )
+    elif permissions.user_can_submit_review_pending_comment(
+        request.user, release_request
+    ):
+        # All files are reviewed but user can't submit review because they are missing
+        # filegroup comments
+        missing_groups = release_request.filegroups_missing_comment_by_reviewer(
+            request.user
+        )
+        request_action_required = mark_safe(
+            "You have reviewed all files. The following group(s) require comments before "
+            f"you can submit your review: {_build_group_list_html(release_request, missing_groups)}"
+        )
     elif (
-        release_request.status.name == "REVIEWED"
+        release_request.status == RequestStatus.REVIEWED
         and permissions.user_can_review_request(request.user, release_request)
     ):
-        if relpath == ROOT_PATH:
+        # Round can be completed by:
+        # returning - may need group comments
+        # rejecting
+        # releasing - if all files approved
+        missing_groups = release_request.filegroups_missing_public_comment()
+        if missing_groups:
             request_action_required = (
-                "Two independent reviews have been submitted. You can now "
+                "The following group(s) require a public comment before "
+                f"you can return the request: {_build_group_list_html(release_request, missing_groups)}"
             )
         else:
-            request_action_required = (
-                "Two independent reviews have been submitted. Go to the "
-                f"<a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to "
-            )
+            if relpath == ROOT_PATH:
+                request_action_required = (
+                    "Two independent reviews have been submitted. You can now "
+                )
+            else:
+                request_action_required = (
+                    "Two independent reviews have been submitted. Go to the "
+                    f"<a class='text-oxford-600' href='{release_request.get_url()}'>request overview</a> to "
+                )
 
-        if release_request.can_be_released():
-            request_action_required += "return, reject or release this request."
-        else:
-            request_action_required += "return or reject this request."
+            if release_request.can_be_released():
+                request_action_required += "return, reject or release this request."
+            else:
+                request_action_required += "return or reject this request."
         request_action_required = mark_safe(request_action_required)
-
+    elif (
+        permissions.user_can_edit_request(request.user, release_request)
+        and release_request.filegroups_missing_public_comment()
+    ):
+        # Resubmitting a returned request requires filegroup comments
+        missing_groups = release_request.filegroups_missing_public_comment()
+        request_action_required = mark_safe(
+            "Please explain how you have updated the request and/or addressed requested "
+            "changes by adding comments to the following groups: "
+            f"{_build_group_list_html(release_request, missing_groups)}"
+        )
     else:
         request_action_required = None
 
@@ -425,6 +466,17 @@ def request_view(request, request_id: str, path: str = ""):
     }
 
     return TemplateResponse(request, template, context)
+
+
+def _build_group_list_html(release_request, group_names):
+    group_urls = [(group, release_request.get_url(group)) for group in group_names]
+    groups = "".join(
+        [
+            f"<li><a class='text-oxford-600' href='{url}'>{group}</a></li>"
+            for (group, url) in group_urls
+        ]
+    )
+    return f"<ul class='list-disc pl-4'>{groups}</ul>"
 
 
 def group_presenter(release_request, relpath, request):

@@ -111,18 +111,25 @@
       {% endif %}
     {% endif %}
     {% if content_buttons.return.show %}
-      {% #modal id="returnRequest" button_small=True button_text="Return request" button_tooltip=content_buttons.return.tooltip %}
-        {% #card container=True title="Return this request" %}
-          <form action="{{ content_buttons.return.url }}" method="POST">
-            {% csrf_token %}
-            <div class="pb-8">
-              {{content_buttons.return.modal_confirm_message}}
-            </div>
-            {% #button type="submit" variant="primary" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
-            {% #button variant="secondary-outline" type="cancel" small=True %}Cancel{% /button %}
-          </form>
-        {% /card %}
-      {% /modal %}
+      {% if content_buttons.return.disabled %}
+        {% #button disabled=True class="relative group" small=True id="return-request-button" %}
+          Return request
+          {% tooltip class="airlock-tooltip" content=content_buttons.return.tooltip %}
+        {% /button %}
+      {% else %}
+        {% #modal id="returnRequest" button_small=True button_text="Return request" button_tooltip=content_buttons.return.tooltip %}
+          {% #card container=True title="Return this request" %}
+            <form action="{{ content_buttons.return.url }}" method="POST">
+              {% csrf_token %}
+              <div class="pb-8">
+                {{content_buttons.return.modal_confirm_message}}
+              </div>
+              {% #button type="submit" variant="warning" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
+              {% #button variant="primary" type="cancel" small=True %}Cancel{% /button %}
+            </form>
+          {% /card %}
+        {% /modal %}
+      {% endif %}
     {% endif %}
     {% if content_buttons.release_files.show %}
       {% if content_buttons.release_files.disabled %}
@@ -159,7 +166,7 @@
       {% include "file_browser/_includes/uploaded_files_count.html" %}
     {% /description_item %}
     {% #description_item title="Filegroups" %}
-      <ul>
+      <ul class="list-disc">
         {% for filegroup in release_request.filegroups.values %}
           {% if not filegroup.empty %}
             <li>

@@ -15,6 +15,7 @@ from airlock.enums import (
     RequestFileType,
     RequestFileVote,
     RequestStatus,
+    Visibility,
 )
 from airlock.lib.git import ensure_git_init
 from airlock.models import (
@@ -429,7 +430,7 @@ def create_request_at_status(
         "workspace",
         RequestStatus.RELEASED,
         files=[
-            request_file(approved=True),
+            request_file(approved=True, comment=True),
             request_file(approved=True, filetype=RequestFileType.SUPPORTING),
         ]
     )
@@ -440,6 +441,10 @@ def create_request_at_status(
     Optionally, `request_file` can be given `checkers`, a list of users who will
     review (approve/request changes to) the file. If not provided, default output checkers
     will be used.
+
+    `request_file` can also be given a boolean `comment`, whether to comment on the
+    filegroup for a file. If None, comments will be added for files for which
+    changes_requested is True (which will allow the review to be submitted.)
     """
     author = author or create_airlock_user(
         username="author",
@@ -529,7 +534,14 @@ def create_request_at_status(
         return request
 
     if status in [RequestStatus.RETURNED, RequestStatus.WITHDRAWN]:
-        bll.set_status(request, RequestStatus.RETURNED, checker)
+        # add a public comment for any group with changes requested
+        for group_name in request.filegroups_missing_public_comment():
+            bll.group_comment_create(
+                request, group_name, "A public comment", Visibility.PUBLIC, checker
+            )
+        request = refresh_release_request(request)
+
+        bll.return_request(request, checker)
         request = refresh_release_request(request)
 
         if not (
@@ -649,6 +661,25 @@ def review_file(
             raise AssertionError(f"unrecognised status; {status}")  # pragma: no cover
 
 
+def comment_on_request_file_group(
+    request: ReleaseRequest,
+    relpath: UrlPath,
+    *users,
+):
+    if not users:
+        users = get_default_output_checkers()
+
+    for user in users:
+        request_file = request.get_request_file_from_output_path(relpath)
+        bll.group_comment_create(
+            request,
+            request_file.group,
+            f"A comment on {relpath}",
+            Visibility.PRIVATE,
+            user,
+        )
+
+
 @dataclass
 class TestRequestFile:
     """Placeholder containing file metadata.
@@ -668,6 +699,7 @@ class TestRequestFile:
     approved: bool = False
     changes_requested: bool = False
     checkers: typing.Sequence[User] = field(default_factory=list)
+    comment: bool | None = True
 
     # uploading
     uploaded: bool = True
@@ -686,11 +718,22 @@ class TestRequestFile:
 
     def vote(self, request: ReleaseRequest):
         if self.approved:
-            review_file(request, self.path, RequestFileVote.APPROVED, *self.checkers)
+            review_file(
+                request,
+                self.path,
+                RequestFileVote.APPROVED,
+                *self.checkers,
+            )
         elif self.changes_requested:
             review_file(
-                request, self.path, RequestFileVote.CHANGES_REQUESTED, *self.checkers
+                request,
+                self.path,
+                RequestFileVote.CHANGES_REQUESTED,
+                *self.checkers,
             )
+
+        if (self.comment is None and self.changes_requested) or self.comment:
+            comment_on_request_file_group(request, self.path, *self.checkers)
 
     def upload(self, request: ReleaseRequest, user: User):
         request = refresh_release_request(request)
@@ -708,6 +751,7 @@ def request_file(
     approved=False,
     changes_requested=False,
     checkers=None,
+    comment: bool | None = None,
     uploaded=False,
     **kwargs,
 ) -> TestRequestFile:
@@ -731,6 +775,8 @@ def request_file(
         approved=approved,
         changes_requested=changes_requested,
         checkers=checkers or [],
+        comment=comment,
+        # released and uploaded
         uploaded=uploaded,
     )
 
@@ -741,6 +787,7 @@ def submit_independent_review(request, *users):
     request = refresh_release_request(request)
 
     # caller's job to make sure all files have been voted on
+    # and comments added to filegroups for changes requested
     for user in users:
         bll.review_request(request, user)
 

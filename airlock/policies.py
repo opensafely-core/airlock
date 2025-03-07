@@ -142,7 +142,8 @@ def check_can_replace_file_in_request(
             and (filetype is None or (request_file.filetype == filetype))
         ):
             raise exceptions.RequestPermissionDenied(
-                f"Cannot add or update file in request if it is in status {status}"
+                "Cannot add or update file with same type and group in request "
+                f"if it is in status {status}"
             )
 
 
@@ -239,4 +240,28 @@ def check_can_submit_request(request: "ReleaseRequest"):
         groups = ", ".join(incomplete_groups)
         raise exceptions.RequestPermissionDenied(
             f"Incomplete context and/or controls for filegroup(s): {groups}"
+        )
+
+    # for resubmissions, any filegroup with changes requested
+    # must have a comment this turn
+    check_for_missing_filegroup_comments(request)
+
+
+def check_can_return_request(request: "ReleaseRequest"):
+    """
+    This request can be returned
+    If the requested is being returned from REVIEWED status, it must
+    have a public comment in the current turn for each file group
+    for which changes have been requested
+    """
+    check_can_review_request(request)
+    check_for_missing_filegroup_comments(request)
+
+
+def check_for_missing_filegroup_comments(request):
+    filegroups_missing_comments = request.filegroups_missing_public_comment()
+    if filegroups_missing_comments:
+        groups = ", ".join(filegroups_missing_comments)
+        raise exceptions.RequestPermissionDenied(
+            f"Filegroup(s) are missing comments: {groups}"
         )
