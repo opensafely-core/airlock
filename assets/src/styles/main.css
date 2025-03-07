@@ -16,10 +16,22 @@ The width of the modal is 80% of the screen width, and the
 context/controls textareas are 40% of the screen height to
 allow some space for comments which appear below them.
 */
-#group-context {
+#group-context, #addOrChangeRequestFile {
   @apply w-screen max-w-[80vw]
 }
 
 #group-context textarea {
   @apply h-screen max-h-[40vh]
+}
+
+
+/* 
+Make the add or change file modal bigger than a normal modal
+The width of the modal is 60% of the screen width, which allows more
+space for files with longer/nested filenames without introducing
+too much space for short filenames
+*/
+#addOrChangeRequestFile,
+#updateRequestFile {
+  @apply w-screen max-w-[60vw]
 }
