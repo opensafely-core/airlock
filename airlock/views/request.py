@@ -721,7 +721,30 @@ def multiselect_withdraw_files(request, multiform, release_request):
     display_multiple_messages(request, successes, "success")
 
     url = get_next_url_from_form(release_request, multiform)
+    url = _rewrite_next_url_to_group_if_empty_directory(release_request, url)
+
     return HttpResponse(headers={"HX-Redirect": url})
+
+
+def _rewrite_next_url_to_group_if_empty_directory(release_request, url):
+    urlpath = UrlPath(url)
+    if len(urlpath.parts) < 5:
+        return url
+
+    group = urlpath.parts[4]
+    target_directory = UrlPath(*urlpath.parts[5:])
+
+    files_in_same_directory = {
+        f
+        for f in release_request.filegroups[group].files
+        if f.parent == target_directory
+    }
+    if (
+        release_request.status == RequestStatus.PENDING
+        and len(files_in_same_directory) < 1
+    ):
+        url = f"{release_request.get_url()}{group}"
+    return url
 
 
 def multiselect_update_files(request, multiform, release_request):
