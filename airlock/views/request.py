@@ -163,7 +163,7 @@ def _get_request_button_context(user, release_request):
             if not return_btn.disabled:
                 return_btn.tooltip = "Return request for changes/clarification"
                 if release_request.all_files_approved():
-                    return_btn.modal_confirm_message = "Are you sure you want to return this request? This release has been reviewed and all files are approved and ready for release. After being returned, the request author will need to resubmit the request before any files can be released. Typically you would only do this if the request author has asked to make amendments."
+                    return_btn.modal_confirm_message = "Are you sure you want to return this request? This release has been reviewed and all files are approved and ready for release. After being returned, the request author will need to resubmit the request before any files can be released. Typically you would only do this if the request author has asked to make amendments. If you want to release the files, use the release files button."
                 else:
                     return_btn.modal_confirm_message = "All reviews have been submitted. Are you ready to return the request to the original author?"
         else:
