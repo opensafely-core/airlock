@@ -3,7 +3,7 @@ each requested file.
 
 ## View release requests that require action
 
-Use the navigation bar link to view all requests for review. 
+Use the navigation bar link to view all requests for review.
 
 ![Reviews index](../screenshots/reviews_index.png)
 
@@ -47,8 +47,8 @@ Click on the file group in the tree to view the file group information.
 
 ![File group](../screenshots/file_group.png)
 
-File group information contains the information about the file group context and 
-statistical disclosure controls that the researcher has provided for these files. 
+File group information contains the information about the file group context and
+statistical disclosure controls that the researcher has provided for these files.
 
 ## Review files
 
@@ -74,7 +74,7 @@ viewed from the file page by clicking on the Context button.
 Use the buttons at the top of the file content to submit your file vote. Options are:
 
 * **Approve file** — output meets disclosure requirements and is safe to be released
-* **Request changes** — output is not currently acceptable for release. 
+* **Request changes** — output is not currently acceptable for release.
 
 After approving or requesting changes to a file, the
 page will display your file vote, as well as the overall file decision.
@@ -103,16 +103,16 @@ message will indicate if there are filegroups missing comments.
 To add a comment, navigate to the file group by clicking on it in
 the file browser. Enter your comment text and click Save. You can [write your comments in markdown](../reference/formatting-comments.md) for additional formatting.
 
-You can choose to make a comment public and visible to everyone, or 
+You can choose to make a comment public and visible to everyone, or
 private, visible only to other output checkers. In either case, comments are
-hidden from the researcher until the request is returned (or approved/released). 
+hidden from the researcher until the request is returned (or approved/released).
 
 ![Comments on submitted request](../screenshots/reviewed_request_comments.png)
 
 Comments that are created as private can be updated to public at a later stage.
-This can be useful during the [review consolidation](#review-consolidation) stage, 
+This can be useful during the [review consolidation](#review-consolidation) stage,
 if output checkers agree that the comment contains a question to the researcher that
-they would like to ask without revision. 
+they would like to ask without revision.
 
 ### Submit your independent review
 
@@ -136,14 +136,14 @@ can discuss and decide how to proceed with the request.
 
 If the output checkers have conflicting votes, they should discuss and
 come to an agreement on whether the file(s) require changes. They should
-review any comments to determine the set of comments that they intend to 
+review any comments to determine the set of comments that they intend to
 return to the researcher (if any), and ensure that comments that are to be
 made visible to the researcher are consistent and coherent.
 
 While consolidating reviews, more comments can be added, after the output
 checkers have discussed and agreed on the questions they need to ask.
 If an existing comment already conveys the information requires, its
-visibility can be changed to allow it to be made visible to the researcher. 
+visibility can be changed to allow it to be made visible to the researcher.
 
 
 ## Progress the request to the next stage
@@ -174,6 +174,8 @@ Click the Return request button from the [request overview page](#navigate-to-th
     completed), comments are not enforced. This is because early return is
     usually at the request of the researcher, to make corrections.
 
+!!! warning
+    After returning a request, the researcher will have to manually re-submit the request before the files can be released by an output checker, even if they have all been approved.
 
 ### Reject request
 
@@ -191,7 +193,7 @@ If all files have been approved, they can be [released](release-files.md).
 
 ## Re-review of a request
 
-Once a request has been returned, researchers will receive a 
+Once a request has been returned, researchers will receive a
 [notification](../explanation/notifications.md), and can make changes,
 respond to comments and re-submit the request for re-review. Review
 of re-submitted requests follows the same process described above, until
