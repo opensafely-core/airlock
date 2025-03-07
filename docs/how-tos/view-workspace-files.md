@@ -7,10 +7,12 @@ by Project.
 Click on a workspace to view its files. The landing page for a workspace shows some details of the workspace and project. On the left hand side the workspace files are displayed in a
 browsable file tree.
 
-![Workspaces view](../screenshots/workspace_directory_view.png)
+![Workspace view](../screenshots/workspace_view.png)
 
 Clicking on a directory will display a list of the files it contains, with some metadata
 about the file, such as size, type and last modified date.
+
+![Workspace directory view](../screenshots/workspace_directory_view.png)
 
 To view a specific file, click on it in the directory view, or in the file tree. The contents
 of the file will be displayed.

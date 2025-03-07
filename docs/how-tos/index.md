@@ -11,8 +11,8 @@ For researchers:
 * [Edit a file on a request](edit-file-on-request.md)
     * [Update a file](edit-file-on-request.md#update-a-file)
     * [Withdraw a file](edit-file-on-request.md#withdraw-a-file)
-    * [Change a file's type](edit-file-on-request.md#change-a-file-type)
-    * [Move a file to a different group](edit-file-on-request.md#move-a-file-to-a-different-group)
+    * [Change a file's type](edit-file-on-request.md#move-a-file-to-a-different-group-or-change-file-type)
+    * [Move a file to a different group](edit-file-on-request.md#move-a-file-to-a-different-group-or-change-file-type)
 * [Withdraw a request](withdraw-request.md)
 
 For copilots:

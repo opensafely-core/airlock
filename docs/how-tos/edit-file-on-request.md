@@ -24,7 +24,7 @@ Files can be updated from the file view or the directory view. Note that the upd
 
 Use the "Update file(s)" button to update the file with the new content. Note that
 in the dialogue that opens, there is no option to
-[change the file group](#move-a-file-to-a-different-group) or [file type](#change-a-file-type).
+[change the file group or file type](#move-a-file-to-a-different-group-or-change-file-type).
 
 ![File update dialogue](../screenshots/file_update_modal.png)
 
@@ -49,4 +49,4 @@ To move a file to a different group or to change a file's type, navigate to view
 within the release request, and use "Change File Properties". You will have the option to
 change the file type, select an existing file group, or create a new one to move the file to.
 
-![Change file properties](../screenshots/change_file_properties.png)
+![Change file properties](../screenshots/update_file_properties.png)
