@@ -89,6 +89,27 @@ files that you have voted on.
 ![Request file post-approval](../screenshots/request_tree_post_voting.png)
 
 
+### Voting on an entire file group
+
+Files must be *approved* individually. However, if multiple files in a file
+group require changes, you can request changes for an entire file
+group at the same time.
+
+Navigate to the file group, and click the "Request changes" button. 
+
+![File group](../screenshots/file_group.png)
+![Request changes on group confirmation](../screenshots/group_request_changes_modal.png)
+
+Note that
+only files which you have not yet voted on will be updated. If you have already
+approved some files, they will remain approved.
+
+If you have not yet submitted your review, you can also reset all your file
+votes (approved and changes requested) for a group by clicking the "Reset votes"
+button.
+![Reset votes on group confirmation](../screenshots/group_reset_votes_modal.png)
+
+
 ### Add comments
 
 Comments can be added to each file group, to ask questions, or

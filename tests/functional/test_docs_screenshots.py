@@ -302,6 +302,15 @@ def test_screenshot_from_creation_to_release(
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
     take_screenshot(page, "file_group.png")
 
+    # request changes and reset whole group
+    page.locator("button[data-modal=group-request-changes]").click()
+    take_screenshot(page, "group_request_changes_modal.png")
+    page.locator("#group-request-changes-button").click()
+
+    page.locator("button[data-modal=group-reset-votes]").click()
+    take_screenshot(page, "group_reset_votes_modal.png")
+    page.locator("#group-reset-votes-button").click()
+
     # Review as each output checker
     do_review()
     login_as_user(live_server, context, user_dicts["checker2"])
