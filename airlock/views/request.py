@@ -720,6 +720,20 @@ def multiselect_withdraw_files(request, multiform, release_request):
     display_multiple_messages(request, errors, "error")
     display_multiple_messages(request, successes, "success")
 
+    next_url = multiform.cleaned_data["next_url"]
+    # Multiselect-withdrawing files redirects to the directory
+    # Strip the release request part of the url to get the directory path
+    dir_path = UrlPath(next_url.lstrip(release_request.get_url()))
+    # Check if the directory path is in any of the request files' parents
+    if not any(
+        dir_path in (UrlPath(rfile.group) / rfile.relpath).parents
+        for rfile in release_request.all_files_by_name.values()
+    ):
+        # If there are no files which are children of this directory path,
+        # we've just withdrawn them all so we can't redirect to the directory,
+        # redirect to its parent (the group) instead
+        multiform.cleaned_data["next_url"] = release_request.get_url(dir_path.parent)
+
     url = get_next_url_from_form(release_request, multiform)
     return HttpResponse(headers={"HX-Redirect": url})
 
