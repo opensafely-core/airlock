@@ -1,7 +1,8 @@
 [data-datatable] {
   .datatable-sorter {
     & .datatable-icon--descending,
-    & .datatable-icon--ascending {
+    & .datatable-icon--ascending,
+    & .datatable-icon--sorting {
       @apply hidden;
     }
 
@@ -11,7 +12,8 @@
   }
   .datatable-ascending {
     & .datatable-icon--no-sort,
-    & .datatable-icon--descending {
+    & .datatable-icon--descending,
+    & .datatable-icon--sorting {
       @apply hidden;
     }
 
@@ -22,11 +24,24 @@
 
   .datatable-descending {
     & .datatable-icon--no-sort,
-    & .datatable-icon--ascending {
+    & .datatable-icon--ascending,
+    & .datatable-icon--sorting {
       @apply hidden;
     }
 
     & .datatable-icon--descending {
+      @apply block;
+    }
+  }
+
+  .datatable-sorting {
+    & .datatable-icon--no-sort,
+    & .datatable-icon--ascending,
+    & .datatable-icon--descending {
+      @apply hidden;
+    }
+
+    & .datatable-icon--sorting {
       @apply block;
     }
   }
