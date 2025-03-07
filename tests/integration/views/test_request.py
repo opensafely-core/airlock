@@ -3220,3 +3220,80 @@ def test_group_reset_votes_file_reset_not_allowed(airlock_client):
 
     rfile = release_request.get_request_file_from_urlpath(UrlPath("group/file3.txt"))
     assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+
+
+@pytest.mark.parametrize(
+    "status,author,login_as,reviewed_by,can_vote,can_reset",
+    [
+        # No voting buttons for pending requests
+        (RequestStatus.PENDING, "researcher", "researcher", None, False, False),
+        (RequestStatus.PENDING, "researcher", "checker", None, False, False),
+        # Both buttons for non-author output-checkers for submitted requests
+        (RequestStatus.SUBMITTED, "researcher", "checker", None, True, True),
+        (RequestStatus.SUBMITTED, "researcher", "checker", "checker", True, True),
+        (RequestStatus.SUBMITTED, "researcher", "researcher", None, False, False),
+        (RequestStatus.SUBMITTED, "other_checker", "checker", None, True, True),
+        (RequestStatus.SUBMITTED, "other_checker", "other_checker", None, False, False),
+        # Both buttons for non-author output-checkers for pariatlly reviewed/reviewed requests
+        # if logged in user has not submitted review
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            "researcher",
+            "checker",
+            "other_checker",
+            True,
+            True,
+        ),
+        (RequestStatus.REVIEWED, "researcher", "checker", "other_checker", True, True),
+        # No reset buttons for non-author output-checkers who have submitted review
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            "researcher",
+            "checker",
+            "checker",
+            True,
+            False,
+        ),
+        (RequestStatus.REVIEWED, "researcher", "checker", "checker", True, False),
+    ],
+)
+def test_request_view_group_vote_buttons(
+    airlock_client, status, author, login_as, reviewed_by, can_vote, can_reset
+):
+    users = {
+        "researcher": factories.create_airlock_user(
+            username="researcher", workspaces=["workspace"]
+        ),
+        "checker": factories.create_airlock_user(
+            username="checker", workspaces=[], output_checker=True
+        ),
+        "other_checker": factories.create_airlock_user(
+            username="other_checker", workspaces=["workspace"], output_checker=True
+        ),
+    }
+
+    reviewer = users.get(reviewed_by)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=users[author],
+        status=status,
+        files=[
+            factories.request_file(
+                "group1",
+                "some_dir/file1.txt",
+                changes_requested=reviewer is not None,
+                checkers=[reviewer] if reviewer else [],
+            ),
+            factories.request_file(
+                "group1",
+                "some_dir/file2.txt",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+        checker=reviewer,
+    )
+    airlock_client.login_with_user(users[login_as])
+    response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
+
+    assert response.context_data["group"]["request_changes_button"].show == can_vote
+    assert response.context_data["group"]["reset_votes_button"].show == can_reset

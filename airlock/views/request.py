@@ -523,6 +523,24 @@ def group_presenter(release_request, relpath, request):
             case _:  # pragma: no cover
                 comment_form.fields["visibility"].label = ""
 
+    request_changes_button = ButtonContext.with_request_defaults(
+        release_request.id, "group_request_changes", group=group
+    )
+    reset_votes_button = ButtonContext.with_request_defaults(
+        release_request.id, "group_reset_votes", group=group
+    )
+    if permissions.user_can_currently_review_request(request.user, release_request):
+        request_changes_button.show = True
+        request_changes_button.disabled = False
+        request_changes_button.tooltip = (
+            "Request changes for all unreviewed files in this group"
+        )
+
+        if permissions.user_can_reset_review(request.user, release_request):
+            reset_votes_button.show = True
+            reset_votes_button.disabled = False
+            reset_votes_button.tooltip = "Reset all votes in this group"
+
     return {
         "name": group,
         "title": f"{group} group",
@@ -557,6 +575,9 @@ def group_presenter(release_request, relpath, request):
             group=group,
             exclude_readonly=True,
         ),
+        # group voting buttons
+        "request_changes_button": request_changes_button,
+        "reset_votes_button": reset_votes_button,
     }
 
 
@@ -1154,7 +1175,7 @@ def group_request_changes(request, request_id, group):
     if approved_files:
         pluralize = approved_files > 1
         info_messages.append(
-            f"You have approved {approved_files} file{'s' if pluralize else ''} which {'have' if pluralize else 'has'} not been updated"
+            f"You have already approved {approved_files} file{'s' if pluralize else ''} which {'have' if pluralize else 'has'} not been updated"
         )
     if changes_requested_already:
         plural_suffix = "s" if changes_requested_already > 1 else ""
