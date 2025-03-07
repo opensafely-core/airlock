@@ -190,19 +190,13 @@ def test_e2e_release_files(
     expect(filegroup_link).to_be_visible()
     expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
 
-    # Locate the link by its name, because later when we're looking at
-    # the request, there will be 2 files that match .locator(".file:scope")
-    file_link = (
-        page.locator("#tree")
-        .get_by_role("link", name="file.txt")
-        .locator(".file:scope")
-    )
+    file_link = page.locator("#tree").get_by_role("link", name="file.txt")
 
     # Click to open the filegroup tree
     filegroup_link.click()
 
     # Click on the output directory to ensure that renders correctly.
-    subdir_link = page.get_by_role("link").locator(".directory:scope")
+    subdir_link = page.locator("#tree").get_by_role("link", name="subdir")
     find_and_click(page, subdir_link)
     expect(page.locator("#selected-contents")).to_contain_text("file.txt")
 
@@ -217,10 +211,11 @@ def test_e2e_release_files(
     expect(page).to_have_url(live_server.url + "/workspaces/view/test-workspace/")
 
     # Expand the tree and click on the supporting file
-    find_and_click(page, page.get_by_role("link", name="subdir"))
-    find_and_click(
-        page, page.locator("#tree").get_by_role("link", name="supporting.txt")
+    supporting_file_link = page.locator("#tree").get_by_role(
+        "link", name="supporting.txt"
     )
+    find_and_click(page, page.get_by_role("link", name="subdir"))
+    find_and_click(page, supporting_file_link)
 
     # Add supporting file to request, choosing the group we created previously
     # Find the add file button and click on it to open the modal
@@ -243,8 +238,6 @@ def test_e2e_release_files(
     filegroup_link.click()
 
     # Click on the output directory to ensure that renders correctly.
-    subdir_link = page.get_by_role("link").locator(".directory:scope")
-
     assert_tree_element_is_not_selected(page, subdir_link)
     find_and_click(page, subdir_link)
     # subdir link is shown as selected
@@ -260,7 +253,6 @@ def test_e2e_release_files(
     expect(valid_file_content).to_be_visible()
 
     # Click on the supporting file link.
-    supporting_file_link = page.get_by_role("link").locator(".supporting.file:scope")
     find_and_click(page, supporting_file_link)
     assert_tree_element_is_selected(supporting_file_link)
     assert_tree_element_is_not_selected(page, file_link)
@@ -279,7 +271,6 @@ def test_e2e_release_files(
     expect(valid_file_content).to_be_visible()
 
     # Add context & controls to the filegroup
-    filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     find_and_click(page, filegroup_link)
 
     # context and controls instruction help text is shown
@@ -414,9 +405,6 @@ def test_e2e_release_files(
     assert download.suggested_filename == "file.txt"
 
     # Look at a supporting file & verify it can't be approved
-    supporting_file_link = page.get_by_role("link", name="supporting.txt").locator(
-        ".file:scope"
-    )
     find_and_click(page, supporting_file_link)
     # Check the expected iframe content is visible
     expect(supporting_file_content).to_be_visible()

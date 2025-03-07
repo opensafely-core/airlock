@@ -523,6 +523,24 @@ def group_presenter(release_request, relpath, request):
             case _:  # pragma: no cover
                 comment_form.fields["visibility"].label = ""
 
+    request_changes_button = ButtonContext.with_request_defaults(
+        release_request.id, "group_request_changes", group=group
+    )
+    reset_votes_button = ButtonContext.with_request_defaults(
+        release_request.id, "group_reset_votes", group=group
+    )
+    if permissions.user_can_currently_review_request(request.user, release_request):
+        request_changes_button.show = True
+        request_changes_button.disabled = False
+        request_changes_button.tooltip = (
+            "Request changes for all unreviewed files in this group"
+        )
+
+        if permissions.user_can_reset_review(request.user, release_request):
+            reset_votes_button.show = True
+            reset_votes_button.disabled = False
+            reset_votes_button.tooltip = "Reset all votes in this group"
+
     return {
         "name": group,
         "title": f"{group} group",
@@ -557,6 +575,9 @@ def group_presenter(release_request, relpath, request):
             group=group,
             exclude_readonly=True,
         ),
+        # group voting buttons
+        "request_changes_button": request_changes_button,
+        "reset_votes_button": reset_votes_button,
     }
 
 
@@ -1095,6 +1116,134 @@ def group_comment_visibility_public(request, request_id, group):
         for field, error_list in form.errors.items():
             for error in error_list:
                 messages.error(request, f"{field}: {error}")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_request_changes(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    filegroup = release_request.filegroups.get(group)
+    if filegroup is None:
+        raise Http404(f"bad group {group}")
+
+    # Raise permission denied if user isn't allowed to review this request at
+    # this time
+    try:
+        permissions.check_user_can_currently_review_request(
+            request.user, release_request
+        )
+    except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied) as exc:
+        raise PermissionDenied(str(exc))
+
+    # Track the number of files we update so we can report it to the user
+    approved_files = 0
+    changes_requested_already = 0
+    changes_requested = 0
+    errors = []
+    for output_file in filegroup.output_files:
+        match output_file.get_file_vote_for_user(request.user):
+            case RequestFileVote.APPROVED:
+                approved_files += 1
+            case RequestFileVote.CHANGES_REQUESTED:
+                changes_requested_already += 1
+            case RequestFileVote.UNDECIDED | None:
+                # We've already checked that the user is allowed to review the
+                # request at this point, so it's unlikely there will be a
+                # permission error here. It would be possible for another
+                # output checker to return/reject the request while we're in the
+                # process of updating the votes here, which would put it into an
+                # un-reviewable status, so we catch and report on the errors.
+                # We don't want to raise this error immediately, because we still want
+                # to be able to tell the user what succeeded.
+                try:
+                    bll.request_changes_to_file(
+                        release_request, output_file, request.user
+                    )
+                    changes_requested += 1
+                except exceptions.RequestReviewDenied as exc:
+                    errors.append(
+                        f"Error requesting changes for {output_file.relpath}: {exc}"
+                    )
+                    span = trace.get_current_span()
+                    span.record_exception(exc)
+            case _:  # pragma: no cover
+                assert False, "Unknown vote status"
+
+    info_messages = []
+    if approved_files:
+        pluralize = approved_files > 1
+        info_messages.append(
+            f"You have already approved {approved_files} file{'s' if pluralize else ''} which {'have' if pluralize else 'has'} not been updated"
+        )
+    if changes_requested_already:
+        plural_suffix = "s" if changes_requested_already > 1 else ""
+        info_messages.append(
+            f"You have already requested changes for {changes_requested_already} file{plural_suffix}"
+        )
+    if changes_requested:
+        plural_suffix = "s" if changes_requested > 1 else ""
+        messages.success(
+            request,
+            f"Changes have been requested for {changes_requested} file{plural_suffix}",
+        )
+    display_multiple_messages(request, info_messages, "info")
+    display_multiple_messages(request, errors, "error")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_reset_votes(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    filegroup = release_request.filegroups.get(group)
+    if filegroup is None:
+        raise Http404(f"bad group {group}")
+
+    try:
+        permissions.check_user_can_currently_review_request(
+            request.user, release_request
+        )
+        permissions.check_user_can_reset_review(request.user, release_request)
+    except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied) as exc:
+        raise PermissionDenied(str(exc))
+
+    reset = 0
+    errors = []
+    for output_file in filegroup.output_files:
+        try:
+            bll.reset_review_file(release_request, output_file.relpath, request.user)
+            reset += 1
+        except exceptions.FileReviewNotFound:
+            # File has not been reviewed, nothing to reset
+            ...
+        except exceptions.RequestReviewDenied as exc:
+            # We've already checked that the user is allowed to reset the
+            # request at this point, so it's unlikely there will be a
+            # permission error here. It would be possible for another
+            # output checker to return/reject the request while we're in the
+            # process of updating the votes here, which would put it into an
+            # un-reviewable status, so we catch and report on the errors.
+            # We don't want to raise this error immediately, because we still want
+            # to be able to tell the user what succeeded.
+            errors.append(f"Error resetting vote for {output_file.relpath}: {exc}")
+            span = trace.get_current_span()
+            span.record_exception(exc)
+
+    if reset:
+        plural_suffix = "s" if reset > 1 else ""
+        messages.success(
+            request,
+            f"Votes on {reset} file{plural_suffix} have been reset",
+        )
+    else:
+        messages.info(
+            request,
+            "No votes to reset",
+        )
+    display_multiple_messages(request, errors, "error")
 
     return redirect(release_request.get_url(group))
 

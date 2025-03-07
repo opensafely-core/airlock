@@ -189,6 +189,16 @@ urlpatterns = [
         name="group_comment_visibility_public",
     ),
     path(
+        "requests/request-changes/<str:request_id>/<str:group>",
+        airlock.views.group_request_changes,
+        name="group_request_changes",
+    ),
+    path(
+        "requests/reset-votes/<str:request_id>/<str:group>",
+        airlock.views.group_reset_votes,
+        name="group_reset_votes",
+    ),
+    path(
         "requests/<str:request_id>/uploaded-files-count",
         airlock.views.uploaded_files_count,
         name="uploaded_files_count",

@@ -1,4 +1,5 @@
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -2800,3 +2801,499 @@ def test_group_comment_modify_missing_comment(airlock_client, endpoint):
     assert (
         release_request.filegroups["group"].comments[0].visibility == Visibility.PRIVATE
     )
+
+
+def test_group_request_changes(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", path="file1.txt"),
+            factories.request_file("group", path="file2.txt"),
+            factories.request_file(
+                "group", path="file3.txt", filetype=RequestFileType.SUPPORTING
+            ),
+            factories.request_file("group1", path="file4.txt"),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/request-changes/{release_request.id}/group",
+        follow=True,
+    )
+    assert "Changes have been requested for 2 files" in response.rendered_content
+
+    release_request = factories.refresh_release_request(release_request)
+
+    for filename in ["file1.txt", "file2.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert (
+            rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
+        )
+
+    supporting_file = release_request.get_request_file_from_urlpath(
+        UrlPath("group/file3.txt")
+    )
+    assert supporting_file.get_file_vote_for_user(checker) is None
+
+    other_group_file = release_request.get_request_file_from_urlpath(
+        UrlPath("group1/file4.txt")
+    )
+    assert other_group_file.get_file_vote_for_user(checker) is None
+
+
+def test_group_request_changes_with_existing_votes(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    other_checker = factories.create_airlock_user(
+        username="other", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            # approved by this user
+            factories.request_file(
+                "group", path="file1.txt", approved=True, checkers=[checker]
+            ),
+            # approved by other user
+            factories.request_file(
+                "group", path="file2.txt", approved=True, checkers=[other_checker]
+            ),
+            # no vote
+            factories.request_file("group", path="file3.txt"),
+            # changes already requested by thi user
+            factories.request_file(
+                "group", path="file4.txt", changes_requested=True, checkers=[checker]
+            ),
+            factories.request_file(
+                "group", path="file5.txt", changes_requested=True, checkers=[checker]
+            ),
+        ],
+    )
+    audit_logs_count = len(bll.get_request_audit_log(checker, release_request))
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/request-changes/{release_request.id}/group",
+        follow=True,
+    )
+    # changes requested for the 2 files this user hasn't voted on
+    assert "Changes have been requested for 2 files" in response.rendered_content
+    # no changes for the file this user has already approved
+    assert (
+        "You have already approved 1 file which has not been updated"
+        in response.rendered_content
+    )
+    # no changes for the file this user has already requeseted changes for
+    assert "You have already requested changes for 2 files" in response.rendered_content
+
+    release_request = factories.refresh_release_request(release_request)
+
+    for filename in ["file2.txt", "file3.txt", "file4.txt", "file5.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert (
+            rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
+        )
+
+    approved_file = release_request.get_request_file_from_urlpath(
+        UrlPath("group/file1.txt")
+    )
+    assert approved_file.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+
+    # audit logs for 2 new file votes only
+    assert (
+        len(bll.get_request_audit_log(checker, release_request)) == audit_logs_count + 2
+    )
+
+
+def test_group_request_changes_with_existing_votes_nothing_to_do(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            # approved by this user
+            factories.request_file(
+                "group", path="file1.txt", approved=True, checkers=[checker]
+            ),
+            # approved by other user
+            factories.request_file(
+                "group", path="file2.txt", approved=True, checkers=[checker]
+            ),
+        ],
+    )
+    audit_logs_count = len(bll.get_request_audit_log(checker, release_request))
+
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/request-changes/{release_request.id}/group",
+        follow=True,
+    )
+    assert (
+        "You have already approved 2 files which have not been updated"
+        in response.rendered_content
+    )
+    # no changes for the file this user has already requeseted changes for
+    assert "You have already requested changes" not in response.rendered_content
+    assert "Changes have been requested" not in response.rendered_content
+
+    release_request = factories.refresh_release_request(release_request)
+
+    for filename in ["file1.txt", "file2.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+
+    # no new audit logs
+    assert audit_logs_count == len(bll.get_request_audit_log(checker, release_request))
+
+
+def test_group_request_changes_not_allowed(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file("group", path="file1.txt", changes_requested=True),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/request-changes/{release_request.id}/group",
+    )
+    assert response.status_code == 403
+
+
+def test_group_request_changes_file_review_not_allowed(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", path="file1.txt"),
+            factories.request_file("group", path="file2.txt"),
+            factories.request_file("group", path="file3.txt"),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    with patch(
+        "airlock.permissions.check_user_can_review_file",
+        side_effect=[None, exceptions.RequestReviewDenied("review not allowed"), None],
+    ):
+        response = airlock_client.post(
+            f"/requests/request-changes/{release_request.id}/group",
+            follow=True,
+        )
+
+    resp_content = str(response.content)
+    # changes requested for the 2 files this user hasn't voted on
+    assert "Changes have been requested for 2 files" in resp_content
+    # no changes for the file this user has already approved
+    assert "Error requesting changes for file2.txt" in resp_content
+
+    release_request = factories.refresh_release_request(release_request)
+    for filename in ["file1.txt", "file3.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert (
+            rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
+        )
+
+    rfile = release_request.get_request_file_from_urlpath(UrlPath("group/file2.txt"))
+    assert rfile.get_file_vote_for_user(checker) is None
+
+
+def test_group_request_changes_bad_group(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", path="file1.txt"),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/request-changes/{release_request.id}/group1",
+    )
+    assert response.status_code == 404
+
+
+def test_group_reset_votes(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    other_checker = factories.create_airlock_user(
+        username="other", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            # approved by this user
+            factories.request_file(
+                "group", path="file1.txt", approved=True, checkers=[checker]
+            ),
+            # approved by other user
+            factories.request_file(
+                "group", path="file2.txt", approved=True, checkers=[other_checker]
+            ),
+            # no vote
+            factories.request_file("group", path="file3.txt"),
+            # changes already requested by this user
+            factories.request_file(
+                "group", path="file4.txt", changes_requested=True, checkers=[checker]
+            ),
+        ],
+    )
+    audit_logs_count = len(bll.get_request_audit_log(checker, release_request))
+    for filename in ["file1.txt", "file4.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert rfile.get_file_vote_for_user(checker) is not None
+
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/reset-votes/{release_request.id}/group",
+        follow=True,
+    )
+    assert "Votes on 2 files have been reset" in response.rendered_content
+
+    release_request = factories.refresh_release_request(release_request)
+
+    for filename in ["file1.txt", "file2.txt", "file3.txt", "file4.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert rfile.get_file_vote_for_user(checker) is None
+
+    rfile = release_request.get_request_file_from_urlpath(UrlPath("group/file2.txt"))
+    assert rfile.get_file_vote_for_user(other_checker) == RequestFileVote.APPROVED
+
+    # audit logs for 2 reset file votes only (2 files were un-voted)
+    assert (
+        len(bll.get_request_audit_log(checker, release_request)) == audit_logs_count + 2
+    )
+
+
+def test_group_reset_votes_nothing_to_do(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", path="file1.txt")],
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/reset-votes/{release_request.id}/group",
+        follow=True,
+    )
+    assert "No votes to reset" in response.rendered_content
+
+    release_request = factories.refresh_release_request(release_request)
+
+    rfile = release_request.get_request_file_from_urlpath(UrlPath("group/file1.txt"))
+    assert rfile.get_file_vote_for_user(checker) is None
+
+
+def test_group_reset_votes_not_allowed(airlock_client):
+    # cna't reset vote after review has been submitted
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.PARTIALLY_REVIEWED,
+        files=[
+            factories.request_file(
+                "group", path="file1.txt", changes_requested=True, checkers=[checker]
+            ),
+        ],
+        checker=checker,
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/reset-votes/{release_request.id}/group",
+    )
+    assert response.status_code == 403
+
+
+def test_group_reset_votes_bad_group(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", path="file1.txt"),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    response = airlock_client.post(
+        f"/requests/reset-votes/{release_request.id}/group1",
+    )
+    assert response.status_code == 404
+
+
+def test_group_reset_votes_file_reset_not_allowed(airlock_client):
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                "group", path="file1.txt", approved=True, checkers=[checker]
+            ),
+            factories.request_file(
+                "group", path="file2.txt", changes_requested=True, checkers=[checker]
+            ),
+            factories.request_file(
+                "group", path="file3.txt", approved=True, checkers=[checker]
+            ),
+        ],
+    )
+    airlock_client.login_with_user(checker)
+
+    with patch(
+        "airlock.permissions.check_user_can_reset_file_review",
+        side_effect=[None, None, exceptions.RequestReviewDenied("reset not allowed")],
+    ):
+        response = airlock_client.post(
+            f"/requests/reset-votes/{release_request.id}/group",
+            follow=True,
+        )
+    resp_content = str(response.content)
+    assert "Votes on 2 files have been reset" in response.rendered_content
+    assert "Error resetting vote for file3.txt" in resp_content
+
+    release_request = factories.refresh_release_request(release_request)
+    for filename in ["file1.txt", "file2.txt"]:
+        rfile = release_request.get_request_file_from_urlpath(
+            UrlPath(f"group/{filename}")
+        )
+        assert rfile.get_file_vote_for_user(checker) is None
+
+    rfile = release_request.get_request_file_from_urlpath(UrlPath("group/file3.txt"))
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+
+
+@pytest.mark.parametrize(
+    "status,author,login_as,reviewed_by,can_vote,can_reset",
+    [
+        # No voting buttons for pending requests
+        (RequestStatus.PENDING, "researcher", "researcher", None, False, False),
+        (RequestStatus.PENDING, "researcher", "checker", None, False, False),
+        # Both buttons for non-author output-checkers for submitted requests
+        (RequestStatus.SUBMITTED, "researcher", "checker", None, True, True),
+        (RequestStatus.SUBMITTED, "researcher", "checker", "checker", True, True),
+        (RequestStatus.SUBMITTED, "researcher", "researcher", None, False, False),
+        (RequestStatus.SUBMITTED, "other_checker", "checker", None, True, True),
+        (RequestStatus.SUBMITTED, "other_checker", "other_checker", None, False, False),
+        # Both buttons for non-author output-checkers for pariatlly reviewed/reviewed requests
+        # if logged in user has not submitted review
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            "researcher",
+            "checker",
+            "other_checker",
+            True,
+            True,
+        ),
+        (RequestStatus.REVIEWED, "researcher", "checker", "other_checker", True, True),
+        # No reset buttons for non-author output-checkers who have submitted review
+        (
+            RequestStatus.PARTIALLY_REVIEWED,
+            "researcher",
+            "checker",
+            "checker",
+            True,
+            False,
+        ),
+        (RequestStatus.REVIEWED, "researcher", "checker", "checker", True, False),
+    ],
+)
+def test_request_view_group_vote_buttons(
+    airlock_client, status, author, login_as, reviewed_by, can_vote, can_reset
+):
+    users = {
+        "researcher": factories.create_airlock_user(
+            username="researcher", workspaces=["workspace"]
+        ),
+        "checker": factories.create_airlock_user(
+            username="checker", workspaces=[], output_checker=True
+        ),
+        "other_checker": factories.create_airlock_user(
+            username="other_checker", workspaces=["workspace"], output_checker=True
+        ),
+    }
+
+    reviewer = users.get(reviewed_by)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=users[author],
+        status=status,
+        files=[
+            factories.request_file(
+                "group1",
+                "some_dir/file1.txt",
+                changes_requested=reviewer is not None,
+                checkers=[reviewer] if reviewer else [],
+            ),
+            factories.request_file(
+                "group1",
+                "some_dir/file2.txt",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+        checker=reviewer,
+    )
+    airlock_client.login_with_user(users[login_as])
+    response = airlock_client.get(f"/requests/view/{release_request.id}/group1/")
+
+    assert response.context_data["group"]["request_changes_button"].show == can_vote
+    assert response.context_data["group"]["reset_votes_button"].show == can_reset
