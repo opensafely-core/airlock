@@ -9,6 +9,7 @@ ICON = """
   <img class="icon datatable-icon--no-sort" src="/static/icons/swap_vert.svg" alt="">
   <img class="icon datatable-icon--ascending" src="/static/icons/arrow_upward.svg" alt="">
   <img class="icon datatable-icon--descending" src="/static/icons/arrow_downward.svg" alt="">
+  <img class="icon datatable-icon--sorting animate-spin" src="/static/icons/progress_activity.svg" alt="">
 </span>
 """.replace("\n", "")
 

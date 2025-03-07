@@ -111,6 +111,45 @@ function buildTables() {
         wrapper.classList.toggle("hidden");
       }
 
+      // We want to display some visual indication when the table is sorting
+      // because if it takes a long time the user can think nothing is
+      // happening. However, the way sorting is implemented in simple
+      // datatables means there is no guaranteed way to update the UI before
+      // the sort completes. There is a datatables.sorting event which fires
+      // before the sort, and a datatables.sort event which fires after. But
+      // they're in a single thread meaning the UI won't update between them.
+      // As a workaround, we
+      // - intercept the click on the table header that triggers the sort
+      // - prevent the click propagating to the event listener in the datatable library
+      // - make the css change (just adding a class) to update the UI with a spinner
+      // - trigger the click programmatically
+      const sorters = table.querySelectorAll('.datatable-sorter');
+      sorters.forEach((sorter) => {
+        sorter.addEventListener('click', (e) => {
+          if(!e.isTrusted) {
+            // If not isTrusted, then this click was triggered by our script
+            // below, so we've already done our UI handling and can let the
+            // simple-datatable library do its thing
+            return;
+          }
+          // Prevent the datatables sorting from happening until the UI has
+          //  been visually updated
+          e.preventDefault();
+          e.stopPropagation();
+          
+          requestAnimationFrame(() => {
+            // Show loading state in the next animation frame
+            sorter.closest('th').classList.add('datatable-sorting') 
+
+            // Finally, retrigger the click of the header in the next animation frame
+            requestAnimationFrame(() => {
+              sorter.click();
+            });
+          })
+
+        }, true);
+      });
+
       // For remembering the state of the checkboxes we need to update them
       // from sessionStorage every time the table is redrawn. Rather than
       // adding the checkbox logic here, we decouple it by just emitting an
