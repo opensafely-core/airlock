@@ -58,7 +58,7 @@ theme:
   name: material
   font: false
   logo: img/icon.svg
-  favicon: img/favicon.svg
+  favicon: img/favicon.ico
   palette:
     scheme: opensafely
   features:
