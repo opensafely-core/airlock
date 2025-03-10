@@ -695,24 +695,12 @@ def requests_for_workspace(request, workspace_name: str):
     )
     request_filter = request.GET.get("status")
     if request_filter:
-        filtered_requests = []
-        for r in requests_for_workspace:
-            if r.status.name == request_filter:
-                filtered_requests.append(r)
+        requests_for_workspace = [
+            r for r in requests_for_workspace if r.status.name == request_filter
+        ]
+        request_filter = RequestStatus[request_filter].description()
 
-        requests_for_workspace = filtered_requests
-
-    status_list = [
-        "PENDING",
-        "SUBMITTED",
-        "WITHDRAWN",
-        "APPROVED",
-        "REJECTED",
-        "PARTIALLY_REVIEWED",
-        "REVIEWED",
-        "RETURNED",
-        "RELEASED",
-    ]
+    status_list = [(status.name, status.description()) for status in RequestStatus]
 
     filter_url = request.path
 

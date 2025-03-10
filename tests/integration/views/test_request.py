@@ -1174,10 +1174,12 @@ def test_requests_for_workspace_filter(airlock_client, mock_old_api):
 
     response = airlock_client.get("/requests/workspace/test1?status=APPROVED")
 
-    response.render()
+    filtered_request = [
+        f.status.name for f in response.context_data["requests_for_workspace"]
+    ]
     assert response.status_code == 200
     assert "All requests in workspace test1" in response.rendered_content
-    assert "APPROVED" in response.rendered_content
+    assert filtered_request == ["APPROVED"]
     assert author2.username in response.rendered_content
 
 

@@ -13,41 +13,27 @@
       </div>
     {% endif %}
 
-    <details-utils close-click-outside close-esc>
-      <details class="relative group cursor-pointer">
-        <summary class="list-none">
-          <span class="border text-oxford text-sm px-2 py-1 rounded opacity-75 ml-1">Filter by status
-            <img height="16" width="16" class="icon inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
-            <img height="16" width="16" class="icon hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt="">
-          </span>
-        </summary>
-
-        <ul class="absolute bg-oxford-50 shadow-md rounded-md text-oxford-600 text-sm w-56 mt-1 right-0 z-10" name="filter">
-          {% for status in status_list %}
-            <li>
-              <a class="block p-1 cursor-pointer hover:bg-oxford-100 hover:text-oxford" href="{{ filter_url }}?status={{ status }}">
-                {{ status|title }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-      </details>
-    </details-utils>
+    <form action="{{ filter_url }}" method="GET" aria-label="filter-form">
+      {% csrf_token %}
+      <select name="status" id="id_status" onchange="this.form.submit()" class="text-oxford text-sm rounded-md opacity-75 px-2 py-1">
+        <option value="" hidden selected>Filter by status</option>
+        {% for status, description in status_list %}
+          <option value="{{ status }}" class="border rounded-md text-oxford-600 bg-oxford-50">
+            {{  description|title }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
   {% endfragment %}
 
-
-  {% #card title="All requests in workspace "|add:workspace custom_button=custom_button %}
+  {% #card title="All requests in Workspace: "|add:workspace custom_button=custom_button %}
     {% #list_group id="requests-workspace" %}
       {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
         {% fragment as title %}{{ request.get_short_id }} by {% airlock_user user=request.author %}{% endfragment %}
-        {% fragment as status %}{% pill variant="info" text=request.status.name %}{% endfragment %}
+        {% fragment as status %}{% pill variant="info" text=request.status.description %}{% endfragment %}
         {% #list_group_rich_item title=title url=request.get_url custom_status=status %}
           <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
             <div class="flex flex-row gap-1 w-full">
-              <dt>Workspace:</dt>
-              <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
-                <span class="truncate">{{ request.workspace }}</span>
-              </dd>
               <dt class="text-xs ml-auto">Created:</dt>
               <dd>
                 <time datetime="{{ request.created_at|date:"Y-m-d H:i:sO" }}">

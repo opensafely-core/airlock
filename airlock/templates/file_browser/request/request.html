@@ -147,7 +147,7 @@
 {% #card title="Request: "|add:release_request.id custom_button=buttons %}
   {% #description_list %}
     {% #description_item title="Status" %}
-      {{ release_request.status.name }}
+      {{ release_request.status.description }}
     {% /description_item %}
     {% #description_item title="Files requested for release" %}
       {{ release_request.output_files|length }}
