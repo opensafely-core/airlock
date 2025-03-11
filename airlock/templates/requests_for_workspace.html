@@ -15,9 +15,9 @@
 
     <form action="{{ filter_url }}" method="GET" aria-label="filter-form">
       {% csrf_token %}
-      <select name="status" id="id_status" onchange="this.form.submit()" class="text-oxford text-sm rounded-md opacity-75 px-2 py-1">
+      <select name="status" id="id-status" onchange="this.form.submit()" class="text-oxford text-sm rounded-md opacity-75 px-2 py-1">
         <option value="" hidden selected>Filter by status</option>
-        {% for status, description in status_list %}
+        {% for status, description in status_list.items %}
           <option value="{{ status }}" class="border rounded-md text-oxford-600 bg-oxford-50">
             {{  description|title }}
           </option>

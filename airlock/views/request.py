@@ -700,7 +700,15 @@ def requests_for_workspace(request, workspace_name: str):
         ]
         request_filter = RequestStatus[request_filter].description()
 
-    status_list = [(status.name, status.description()) for status in RequestStatus]
+    status_choice = [(status.name, status.description()) for status in RequestStatus]
+
+    # limit filter to statuses with matching requests
+    status_list = {
+        status_name: status_description
+        for status_name, status_description in status_choice
+        for r in requests_for_workspace
+        if r.status.name == status_name
+    }
 
     filter_url = request.path
 
