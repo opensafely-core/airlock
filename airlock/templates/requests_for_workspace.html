@@ -6,7 +6,7 @@
 
   {% fragment as custom_button %}
     {% if request_filter %}
-      <div class="relative group cursor-pointer ml-auto">
+      <div id="clear-filter" class="relative group cursor-pointer ml-auto">
         <a class="inline-flex bg-oxford-50 rounded-md p-1 text-oxford-700 text-sm" href="{{ filter_url }}"> {{ request_filter|title }} {% icon_x_circle_solid class="text-oxford-600 h-5 w-5" %}
         </a>
         {% tooltip position="-bottom-3" content="Clear filter" %}

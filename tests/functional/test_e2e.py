@@ -633,3 +633,69 @@ def test_e2e_withdraw_request(page, live_server, dev_users):
     find_and_click(page, page.locator("#withdraw-request-confirm"))
 
     expect(page.locator("body")).to_contain_text("Request has been withdrawn")
+
+
+def test_e2e_filter_submit(page, live_server, dev_users):
+    """
+    Researcher views all requests made in a workspace and filters by status
+    """
+    # set up a returned file & request
+    author = factories.create_airlock_user(
+        username="researcher", workspaces=["test-workspace"], output_checker=False
+    )
+
+    path = "subdir/file.txt"
+
+    factories.create_request_at_status(
+        "test-workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(path=path, group="default", changes_requested=True)
+        ],
+    )
+
+    factories.create_request_at_status(
+        "test-workspace",
+        author=factories.create_airlock_user(
+            username="author", workspaces=["test-workspace"]
+        ),
+        status=RequestStatus.REVIEWED,
+        files=[factories.request_file(changes_requested=True)],
+    )
+
+    # Log in as researcher
+    login_as(live_server, page, "researcher")
+
+    # Click on to workspaces link
+    find_and_click(page, page.get_by_test_id("nav-workspaces"))
+    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
+
+    # Click on the workspace
+    find_and_click(page, page.get_by_role("link", name="test-workspace"))
+
+    # We now have a "View all release requests for workspace" button
+    find_and_click(page, page.locator("#requests-workspace-button"))
+
+    # Clicking on it takes us to the list of all requests in that workspace
+    expect(page).to_have_url(live_server.url + "/requests/workspace/test-workspace")
+    expect(page.locator("body")).to_contain_text("All requests in Workspace")
+
+    # Find the filter button, and verify the statuses there
+    # find_and_click(page, page.locator("#id-status"))
+    filter_select = page.locator("select[name=status]")
+    expect(filter_select).to_contain_text("Returned")
+    expect(filter_select).to_contain_text("All Reviews Submitted")
+
+    # Click on one status to filter
+    filter_select.select_option("Returned")
+
+    # Confirm that requests with non-selected status is not displayed
+    expect(page.locator("body")).not_to_contain_text("All Reviews Submitted")
+
+    # Clear selected filter
+    find_and_click(page, page.locator("#clear-filter"))
+
+    # Confirm that the two created requests are visible again
+    expect(page.locator("body")).to_contain_text("by researcher")
+    expect(page.locator("body")).to_contain_text("All Reviews Submitted")
