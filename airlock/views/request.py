@@ -693,6 +693,7 @@ def requests_for_workspace(request, workspace_name: str):
     requests_for_workspace = bll.get_requests_for_workspace(
         workspace_name, request.user
     )
+    requests_for_workspace_unfiltered = requests_for_workspace
     request_filter = request.GET.get("status")
     if request_filter:
         requests_for_workspace = [
@@ -700,14 +701,12 @@ def requests_for_workspace(request, workspace_name: str):
         ]
         request_filter = RequestStatus[request_filter].description()
 
-    status_choice = [(status.name, status.description()) for status in RequestStatus]
-
     # limit filter to statuses with matching requests
-    status_list = {
-        status_name: status_description
-        for status_name, status_description in status_choice
-        for r in requests_for_workspace
-        if r.status.name == status_name
+    status_choice = {
+        status.name: status.description()
+        for status in RequestStatus
+        for r in requests_for_workspace_unfiltered
+        if r.status == status
     }
 
     filter_url = request.path
@@ -719,7 +718,7 @@ def requests_for_workspace(request, workspace_name: str):
             "workspace": workspace_name,
             "requests_for_workspace": requests_for_workspace,
             "request_filter": request_filter,
-            "status_list": status_list,
+            "status_choice": status_choice,
             "filter_url": filter_url,
         },
     )

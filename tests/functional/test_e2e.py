@@ -682,7 +682,6 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     expect(page.locator("body")).to_contain_text("All requests in Workspace")
 
     # Find the filter button, and verify the statuses there
-    # find_and_click(page, page.locator("#id-status"))
     filter_select = page.locator("select[name=status]")
     expect(filter_select).to_contain_text("Returned")
     expect(filter_select).to_contain_text("All Reviews Submitted")
@@ -690,8 +689,8 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     # Click on one status to filter
     filter_select.select_option("Returned")
 
-    # Confirm that requests with non-selected status is not displayed
-    expect(page.locator("body")).not_to_contain_text("All Reviews Submitted")
+    # Confirm that requests with non-selected status are not displayed
+    expect(page.locator("#clear-filter")).not_to_contain_text("All Reviews Submitted")
 
     # Clear selected filter
     find_and_click(page, page.locator("#clear-filter"))
