@@ -1356,7 +1356,7 @@ def test_requests_for_workspace(airlock_client):
     )
     factories.add_request_file(release_request2, "group", "path/test2.txt")
 
-    response = airlock_client.post("/requests/workspace/test1")
+    response = airlock_client.get("/requests/workspace/test1")
 
     response.render()
     assert response.status_code == 200
@@ -1366,6 +1366,36 @@ def test_requests_for_workspace(airlock_client):
     assert author1.fullname in response.rendered_content
     assert author2.username in response.rendered_content
     assert author2.fullname in response.rendered_content
+
+
+def test_requests_for_workspace_filter(airlock_client, mock_old_api):
+    airlock_client.login(workspaces=["test1"])
+    author2 = factories.create_airlock_user(
+        username="author2", workspaces=["test1"], output_checker=False
+    )
+
+    factories.create_request_at_status(
+        "test1",
+        author=author2,
+        status=RequestStatus.APPROVED,
+        files=[factories.request_file(approved=True)],
+    )
+
+    factories.create_request_at_status(
+        "test1",
+        author=author2,
+        status=RequestStatus.PENDING,
+    )
+
+    response = airlock_client.get("/requests/workspace/test1?status=APPROVED")
+
+    filtered_request = [
+        f.status.name for f in response.context_data["requests_for_workspace"]
+    ]
+    assert response.status_code == 200
+    assert "All requests in workspace test1" in response.rendered_content
+    assert filtered_request == ["APPROVED"]
+    assert author2.username in response.rendered_content
 
 
 @pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])
