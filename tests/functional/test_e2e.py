@@ -671,7 +671,7 @@ def test_e2e_filter_submit(page, live_server, dev_users):
 
     # Click on to workspaces link
     find_and_click(page, page.get_by_test_id("nav-workspaces"))
-    expect(page.locator("body")).to_contain_text("Workspaces for researcher")
+    expect(page.locator("body")).to_contain_text("Workspaces for Researcher")
 
     # Click on the workspace
     find_and_click(page, page.get_by_role("link", name="test-workspace"))
@@ -698,5 +698,5 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     find_and_click(page, page.locator("#clear-filter"))
 
     # Confirm that the two created requests are visible again
-    expect(page.locator("body")).to_contain_text("by researcher")
+    expect(page.locator("body")).to_contain_text("by Researcher")
     expect(page.locator("body")).to_contain_text("All Reviews Submitted")
