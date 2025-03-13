@@ -131,6 +131,12 @@ class CSVRenderer(Renderer):
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
         ctx = {"headers": headers, "rows": rows, "use_datatables": True}
+
+        # Temp change to highlight differences
+        if "faster" in self.filename:
+            ctx["use_datatables"] = False
+            ctx["use_faster_datatable"] = True
+
         if any(len(row) != header_col_count for _, row in rows):
             ctx["use_datatables"] = False
         return ctx

@@ -272,6 +272,14 @@ load-example-data: devenv && manifests
 
     cp example-data/bennett.svg $workspace/output/sample.svg
 
+    # Temp change to highlight differences
+    cp $workspace/output/rows.csv $workspace/output/rows-faster.csv
+    cp $workspace/output/rows.csv $workspace/output/rows-LARGE.csv
+    cp $workspace/output/rows.csv $workspace/output/rows-LARGE-faster.csv
+    for i in {1..4}; do cat $workspace/output/rows.csv >> $workspace/output/rows-LARGE.csv; done
+    for i in {1..4}; do cat $workspace/output/rows.csv >> $workspace/output/rows-LARGE-faster.csv; done
+
+
     request_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_REQUEST_DIR%/}/example-workspace/test-request"
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir
