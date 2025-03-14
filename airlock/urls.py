@@ -94,32 +94,32 @@ urlpatterns = [
         kwargs={"path": ""},
     ),
     path(
-        "requests/view/<str:request_id>/<path:path>",
+        "requests/view/<str:request_id>/<path:group_path>",
         airlock.views.request_view,
         name="request_view",
     ),
     path(
-        "requests/content/<str:request_id>/<path:path>",
+        "requests/content/<str:request_id>/<path:group_path>",
         airlock.views.request_contents,
         name="request_contents",
     ),
     path(
-        "requests/approve/<str:request_id>/<path:path>",
+        "requests/approve/<str:request_id>/<path:group_path>",
         airlock.views.file_approve,
         name="file_approve",
     ),
     path(
-        "requests/request_changes/<str:request_id>/<path:path>",
+        "requests/request_changes/<str:request_id>/<path:group_path>",
         airlock.views.file_request_changes,
         name="file_request_changes",
     ),
     path(
-        "requests/reset_review/<str:request_id>/<path:path>",
+        "requests/reset_review/<str:request_id>/<path:group_path>",
         airlock.views.file_reset_review,
         name="file_reset_review",
     ),
     path(
-        "requests/withdraw/<str:request_id>/<path:path>",
+        "requests/withdraw/<str:request_id>/<path:group_path>",
         airlock.views.file_withdraw,
         name="file_withdraw",
     ),
@@ -209,12 +209,12 @@ urlpatterns = [
         name="code_view",
     ),
     path(
-        "code/view/<str:workspace_name>/<str:commit>/<path:path>",
+        "code/view/<str:workspace_name>/<str:commit>/<path:file_path>",
         airlock.views.code.view,
         name="code_view",
     ),
     path(
-        "code/contents/<str:workspace_name>/<str:commit>/<path:path>",
+        "code/contents/<str:workspace_name>/<str:commit>/<path:file_path>",
         airlock.views.code.contents,
         name="code_contents",
     ),
