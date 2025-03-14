@@ -49,7 +49,7 @@ def menu(request):
             reviews_menu = NavItem(
                 name="Reviews", url_name="requests_for_output_checker"
             )
-            items.insert(3, reviews_menu)
+            items.insert(2, reviews_menu)
     return {"nav": list(iter_nav(items, request))}
 
 
