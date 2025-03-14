@@ -13,7 +13,7 @@ from airlock.models import (
     ReleaseRequest,
     Workspace,
 )
-from airlock.types import ROOT_PATH, FileMetadata, UrlPath
+from airlock.types import ROOT_PATH, FileMetadata, FilePath
 from airlock.utils import is_valid_file_type
 from airlock.visibility import RequestFileStatus
 from services.tracing import instrument
@@ -31,30 +31,30 @@ class AirlockContainer(Protocol):
     def get_id(self) -> str:
         """Get the human name for this container."""
 
-    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+    def get_url(self, relpath: FilePath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
     def get_contents_url(
-        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+        self, relpath: FilePath, download: bool = False, plaintext: bool = False
     ) -> str:
         """Get the url for the contents of the container object with path"""
 
-    def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
+    def request_filetype(self, relpath: FilePath) -> RequestFileType | None:
         """What kind of file is this, e.g. output, supporting, etc."""
 
     def get_renderer(
-        self, relpath: UrlPath, plaintext: bool = False
+        self, relpath: FilePath, plaintext: bool = False
     ) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+    def get_file_metadata(self, relpath: FilePath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: FilePath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
 
     def get_request_file_status(
-        self, relpath: UrlPath, user: User
+        self, relpath: FilePath, user: User
     ) -> RequestFileStatus | None:
         """Get request status of file."""
 
@@ -77,7 +77,7 @@ class PathItem:
         pass
 
     container: AirlockContainer
-    relpath: UrlPath
+    relpath: FilePath
 
     type: PathType | None = None
     workspace_status: WorkspaceFileStatus | None = None
@@ -260,12 +260,12 @@ class PathItem:
 
         return " ".join(classes)
 
-    def get_path(self, relpath: UrlPath | str):
+    def get_path(self, relpath: FilePath | str):
         """Walk the tree and return the PathItem for relpath.
 
         Will raise PathNotFound if the path is not found.
         """
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         if relpath == ROOT_PATH:
             return self
 
@@ -315,7 +315,7 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
-def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
+def scantree(root: Path) -> tuple[list[FilePath], set[FilePath]]:
     """Use os.scandir to quickly walk a file tree.
 
     Basically, its faster because it effectively just opens every directory,
@@ -335,7 +335,7 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
 
         for entry in os.scandir(current):
             children += 1
-            path = UrlPath(entry.path).relative_to(root)
+            path = FilePath(entry.path).relative_to(root)
 
             if entry.is_dir():
                 dir_children = scan(entry.path)
@@ -356,7 +356,7 @@ def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
 @instrument(func_attributes={"workspace": "workspace"})
 def get_workspace_tree(
     workspace: Workspace,
-    selected_path: UrlPath | str = ROOT_PATH,
+    selected_path: FilePath | str = ROOT_PATH,
     selected_only: bool = False,
 ) -> PathItem:
     """Recursively build workspace tree from the root dir.
@@ -369,7 +369,7 @@ def get_workspace_tree(
     selected_path is a directory, its contents can be partially rendered.
     """
 
-    selected_path = UrlPath(selected_path)
+    selected_path = FilePath(selected_path)
     root = workspace.root()
 
     if selected_only:
@@ -421,7 +421,7 @@ def get_workspace_tree(
 def get_request_tree(
     release_request: ReleaseRequest,
     user: User,
-    selected_path: UrlPath | str = ROOT_PATH,
+    selected_path: FilePath | str = ROOT_PATH,
     selected_only: bool = False,
 ):
     """Build a tree recursively for a ReleaseRequest
@@ -432,8 +432,8 @@ def get_request_tree(
     If selected_only=True, we avoid building the entire tree. Instead, we just
     build part of the tree on the selected_path, and its immediate children.
     """
-    # ensure selected_path is UrlPath
-    selected_path = UrlPath(selected_path)
+    # ensure selected_path is FilePath
+    selected_path = FilePath(selected_path)
     root_node = PathItem(
         container=release_request,
         relpath=ROOT_PATH,
@@ -449,12 +449,12 @@ def get_request_tree(
         return ""
 
     for name, group in release_request.filegroups.items():
-        group_path = UrlPath(name)
+        group_path = FilePath(name)
         selected = group_path == selected_path
         expanded = selected or (group_path in (selected_path.parents or []))
         group_node = PathItem(
             container=release_request,
-            relpath=UrlPath(name),
+            relpath=FilePath(name),
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=(
@@ -483,7 +483,7 @@ def get_request_tree(
 
 
 def get_code_tree(
-    repo: CodeRepo, selected_path: UrlPath = ROOT_PATH, selected_only: bool = False
+    repo: CodeRepo, selected_path: FilePath = ROOT_PATH, selected_only: bool = False
 ) -> PathItem:
     root_node = PathItem(
         container=repo,
@@ -507,7 +507,7 @@ def get_code_tree(
                 continue
             if path.parts[:len_selected] == selected_path.parts:
                 # same prefix, so is a child
-                child_path = UrlPath(*path.parts[: len_selected + 1])
+                child_path = FilePath(*path.parts[: len_selected + 1])
                 pathlist.append(child_path)
 
                 # if this child has >1 additional path segment, it is
@@ -531,11 +531,11 @@ def get_code_tree(
 
 def get_path_tree(
     container: AirlockContainer,
-    pathlist: list[UrlPath],
+    pathlist: list[FilePath],
     parent: PathItem,
-    selected_path: UrlPath = ROOT_PATH,
+    selected_path: FilePath = ROOT_PATH,
     expand_all: bool = False,
-    leaf_directories: set[UrlPath] | None = None,
+    leaf_directories: set[FilePath] | None = None,
     user: User | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""

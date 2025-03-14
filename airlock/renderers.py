@@ -16,7 +16,7 @@ from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
 from django.utils.safestring import mark_safe
 
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.utils import is_valid_file_type
 
 
@@ -48,7 +48,7 @@ class Renderer:
 
     @classmethod
     def from_file(
-        cls, abspath: Path, relpath: UrlPath | None = None, cache_id: str | None = None
+        cls, abspath: Path, relpath: FilePath | None = None, cache_id: str | None = None
     ) -> Renderer:
         stat = abspath.stat()
         path = relpath or abspath
@@ -70,7 +70,7 @@ class Renderer:
 
     @classmethod
     def from_contents(
-        cls, contents: bytes, relpath: UrlPath, cache_id: str
+        cls, contents: bytes, relpath: FilePath, cache_id: str
     ) -> Renderer:
         if cls.is_text:
             stream: IO[Any] = StringIO(contents.decode("utf8", errors="replace"))
@@ -196,15 +196,15 @@ FILE_RENDERERS = {
 }
 
 
-def get_renderer(relpath: UrlPath, plaintext=False) -> type[Renderer]:
-    if is_valid_file_type(UrlPath(relpath)):
+def get_renderer(relpath: FilePath, plaintext=False) -> type[Renderer]:
+    if is_valid_file_type(FilePath(relpath)):
         if plaintext:
             return PlainTextRenderer
         return FILE_RENDERERS.get(relpath.suffix, Renderer)
     return InvalidFileRenderer
 
 
-def get_code_renderer(relpath: UrlPath, plaintext=False) -> type[Renderer]:
+def get_code_renderer(relpath: FilePath, plaintext=False) -> type[Renderer]:
     """Guess correct renderer for code file."""
     if plaintext:
         return PlainTextRenderer

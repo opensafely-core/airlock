@@ -9,7 +9,7 @@ from airlock.enums import (
     Visibility,
 )
 from airlock.models import AuditEvent
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from local_db import data_access, models
 from tests import factories
 
@@ -99,7 +99,7 @@ def test_delete_file_from_request_bad_state():
     )
 
     with pytest.raises(AssertionError):
-        dal.delete_file_from_request(release_request.id, UrlPath("foo"), audit)
+        dal.delete_file_from_request(release_request.id, FilePath("foo"), audit)
 
 
 @pytest.mark.parametrize(
@@ -124,7 +124,7 @@ def test_withdraw_file_from_request_bad_state(status, mock_old_api):
     with pytest.raises(AssertionError):
         dal.withdraw_file_from_request(
             release_request.id,
-            UrlPath("foo"),
+            FilePath("foo"),
             AuditEvent.from_request(
                 release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
             ),
@@ -144,7 +144,7 @@ def test_withdraw_file_from_request_file_does_not_exist():
     with pytest.raises(exceptions.FileNotFound):
         dal.withdraw_file_from_request(
             release_request.id,
-            UrlPath("bar.txt"),
+            FilePath("bar.txt"),
             AuditEvent.from_request(
                 release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
             ),
@@ -152,7 +152,7 @@ def test_withdraw_file_from_request_file_does_not_exist():
     # foo.txt can be withdrawn
     dal.withdraw_file_from_request(
         release_request.id,
-        UrlPath("foo.txt"),
+        FilePath("foo.txt"),
         AuditEvent.from_request(
             release_request, AuditEventType.REQUEST_FILE_WITHDRAW, user=author
         ),
@@ -163,7 +163,7 @@ def test_add_file_to_request_bad_state():
     workspace = factories.create_workspace("workspace")
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     request_file = factories.request_file()
-    relpath = UrlPath(request_file.path)
+    relpath = FilePath(request_file.path)
     factories.write_workspace_file(workspace, relpath, contents="1234")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -211,7 +211,7 @@ def test_delete_file_from_request_bad_path():
     )
 
     with pytest.raises(exceptions.FileNotFound):
-        dal.delete_file_from_request(release_request.id, UrlPath("bad_path"), audit)
+        dal.delete_file_from_request(release_request.id, FilePath("bad_path"), audit)
 
 
 @pytest.mark.parametrize(

@@ -29,7 +29,7 @@ from airlock.lib.git import (
     project_name_from_url,
     read_file_from_repo,
 )
-from airlock.types import ROOT_PATH, FileMetadata, UrlPath
+from airlock.types import ROOT_PATH, FileMetadata, FilePath
 from airlock.visibility import RequestFileStatus, filter_visible_items
 from users.models import User
 
@@ -68,7 +68,7 @@ class AuditEvent:
     user: User
     workspace: str | None = None
     request: str | None = None
-    path: UrlPath | None = None
+    path: FilePath | None = None
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
     created_at: datetime = field(default_factory=timezone.now, compare=False)
@@ -81,7 +81,7 @@ class AuditEvent:
         request: ReleaseRequest,
         type: AuditEventType,  # noqa: A002
         user: User,
-        path: UrlPath | None = None,
+        path: FilePath | None = None,
         **kwargs: str,
     ):
         # Note: kwargs go straight to extra
@@ -227,13 +227,13 @@ class Workspace:
     def get_id(self) -> str:
         return self.name
 
-    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+    def get_url(self, relpath: FilePath = ROOT_PATH) -> str:
         kwargs = {"workspace_name": self.name}
         if relpath != ROOT_PATH:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: FilePath) -> WorkspaceFileStatus | None:
         # get_file_metadata will throw FileNotFound if we have a bad file path
         metadata = self.get_file_metadata(relpath)
 
@@ -261,7 +261,7 @@ class Workspace:
         return WorkspaceFileStatus.UNRELEASED
 
     def get_request_file_status(
-        self, relpath: UrlPath, user: User
+        self, relpath: FilePath, user: User
     ) -> RequestFileStatus | None:
         return None  # pragma: nocover
 
@@ -272,7 +272,7 @@ class Workspace:
         )
 
     def get_contents_url(
-        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+        self, relpath: FilePath, download: bool = False, plaintext: bool = False
     ) -> str:
         url = reverse(
             "workspace_contents",
@@ -286,7 +286,7 @@ class Workspace:
         return url
 
     def get_renderer(
-        self, relpath: UrlPath, plaintext: bool = False
+        self, relpath: FilePath, plaintext: bool = False
     ) -> renderers.Renderer:
         renderer_class = renderers.get_renderer(relpath, plaintext=plaintext)
         return renderer_class.from_file(
@@ -294,7 +294,7 @@ class Workspace:
             relpath=relpath,
         )
 
-    def get_manifest_for_file(self, relpath: UrlPath):
+    def get_manifest_for_file(self, relpath: FilePath):
         try:
             return self.manifest["outputs"][str(relpath)]
         except KeyError:
@@ -302,7 +302,7 @@ class Workspace:
                 f"No entry for {relpath} from manifest.json file"
             )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+    def get_file_metadata(self, relpath: FilePath) -> FileMetadata | None:
         """Get file metadata, i.e. size, timestamp, hash"""
         try:
             return FileMetadata.from_manifest(self.get_manifest_for_file(relpath))
@@ -328,7 +328,7 @@ class Workspace:
 
         return path
 
-    def request_filetype(self, relpath: UrlPath) -> None:
+    def request_filetype(self, relpath: FilePath) -> None:
         return None
 
 
@@ -339,7 +339,7 @@ class CodeRepo:
     name: str
     commit: str
     directory: Path
-    pathlist: list[UrlPath]
+    pathlist: list[FilePath]
 
     class RepoNotFound(Exception):
         pass
@@ -373,7 +373,7 @@ class CodeRepo:
     def get_id(self) -> str:
         return f"{self.name}@{self.commit[:7]}"
 
-    def get_url(self, relpath: UrlPath = ROOT_PATH) -> str:
+    def get_url(self, relpath: FilePath = ROOT_PATH) -> str:
         kwargs = {
             "workspace_name": self.workspace,
             "commit": self.commit,
@@ -385,13 +385,13 @@ class CodeRepo:
             kwargs=kwargs,
         )
 
-    def get_file_state(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_file_state(self, relpath: FilePath) -> WorkspaceFileStatus | None:
         """Get state of path."""
         return None  # pragma: no cover
 
     def get_contents_url(
         self,
-        relpath: UrlPath = ROOT_PATH,
+        relpath: FilePath = ROOT_PATH,
         download: bool = False,
         plaintext: bool = False,
     ) -> str:
@@ -410,7 +410,7 @@ class CodeRepo:
 
         return url
 
-    def get_renderer(self, relpath: UrlPath, plaintext=False) -> renderers.Renderer:
+    def get_renderer(self, relpath: FilePath, plaintext=False) -> renderers.Renderer:
         # we do not care about valid file types here, so we just get the base renderers
 
         try:
@@ -428,18 +428,18 @@ class CodeRepo:
             cache_id="",
         )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+    def get_file_metadata(self, relpath: FilePath) -> FileMetadata | None:
         """Get the size of a file"""
         return None  # pragma: no cover
 
-    def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
+    def request_filetype(self, relpath: FilePath) -> RequestFileType | None:
         return RequestFileType.CODE
 
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: FilePath) -> WorkspaceFileStatus | None:
         return None
 
     def get_request_file_status(
-        self, relpath: UrlPath, user: User
+        self, relpath: FilePath, user: User
     ) -> RequestFileStatus | None:
         return None  # pragma: nocover
 
@@ -469,7 +469,7 @@ class RequestFile:
     Represents a single file within a release request
     """
 
-    relpath: UrlPath
+    relpath: FilePath
     group: str
     file_id: str
     reviews: dict[str, FileReview]
@@ -568,7 +568,7 @@ class FileGroup:
     """
 
     name: str
-    files: dict[UrlPath, RequestFile]
+    files: dict[FilePath, RequestFile]
     context: str = ""
     controls: str = ""
     updated_at: datetime = field(default_factory=timezone.now)
@@ -589,7 +589,7 @@ class FileGroup:
         return cls(
             **{k: v for k, v in attrs.items() if k not in ["files", "comments"]},
             files={
-                UrlPath(value["relpath"]): RequestFile.from_dict(value)
+                FilePath(value["relpath"]): RequestFile.from_dict(value)
                 for value in attrs.get("files", ())
             },
             comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
@@ -691,7 +691,7 @@ class ReleaseRequest:
         )
 
     def get_contents_url(
-        self, relpath: UrlPath, download: bool = False, plaintext: bool = False
+        self, relpath: FilePath, download: bool = False, plaintext: bool = False
     ):
         url = reverse(
             "request_contents",
@@ -708,7 +708,7 @@ class ReleaseRequest:
         return url
 
     def get_renderer(
-        self, relpath: UrlPath, plaintext: bool = False
+        self, relpath: FilePath, plaintext: bool = False
     ) -> renderers.Renderer:
         request_file = self.get_request_file_from_urlpath(relpath)
         renderer_class = renderers.get_renderer(relpath, plaintext=plaintext)
@@ -718,7 +718,7 @@ class ReleaseRequest:
             cache_id=request_file.file_id,
         )
 
-    def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
+    def get_file_metadata(self, relpath: FilePath) -> FileMetadata | None:
         rfile = self.get_request_file_from_urlpath(relpath)
         return FileMetadata(
             rfile.size,
@@ -726,11 +726,11 @@ class ReleaseRequest:
             _content_hash=rfile.file_id,
         )
 
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, relpath: FilePath) -> WorkspaceFileStatus | None:
         return None
 
     def get_request_file_status(
-        self, relpath: UrlPath, user: User
+        self, relpath: FilePath, user: User
     ) -> RequestFileStatus | None:
         rfile = self.get_request_file_from_urlpath(relpath)
         phase = self.get_turn_phase()
@@ -795,11 +795,11 @@ class ReleaseRequest:
 
         return comments
 
-    def get_request_file_from_urlpath(self, relpath: UrlPath | str) -> RequestFile:
+    def get_request_file_from_urlpath(self, relpath: FilePath | str) -> RequestFile:
         """Get the request file from the url, which includes the group."""
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         group = relpath.parts[0]
-        file_relpath = UrlPath(*relpath.parts[1:])
+        file_relpath = FilePath(*relpath.parts[1:])
 
         if not (filegroup := self.filegroups.get(group)):
             raise exceptions.FileNotFound(f"bad group {group} in url {relpath}")
@@ -809,9 +809,9 @@ class ReleaseRequest:
 
         return request_file
 
-    def get_request_file_from_output_path(self, relpath: UrlPath | str):
+    def get_request_file_from_output_path(self, relpath: FilePath | str):
         """Get the request file from the output path, which does not include the group"""
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         if relpath in self.all_files_by_name:
             return self.all_files_by_name[relpath]
 
@@ -859,7 +859,7 @@ class ReleaseRequest:
         return self.root() / request_file.file_id
 
     @cached_property
-    def all_files_by_name(self) -> dict[UrlPath, RequestFile]:
+    def all_files_by_name(self) -> dict[FilePath, RequestFile]:
         """Return the relpaths for all files on the request, of any filetype"""
         return {
             request_file.relpath: request_file
@@ -867,7 +867,7 @@ class ReleaseRequest:
             for request_file in filegroup.files.values()
         }
 
-    def output_files(self) -> dict[UrlPath, RequestFile]:
+    def output_files(self) -> dict[FilePath, RequestFile]:
         """Return the relpaths for output files on the request"""
         return {
             rfile.relpath: rfile
@@ -890,7 +890,7 @@ class ReleaseRequest:
             if rfile.filetype == RequestFileType.SUPPORTING
         )
 
-    def request_filetype(self, urlpath: UrlPath):
+    def request_filetype(self, urlpath: FilePath):
         try:
             return self.get_request_file_from_urlpath(urlpath).filetype
         except exceptions.FileNotFound:

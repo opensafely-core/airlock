@@ -31,7 +31,7 @@ from airlock.forms import (
     GroupEditForm,
     MultiselectForm,
 )
-from airlock.types import ROOT_PATH, UrlPath
+from airlock.types import ROOT_PATH, FilePath
 from airlock.views.workspace import add_or_update_form_is_valid
 from services.tracing import instrument
 
@@ -213,7 +213,7 @@ def _get_dir_button_context(user, release_request):
 
 def _get_file_button_context(user, release_request, workspace, path_item):
     group_relpath = path_item.relpath
-    relpath = UrlPath(*group_relpath.parts[1:])
+    relpath = FilePath(*group_relpath.parts[1:])
 
     # author buttons
     req_id = release_request.id
@@ -324,7 +324,7 @@ def get_button_context(path_item, user, release_request, workspace):
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    relpath = UrlPath(path)
+    relpath = FilePath(path)
     template_dir = "file_browser/request/"
     template = template_dir + "index.html"
     selected_only = False
@@ -600,12 +600,12 @@ def request_contents(request, request_id: str, path: str):
         if not request.user.output_checker or (release_request.author == request.user):
             raise PermissionDenied()
 
-        bll.audit_request_file_download(release_request, UrlPath(path), request.user)
+        bll.audit_request_file_download(release_request, FilePath(path), request.user)
         return download_file(abspath, filename=path)
 
-    bll.audit_request_file_access(release_request, UrlPath(path), request.user)
+    bll.audit_request_file_access(release_request, FilePath(path), request.user)
     plaintext = request.GET.get("plaintext", False)
-    renderer = release_request.get_renderer(UrlPath(path), plaintext=plaintext)
+    renderer = release_request.get_renderer(FilePath(path), plaintext=plaintext)
     return serve_file(request, renderer)
 
 
@@ -681,7 +681,7 @@ def request_return(request, request_id):
 @require_http_methods(["POST"])
 def file_withdraw(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
-    grouppath = UrlPath(path)
+    grouppath = FilePath(path)
 
     try:
         release_request.get_request_file_from_urlpath(grouppath)
@@ -731,7 +731,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
     errors = []
     successes = []
     for path_str in multiform.cleaned_data["selected"]:
-        path = UrlPath(path_str)
+        path = FilePath(path_str)
         try:
             bll.withdraw_file_from_request(release_request, path, request.user)
             successes.append(f"The file {path} has been withdrawn from the request")
@@ -744,10 +744,10 @@ def multiselect_withdraw_files(request, multiform, release_request):
     next_url = multiform.cleaned_data["next_url"]
     # Multiselect-withdrawing files redirects to the directory
     # Strip the release request part of the url to get the directory path
-    dir_path = UrlPath(next_url.lstrip(release_request.get_url()))
+    dir_path = FilePath(next_url.lstrip(release_request.get_url()))
     # Check if the directory path is in any of the request files' parents
     if not any(
-        dir_path in (UrlPath(rfile.group) / rfile.relpath).parents
+        dir_path in (FilePath(rfile.group) / rfile.relpath).parents
         for rfile in release_request.all_files_by_name.values()
     ):
         # If there are no files which are children of this directory path,

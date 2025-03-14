@@ -3,7 +3,7 @@ import os
 import pytest
 
 from airlock import renderers
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 
 
@@ -62,7 +62,7 @@ def test_renderers_get_renderer_workspace(
 def test_renderers_get_renderer_request(
     tmp_path, rf, suffix, mimetype, plaintext, template_path
 ):
-    filepath = UrlPath("test" + suffix)
+    filepath = FilePath("test" + suffix)
     grouppath = "group" / filepath
     request = factories.create_release_request("workspace")
     # use a csv as test data, it works for other types too
@@ -100,7 +100,7 @@ def test_renderers_get_renderer_request(
 
 @pytest.mark.parametrize("suffix,mimetype,plaintext,template_path", RENDERER_TESTS)
 def test_code_renderer_from_contents(suffix, mimetype, plaintext, template_path):
-    path = UrlPath("test." + suffix)
+    path = FilePath("test." + suffix)
 
     renderer_class = renderers.get_code_renderer(path, plaintext=plaintext)
     renderer = renderer_class.from_contents(b"test", path, "cache_id")

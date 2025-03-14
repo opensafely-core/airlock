@@ -19,7 +19,7 @@ from airlock.forms import (
     FileTypeFormSet,
     MultiselectForm,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.views.helpers import (
     ButtonContext,
     display_form_errors,
@@ -241,10 +241,10 @@ def workspace_contents(request, workspace_name: str, path: str):
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
-    bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)
+    bll.audit_workspace_file_access(workspace, FilePath(path), request.user)
 
     plaintext = request.GET.get("plaintext", False)
-    renderer = workspace.get_renderer(UrlPath(path), plaintext=plaintext)
+    renderer = workspace.get_renderer(FilePath(path), plaintext=plaintext)
     return serve_file(request, renderer)
 
 
@@ -291,7 +291,7 @@ def multiselect_add_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        relpath = UrlPath(f)
+        relpath = FilePath(f)
         state = workspace.get_workspace_file_status(relpath)
         if policies.can_add_file_to_request(workspace, relpath):
             files_to_add.append(f)
@@ -336,7 +336,7 @@ def multiselect_update_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        if policies.can_update_file_on_request(workspace, UrlPath(f)):
+        if policies.can_update_file_on_request(workspace, FilePath(f)):
             files_to_add.append(f)
         else:
             files_ignored[f] = "file cannot be updated"
@@ -423,7 +423,7 @@ def workspace_add_file_to_request(request, workspace_name):
         relpath = formset_form.cleaned_data["file"]
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-        status = workspace.get_workspace_file_status(UrlPath(relpath))
+        status = workspace.get_workspace_file_status(FilePath(relpath))
         try:
             if status == WorkspaceFileStatus.WITHDRAWN:
                 bll.add_withdrawn_file_to_request(

@@ -25,7 +25,7 @@ from airlock.models import (
     RequestFile,
     Workspace,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from users.models import User
 
 
@@ -637,7 +637,7 @@ def get_default_output_checkers():
 
 
 def review_file(
-    request: ReleaseRequest, relpath: UrlPath, status: RequestFileVote, *users
+    request: ReleaseRequest, relpath: FilePath, status: RequestFileVote, *users
 ):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
@@ -663,7 +663,7 @@ def review_file(
 
 def comment_on_request_file_group(
     request: ReleaseRequest,
-    relpath: UrlPath,
+    relpath: FilePath,
     *users,
 ):
     if not users:
@@ -689,7 +689,7 @@ class TestRequestFile:
     """
 
     group: str
-    path: UrlPath
+    path: FilePath
     user: User | None
     contents: str = ""
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -744,7 +744,7 @@ class TestRequestFile:
 
 def request_file(
     group="group",
-    path: UrlPath | str = "test/file.txt",
+    path: FilePath | str = "test/file.txt",
     contents: str = "",
     filetype=RequestFileType.OUTPUT,
     user: User | None = None,
@@ -767,7 +767,7 @@ def request_file(
 
     return TestRequestFile(
         group=group,
-        path=UrlPath(path),
+        path=FilePath(path),
         contents=contents,
         filetype=filetype,
         user=user,
@@ -815,7 +815,7 @@ def create_audit_event(
     user=None,
     workspace: str = "workspace",
     request="request",
-    path=UrlPath("foo/bar"),
+    path=FilePath("foo/bar"),
     extra={"foo": "bar"},
 ):
     if user is None:
@@ -825,7 +825,7 @@ def create_audit_event(
         user=user,
         workspace=workspace,
         request=request,
-        path=UrlPath(path) if path else None,
+        path=FilePath(path) if path else None,
         extra=extra,
     )
     bll._dal.audit_event(event)

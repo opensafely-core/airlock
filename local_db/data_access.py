@@ -12,7 +12,7 @@ from airlock.enums import (
     Visibility,
 )
 from airlock.models import AuditEvent
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from local_db.models import (
     AuditLog,
     FileGroupComment,
@@ -137,7 +137,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def add_file_to_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
@@ -192,7 +192,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def delete_file_from_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -222,7 +222,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def withdraw_file_from_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -248,7 +248,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return metadata.get_filegroups_to_dict()
 
     def release_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer release_file() should confirm that this path
@@ -270,7 +270,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         )
         return [request_file.to_dict() for request_file in released_files]
 
-    def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
+    def register_file_upload_attempt(self, request_id: str, relpath: FilePath):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
                 request_id=request_id, relpath=relpath
@@ -281,7 +281,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return request_file.to_dict()
 
     def register_file_upload(
-        self, request_id: str, relpath: UrlPath, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer register_file_upload() should confirm that
@@ -296,7 +296,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
@@ -314,7 +314,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -330,7 +330,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def reset_review_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -348,7 +348,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, reviewer: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -416,7 +416,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 user=User.objects.get(pk=audit.user),
                 workspace=audit.workspace,
                 request=audit.request,
-                path=UrlPath(audit.path) if audit.path else None,
+                path=FilePath(audit.path) if audit.path else None,
                 extra=audit.extra,
                 created_at=audit.created_at,
             )

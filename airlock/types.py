@@ -14,12 +14,12 @@ from typing import TYPE_CHECKING, Any
 # annotated?).
 if TYPE_CHECKING:  # pragma: no cover
 
-    class UrlPath(PurePosixPath): ...
+    class FilePath(PurePosixPath): ...
 else:
-    UrlPath = PurePosixPath
+    FilePath = PurePosixPath
 
 
-ROOT_PATH = UrlPath()  # empty path
+ROOT_PATH = FilePath()  # empty path
 
 
 @dataclass

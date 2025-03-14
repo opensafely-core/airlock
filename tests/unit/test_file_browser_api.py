@@ -15,7 +15,7 @@ from airlock.file_browser_api import (
     get_request_tree,
     get_workspace_tree,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 from tests.conftest import get_trace
 
@@ -53,7 +53,7 @@ def test_get_workspace_tree_general(release_request):
     # modified file in request
     factories.write_workspace_file(workspace, "some_dir/file_c.txt", "changed")
 
-    selected_path = UrlPath("some_dir/file_a.txt")
+    selected_path = FilePath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
     # simple way to express the entire tree structure, including selected
@@ -131,7 +131,7 @@ def test_get_workspace_tree_general(release_request):
 
 @pytest.mark.django_db
 def test_get_request_tree_general(release_request):
-    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    selected_path = FilePath("group1/some_dir/file_a.txt")
     tree = get_request_tree(
         release_request, factories.create_airlock_user(), selected_path
     )
@@ -179,7 +179,7 @@ def test_get_request_tree_status(bll):
         username="checker2", workspaces=[], output_checker=True
     )
 
-    path = UrlPath("some_dir/file_a.txt")
+    path = FilePath("some_dir/file_a.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         RequestStatus.SUBMITTED,
@@ -245,7 +245,7 @@ def test_get_request_tree_status(bll):
 
 
 def test_get_workspace_tree_selected_only_file(workspace):
-    selected_path = UrlPath("some_dir/file_a.txt")
+    selected_path = FilePath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path, selected_only=True)
 
     # only the selected path should be in the tree
@@ -261,7 +261,7 @@ def test_get_workspace_tree_selected_only_file(workspace):
 
 
 def test_get_workspace_tree_selected_only_root(workspace):
-    tree = get_workspace_tree(workspace, UrlPath(), selected_only=True)
+    tree = get_workspace_tree(workspace, FilePath(), selected_only=True)
 
     # only the selected path should be in the tree
     expected = textwrap.dedent(
@@ -277,7 +277,7 @@ def test_get_workspace_tree_selected_only_root(workspace):
 
 
 def test_get_workspace_tree_selected_has_empty_dir(workspace):
-    selected_path = UrlPath("some_dir")
+    selected_path = FilePath("some_dir")
     # needed for coverage of is_file() branch
     (workspace.root() / "some_dir/subdir").mkdir()
     tree = get_workspace_tree(workspace, selected_path, selected_only=True)
@@ -300,7 +300,7 @@ def test_get_workspace_tree_selected_has_empty_dir(workspace):
 
 
 def test_get_workspace_tree_selected_is_empty_dir(workspace):
-    selected_path = UrlPath("some_dir/subdir")
+    selected_path = FilePath("some_dir/subdir")
     (workspace.root() / selected_path).mkdir()
     tree = get_workspace_tree(workspace, selected_path, selected_only=True)
 
@@ -319,7 +319,7 @@ def test_get_workspace_tree_selected_is_empty_dir(workspace):
 
 @pytest.mark.django_db
 def test_get_request_tree_selected_only_file(release_request):
-    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    selected_path = FilePath("group1/some_dir/file_a.txt")
     tree = get_request_tree(
         release_request,
         factories.create_airlock_user(),
@@ -344,7 +344,7 @@ def test_get_request_tree_selected_only_file(release_request):
 
 @pytest.mark.django_db
 def test_get_request_tree_selected_only_group(release_request):
-    selected_path = UrlPath("group1")
+    selected_path = FilePath("group1")
     tree = get_request_tree(
         release_request,
         factories.create_airlock_user(),
@@ -484,7 +484,7 @@ def test_workspace_tree_selection_root(workspace):
 
 
 def test_workspace_tree_selection_path_file(workspace):
-    selected_path = UrlPath("some_dir/file_a.txt")
+    selected_path = FilePath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
     selected_item = tree.get_path(selected_path)
@@ -501,7 +501,7 @@ def test_workspace_tree_selection_path_file(workspace):
 
 
 def test_workspace_tree_selection_path_dir(workspace):
-    selected_path = UrlPath("some_dir")
+    selected_path = FilePath("some_dir")
     tree = get_workspace_tree(workspace, selected_path)
 
     selected_item = tree.get_path(selected_path)
@@ -511,7 +511,7 @@ def test_workspace_tree_selection_path_dir(workspace):
 
 
 def test_workspace_tree_selection_bad_path(workspace):
-    selected_path = UrlPath("bad/path")
+    selected_path = FilePath("bad/path")
     tree = get_workspace_tree(workspace, selected_path)
     with pytest.raises(tree.PathNotFound):
         tree.get_selected()
@@ -526,7 +526,7 @@ def test_request_tree_selection_root(release_request):
 
 @pytest.mark.django_db
 def test_request_tree_selection_path(release_request):
-    selected_path = UrlPath("group1/some_dir/file_a.txt")
+    selected_path = FilePath("group1/some_dir/file_a.txt")
     tree = get_request_tree(
         release_request, factories.create_airlock_user(), selected_path
     )
@@ -546,7 +546,7 @@ def test_request_tree_selection_path(release_request):
 
 @pytest.mark.django_db
 def test_request_tree_selection_not_path(release_request):
-    selected_path = UrlPath("bad/path")
+    selected_path = FilePath("bad/path")
     tree = get_request_tree(
         release_request, factories.create_airlock_user(), selected_path
     )
@@ -587,7 +587,7 @@ def test_request_tree_siblings(release_request):
 
 
 def test_get_workspace_tree_tracing(workspace):
-    selected_path = UrlPath("some_dir/file_a.txt")
+    selected_path = FilePath("some_dir/file_a.txt")
     get_workspace_tree(workspace, selected_path)
     traces = get_trace()
     assert len(traces) == 1
@@ -615,7 +615,7 @@ def test_get_code_tree(workspace):
         ],
     )
 
-    tree = get_code_tree(repo, UrlPath("foo"), selected_only=False)
+    tree = get_code_tree(repo, FilePath("foo"), selected_only=False)
 
     expected = textwrap.dedent(
         f"""
@@ -632,7 +632,7 @@ def test_get_code_tree(workspace):
 
     assert str(tree).strip() == expected.strip()
 
-    tree = get_code_tree(repo, UrlPath("foo"), selected_only=True)
+    tree = get_code_tree(repo, FilePath("foo"), selected_only=True)
 
     expected = textwrap.dedent(
         f"""
@@ -658,7 +658,7 @@ def test_get_code_tree_root(workspace):
         ],
     )
 
-    tree = get_code_tree(repo, UrlPath("."), selected_only=False)
+    tree = get_code_tree(repo, FilePath("."), selected_only=False)
 
     expected = textwrap.dedent(
         f"""
@@ -674,7 +674,7 @@ def test_get_code_tree_root(workspace):
     )
     assert str(tree).strip() == expected.strip()
 
-    tree = get_code_tree(repo, UrlPath("."), selected_only=True)
+    tree = get_code_tree(repo, FilePath("."), selected_only=True)
 
     expected = textwrap.dedent(
         f"""

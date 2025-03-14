@@ -31,7 +31,7 @@ from airlock.models import (
     Workspace,
 )
 from airlock.notifications import send_notification_event
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.utils import is_valid_file_type
 from airlock.visibility import filter_visible_items
 from users.models import User
@@ -101,7 +101,7 @@ class DataAccessLayerProtocol(Protocol):
     def add_file_to_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
@@ -119,52 +119,52 @@ class DataAccessLayerProtocol(Protocol):
     def delete_file_from_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
 
     def release_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def get_released_files_for_request(self, request_id: str):
         raise NotImplementedError()
 
-    def register_file_upload_attempt(self, request_id: str, relpath: UrlPath):
+    def register_file_upload_attempt(self, request_id: str, relpath: FilePath):
         raise NotImplementedError()
 
     def register_file_upload(
-        self, request_id: str, relpath: UrlPath, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def withdraw_file_from_request(
         self,
         request_id: str,
-        relpath: UrlPath,
+        relpath: FilePath,
         audit: AuditEvent,
     ):
         raise NotImplementedError()
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def reset_review_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
+        self, request_id: str, relpath: FilePath, reviewer: User, audit: AuditEvent
     ):
         raise NotImplementedError()
 
@@ -570,12 +570,12 @@ class BusinessLogicLayer:
     def add_file_to_request(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_add_file_to_request(
             user, release_request, workspace, relpath
@@ -620,10 +620,10 @@ class BusinessLogicLayer:
     def update_file_in_request(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
     ) -> ReleaseRequest:
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_update_file_on_request(
             user, release_request, workspace, relpath
@@ -637,12 +637,12 @@ class BusinessLogicLayer:
     def add_withdrawn_file_to_request(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
     ) -> ReleaseRequest:
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_add_file_to_request(
             user, release_request, workspace, relpath
@@ -655,7 +655,7 @@ class BusinessLogicLayer:
     def change_file_properties_in_request(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
@@ -663,7 +663,7 @@ class BusinessLogicLayer:
         """
         Change file type or move file to a different group in the request
         """
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_change_request_file_properties(
             user, release_request, workspace, relpath
@@ -675,12 +675,12 @@ class BusinessLogicLayer:
     def replace_file_in_request(
         self,
         release_request: ReleaseRequest,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
         group_name: str,
         filetype: RequestFileType,
     ) -> ReleaseRequest:
-        relpath = UrlPath(relpath)
+        relpath = FilePath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_replace_file_in_request(
             user, release_request, workspace, relpath, group_name, filetype
@@ -760,10 +760,10 @@ class BusinessLogicLayer:
     def withdraw_file_from_request(
         self,
         release_request: ReleaseRequest,
-        group_path: UrlPath,
+        group_path: FilePath,
         user: User,
     ):
-        relpath = UrlPath(*group_path.parts[1:])
+        relpath = FilePath(*group_path.parts[1:])
         permissions.check_user_can_withdraw_file_from_request(
             user,
             release_request,
@@ -874,7 +874,7 @@ class BusinessLogicLayer:
         ]
 
     def register_file_upload_attempt(
-        self, release_request: ReleaseRequest, relpath: UrlPath
+        self, release_request: ReleaseRequest, relpath: FilePath
     ):
         """
         Register an attempt to upload a file
@@ -884,7 +884,7 @@ class BusinessLogicLayer:
         )
 
     def register_file_upload(
-        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+        self, release_request: ReleaseRequest, relpath: FilePath, user: User
     ):
         """
         Register that a file has been uploaded successfully
@@ -961,7 +961,7 @@ class BusinessLogicLayer:
         )
 
     def reset_review_file(
-        self, release_request: ReleaseRequest, relpath: UrlPath, user: User
+        self, release_request: ReleaseRequest, relpath: FilePath, user: User
     ):
         """Reset a file to have no review from this user"""
 
@@ -1025,7 +1025,7 @@ class BusinessLogicLayer:
         self,
         release_request: ReleaseRequest,
         review: FileReview,
-        relpath: UrlPath,
+        relpath: FilePath,
         user: User,
     ):
         """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
@@ -1187,7 +1187,7 @@ class BusinessLogicLayer:
         )
 
     def audit_workspace_file_access(
-        self, workspace: Workspace, path: UrlPath, user: User
+        self, workspace: Workspace, path: FilePath, user: User
     ):
         audit = AuditEvent(
             type=AuditEventType.WORKSPACE_FILE_VIEW,
@@ -1198,7 +1198,7 @@ class BusinessLogicLayer:
         self._dal.audit_event(audit)
 
     def audit_request_file_access(
-        self, request: ReleaseRequest, path: UrlPath, user: User
+        self, request: ReleaseRequest, path: FilePath, user: User
     ):
         audit = AuditEvent.from_request(
             request,
@@ -1210,7 +1210,7 @@ class BusinessLogicLayer:
         self._dal.audit_event(audit)
 
     def audit_request_file_download(
-        self, request: ReleaseRequest, path: UrlPath, user: User
+        self, request: ReleaseRequest, path: FilePath, user: User
     ):
         audit = AuditEvent.from_request(
             request,

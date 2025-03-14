@@ -10,7 +10,7 @@ from opentelemetry import trace
 import old_api
 from airlock.business_logic import bll
 from airlock.enums import RequestStatus
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from services.tracing import instrument
 from users.models import User
 
@@ -115,7 +115,7 @@ def do_upload_task(file_for_upload, release_request):
         release_request.workspace,
         file_for_upload.relpath,
         release_request.abspath(
-            UrlPath(file_for_upload.group) / file_for_upload.relpath
+            FilePath(file_for_upload.group) / file_for_upload.relpath
         ),
         file_for_upload.released_by.username,
     )

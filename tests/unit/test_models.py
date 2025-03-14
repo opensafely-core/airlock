@@ -18,7 +18,7 @@ from airlock.models import (
     CodeRepo,
     Workspace,
 )
-from airlock.types import FileMetadata, UrlPath
+from airlock.types import FileMetadata, FilePath
 from tests import factories
 
 
@@ -29,7 +29,7 @@ def test_workspace_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.html")
 
-    foo_bar_relpath = UrlPath("foo/bar.html")
+    foo_bar_relpath = FilePath("foo/bar.html")
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
@@ -47,7 +47,7 @@ def test_workspace_container():
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert workspace.request_filetype(UrlPath("path")) is None  # type: ignore
+    assert workspace.request_filetype(FilePath("path")) is None  # type: ignore
 
 
 def test_workspace_from_directory_errors():
@@ -68,14 +68,14 @@ def test_workspace_from_directory_errors():
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
-    assert workspace.request_filetype(UrlPath("foo/bar.txt")) is None  # type: ignore
+    assert workspace.request_filetype(FilePath("foo/bar.txt")) is None  # type: ignore
 
 
 def test_workspace_manifest_for_file():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.csv", "c1,c2,c3\n1,2,3\n4,5,6")
 
-    file_manifest = workspace.get_manifest_for_file(UrlPath("foo/bar.csv"))
+    file_manifest = workspace.get_manifest_for_file(FilePath("foo/bar.csv"))
     assert file_manifest["row_count"] == 2
     assert file_manifest["col_count"] == 3
 
@@ -92,7 +92,7 @@ def test_workspace_manifest_for_file_not_found(bll):
         "workspace", factories.create_airlock_user(workspaces=["workspace"])
     )
     with pytest.raises(exceptions.ManifestFileError):
-        workspace.get_manifest_for_file(UrlPath("foo/bar.txt"))
+        workspace.get_manifest_for_file(FilePath("foo/bar.txt"))
 
 
 def test_get_file_metadata():
@@ -100,19 +100,19 @@ def test_get_file_metadata():
 
     # non-existent file
     with pytest.raises(exceptions.FileNotFound):
-        workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+        workspace.get_file_metadata(FilePath("metadata/foo.log"))
 
     # directory
     (workspace.root() / "directory").mkdir()
     with pytest.raises(AssertionError):
-        workspace.get_file_metadata(UrlPath("directory")) is None
+        workspace.get_file_metadata(FilePath("directory")) is None
 
     # small log file
     factories.write_workspace_file(
         workspace, "metadata/foo.log", contents="foo", manifest=False
     )
 
-    from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
+    from_file = workspace.get_file_metadata(FilePath("metadata/foo.log"))
     assert isinstance(from_file, FileMetadata)
     assert from_file.size == 3
     assert from_file.timestamp is not None
@@ -124,7 +124,7 @@ def test_get_file_metadata():
         workspace, "output/bar.csv", contents=contents, manifest=True
     )
 
-    from_metadata = workspace.get_file_metadata(UrlPath("output/bar.csv"))
+    from_metadata = workspace.get_file_metadata(FilePath("output/bar.csv"))
     assert isinstance(from_metadata, FileMetadata)
     assert from_metadata.size == len(contents)
     assert from_metadata.timestamp is not None
@@ -182,7 +182,7 @@ def test_workspace_get_workspace_archived_ongoing(bll):
 
 
 def test_workspace_get_workspace_file_status(bll):
-    path = UrlPath("foo/bar.txt")
+    path = FilePath("foo/bar.txt")
     workspace = factories.create_workspace("workspace")
     user = factories.create_airlock_user(workspaces=["workspace"])
 
@@ -209,8 +209,8 @@ def test_workspace_get_workspace_file_status(bll):
 
 
 def test_workspace_get_released_files(bll, mock_old_api):
-    path = UrlPath("foo/bar.txt")
-    path1 = UrlPath("foo/supporting_bar.txt")
+    path = FilePath("foo/bar.txt")
+    path1 = FilePath("foo/supporting_bar.txt")
     factories.create_request_at_status(
         "workspace",
         RequestStatus.RELEASED,
@@ -286,7 +286,7 @@ def test_request_pending_author_get_workspace_file_status(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
     workspace = factories.create_workspace("workspace")
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
 
     workspace_file = factories.request_file(
         group="group",
@@ -317,7 +317,7 @@ def test_request_returned_author_get_workspace_file_status(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
     workspace = factories.create_workspace("workspace")
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
 
     workspace_file = factories.request_file(
         group="group",
@@ -354,10 +354,10 @@ def test_request_container():
     )
     assert (
         f"/requests/content/{rid}/group/bar.html?cache_id="
-        in release_request.get_contents_url(UrlPath("group/bar.html"))
+        in release_request.get_contents_url(FilePath("group/bar.html"))
     )
     plaintext_contents_url = release_request.get_contents_url(
-        UrlPath("group/bar.html"), plaintext=True
+        FilePath("group/bar.html"), plaintext=True
     )
     assert f"/requests/content/{rid}/group/bar.html?cache_id=" in plaintext_contents_url
     assert "&plaintext=true" in plaintext_contents_url
@@ -383,9 +383,9 @@ def test_request_file_manifest_data(mock_notifications, bll):
     )
     manifest_path.write_text(json.dumps(manifest_data))
 
-    bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
+    bll.add_file_to_request(release_request, FilePath("bar.txt"), user, "group")
 
-    request_file = release_request.filegroups["group"].files[UrlPath("bar.txt")]
+    request_file = release_request.filegroups["group"].files[FilePath("bar.txt")]
     assert request_file.timestamp == 1715000000
     assert request_file.commit == "abcd"
     assert request_file.job_id == "job-bar"
@@ -412,7 +412,7 @@ def test_request_file_manifest_data_content_hash_mismatch(mock_notifications, bl
     manifest.write_text(json.dumps(manifest_data))
 
     with pytest.raises(AssertionError):
-        bll.add_file_to_request(release_request, UrlPath("bar.txt"), user, "group")
+        bll.add_file_to_request(release_request, FilePath("bar.txt"), user, "group")
 
 
 def test_request_file_uploads(mock_notifications, mock_old_api, bll, settings, freezer):
@@ -427,7 +427,7 @@ def test_request_file_uploads(mock_notifications, mock_old_api, bll, settings, f
         ],
     )
 
-    relpath = UrlPath("test/file1.txt")
+    relpath = FilePath("test/file1.txt")
 
     def assert_upload_status(
         release_request, attempt_count, upload_in_progress, can_attempt_upload
@@ -478,18 +478,18 @@ def test_request_upload_in_progress(mock_notifications, mock_old_api, bll):
 
     assert release_request.upload_in_progress()
     # upload file 1, files 2 and 3 still in progress
-    bll.register_file_upload(release_request, UrlPath("test/file1.txt"), checker)
+    bll.register_file_upload(release_request, FilePath("test/file1.txt"), checker)
 
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
     # # upload file 2, file 3 still in progress
-    bll.register_file_upload(release_request, UrlPath("test/file2.txt"), checker)
+    bll.register_file_upload(release_request, FilePath("test/file2.txt"), checker)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
     # upload file 3; all files are uploaded but the request hasn't moved to released yet
-    bll.register_file_upload(release_request, UrlPath("test/file3.txt"), checker)
+    bll.register_file_upload(release_request, FilePath("test/file3.txt"), checker)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.upload_in_progress()
 
@@ -505,16 +505,16 @@ def test_code_repo_container():
 
     assert repo.get_id() == f"{repo.name}@{repo.commit[:7]}"
     assert (
-        repo.get_url(UrlPath("project.yaml"))
+        repo.get_url(FilePath("project.yaml"))
         == f"/code/view/workspace/{repo.commit}/project.yaml"
     )
     assert (
         f"/code/contents/workspace/{repo.commit}/project.yaml?cache_id="
-        in repo.get_contents_url(UrlPath("project.yaml"))
+        in repo.get_contents_url(FilePath("project.yaml"))
     )
 
     plaintext_contents_url = repo.get_contents_url(
-        UrlPath("project.yaml"), plaintext=True
+        FilePath("project.yaml"), plaintext=True
     )
     assert (
         f"/code/contents/workspace/{repo.commit}/project.yaml?cache_id="
@@ -522,7 +522,7 @@ def test_code_repo_container():
     )
     assert "&plaintext=true" in plaintext_contents_url
 
-    assert repo.request_filetype(UrlPath("path")) == RequestFileType.CODE
+    assert repo.request_filetype(FilePath("path")) == RequestFileType.CODE
 
 
 def test_request_status_ownership(bll):
@@ -533,8 +533,8 @@ def test_request_status_ownership(bll):
 
 def test_request_all_files_by_name(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file.txt")
-    supporting_path = UrlPath("path/supporting_file.txt")
+    path = FilePath("path/file.txt")
+    supporting_path = FilePath("path/supporting_file.txt")
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -560,8 +560,8 @@ def test_request_all_files_by_name(bll):
 
 
 def test_request_release_get_request_file_from_urlpath(bll):
-    path = UrlPath("foo/bar.txt")
-    supporting_path = UrlPath("foo/bar1.txt")
+    path = FilePath("foo/bar.txt")
+    supporting_path = FilePath("foo/bar1.txt")
 
     release_request = factories.create_request_at_status(
         "workspace",
@@ -587,8 +587,8 @@ def test_request_release_get_request_file_from_urlpath(bll):
 
 
 def test_request_release_abspath(bll):
-    path = UrlPath("foo/bar.txt")
-    supporting_path = UrlPath("foo/bar1.txt")
+    path = FilePath("foo/bar.txt")
+    supporting_path = FilePath("foo/bar1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
@@ -607,8 +607,8 @@ def test_request_release_abspath(bll):
 
 
 def test_request_release_request_filetype(bll):
-    path = UrlPath("foo/bar.txt")
-    supporting_path = UrlPath("foo/bar1.txt")
+    path = FilePath("foo/bar.txt")
+    supporting_path = FilePath("foo/bar1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.PENDING,
@@ -633,7 +633,7 @@ def setup_empty_release_request():
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -792,8 +792,8 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     assert len(release_request.filegroups) == 1
 
     workspace = bll.get_workspace("workspace", author)
-    path1 = UrlPath("path/file1.txt")
-    path2 = UrlPath("path/file2.txt")
+    path1 = FilePath("path/file1.txt")
+    path2 = FilePath("path/file2.txt")
     factories.write_workspace_file(workspace, path1)
     factories.write_workspace_file(workspace, path2)
     bll.add_file_to_request(release_request, path1, author, "test_group")
@@ -808,8 +808,8 @@ def test_release_request_filegroups_multiple_filegroups(bll):
     }
 
     assert release_request_files == {
-        "test_group": [UrlPath("path/file.txt"), UrlPath("path/file1.txt")],
-        "test_group1": [UrlPath("path/file2.txt")],
+        "test_group": [FilePath("path/file.txt"), FilePath("path/file1.txt")],
+        "test_group1": [FilePath("path/file2.txt")],
     }
 
 
@@ -890,7 +890,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_withdra
 
     # withdraw the file; group still required comment
     bll.withdraw_file_from_request(
-        release_request, UrlPath("test-group/file1.txt"), author
+        release_request, FilePath("test-group/file1.txt"), author
     )
     release_request = factories.refresh_release_request(release_request)
     assert len(release_request.output_files()) == 1
@@ -919,7 +919,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_new_fil
 
     # add a new file
     bll.add_file_to_request(
-        release_request, UrlPath("new-file.txt"), author, "new-group"
+        release_request, FilePath("new-file.txt"), author, "new-group"
     )
     release_request = factories.refresh_release_request(release_request)
     assert len(release_request.output_files()) == 2
@@ -950,7 +950,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_changed
 
     # change group
     bll.change_file_properties_in_request(
-        release_request, UrlPath("file1.txt"), author, "new-group"
+        release_request, FilePath("file1.txt"), author, "new-group"
     )
     release_request = factories.refresh_release_request(release_request)
     assert release_request.filegroups_missing_public_comment() == ["new-group"]
@@ -984,7 +984,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_changed
     # change group
     bll.change_file_properties_in_request(
         release_request,
-        UrlPath("file2.txt"),
+        FilePath("file2.txt"),
         author,
         "test-group",
         RequestFileType.OUTPUT,
@@ -1015,7 +1015,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_updated
 
     factories.write_workspace_file("workspace", "file1.txt", "new-content")
     # change group
-    bll.update_file_in_request(release_request, UrlPath("file1.txt"), author)
+    bll.update_file_in_request(release_request, FilePath("file1.txt"), author)
     release_request = factories.refresh_release_request(release_request)
     assert release_request.filegroups_missing_public_comment() == ["test-group"]
 

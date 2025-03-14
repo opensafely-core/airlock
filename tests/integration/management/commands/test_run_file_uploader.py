@@ -6,7 +6,7 @@ from django.utils.dateparse import parse_datetime
 
 from airlock.enums import AuditEventType, RequestStatus
 from airlock.management.commands.run_file_uploader import do_upload_task
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from old_api import FileUploadError
 from tests import factories
 from tests.conftest import get_trace
@@ -62,7 +62,7 @@ def test_do_upload_task(upload_files_stubber, bll, freezer):
         upload_files_stubber, bll, response_statuses=[201]
     )
 
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     request_file = release_request.get_request_file_from_output_path(relpath)
     assert not request_file.uploaded
     assert request_file.uploaded_at is None
@@ -80,7 +80,7 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
         upload_files_stubber, bll, response_statuses=[201]
     )
 
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     # modify workspace file content
     factories.write_workspace_file(
         release_request.workspace, relpath, contents="changed"
@@ -104,7 +104,7 @@ def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     release_request, workspace = setup_release_request(
         upload_files_stubber, bll, response_statuses=[403]
     )
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     request_file = release_request.get_request_file_from_output_path(relpath)
 
     with pytest.raises(FileUploadError):
@@ -121,7 +121,7 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
         request_file = release_request.get_request_file_from_output_path(
-            UrlPath(filename)
+            FilePath(filename)
         )
         assert not request_file.uploaded
         assert request_file.uploaded_at is None
@@ -135,7 +135,7 @@ def test_run_file_uploader_command(upload_files_stubber, bll):
     assert release_request.status == RequestStatus.RELEASED
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert request_file.uploaded
         assert request_file.uploaded_at is not None
         # Running via the command updates retry attempt before the upload is tried
@@ -176,7 +176,7 @@ def test_run_file_uploader_command_all_files_uploaded(
     checker = factories.get_default_output_checkers()[0]
     # make all files uploaded
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
-        bll.register_file_upload(release_request, UrlPath(filename), checker)
+        bll.register_file_upload(release_request, FilePath(filename), checker)
 
     freezer.move_to("2022-01-02T12:34:56")
     # Mock run_fn so we only loop once
@@ -187,7 +187,7 @@ def test_run_file_uploader_command_all_files_uploaded(
     assert release_request.status == RequestStatus.RELEASED
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert request_file.uploaded
         assert request_file.uploaded_at == parse_datetime("2022-01-01T12:34:56Z")
         # All files were already uploaded, no attempts made
@@ -206,7 +206,7 @@ def test_run_file_uploader_command_api_error(upload_files_stubber, bll, settings
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
         request_file = release_request.get_request_file_from_output_path(
-            UrlPath(filename)
+            FilePath(filename)
         )
         assert not request_file.uploaded
         assert request_file.uploaded_at is None
@@ -220,7 +220,7 @@ def test_run_file_uploader_command_api_error(upload_files_stubber, bll, settings
 
     # all files are successfully uploaded
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert request_file.uploaded
         assert request_file.uploaded_at is not None
         # Running via the command updates retry attempt before the upload is tried
@@ -244,12 +244,12 @@ def test_run_file_uploader_with_retry_delay(
     )
 
     # register a file upload attempt for test/file.txt at 12:00:00
-    bll.register_file_upload_attempt(release_request, UrlPath("test/file.txt"))
+    bll.register_file_upload_attempt(release_request, FilePath("test/file.txt"))
 
     # move to > UPLOAD_RETRY_DELAY secs later
     freezer.tick(delta=31)
     # register a file upload attempt for test/file1.txt at 12:00:31
-    bll.register_file_upload_attempt(release_request, UrlPath("test/file1.txt"))
+    bll.register_file_upload_attempt(release_request, FilePath("test/file1.txt"))
 
     # mock the run function so it will loop once only
     run_fn = Mock(side_effect=[True, False])
@@ -260,11 +260,11 @@ def test_run_file_uploader_with_retry_delay(
     # file.txt (attempted > 30s ago) and file2.txt (not attempted) are uploaded,
     # file1.txt was attempted too recently to retry
     for filename in ["test/file.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert request_file.uploaded
         assert request_file.uploaded_at is not None
 
-    request_file = refresh_request_file(release_request, UrlPath("test/file1.txt"))
+    request_file = refresh_request_file(release_request, FilePath("test/file1.txt"))
     assert not request_file.uploaded
     assert request_file.uploaded_at is None
 
@@ -284,7 +284,7 @@ def test_run_file_uploader_command_unexpected_error(
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
         request_file = release_request.get_request_file_from_output_path(
-            UrlPath(filename)
+            FilePath(filename)
         )
         assert not request_file.uploaded
         assert request_file.uploaded_at is None
@@ -303,7 +303,7 @@ def test_run_file_uploader_command_unexpected_error(
 
     # no files are successfully uploaded, all have been attempted twice
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert not request_file.uploaded
         request_file.upload_attempts == 2
 
@@ -346,7 +346,7 @@ def test_run_file_uploader_command_multiple_attempts(
 
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
         request_file = release_request.get_request_file_from_output_path(
-            UrlPath(filename)
+            FilePath(filename)
         )
         assert not request_file.uploaded
         assert request_file.uploaded_at is None
@@ -361,11 +361,11 @@ def test_run_file_uploader_command_multiple_attempts(
 
     # successful uploads
     for filename in ["test/file1.txt", "test/file2.txt"]:
-        request_file = refresh_request_file(release_request, UrlPath(filename))
+        request_file = refresh_request_file(release_request, FilePath(filename))
         assert request_file.uploaded
         assert request_file.uploaded_at is not None
         assert request_file.upload_attempts == 1
 
-    bad_file = refresh_request_file(release_request, UrlPath("test/file.txt"))
+    bad_file = refresh_request_file(release_request, FilePath("test/file.txt"))
     assert bad_file.upload_attempts == 4
     assert not bad_file.uploaded

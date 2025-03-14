@@ -2,7 +2,7 @@ import pytest
 from playwright.sync_api import expect
 
 from airlock.enums import RequestFileType, RequestStatus
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 
 from .conftest import login_as_user, wait_for_htmx
@@ -124,7 +124,7 @@ def test_content_buttons(
             status=request_status,
         )
 
-    page.goto(live_server.url + workspace.get_url(UrlPath("subdir")))
+    page.goto(live_server.url + workspace.get_url(FilePath("subdir")))
 
     # On the directory page, the update button is only visible if the
     # buttons are also enabled
@@ -140,7 +140,7 @@ def test_content_buttons(
         tooltip=tooltip,
     )
 
-    page.goto(live_server.url + workspace.get_url(UrlPath("subdir/file.txt")))
+    page.goto(live_server.url + workspace.get_url(FilePath("subdir/file.txt")))
     assert_button_status(
         page,
         add_is_visible=is_visible,
@@ -297,14 +297,14 @@ def test_file_content_buttons(
         )
         if filetype == RequestFileType.WITHDRAWN:
             bll.withdraw_file_from_request(
-                release_request, UrlPath(f"group/{filepath}"), user
+                release_request, FilePath(f"group/{filepath}"), user
             )
 
     if updated:
         # update the workspace file content
         factories.write_workspace_file("workspace", path=filepath, contents="changed")
 
-    page.goto(live_server.url + workspace.get_url(UrlPath(filepath)))
+    page.goto(live_server.url + workspace.get_url(FilePath(filepath)))
 
     add_is_visible = not updated
     update_is_visible = updated
@@ -370,7 +370,7 @@ def test_csv_filtering(live_server, page, context, bll):
     )
 
     page.goto(
-        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+        live_server.url + workspace.get_contents_url(FilePath("outputs/file1.csv"))
     )
 
     # Table displays all data
@@ -424,7 +424,7 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     )
 
     # goto folder view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
     # view file via treeview click
     page.locator('.tree a[href*="file1.csv"]').click()
     # ensure the file has loaded
@@ -467,7 +467,7 @@ def test_checkbox_caching(live_server, page, context):
         },
     )
     # goto page with files
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
 
     file_1_selector = f"input[type=checkbox][value='{file_1}']"
     file_2_selector = f"input[type=checkbox][value='{file_2}']"
@@ -480,8 +480,8 @@ def test_checkbox_caching(live_server, page, context):
     page.check(file_1_selector)
 
     # go to a different page and then come back
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs/file1.csv")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
 
     # the first checkbox state has persisted
     expect(page.locator(file_1_selector)).to_be_checked()
@@ -516,7 +516,7 @@ def test_checkbox_caching_same_file_name_but_different_workspace(
     )
 
     # goto page with files in workspace 1
-    page.goto(live_server.url + workspace_1.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace_1.get_url(FilePath("outputs")))
 
     file_1_selector = f"input[type=checkbox][value='{file_1}']"
 
@@ -527,13 +527,13 @@ def test_checkbox_caching_same_file_name_but_different_workspace(
     page.check(file_1_selector)
 
     # go to different workspace
-    page.goto(live_server.url + workspace_2.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace_2.get_url(FilePath("outputs")))
 
     # file with same name will not be checked
     expect(page.locator(file_1_selector)).not_to_be_checked()
 
     # go back to original workspace
-    page.goto(live_server.url + workspace_1.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace_1.get_url(FilePath("outputs")))
 
     # original file should still be checked
     expect(page.locator(file_1_selector)).to_be_checked()
@@ -567,7 +567,7 @@ def test_checkbox_caching_appears_after_back_button(live_server, page, context):
     file_2_selector = f"input[type=checkbox][value='{file_2}']"
 
     # goto folder view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
     # checkboxes start unchecked
     expect(page.locator(file_1_selector)).not_to_be_checked()
     expect(page.locator(file_2_selector)).not_to_be_checked()
@@ -612,7 +612,7 @@ def test_checkbox_caching_works_following_back_button(live_server, page, context
     file_2_selector = f"input[type=checkbox][value='{file_2}']"
 
     # goto folder view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
     # view file via treeview click
     page.locator('.tree a[href*="file1.csv"]').click()
     # ensure the file has loaded
@@ -653,7 +653,7 @@ def test_select_all(live_server, page, context):
     )
 
     # goto page with files
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
 
     # confirm selectall is unchecked
     expect(page.locator("input.selectall")).not_to_be_checked()

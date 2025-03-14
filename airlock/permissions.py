@@ -11,7 +11,7 @@ from airlock.enums import (
     RequestStatusOwner,
     WorkspaceFileStatus,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from users.models import User
 
 
@@ -177,7 +177,7 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
@@ -185,7 +185,7 @@ def check_user_can_add_file_to_request(
 
 
 def user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_add_file_to_request(user, request, workspace, relpath)
@@ -198,7 +198,7 @@ def check_user_can_replace_file_in_request(
     user: User,
     request: "ReleaseRequest",
     workspace: "Workspace",
-    relpath: UrlPath,
+    relpath: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
@@ -211,7 +211,7 @@ def user_can_replace_file_in_request(
     user: User,
     request: "ReleaseRequest",
     workspace: "Workspace",
-    relpath: UrlPath,
+    relpath: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):  # pragma: no cover; not currently used
@@ -225,7 +225,7 @@ def user_can_replace_file_in_request(
 
 
 def check_user_can_update_file_on_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
@@ -233,7 +233,7 @@ def check_user_can_update_file_on_request(
 
 
 def user_can_update_file_on_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_update_file_on_request(user, request, workspace, relpath)
@@ -243,7 +243,7 @@ def user_can_update_file_on_request(
 
 
 def check_user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     assert workspace.name == request.workspace
 
@@ -263,7 +263,7 @@ def check_user_can_withdraw_file_from_request(
 
 
 def user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     try:
         check_user_can_withdraw_file_from_request(user, request, workspace, relpath)
@@ -273,7 +273,7 @@ def user_can_withdraw_file_from_request(
 
 
 def user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     try:
         check_user_can_change_request_file_properties(user, request, workspace, relpath)
@@ -283,7 +283,7 @@ def user_can_change_request_file_properties(
 
 
 def check_user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
 ):
     assert workspace.name == request.workspace
 
@@ -318,7 +318,7 @@ def user_can_submit_request(user: User, request: "ReleaseRequest"):  # pragma: n
     return True
 
 
-def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
+def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: FilePath):
     try:
         check_user_can_review_request(user, request)
     except exceptions.RequestPermissionDenied as exc:
@@ -326,7 +326,7 @@ def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: U
     policies.check_can_review_file_on_request(request, relpath)
 
 
-def user_can_review_file(user: User, request: "ReleaseRequest", relpath: UrlPath):
+def user_can_review_file(user: User, request: "ReleaseRequest", relpath: FilePath):
     try:
         check_user_can_review_file(user, request, relpath)
     except exceptions.RequestReviewDenied:
@@ -348,13 +348,13 @@ def user_can_reset_review(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_reset_file_review(
-    user: User, request: "ReleaseRequest", relpath: UrlPath
+    user: User, request: "ReleaseRequest", relpath: FilePath
 ):
     check_user_can_review_file(user, request, relpath)
     check_user_can_reset_review(user, request)
 
 
-def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: UrlPath):
+def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: FilePath):
     try:
         check_user_can_reset_file_review(user, request, relpath)
     except exceptions.RequestReviewDenied:

@@ -5,7 +5,7 @@ from playwright.sync_api import expect
 
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, RequestStatus
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 
 from .conftest import login_as_user
@@ -114,7 +114,7 @@ def test_screenshot_from_creation_to_release(
     take_screenshot(page, "workspace_view.png")
 
     # Directory view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
     # let the data table load
     expect(page.locator(".datatable-table")).to_be_visible()
     take_screenshot(page, "workspace_directory_view.png")
@@ -123,7 +123,7 @@ def test_screenshot_from_creation_to_release(
     take_screenshot(content, "workspace_directory_content.png")
 
     # File view page
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs/file1.csv")))
     # wait briefly (100ms) for the table to load before screenshotting
     page.wait_for_timeout(100)
     take_screenshot(page, "workspace_file_view.png")
@@ -182,7 +182,7 @@ def test_screenshot_from_creation_to_release(
     page.goto(live_server.url + release_request.get_url())
     take_screenshot(page, "request_overview_incomplete_filegroup.png")
 
-    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
     # screenshot the tree
     take_screenshot(page.locator("#tree"), "request_tree.png")
 
@@ -211,7 +211,7 @@ def test_screenshot_from_creation_to_release(
         # Approve file1.csv
         page.goto(
             live_server.url
-            + release_request.get_url(UrlPath("my-group/outputs/file1.csv"))
+            + release_request.get_url(FilePath("my-group/outputs/file1.csv"))
         )
 
         if screenshot:
@@ -246,14 +246,14 @@ def test_screenshot_from_creation_to_release(
         # Request changes on file2.csv
         page.goto(
             live_server.url
-            + release_request.get_url(UrlPath("my-group/outputs/file2.csv"))
+            + release_request.get_url(FilePath("my-group/outputs/file2.csv"))
         )
 
         page.locator("#file-request-changes-button").click()
         # Request changes on summary.txt
         page.goto(
             live_server.url
-            + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
+            + release_request.get_url(FilePath("my-group/outputs/summary.txt"))
         )
         page.locator("#file-request-changes-button").click()
 
@@ -264,7 +264,7 @@ def test_screenshot_from_creation_to_release(
             take_screenshot(page, "comments_required_before_submitting_review.png")
 
         # Add private comment
-        page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+        page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
         comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
         comment_input = page.locator("#id_comment")
         comment_input.fill(
@@ -299,7 +299,7 @@ def test_screenshot_from_creation_to_release(
     page.goto(live_server.url + release_request.get_url())
     take_screenshot(page, "request_overview.png")
     # File group
-    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
     take_screenshot(page, "file_group.png")
 
     # request changes and reset whole group
@@ -322,7 +322,7 @@ def test_screenshot_from_creation_to_release(
     take_screenshot(page, "public_comments_required_before_returning_request.png")
 
     # Add public comment
-    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
     comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
     comment_input = page.locator("#id_comment")
     public_visibility_radio = page.locator("input[name=visibility][value=PUBLIC]")
@@ -345,12 +345,12 @@ def test_screenshot_from_creation_to_release(
     screenshot_element_with_padding(page, page.locator("#tree"), "returned_tree.png")
 
     # View comments
-    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
     take_screenshot(comments, "returned_request_comments.png")
 
     page.goto(
         live_server.url
-        + release_request.get_url(UrlPath("my-group/outputs/summary.txt"))
+        + release_request.get_url(FilePath("my-group/outputs/summary.txt"))
     )
     # Change file properties modal
     page.locator("#update-file-modal-button").click()
@@ -375,7 +375,7 @@ def test_screenshot_from_creation_to_release(
         contents="Category,Result\nA,1\nB,2\nC,3\nD,4",
     )
     # multiselect view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs")))
     take_screenshot(page, "multiselect_update.png")
     # screenshot the tree icon and the page
     take_screenshot(
@@ -383,7 +383,7 @@ def test_screenshot_from_creation_to_release(
         "changed_tree_file.png",
     )
     # file view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file2.csv")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs/file2.csv")))
     take_screenshot(page, "file_update.png")
     page.locator("button[value=update_files]").click()
     take_screenshot(page, "file_update_modal.png")
@@ -391,7 +391,7 @@ def test_screenshot_from_creation_to_release(
     page.get_by_role("form").locator("#update-file-button").click()
 
     # Add comment to group
-    page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("my-group")))
     comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
     comment_input = page.locator("#id_comment")
     comment_input.fill("File 2 has been updated")
@@ -409,7 +409,7 @@ def test_screenshot_from_creation_to_release(
         # Approve file2.csv
         page.goto(
             live_server.url
-            + release_request.get_url(UrlPath("my-group/outputs/file2.csv"))
+            + release_request.get_url(FilePath("my-group/outputs/file2.csv"))
         )
         page.locator("#file-approve-button").click()
         # Submit independent review
@@ -473,7 +473,7 @@ def test_screenshot_comments(page, context, live_server):
     login_as_user(live_server, context, user_dicts["author"])
 
     # Go to group
-    page.goto(live_server.url + release_request.get_url(UrlPath("group")))
+    page.goto(live_server.url + release_request.get_url(FilePath("group")))
 
     # Locators for comment elements
     comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
@@ -749,7 +749,7 @@ def test_screenshot_copiloted_workspace(page, live_server, context):
     take_screenshot(page, "copiloted_workspaces_index.png")
 
     # workspace file view
-    page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
+    page.goto(live_server.url + workspace.get_url(FilePath("outputs/file1.csv")))
     page.locator("#add-file-modal-button").hover()
     expect(page.get_by_text("You do not have permission to add files")).to_be_visible()
     take_screenshot(

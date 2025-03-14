@@ -22,7 +22,7 @@ from airlock.enums import (
     RequestStatus,
     WorkspaceFileStatus,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.utils import is_valid_file_type
 
 
@@ -50,7 +50,7 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
-def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+def can_add_file_to_request(workspace: "Workspace", relpath: FilePath):
     try:
         check_can_add_file_to_request(workspace, relpath)
     except exceptions.RequestPermissionDenied:
@@ -58,7 +58,7 @@ def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     return True
 
 
-def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+def check_can_add_file_to_request(workspace: "Workspace", relpath: FilePath):
     """
     This file can be added to the request.
     We expect that check_can_edit_request has already been called.
@@ -86,7 +86,7 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
 
 def can_replace_file_in_request(
     workspace: "Workspace",
-    relpath: UrlPath,
+    relpath: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
@@ -99,7 +99,7 @@ def can_replace_file_in_request(
 
 def check_can_replace_file_in_request(
     workspace: "Workspace",
-    relpath: UrlPath,
+    relpath: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
@@ -147,7 +147,7 @@ def check_can_replace_file_in_request(
             )
 
 
-def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
+def can_update_file_on_request(workspace: "Workspace", relpath: FilePath):
     try:
         check_can_update_file_on_request(workspace, relpath)
     except exceptions.RequestPermissionDenied:
@@ -155,7 +155,7 @@ def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
     return True
 
 
-def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
+def check_can_update_file_on_request(workspace: "Workspace", relpath: FilePath):
     """
     This file can be updated on the request.
     We expect that check_can_edit_request has already been called.
@@ -183,7 +183,7 @@ def check_can_review_request(request: "ReleaseRequest"):
         )
 
 
-def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath):
+def check_can_review_file_on_request(request: "ReleaseRequest", relpath: FilePath):
     """
     This file is reviewable; i.e. it is on the request, and it is an output file.
     """

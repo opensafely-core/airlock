@@ -21,7 +21,7 @@ from airlock.enums import (
 from airlock.models import (
     AuditEvent,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.visibility import RequestFileStatus
 from tests import factories
 
@@ -54,7 +54,7 @@ def setup_empty_release_request():
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -185,7 +185,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
 
     bll.withdraw_file_from_request(
         release_request,
-        UrlPath("group/test/withdrawn_file.txt"),
+        FilePath("group/test/withdrawn_file.txt"),
         author,
     )
     release_request = factories.refresh_release_request(release_request)
@@ -198,7 +198,7 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     bll.set_status(release_request, RequestStatus.APPROVED, checkers[0])
     release_request = factories.refresh_release_request(release_request)
 
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     abspath = release_request.abspath("group" / relpath)
 
     freezer.move_to("2022-01-01T12:34:56")
@@ -313,9 +313,9 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
         ],
     )
 
-    uploaded_relpath = UrlPath("test/file.txt")
-    not_uploaded_relpath = UrlPath("test/file1.txt")
-    not_uploaded_relpath1 = UrlPath("test/file2.txt")
+    uploaded_relpath = FilePath("test/file.txt")
+    not_uploaded_relpath = FilePath("test/file1.txt")
+    not_uploaded_relpath1 = FilePath("test/file2.txt")
 
     # mock the situation where a request is still in APPROVED, but one file has
     # been released and uploaded, one file has been released but not uploaded yet,
@@ -411,7 +411,7 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
         ],
     )
 
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     abspath = release_request.abspath("group" / relpath)
     freezer.move_to("2022-01-01T12:34:56")
 
@@ -488,7 +488,7 @@ def test_provider_register_file_upload_attempt(mock_old_api, bll, freezer):
     )
 
     freezer.move_to("2022-01-01T12:34:56")
-    relpath = UrlPath("test/file.txt")
+    relpath = FilePath("test/file.txt")
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.get_request_file_from_output_path(relpath)
     assert not request_file.uploaded
@@ -1363,13 +1363,13 @@ def test_resubmit_request(bll, mock_notifications):
         )
         # approved file review is still approved
         approved_file = release_request.get_request_file_from_output_path(
-            UrlPath("file.txt")
+            FilePath("file.txt")
         )
         assert approved_file.get_file_vote_for_user(user) == RequestFileVote.APPROVED
 
         # changes_requested file review is now undecided
         changes_requested_file = release_request.get_request_file_from_output_path(
-            UrlPath("file1.txt")
+            FilePath("file1.txt")
         )
         assert (
             changes_requested_file.get_file_vote_for_user(user)
@@ -1388,7 +1388,7 @@ def test_add_file_to_request_not_author(bll):
         username="other", workspaces=["workspace"], output_checker=True
     )
 
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1428,7 +1428,7 @@ def test_add_file_to_request_not_author(bll):
     ],
 )
 def test_add_file_to_request_no_permission(bll, workspaces, exception):
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1451,7 +1451,7 @@ def test_add_file_to_request_invalid_file_type(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    path = UrlPath("path/file.foo")
+    path = FilePath("path/file.foo")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1482,7 +1482,7 @@ def test_add_file_to_request_states(status, success, bll, mock_old_api):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
 
@@ -1516,7 +1516,7 @@ def test_add_file_to_request_states(status, success, bll, mock_old_api):
 
 def test_add_file_to_request_default_filetype(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1538,7 +1538,7 @@ def test_add_file_to_request_default_filetype(bll):
 )
 def test_add_file_to_request_with_filetype(bll, filetype, success):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, path)
     release_request = factories.create_release_request(
@@ -1548,7 +1548,7 @@ def test_add_file_to_request_with_filetype(bll, filetype, success):
 
     if success:
         bll.add_file_to_request(release_request, path, author, filetype=filetype)
-        request_file = release_request.filegroups["default"].files[UrlPath(path)]
+        request_file = release_request.filegroups["default"].files[FilePath(path)]
         assert request_file.filetype == filetype
     else:
         with pytest.raises(AttributeError):
@@ -1594,7 +1594,7 @@ def test_update_file_in_request_invalid_file_type(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    relpath = UrlPath("path/file.foo")
+    relpath = FilePath("path/file.foo")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
@@ -1616,7 +1616,7 @@ def test_update_file_in_request_not_updated(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    relpath = UrlPath("path/file.txt")
+    relpath = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
     release_request = factories.create_request_at_status(
@@ -1658,7 +1658,7 @@ def test_update_file_to_request_states(
     )
     checkers = factories.get_default_output_checkers()
     workspace = factories.create_workspace("workspace")
-    path = UrlPath("path/file.txt")
+    path = FilePath("path/file.txt")
 
     if status == RequestStatus.WITHDRAWN:
         withdrawn_after = RequestStatus.RETURNED
@@ -1767,7 +1767,7 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    relpath = UrlPath("path/file.txt")
+    relpath = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
     release_request = factories.create_request_at_status(
@@ -1796,7 +1796,7 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    relpath = UrlPath("path/file.txt")
+    relpath = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
     release_request = factories.create_request_at_status(
@@ -1821,8 +1821,8 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
 
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path1 = UrlPath("path/file1.txt")
-    path2 = UrlPath("path/file2.txt")
+    path1 = FilePath("path/file1.txt")
+    path2 = FilePath("path/file2.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1867,7 +1867,7 @@ def test_withdraw_file_from_request_pending(bll):
 
 def test_withdraw_file_from_request_returned(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path1 = UrlPath("path/file1.txt")
+    path1 = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1907,7 +1907,7 @@ def test_withdraw_file_from_request_returned(bll):
 
 def test_readd_withdrawn_file_to_request_returned(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -1938,7 +1938,7 @@ def test_readd_withdrawn_file_to_request_returned(bll):
 
 def test_readd_withdrawn_file_to_request_returned_new_group(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2039,7 +2039,7 @@ def test_change_file_properties_in_request(
     status, approved, new_group, current_filetype, new_filetype, bll
 ):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2073,7 +2073,7 @@ def test_change_file_properties_in_request(
         )
 
     urlpath = request_file.group / path
-    assert urlpath == UrlPath("group/path/file1.txt")
+    assert urlpath == FilePath("group/path/file1.txt")
 
     bll.change_file_properties_in_request(
         release_request,
@@ -2096,7 +2096,7 @@ def test_change_file_properties_in_request(
 
 def test_change_file_properties_in_request_no_change(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2140,7 +2140,7 @@ def test_change_file_properties_in_request_no_change(bll):
 
 def test_change_file_properties_withdrawn_file(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2158,7 +2158,7 @@ def test_change_file_properties_withdrawn_file(bll):
     )
     bll.withdraw_file_from_request(
         release_request,
-        UrlPath("group/path/file1.txt"),
+        FilePath("group/path/file1.txt"),
         author,
     )
     release_request = factories.refresh_release_request(release_request)
@@ -2178,7 +2178,7 @@ def test_change_file_properties_withdrawn_file(bll):
 
 def test_change_file_properties_in_request_not_allowed_request_status(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -2239,7 +2239,7 @@ def test_withdraw_file_from_request_not_editable_state(bll, mock_old_api, status
 
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.withdraw_file_from_request(
-            release_request, UrlPath("group/foo.txt"), author
+            release_request, FilePath("group/foo.txt"), author
         )
 
 
@@ -2259,7 +2259,7 @@ def test_withdraw_file_from_request_bad_file(bll, status):
 
     with pytest.raises(exceptions.FileNotFound):
         bll.withdraw_file_from_request(
-            release_request, UrlPath("bad/path"), user=author
+            release_request, FilePath("bad/path"), user=author
         )
 
 
@@ -2281,7 +2281,7 @@ def test_withdraw_file_from_request_not_author(bll, status):
 
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.withdraw_file_from_request(
-            release_request, UrlPath("group/foo.txt"), user=other
+            release_request, FilePath("group/foo.txt"), user=other
         )
 
 
@@ -2303,7 +2303,7 @@ def test_withdraw_file_from_request_already_withdrawn(bll):
         exceptions.RequestPermissionDenied, match="already been withdrawn"
     ):
         bll.withdraw_file_from_request(
-            release_request, UrlPath("group/withdrawn.txt"), user=author
+            release_request, FilePath("group/withdrawn.txt"), user=author
         )
 
 
@@ -2382,7 +2382,7 @@ def test_approve_file_not_checker(bll):
 
 
 def test_approve_file_not_part_of_request(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2390,7 +2390,7 @@ def test_approve_file_not_part_of_request(bll):
     )
     checker = factories.create_airlock_user(output_checker=True)
     request_file = release_request.get_request_file_from_output_path(path)
-    bad_path = UrlPath("path/file2.txt")
+    bad_path = FilePath("path/file2.txt")
     bad_request_file = factories.create_request_file_bad_path(request_file, bad_path)
 
     with pytest.raises(exceptions.RequestReviewDenied):
@@ -2405,7 +2405,7 @@ def test_approve_file_not_part_of_request(bll):
 
 
 def test_approve_supporting_file(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2429,7 +2429,7 @@ def test_approve_supporting_file(bll):
 
 
 def test_approve_file(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2467,7 +2467,7 @@ def test_approve_file(bll):
 
 
 def test_approve_file_requires_two_plus_submitted_reviews(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2519,7 +2519,7 @@ def test_approve_file_requires_two_plus_submitted_reviews(bll):
 
 
 def test_request_changes_to_file(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2557,7 +2557,7 @@ def test_request_changes_to_file(bll):
 
 
 def test_approve_then_request_changes_to_file(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2596,7 +2596,7 @@ def test_approve_then_request_changes_to_file(bll):
     "review", [RequestFileVote.APPROVED, RequestFileVote.CHANGES_REQUESTED]
 )
 def test_review_then_reset_review_file(bll, review):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2637,7 +2637,7 @@ def test_review_then_reset_review_file(bll, review):
 
 
 def test_reset_review_file_no_reviews(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2664,7 +2664,7 @@ def test_reset_review_file_no_reviews(bll):
 
 
 def test_reset_review_file_after_review_submitted(bll):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2706,7 +2706,7 @@ def test_reset_review_file_after_review_submitted(bll):
     ],
 )
 def test_request_file_status_decision(bll, votes, decision):
-    path = UrlPath("path/file1.txt")
+    path = FilePath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
         status=RequestStatus.SUBMITTED,
@@ -2846,7 +2846,7 @@ def test_review_request(bll):
 
     # approved second file
     factories.review_file(
-        release_request, UrlPath("test1.txt"), RequestFileVote.APPROVED, checker
+        release_request, FilePath("test1.txt"), RequestFileVote.APPROVED, checker
     )
     release_request = factories.refresh_release_request(release_request)
 

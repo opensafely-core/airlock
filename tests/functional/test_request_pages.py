@@ -4,7 +4,7 @@ import pytest
 from playwright.sync_api import expect
 
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 from tests.functional.conftest import login_as_user
 
@@ -712,7 +712,7 @@ def test_resubmit_button_visibility(
     expect(submit_modal).not_to_be_visible()
 
     # withdraw the output file
-    bll.withdraw_file_from_request(release_request, UrlPath("group/file.txt"), author)
+    bll.withdraw_file_from_request(release_request, FilePath("group/file.txt"), author)
     page.reload()
     # resubmit button is visible but disabled
     expect(resubmit_btn).to_be_visible()
@@ -967,7 +967,7 @@ def test_request_uploaded_files_status(
         ),
     )
     for path in uploaded_files:
-        bll.register_file_upload(release_request, UrlPath(path), output_checker)
+        bll.register_file_upload(release_request, FilePath(path), output_checker)
 
     release_request = factories.refresh_release_request(release_request)
     page.goto(live_server.url + release_request.get_url())
@@ -1036,14 +1036,14 @@ def test_request_uploaded_files_counts(
     assert_still_uploading(0)
 
     # update the uploaded file count in the background, without reloading the page
-    bll.register_file_upload(release_request, UrlPath("file1.txt"), output_checker)
+    bll.register_file_upload(release_request, FilePath("file1.txt"), output_checker)
     assert_still_uploading(1)
 
-    bll.register_file_upload(release_request, UrlPath("file2.txt"), output_checker)
+    bll.register_file_upload(release_request, FilePath("file2.txt"), output_checker)
     assert_still_uploading(2)
 
     # complete the upload
-    bll.register_file_upload(release_request, UrlPath("file3.txt"), output_checker)
+    bll.register_file_upload(release_request, FilePath("file3.txt"), output_checker)
 
     # test for the race condition where the upload has been completed but the
     # status hasn't yet been updated; in this case we want to continue to poll
