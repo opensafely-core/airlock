@@ -29,14 +29,20 @@ class GroupPath:
 
     @classmethod
     def from_str(cls, path: str):
-        path = PurePosixPath(path)
-        return cls.from_path(path)
+        url_path = Path(path)
+        return cls.from_path(url_path)
 
     @classmethod
     def from_path(cls, path: Path):
         group = path.parts[0]
         file_path = FilePath(*path.parts[1:])
         return cls(group=group, file_path=file_path)
+
+    def url_path(self):
+        return self.group / self.file_path
+
+    def __str__(self):
+        return f"{self.url_path}"
 
 
 @dataclass
