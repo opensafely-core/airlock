@@ -817,13 +817,13 @@ class ReleaseRequest:
 
         return request_file
 
-    def get_request_file_from_output_path(self, relpath: FilePath | str):
+    def get_request_file_from_file_path(self, file_path: FilePath | str):
         """Get the request file from the output path, which does not include the group"""
-        relpath = FilePath(relpath)
-        if relpath in self.all_files_by_name:
-            return self.all_files_by_name[relpath]
+        file_path = FilePath(file_path)
+        if file_path not in self.all_files_by_name:
+            raise exceptions.FileNotFound(file_path)
 
-        raise exceptions.FileNotFound(relpath)
+        return self.all_files_by_name[file_path]
 
     def get_turn_phase(self) -> ReviewTurnPhase:
         if self.status in [RequestStatus.PENDING, RequestStatus.RETURNED]:
