@@ -23,6 +23,23 @@ ROOT_PATH = FilePath()  # empty path
 
 
 @dataclass
+class GroupPath:
+    group: str
+    file_path: FilePath
+
+    @classmethod
+    def from_str(cls, path: str):
+        path = PurePosixPath(path)
+        return cls.from_path(path)
+
+    @classmethod
+    def from_path(cls, path: Path):
+        group = path.parts[0]
+        file_path = FilePath(*path.parts[1:])
+        return cls(group=group, file_path=file_path)
+
+
+@dataclass
 class FileMetadata:
     """Represents the base properties of file metadata.
 
