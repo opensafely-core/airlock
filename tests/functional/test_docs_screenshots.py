@@ -1,6 +1,8 @@
 import re
+from unittest.mock import Mock
 
 import pytest
+from django.core.management import call_command
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
@@ -73,7 +75,7 @@ def move_mouse_from(page):
 
 
 def test_screenshot_from_creation_to_release(
-    page, live_server, context, release_files_stubber
+    page, live_server, context, upload_files_stubber
 ):
     author, user_dicts = get_user_data()
 
@@ -422,7 +424,7 @@ def test_screenshot_from_creation_to_release(
     # release
     # Mock the responses from job-server
     release_request = factories.refresh_release_request(release_request)
-    release_files_stubber(release_request)
+    upload_files_stubber(release_request)
     page.goto(live_server.url + release_request.get_url())
 
     # Move the mouse off the button so we don't screenshot the tooltip
@@ -438,20 +440,22 @@ def test_screenshot_from_creation_to_release(
     # Move the mouse off the button so we don't screenshot the tooltip
     move_mouse_from(page)
 
-    # upload one file
-    checker_user = factories.create_airlock_user(**user_dicts["checker1"])
-    all_output_relpaths = list(release_request.output_files())
-    bll.register_file_upload_attempt(release_request, all_output_relpaths[0])
-    bll.register_file_upload(release_request, all_output_relpaths[0], checker_user)
-    # wait for the upload count to update
-    expect(page.locator("#uploaded-files-count")).to_contain_text("1")
+    file_count_locator = page.locator("#uploaded-files-count")
+
+    # screenshot this page with the spinner
+    expect(file_count_locator).to_contain_text("0")
+    expect(file_count_locator.locator(".animate-spin")).to_be_visible()
+
     take_screenshot(page, "request_approved_upload_in_progress.png")
 
-    # Progress the release request to all uploads complete and released
-    release_request = factories.refresh_release_request(release_request)
-    for relpath in all_output_relpaths[1:]:
-        bll.register_file_upload(release_request, relpath, checker_user)
-    bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
+    # upload by running the file uploader for one iteration
+    call_command("run_file_uploader", run_fn=Mock(side_effect=[True, False]))
+
+    # wait for the upload count to update. All files are now uploaded
+    output_file_count = len(release_request.output_files())
+    expect(page.locator("#uploaded-files-count")).to_contain_text(
+        str(output_file_count)
+    )
 
     # Make sure the htmx polling has refreshed the page now it's released
     expect(page.get_by_role("heading").get_by_text("Request for")).to_contain_text(
