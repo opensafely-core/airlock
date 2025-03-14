@@ -163,8 +163,8 @@ def test_add_file_to_request_bad_state():
     workspace = factories.create_workspace("workspace")
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     request_file = factories.request_file()
-    relpath = FilePath(request_file.path)
-    factories.write_workspace_file(workspace, relpath, contents="1234")
+    file_path = FilePath(request_file.path)
+    factories.write_workspace_file(workspace, file_path, contents="1234")
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -172,15 +172,15 @@ def test_add_file_to_request_bad_state():
         files=[request_file],
     )
 
-    src = workspace.abspath(relpath)
+    src = workspace.abspath(file_path)
     file_id = store_file(release_request, src)
-    manifest = workspace.get_manifest_for_file(relpath)
+    manifest = workspace.get_manifest_for_file(file_path)
 
     with pytest.raises(exceptions.APIException):
         dal.add_file_to_request(
             request_id=release_request.id,
             group_name="group",
-            relpath=relpath,
+            file_path=file_path,
             file_id=file_id,
             filetype=RequestFileType.OUTPUT,
             timestamp=manifest["timestamp"],

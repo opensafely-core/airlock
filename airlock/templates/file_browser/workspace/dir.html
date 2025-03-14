@@ -91,7 +91,7 @@
               {% if not content_buttons.multiselect_add.disabled %}
                 <td>
                   {% if not path.is_directory %}
-                    {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                    {% form_checkbox name="selected" value=path.file_path custom_field=True %}
                   {% endif %}
                 </td>
               {% endif %}

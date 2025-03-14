@@ -181,7 +181,7 @@ class RequestFileMetadata(models.Model):
         related_name="request_files",
         on_delete=models.CASCADE,
     )
-    relpath = models.TextField()
+    file_path = models.TextField()
     filegroup = models.ForeignKey(
         FileGroupMetadata, related_name="request_files", on_delete=models.CASCADE
     )
@@ -207,11 +207,11 @@ class RequestFileMetadata(models.Model):
     upload_attempted_at = models.DateTimeField(default=None, null=True)
 
     class Meta:
-        unique_together = ("relpath", "request")
+        unique_together = ("file_path", "request")
 
     def to_dict(self):
         return dict(
-            relpath=Path(self.relpath),
+            file_path=Path(self.file_path),
             group=self.filegroup.name,
             file_id=self.file_id,
             filetype=self.filetype,

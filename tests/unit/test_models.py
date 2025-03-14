@@ -29,19 +29,19 @@ def test_workspace_container():
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.html")
 
-    foo_bar_relpath = FilePath("foo/bar.html")
+    foo_bar_file_path = FilePath("foo/bar.html")
 
     assert workspace.root() == settings.WORKSPACE_DIR / "workspace"
     assert workspace.get_id() == "workspace"
     assert workspace.released_files == set()
     assert (
-        workspace.get_url(foo_bar_relpath) == "/workspaces/view/workspace/foo/bar.html"
+        workspace.get_url(foo_bar_file_path) == "/workspaces/view/workspace/foo/bar.html"
     )
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id="
-        in workspace.get_contents_url(foo_bar_relpath)
+        in workspace.get_contents_url(foo_bar_file_path)
     )
-    plaintext_contents_url = workspace.get_contents_url(foo_bar_relpath, plaintext=True)
+    plaintext_contents_url = workspace.get_contents_url(foo_bar_file_path, plaintext=True)
     assert (
         "/workspaces/content/workspace/foo/bar.html?cache_id=" in plaintext_contents_url
     )
@@ -427,12 +427,12 @@ def test_request_file_uploads(mock_notifications, mock_old_api, bll, settings, f
         ],
     )
 
-    relpath = FilePath("test/file1.txt")
+    file_path = FilePath("test/file1.txt")
 
     def assert_upload_status(
         release_request, attempt_count, upload_in_progress, can_attempt_upload
     ):
-        request_file = release_request.get_request_file_from_output_path(relpath)
+        request_file = release_request.get_request_file_from_output_path(file_path)
         assert request_file.upload_in_progress() == upload_in_progress
         assert request_file.upload_attempts == attempt_count
         assert request_file.can_attempt_upload() == can_attempt_upload
@@ -444,7 +444,7 @@ def test_request_file_uploads(mock_notifications, mock_old_api, bll, settings, f
         can_attempt_upload=True,
     )
 
-    bll.register_file_upload_attempt(release_request, relpath)
+    bll.register_file_upload_attempt(release_request, file_path)
     release_request = factories.refresh_release_request(release_request)
     assert_upload_status(
         release_request,
@@ -583,7 +583,7 @@ def test_request_release_get_request_file_from_urlpath(bll):
         release_request.get_request_file_from_urlpath("default/does/not/exist")
 
     request_file = release_request.get_request_file_from_urlpath("default" / path)
-    assert request_file.relpath == path
+    assert request_file.file_path == path
 
 
 def test_request_release_abspath(bll):

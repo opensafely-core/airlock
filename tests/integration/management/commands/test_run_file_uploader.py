@@ -50,9 +50,9 @@ def setup_release_request(upload_files_stubber, bll, response_statuses=None):
     return release_request, upload_files_responses
 
 
-def refresh_request_file(release_request, relpath):
+def refresh_request_file(release_request, file_path):
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
     return request_file
 
 
@@ -62,15 +62,15 @@ def test_do_upload_task(upload_files_stubber, bll, freezer):
         upload_files_stubber, bll, response_statuses=[201]
     )
 
-    relpath = FilePath("test/file.txt")
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    file_path = FilePath("test/file.txt")
+    request_file = release_request.get_request_file_from_output_path(file_path)
     assert not request_file.uploaded
     assert request_file.uploaded_at is None
 
     freezer.move_to("2022-01-03T12:34:56")
     do_upload_task(request_file, release_request)
 
-    request_file = refresh_request_file(release_request, relpath)
+    request_file = refresh_request_file(release_request, file_path)
     assert request_file.uploaded
     assert request_file.uploaded_at == parse_datetime("2022-01-03T12:34:56Z")
 
@@ -80,13 +80,13 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
         upload_files_stubber, bll, response_statuses=[201]
     )
 
-    relpath = FilePath("test/file.txt")
+    file_path = FilePath("test/file.txt")
     # modify workspace file content
     factories.write_workspace_file(
-        release_request.workspace, relpath, contents="changed"
+        release_request.workspace, file_path, contents="changed"
     )
 
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
 
     do_upload_task(request_file, release_request)
     # 2 calls, to create the release and then to upload one file
@@ -104,13 +104,13 @@ def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     release_request, workspace = setup_release_request(
         upload_files_stubber, bll, response_statuses=[403]
     )
-    relpath = FilePath("test/file.txt")
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    file_path = FilePath("test/file.txt")
+    request_file = release_request.get_request_file_from_output_path(file_path)
 
     with pytest.raises(FileUploadError):
         do_upload_task(request_file, release_request)
 
-    request_file = refresh_request_file(release_request, relpath)
+    request_file = refresh_request_file(release_request, file_path)
     assert not request_file.uploaded
     assert request_file.uploaded_at is None
 

@@ -104,7 +104,7 @@ def _get_file_button_context(user, workspace, path_item):
 
     # The button may show Add File or Update File, depending on the
     # state of the file
-    file_status = workspace.get_workspace_file_status(path_item.relpath)
+    file_status = workspace.get_workspace_file_status(path_item.file_path)
     update_file = file_status == WorkspaceFileStatus.CONTENT_UPDATED
     add_file = not update_file
 
@@ -130,9 +130,9 @@ def _get_file_button_context(user, workspace, path_item):
         add_file_btn.tooltip = dir_button.tooltip
     else:
         # Check we can add or update the specific file
-        if policies.can_add_file_to_request(workspace, path_item.relpath):
+        if policies.can_add_file_to_request(workspace, path_item.file_path):
             add_file_btn.disabled = False
-        elif policies.can_replace_file_in_request(workspace, path_item.relpath):
+        elif policies.can_replace_file_in_request(workspace, path_item.file_path):
             add_file_btn.disabled = False
         else:
             # disabled due to specific file state; update the tooltips to say why
@@ -291,9 +291,9 @@ def multiselect_add_files(request, multiform, workspace):
     for f in multiform.cleaned_data["selected"]:
         workspace.abspath(f)  # validate path
 
-        relpath = FilePath(f)
-        state = workspace.get_workspace_file_status(relpath)
-        if policies.can_add_file_to_request(workspace, relpath):
+        file_path = FilePath(f)
+        state = workspace.get_workspace_file_status(file_path)
+        if policies.can_add_file_to_request(workspace, file_path):
             files_to_add.append(f)
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"
@@ -389,10 +389,10 @@ def add_or_update_form_is_valid(request, form, formset):
 def check_all_files_exist(workspace, formset):
     try:
         for formset_form in formset:
-            relpath = formset_form.cleaned_data["file"]
-            workspace.abspath(relpath)
+            file_path = formset_form.cleaned_data["file"]
+            workspace.abspath(file_path)
     except exceptions.FileNotFound:
-        raise Http404(f"file {relpath} does not exist")
+        raise Http404(f"file {file_path} does not exist")
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -420,28 +420,28 @@ def workspace_add_file_to_request(request, workspace_name):
     error_msgs = []
     success_msgs = []
     for formset_form in formset:
-        relpath = formset_form.cleaned_data["file"]
+        file_path = formset_form.cleaned_data["file"]
         filetype = RequestFileType[formset_form.cleaned_data["filetype"]]
 
-        status = workspace.get_workspace_file_status(FilePath(relpath))
+        status = workspace.get_workspace_file_status(FilePath(file_path))
         try:
             if status == WorkspaceFileStatus.WITHDRAWN:
                 bll.add_withdrawn_file_to_request(
-                    release_request, relpath, request.user, group_name, filetype
+                    release_request, file_path, request.user, group_name, filetype
                 )
                 success_msg = f"added to request (file group '{group_name}')"
             else:
                 bll.add_file_to_request(
-                    release_request, relpath, request.user, group_name, filetype
+                    release_request, file_path, request.user, group_name, filetype
                 )
                 success_msg = f"added to request (file group '{group_name}')"
         except exceptions.APIException as err:
             # This exception can be raised if the file has already been added
             # (to any group on the request)
-            error_msgs.append(f"{relpath}: {err}")
+            error_msgs.append(f"{file_path}: {err}")
         else:
             success_msgs.append(
-                f"{relpath}: {filetype.name.title()} file has been {success_msg}"
+                f"{file_path}: {filetype.name.title()} file has been {success_msg}"
             )
 
     display_multiple_messages(request, success_msgs, "success")
@@ -471,14 +471,14 @@ def workspace_update_file_in_request(request, workspace_name):
     error_msgs = []
     success_msgs = []
     for formset_form in formset:
-        relpath = formset_form.cleaned_data["file"]
+        file_path = formset_form.cleaned_data["file"]
 
         try:
-            bll.update_file_in_request(release_request, relpath, request.user)
+            bll.update_file_in_request(release_request, file_path, request.user)
         except exceptions.APIException as err:
-            error_msgs.append(f"{relpath}: {err}")
+            error_msgs.append(f"{file_path}: {err}")
         else:
-            success_msgs.append(f"{relpath}: file has been updated in request")
+            success_msgs.append(f"{file_path}: file has been updated in request")
 
     display_multiple_messages(request, success_msgs, "success")
     display_multiple_messages(request, error_msgs, "error")

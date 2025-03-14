@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("relpath", models.TextField()),
+                ("file_path", models.TextField()),
                 (
                     "filegroup",
                     models.ForeignKey(
@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "unique_together": {("relpath", "filegroup")},
+                "unique_together": {("file_path", "filegroup")},
             },
         ),
     ]

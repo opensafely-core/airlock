@@ -73,9 +73,9 @@ def test_renderers_get_renderer_request(
     os.utime(abspath, (time, time))
     request_file = request.get_request_file_from_urlpath(grouppath)
 
-    renderer_class = renderers.get_renderer(request_file.relpath, plaintext=plaintext)
+    renderer_class = renderers.get_renderer(request_file.file_path, plaintext=plaintext)
     renderer = renderer_class.from_file(
-        abspath, request_file.relpath, request_file.file_id
+        abspath, request_file.file_path, request_file.file_id
     )
     assert renderer.last_modified == "Tue, 05 Mar 2024 15:35:04 GMT"
 
@@ -115,9 +115,9 @@ def test_code_renderer_from_contents(suffix, mimetype, plaintext, template_path)
 def test_csv_renderer_handles_empty_file(tmp_path):
     empty_csv = tmp_path / "empty.csv"
     empty_csv.write_text("")
-    relpath = empty_csv.relative_to(tmp_path)
-    Renderer = renderers.get_renderer(relpath)
-    renderer = Renderer.from_file(empty_csv, relpath)
+    file_path = empty_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(file_path)
+    renderer = Renderer.from_file(empty_csv, file_path)
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200
@@ -128,9 +128,9 @@ def test_csv_renderer_handles_uneven_columns(tmp_path):
     # can be rendered in a plain html table, but not with datatables
     bad_csv = tmp_path / "empty.csv"
     bad_csv.write_text("Foo Bar\nfoo,bar")
-    relpath = bad_csv.relative_to(tmp_path)
-    Renderer = renderers.get_renderer(relpath)
-    renderer = Renderer.from_file(bad_csv, relpath)
+    file_path = bad_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(file_path)
+    renderer = Renderer.from_file(bad_csv, file_path)
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200
@@ -140,9 +140,9 @@ def test_csv_renderer_handles_uneven_columns(tmp_path):
 def test_plaintext_renderer_handles_invalid_utf8(tmp_path):
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_bytes(b"invalid \xf0\xa4\xad continuation byte")
-    relpath = invalid_file.relative_to(tmp_path)
-    Renderer = renderers.get_renderer(relpath, plaintext=True)
-    renderer = Renderer.from_file(invalid_file, relpath)
+    file_path = invalid_file.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(file_path, plaintext=True)
+    renderer = Renderer.from_file(invalid_file, file_path)
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200
@@ -158,9 +158,9 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
     log_file.write_bytes(
         b"No ansi here \x1b[32m\x1b[1mThis is green and bold.\x1b[0m This is not."
     )
-    relpath = log_file.relative_to(tmp_path)
-    Renderer = renderers.get_renderer(relpath)
-    renderer = Renderer.from_file(log_file, relpath)
+    file_path = log_file.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(file_path)
+    renderer = Renderer.from_file(log_file, file_path)
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200

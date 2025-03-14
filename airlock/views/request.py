@@ -212,42 +212,42 @@ def _get_dir_button_context(user, release_request):
 
 
 def _get_file_button_context(user, release_request, workspace, path_item):
-    group_relpath = path_item.relpath
-    relpath = FilePath(*group_relpath.parts[1:])
+    group_file_path = path_item.file_path
+    file_path = FilePath(*group_file_path.parts[1:])
 
     # author buttons
     req_id = release_request.id
     withdraw_btn = ButtonContext.with_request_defaults(
-        req_id, "file_withdraw", path=group_relpath
+        req_id, "file_withdraw", path=group_file_path
     )
     # output-checker voting buttons
     user_vote = path_item.request_status.vote
     voting_buttons = {
         "approve": ButtonContext.with_request_defaults(
-            req_id, "file_approve", path=group_relpath, label="Approve file"
+            req_id, "file_approve", path=group_file_path, label="Approve file"
         ),
         "request_changes": ButtonContext.with_request_defaults(
-            req_id, "file_request_changes", path=group_relpath, label="Request changes"
+            req_id, "file_request_changes", path=group_file_path, label="Request changes"
         ),
     }
 
     reset_review_url = reverse(
         "file_reset_review",
-        kwargs={"request_id": release_request.id, "path": group_relpath},
+        kwargs={"request_id": release_request.id, "path": group_file_path},
     )
 
     change_file_properties_button = ButtonContext.with_request_defaults(
         req_id, "request_multiselect"
     )
     if permissions.user_can_withdraw_file_from_request(
-        user, release_request, workspace, relpath
+        user, release_request, workspace, file_path
     ):
         withdraw_btn.show = True
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
     if permissions.user_can_change_request_file_properties(
-        user, release_request, workspace, relpath
+        user, release_request, workspace, file_path
     ):
         change_file_properties_button.show = True
         change_file_properties_button.disabled = False
@@ -264,9 +264,9 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         for button in voting_buttons.values():
             button.show = True
     # Determine whether any of the voting buttons should be enabled
-    if permissions.user_can_review_file(user, release_request, relpath):
+    if permissions.user_can_review_file(user, release_request, file_path):
         can_reset_review = permissions.user_can_reset_file_review(
-            user, release_request, relpath
+            user, release_request, file_path
         )
         # check what the current vote is
         #  - make that button selected
@@ -324,7 +324,7 @@ def get_button_context(path_item, user, release_request, workspace):
 def request_view(request, request_id: str, path: str = ""):
     release_request = get_release_request_or_raise(request.user, request_id)
 
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     template_dir = "file_browser/request/"
     template = template_dir + "index.html"
     selected_only = False
@@ -333,10 +333,10 @@ def request_view(request, request_id: str, path: str = ""):
         template = "file_browser/request/contents.html"
         selected_only = True
 
-    tree = get_request_tree(release_request, request.user, relpath, selected_only)
-    path_item = get_path_item_from_tree_or_404(tree, relpath)
+    tree = get_request_tree(release_request, request.user, file_path, selected_only)
+    path_item = get_path_item_from_tree_or_404(tree, file_path)
 
-    is_directory_url = path.endswith("/") or relpath == ROOT_PATH
+    is_directory_url = path.endswith("/") or file_path == ROOT_PATH
 
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
@@ -372,7 +372,7 @@ def request_view(request, request_id: str, path: str = ""):
 
     activity = []
 
-    if relpath == ROOT_PATH:
+    if file_path == ROOT_PATH:
         # viewing the root
         activity = bll.get_request_audit_log(
             user=request.user,
@@ -381,10 +381,10 @@ def request_view(request, request_id: str, path: str = ""):
         )
         group_context = None
     else:
-        group_context = group_presenter(release_request, relpath, request)
+        group_context = group_presenter(release_request, file_path, request)
 
     if permissions.user_can_submit_review(request.user, release_request):
-        if relpath == ROOT_PATH:
+        if file_path == ROOT_PATH:
             request_action_required = (
                 "You have reviewed all files. Go to individual file groups to add "
                 "comments, or submit your review now."
@@ -421,7 +421,7 @@ def request_view(request, request_id: str, path: str = ""):
                 f"you can return the request: {_build_group_list_html(release_request, missing_groups)}"
             )
         else:
-            if relpath == ROOT_PATH:
+            if file_path == ROOT_PATH:
                 request_action_required = (
                     "Two independent reviews have been submitted. You can now "
                 )
@@ -482,18 +482,18 @@ def _build_group_list_html(release_request, group_names):
     return f"<ul class='list-disc pl-4'>{groups}</ul>"
 
 
-def group_presenter(release_request, relpath, request):
+def group_presenter(release_request, file_path, request):
     """Present to build group template context, which is needed in most request views."""
 
-    assert relpath != ROOT_PATH
+    assert file_path != ROOT_PATH
 
-    group = relpath.parts[0]
+    group = file_path.parts[0]
     filegroup = release_request.filegroups.get(group)
     visibilities = release_request.get_writable_comment_visibilities_for_user(
         request.user
     )
     # are we on the group page?
-    if len(relpath.parts) == 1:
+    if len(file_path.parts) == 1:
         inline = False
     else:
         inline = True
@@ -747,7 +747,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
     dir_path = FilePath(next_url.lstrip(release_request.get_url()))
     # Check if the directory path is in any of the request files' parents
     if not any(
-        dir_path in (FilePath(rfile.group) / rfile.relpath).parents
+        dir_path in (FilePath(rfile.group) / rfile.file_path).parents
         for rfile in release_request.all_files_by_name.values()
     ):
         # If there are no files which are children of this directory path,
@@ -773,7 +773,7 @@ def multiselect_update_files(request, multiform, release_request):
         assert request_file.group == filegroup
 
         if permissions.user_can_change_request_file_properties(
-            request.user, release_request, workspace, request_file.relpath
+            request.user, release_request, workspace, request_file.file_path
         ):
             files_to_add[f] = request_file.filetype.name
         else:
@@ -899,18 +899,18 @@ def file_change_properties(request, request_id):
         try:
             bll.change_file_properties_in_request(
                 release_request,
-                request_file.relpath,
+                request_file.file_path,
                 request.user,
                 group_name,
                 filetype,
             )
             if group_change:
                 success_msgs.append(
-                    f"The file {request_file.relpath} has been moved to new group {group_name}"
+                    f"The file {request_file.file_path} has been moved to new group {group_name}"
                 )
             if filetype_change:
                 success_msgs.append(
-                    f"The filetype for {request_file.relpath} has been changed to {filetype.name}"
+                    f"The filetype for {request_file.file_path} has been changed to {filetype.name}"
                 )
             if group_change and group_change_next_url is None:
                 next_url = next_url.replace(f"/{old_group}/", f"/{group_name}/")
@@ -947,12 +947,12 @@ def file_reset_review(request, request_id, path: str):
     release_request = get_release_request_or_raise(request.user, request_id)
 
     try:
-        relpath = release_request.get_request_file_from_urlpath(path).relpath
+        file_path = release_request.get_request_file_from_urlpath(path).file_path
     except exceptions.FileNotFound:
         raise Http404()
 
     try:
-        bll.reset_review_file(release_request, relpath, request.user)
+        bll.reset_review_file(release_request, file_path, request.user)
     except exceptions.RequestReviewDenied as exc:
         raise PermissionDenied(str(exc))
     except exceptions.FileReviewNotFound:
@@ -1198,7 +1198,7 @@ def group_request_changes(request, request_id, group):
                     changes_requested += 1
                 except exceptions.RequestReviewDenied as exc:
                     errors.append(
-                        f"Error requesting changes for {output_file.relpath}: {exc}"
+                        f"Error requesting changes for {output_file.file_path}: {exc}"
                     )
                     span = trace.get_current_span()
                     span.record_exception(exc)
@@ -1248,7 +1248,7 @@ def group_reset_votes(request, request_id, group):
     errors = []
     for output_file in filegroup.output_files:
         try:
-            bll.reset_review_file(release_request, output_file.relpath, request.user)
+            bll.reset_review_file(release_request, output_file.file_path, request.user)
             reset += 1
         except exceptions.FileReviewNotFound:
             # File has not been reviewed, nothing to reset
@@ -1262,7 +1262,7 @@ def group_reset_votes(request, request_id, group):
             # un-reviewable status, so we catch and report on the errors.
             # We don't want to raise this error immediately, because we still want
             # to be able to tell the user what succeeded.
-            errors.append(f"Error resetting vote for {output_file.relpath}: {exc}")
+            errors.append(f"Error resetting vote for {output_file.file_path}: {exc}")
             span = trace.get_current_span()
             span.record_exception(exc)
 

@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     # increment the retry attempts; if something goes wrong, we still
                     # want this to be updated
                     file_for_upload = bll.register_file_upload_attempt(
-                        approved_request, file_for_upload.relpath
+                        approved_request, file_for_upload.file_path
                     )
 
                     with tracer.start_as_current_span(
@@ -78,7 +78,7 @@ class Command(BaseCommand):
                             "release_request": approved_request.id,
                             "workspace": approved_request.workspace,
                             "group": file_for_upload.group,
-                            "file": str(file_for_upload.relpath),
+                            "file": str(file_for_upload.file_path),
                             "username": file_for_upload.released_by.username,
                             "user_id": file_for_upload.released_by.user_id,
                         },
@@ -94,7 +94,7 @@ class Command(BaseCommand):
                                 "Upload for %s - %s/%s failed (attempt %d): %s",
                                 approved_request.id,
                                 file_for_upload.group,
-                                file_for_upload.relpath,
+                                file_for_upload.file_path,
                                 file_for_upload.upload_attempts,
                                 str(error),
                             )
@@ -113,9 +113,9 @@ def do_upload_task(file_for_upload, release_request):
     old_api.upload_file(
         release_request.id,
         release_request.workspace,
-        file_for_upload.relpath,
+        file_for_upload.file_path,
         release_request.abspath(
-            FilePath(file_for_upload.group) / file_for_upload.relpath
+            FilePath(file_for_upload.group) / file_for_upload.file_path
         ),
         file_for_upload.released_by.username,
     )
@@ -123,9 +123,9 @@ def do_upload_task(file_for_upload, release_request):
     # we use the released_by user for this, for consistency with the
     # user who initiated the release
     bll.register_file_upload(
-        release_request, file_for_upload.relpath, file_for_upload.released_by
+        release_request, file_for_upload.file_path, file_for_upload.released_by
     )
-    logger.info("File uploaded: %s - %s", release_request.id, file_for_upload.relpath)
+    logger.info("File uploaded: %s - %s", release_request.id, file_for_upload.file_path)
 
 
 def get_upload_files_and_update_request_status(release_request):

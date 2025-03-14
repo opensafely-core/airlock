@@ -25,6 +25,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="requestfilemetadata",
-            unique_together={("relpath", "request")},
+            unique_together={("file_path", "request")},
         ),
     ]

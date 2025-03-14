@@ -440,17 +440,17 @@ def test_screenshot_from_creation_to_release(
 
     # upload one file
     checker_user = factories.create_airlock_user(**user_dicts["checker1"])
-    all_output_relpaths = list(release_request.output_files())
-    bll.register_file_upload_attempt(release_request, all_output_relpaths[0])
-    bll.register_file_upload(release_request, all_output_relpaths[0], checker_user)
+    all_output_file_paths = list(release_request.output_files())
+    bll.register_file_upload_attempt(release_request, all_output_file_paths[0])
+    bll.register_file_upload(release_request, all_output_file_paths[0], checker_user)
     # wait for the upload count to update
     expect(page.locator("#uploaded-files-count")).to_contain_text("1")
     take_screenshot(page, "request_approved_upload_in_progress.png")
 
     # Progress the release request to all uploads complete and released
     release_request = factories.refresh_release_request(release_request)
-    for relpath in all_output_relpaths[1:]:
-        bll.register_file_upload(release_request, relpath, checker_user)
+    for file_path in all_output_file_paths[1:]:
+        bll.register_file_upload(release_request, file_path, checker_user)
     bll.set_status(release_request, RequestStatus.RELEASED, checker_user)
 
     # Make sure the htmx polling has refreshed the page now it's released

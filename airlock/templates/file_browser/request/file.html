@@ -29,7 +29,7 @@
     {% if content_buttons.withdraw_file.show %}
       <form action="{{ content_buttons.withdraw_file.url }}" method="POST">
         {% csrf_token %}
-        <input type=hidden name="path" value="{{ path_item.relpath }}"/>
+        <input type=hidden name="path" value="{{ path_item.file_path }}"/>
         {% #button type="submit" id="withdraw-file-button" tooltip=content_buttons.withdraw_file.tooltip variant="warning" %}Withdraw from Request{% /button %}
       </form>
     {% endif %}
@@ -44,7 +44,7 @@
         {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.change_file_properties_button.tooltip %}
           Update file properties
         {% /button %}
-        <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+        <input type=hidden name="selected" value="{{ path_item.file_path }}"/>
         <input type=hidden name="next_url" value="{{ request.path }}"/>
         {% csrf_token %}
       </form>

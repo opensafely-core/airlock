@@ -607,7 +607,7 @@ def add_request_file(
         user = get_or_create_airlock_user(request.author, workspaces=[workspace.name])
 
     bll.add_file_to_request(
-        request, relpath=path, user=user, group_name=group, filetype=filetype
+        request, file_path=path, user=user, group_name=group, filetype=filetype
     )
 
     return refresh_release_request(request)
@@ -615,7 +615,7 @@ def add_request_file(
 
 def create_request_file_bad_path(request_file: RequestFile, bad_path) -> RequestFile:
     bad_request_file_dict = {
-        "relpath": bad_path,
+        "file_path": bad_path,
         "group": request_file.group,
         "file_id": request_file.file_id,
         "reviews": {},
@@ -637,7 +637,7 @@ def get_default_output_checkers():
 
 
 def review_file(
-    request: ReleaseRequest, relpath: FilePath, status: RequestFileVote, *users
+    request: ReleaseRequest, file_path: FilePath, status: RequestFileVote, *users
 ):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
@@ -648,13 +648,13 @@ def review_file(
         if status == RequestFileVote.APPROVED:
             bll.approve_file(
                 request,
-                request.get_request_file_from_output_path(relpath),
+                request.get_request_file_from_output_path(file_path),
                 user=user,
             )
         elif status == RequestFileVote.CHANGES_REQUESTED:
             bll.request_changes_to_file(
                 request,
-                request.get_request_file_from_output_path(relpath),
+                request.get_request_file_from_output_path(file_path),
                 user=user,
             )
         else:
@@ -663,18 +663,18 @@ def review_file(
 
 def comment_on_request_file_group(
     request: ReleaseRequest,
-    relpath: FilePath,
+    file_path: FilePath,
     *users,
 ):
     if not users:
         users = get_default_output_checkers()
 
     for user in users:
-        request_file = request.get_request_file_from_output_path(relpath)
+        request_file = request.get_request_file_from_output_path(file_path)
         bll.group_comment_create(
             request,
             request_file.group,
-            f"A comment on {relpath}",
+            f"A comment on {file_path}",
             Visibility.PRIVATE,
             user,
         )

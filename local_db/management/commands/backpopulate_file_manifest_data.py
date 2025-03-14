@@ -19,11 +19,11 @@ class Command(BaseCommand):
             )
             try:
                 manifest_data = workspace.get_manifest_for_file(
-                    FilePath(request_file.relpath)
+                    FilePath(request_file.file_path)
                 )
             except (ManifestFileError, KeyError):
                 print(
-                    f"Could not update manifest.json data for {workspace.name}/{request_file.relpath}"
+                    f"Could not update manifest.json data for {workspace.name}/{request_file.file_path}"
                 )
                 continue
             request_file.timestamp = manifest_data["timestamp"]

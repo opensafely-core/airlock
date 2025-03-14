@@ -960,7 +960,7 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
     )
 
     assert filegroupmetadata.request_files.count() == 1
-    assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
+    assert str(filegroupmetadata.request_files.first().file_path) == "test/path.txt"
 
     # Attempt to add the same file again
     response = airlock_client.post(
@@ -979,7 +979,7 @@ def test_workspace_request_file_filegroup_already_exists(airlock_client, bll):
 
     # No new file created
     assert filegroupmetadata.request_files.count() == 1
-    assert str(filegroupmetadata.request_files.first().relpath) == "test/path.txt"
+    assert str(filegroupmetadata.request_files.first().file_path) == "test/path.txt"
 
 
 def test_workspace_request_file_request_path_does_not_exist(airlock_client):

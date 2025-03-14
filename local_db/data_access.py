@@ -137,7 +137,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def add_file_to_request(
         self,
         request_id: str,
-        relpath: FilePath,
+        file_path: FilePath,
         file_id: str,
         group_name: str,
         filetype: RequestFileType,
@@ -159,13 +159,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             # A file (including supporting files) may only be on a request once.
             try:
                 existing_file = RequestFileMetadata.objects.get(
-                    request_id=request_id, relpath=relpath
+                    request_id=request_id, file_path=file_path
                 )
             except RequestFileMetadata.DoesNotExist:
                 # create the RequestFile
                 RequestFileMetadata.objects.create(
                     request_id=request_id,
-                    relpath=str(relpath),
+                    file_path=str(file_path),
                     file_id=file_id,
                     filegroup=filegroupmetadata,
                     filetype=filetype,
@@ -192,7 +192,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def delete_file_from_request(
         self,
         request_id: str,
-        relpath: FilePath,
+        file_path: FilePath,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -206,11 +206,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             try:
                 request_file = RequestFileMetadata.objects.get(
                     request_id=request_id,
-                    relpath=relpath,
+                    file_path=file_path,
                 )
 
             except RequestFileMetadata.DoesNotExist:
-                raise exceptions.FileNotFound(relpath)
+                raise exceptions.FileNotFound(file_path)
 
             request_file.delete()
             self._create_audit_log(audit)
@@ -222,7 +222,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def withdraw_file_from_request(
         self,
         request_id: str,
-        relpath: FilePath,
+        file_path: FilePath,
         audit: AuditEvent,
     ):
         with transaction.atomic():
@@ -233,10 +233,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             try:
                 request_file = RequestFileMetadata.objects.get(
                     request_id=request_id,
-                    relpath=relpath,
+                    file_path=file_path,
                 )
             except RequestFileMetadata.DoesNotExist:
-                raise exceptions.FileNotFound(relpath)
+                raise exceptions.FileNotFound(file_path)
 
             request_file.filetype = RequestFileType.WITHDRAWN
             request_file.save()
@@ -248,13 +248,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return metadata.get_filegroups_to_dict()
 
     def release_file(
-        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer release_file() should confirm that this path
             # is part of the request before calling this method
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
 
             request_file.released_at = timezone.now()
@@ -270,10 +270,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         )
         return [request_file.to_dict() for request_file in released_files]
 
-    def register_file_upload_attempt(self, request_id: str, relpath: FilePath):
+    def register_file_upload_attempt(self, request_id: str, file_path: FilePath):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
             request_file.upload_attempts += 1
             request_file.upload_attempted_at = timezone.now()
@@ -281,13 +281,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         return request_file.to_dict()
 
     def register_file_upload(
-        self, request_id: str, relpath: FilePath, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer register_file_upload() should confirm that
             # this path is part of the request before calling this method
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
             request_file.uploaded = True
             request_file.uploaded_at = timezone.now()
@@ -296,13 +296,13 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def approve_file(
-        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
             # is part of the request before calling this method
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
 
             review, _ = FileReview.objects.get_or_create(
@@ -314,11 +314,11 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def request_changes_to_file(
-        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
 
             review, _ = FileReview.objects.get_or_create(
@@ -330,29 +330,29 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def reset_review_file(
-        self, request_id: str, relpath: FilePath, user: User, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, user: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
             try:
                 review = FileReview.objects.get(
                     file=request_file, reviewer=user.user_id
                 )
             except FileReview.DoesNotExist:
-                raise exceptions.FileReviewNotFound(relpath, user.user_id)
+                raise exceptions.FileReviewNotFound(file_path, user.user_id)
 
             review.delete()
 
             self._create_audit_log(audit)
 
     def mark_file_undecided(
-        self, request_id: str, relpath: FilePath, reviewer: User, audit: AuditEvent
+        self, request_id: str, file_path: FilePath, reviewer: User, audit: AuditEvent
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
-                request_id=request_id, relpath=relpath
+                request_id=request_id, file_path=file_path
             )
             review = FileReview.objects.get(
                 file=request_file, reviewer=reviewer.user_id

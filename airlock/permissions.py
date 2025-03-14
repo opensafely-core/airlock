@@ -177,18 +177,18 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_add_file_to_request(workspace, relpath)
+    policies.check_can_add_file_to_request(workspace, file_path)
 
 
 def user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_add_file_to_request(user, request, workspace, relpath)
+        check_user_can_add_file_to_request(user, request, workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -198,26 +198,26 @@ def check_user_can_replace_file_in_request(
     user: User,
     request: "ReleaseRequest",
     workspace: "Workspace",
-    relpath: FilePath,
+    file_path: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_replace_file_in_request(workspace, relpath, filegroup, filetype)
+    policies.check_can_replace_file_in_request(workspace, file_path, filegroup, filetype)
 
 
 def user_can_replace_file_in_request(
     user: User,
     request: "ReleaseRequest",
     workspace: "Workspace",
-    relpath: FilePath,
+    file_path: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):  # pragma: no cover; not currently used
     try:
         check_user_can_replace_file_in_request(
-            user, request, workspace, relpath, filegroup, filetype
+            user, request, workspace, file_path, filegroup, filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
@@ -225,37 +225,37 @@ def user_can_replace_file_in_request(
 
 
 def check_user_can_update_file_on_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_update_file_on_request(workspace, relpath)
+    policies.check_can_update_file_on_request(workspace, file_path)
 
 
 def user_can_update_file_on_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_update_file_on_request(user, request, workspace, relpath)
+        check_user_can_update_file_on_request(user, request, workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def check_user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     assert workspace.name == request.workspace
 
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot withdraw file {relpath} from request"
+            f"Cannot withdraw file {file_path} from request"
         )
 
     # If the user has permission to withdraw, check that the file
     # is withdrawable; i.e. it has not already been withdrawn
     # Note this is dependent on the user's current request
-    status = workspace.get_workspace_file_status(relpath)
+    status = workspace.get_workspace_file_status(file_path)
     if status == WorkspaceFileStatus.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "File has already been withdrawn from request"
@@ -263,39 +263,39 @@ def check_user_can_withdraw_file_from_request(
 
 
 def user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     try:
-        check_user_can_withdraw_file_from_request(user, request, workspace, relpath)
+        check_user_can_withdraw_file_from_request(user, request, workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     try:
-        check_user_can_change_request_file_properties(user, request, workspace, relpath)
+        check_user_can_change_request_file_properties(user, request, workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def check_user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: FilePath
+    user: User, request: "ReleaseRequest", workspace: "Workspace", file_path: FilePath
 ):
     assert workspace.name == request.workspace
 
     if not user_can_edit_request(user, request):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot change file group or type for request file {relpath}"
+            f"Cannot change file group or type for request file {file_path}"
         )
 
     # If the user has permission to edit the request, check that the file
     # is not withdrawn
     # Note this is dependent on the user's current request
-    status = workspace.get_workspace_file_status(relpath)
+    status = workspace.get_workspace_file_status(file_path)
     if status == WorkspaceFileStatus.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "Cannot change file group or type for a withdrawn file"
@@ -318,17 +318,17 @@ def user_can_submit_request(user: User, request: "ReleaseRequest"):  # pragma: n
     return True
 
 
-def check_user_can_review_file(user: User, request: "ReleaseRequest", relpath: FilePath):
+def check_user_can_review_file(user: User, request: "ReleaseRequest", file_path: FilePath):
     try:
         check_user_can_review_request(user, request)
     except exceptions.RequestPermissionDenied as exc:
         raise exceptions.RequestReviewDenied(str(exc))
-    policies.check_can_review_file_on_request(request, relpath)
+    policies.check_can_review_file_on_request(request, file_path)
 
 
-def user_can_review_file(user: User, request: "ReleaseRequest", relpath: FilePath):
+def user_can_review_file(user: User, request: "ReleaseRequest", file_path: FilePath):
     try:
-        check_user_can_review_file(user, request, relpath)
+        check_user_can_review_file(user, request, file_path)
     except exceptions.RequestReviewDenied:
         return False
     return True
@@ -348,15 +348,15 @@ def user_can_reset_review(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_reset_file_review(
-    user: User, request: "ReleaseRequest", relpath: FilePath
+    user: User, request: "ReleaseRequest", file_path: FilePath
 ):
-    check_user_can_review_file(user, request, relpath)
+    check_user_can_review_file(user, request, file_path)
     check_user_can_reset_review(user, request)
 
 
-def user_can_reset_file_review(user: User, request: "ReleaseRequest", relpath: FilePath):
+def user_can_reset_file_review(user: User, request: "ReleaseRequest", file_path: FilePath):
     try:
-        check_user_can_reset_file_review(user, request, relpath)
+        check_user_can_reset_file_review(user, request, file_path)
     except exceptions.RequestReviewDenied:
         return False
     return True

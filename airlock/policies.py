@@ -50,26 +50,26 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
-def can_add_file_to_request(workspace: "Workspace", relpath: FilePath):
+def can_add_file_to_request(workspace: "Workspace", file_path: FilePath):
     try:
-        check_can_add_file_to_request(workspace, relpath)
+        check_can_add_file_to_request(workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_can_add_file_to_request(workspace: "Workspace", relpath: FilePath):
+def check_can_add_file_to_request(workspace: "Workspace", file_path: FilePath):
     """
     This file can be added to the request.
     We expect that check_can_edit_request has already been called.
     """
     # The file is an allowed type
-    if not is_valid_file_type(Path(relpath)):
+    if not is_valid_file_type(Path(file_path)):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot add file of type {relpath.suffix} to request"
+            f"Cannot add file of type {file_path.suffix} to request"
         )
 
-    status = workspace.get_workspace_file_status(relpath)
+    status = workspace.get_workspace_file_status(file_path)
 
     # The file hasn't already been released
     if status == WorkspaceFileStatus.RELEASED:
@@ -86,12 +86,12 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: FilePath):
 
 def can_replace_file_in_request(
     workspace: "Workspace",
-    relpath: FilePath,
+    file_path: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
     try:
-        check_can_replace_file_in_request(workspace, relpath, filegroup, filetype)
+        check_can_replace_file_in_request(workspace, file_path, filegroup, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -99,7 +99,7 @@ def can_replace_file_in_request(
 
 def check_can_replace_file_in_request(
     workspace: "Workspace",
-    relpath: FilePath,
+    file_path: FilePath,
     filegroup: str | None = None,
     filetype: RequestFileType | None = None,
 ):
@@ -113,12 +113,12 @@ def check_can_replace_file_in_request(
     We expect that check_can_edit_request has already been called.
     """
     # The file is an allowed type
-    if not is_valid_file_type(Path(relpath)):
+    if not is_valid_file_type(Path(file_path)):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot add file of type {relpath.suffix} to request"
+            f"Cannot add file of type {file_path.suffix} to request"
         )
 
-    status = workspace.get_workspace_file_status(relpath)
+    status = workspace.get_workspace_file_status(file_path)
 
     # The file hasn't already been released
     if status == WorkspaceFileStatus.RELEASED:
@@ -129,7 +129,7 @@ def check_can_replace_file_in_request(
         WorkspaceFileStatus.CONTENT_UPDATED,
     ]:
         request_file = (
-            workspace.current_request.get_request_file_from_output_path(relpath)
+            workspace.current_request.get_request_file_from_output_path(file_path)
             if workspace.current_request
             else None
         )
@@ -147,25 +147,25 @@ def check_can_replace_file_in_request(
             )
 
 
-def can_update_file_on_request(workspace: "Workspace", relpath: FilePath):
+def can_update_file_on_request(workspace: "Workspace", file_path: FilePath):
     try:
-        check_can_update_file_on_request(workspace, relpath)
+        check_can_update_file_on_request(workspace, file_path)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_can_update_file_on_request(workspace: "Workspace", relpath: FilePath):
+def check_can_update_file_on_request(workspace: "Workspace", file_path: FilePath):
     """
     This file can be updated on the request.
     We expect that check_can_edit_request has already been called.
     """
-    if not is_valid_file_type(Path(relpath)):
+    if not is_valid_file_type(Path(file_path)):
         raise exceptions.RequestPermissionDenied(
-            f"Cannot update file of type {relpath.suffix} in request"
+            f"Cannot update file of type {file_path.suffix} in request"
         )
 
-    status = workspace.get_workspace_file_status(relpath)
+    status = workspace.get_workspace_file_status(file_path)
 
     if status != WorkspaceFileStatus.CONTENT_UPDATED:
         raise exceptions.RequestPermissionDenied(
@@ -183,12 +183,12 @@ def check_can_review_request(request: "ReleaseRequest"):
         )
 
 
-def check_can_review_file_on_request(request: "ReleaseRequest", relpath: FilePath):
+def check_can_review_file_on_request(request: "ReleaseRequest", file_path: FilePath):
     """
     This file is reviewable; i.e. it is on the request, and it is an output file.
     """
     check_can_review_request(request)
-    if relpath not in request.output_files():
+    if file_path not in request.output_files():
         raise exceptions.RequestReviewDenied(
             "file is not an output file on this request"
         )

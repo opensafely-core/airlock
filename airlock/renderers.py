@@ -48,10 +48,10 @@ class Renderer:
 
     @classmethod
     def from_file(
-        cls, abspath: Path, relpath: FilePath | None = None, cache_id: str | None = None
+        cls, abspath: Path, file_path: FilePath | None = None, cache_id: str | None = None
     ) -> Renderer:
         stat = abspath.stat()
-        path = relpath or abspath
+        path = file_path or abspath
 
         if cache_id is None:
             cache_id = filesystem_key(stat)
@@ -70,7 +70,7 @@ class Renderer:
 
     @classmethod
     def from_contents(
-        cls, contents: bytes, relpath: FilePath, cache_id: str
+        cls, contents: bytes, file_path: FilePath, cache_id: str
     ) -> Renderer:
         if cls.is_text:
             stream: IO[Any] = StringIO(contents.decode("utf8", errors="replace"))
@@ -80,7 +80,7 @@ class Renderer:
         return cls(
             stream=stream,
             file_cache_id=cache_id,
-            filename=relpath.name,
+            filename=file_path.name,
         )
 
     def get_response(self):
@@ -196,23 +196,23 @@ FILE_RENDERERS = {
 }
 
 
-def get_renderer(relpath: FilePath, plaintext=False) -> type[Renderer]:
-    if is_valid_file_type(FilePath(relpath)):
+def get_renderer(file_path: FilePath, plaintext=False) -> type[Renderer]:
+    if is_valid_file_type(FilePath(file_path)):
         if plaintext:
             return PlainTextRenderer
-        return FILE_RENDERERS.get(relpath.suffix, Renderer)
+        return FILE_RENDERERS.get(file_path.suffix, Renderer)
     return InvalidFileRenderer
 
 
-def get_code_renderer(relpath: FilePath, plaintext=False) -> type[Renderer]:
+def get_code_renderer(file_path: FilePath, plaintext=False) -> type[Renderer]:
     """Guess correct renderer for code file."""
     if plaintext:
         return PlainTextRenderer
 
-    if relpath.suffix in FILE_RENDERERS:
-        return FILE_RENDERERS[relpath.suffix]
+    if file_path.suffix in FILE_RENDERERS:
+        return FILE_RENDERERS[file_path.suffix]
 
-    mtype, _ = mimetypes.guess_type(str(relpath), strict=False)
+    mtype, _ = mimetypes.guess_type(str(file_path), strict=False)
 
     if mtype is None:
         return TextRenderer

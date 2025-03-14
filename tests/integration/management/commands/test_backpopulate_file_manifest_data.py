@@ -27,7 +27,7 @@ def test_command(bll):
     workspace = bll.get_workspace(
         "workspace", factories.create_airlock_user(workspaces=["workspace"])
     )
-    manifest = workspace.get_manifest_for_file(FilePath(file_meta.relpath))
+    manifest = workspace.get_manifest_for_file(FilePath(file_meta.file_path))
     for attr in ["commit", "size", "job_id", "timestamp", "repo"]:
         assert getattr(file_meta, attr) != manifest[attr]
 

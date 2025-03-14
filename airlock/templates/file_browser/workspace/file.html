@@ -27,7 +27,7 @@
               Update File in Request
             {% /button %}
           {% endif %}
-          <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
+          <input type=hidden name="selected" value="{{ path_item.file_path }}"/>
           <input type=hidden name="next_url" value="{{ request.path }}"/>
           {% csrf_token %}
         </form>

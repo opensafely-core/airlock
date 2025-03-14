@@ -198,14 +198,14 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     bll.set_status(release_request, RequestStatus.APPROVED, checkers[0])
     release_request = factories.refresh_release_request(release_request)
 
-    relpath = FilePath("test/file.txt")
-    abspath = release_request.abspath("group" / relpath)
+    file_path = FilePath("test/file.txt")
+    abspath = release_request.abspath("group" / file_path)
 
     freezer.move_to("2022-01-01T12:34:56")
     bll.release_files(release_request, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.filegroups["group"].files[relpath]
+    request_file = release_request.filegroups["group"].files[file_path]
     assert request_file.released_by == checkers[0]
     assert request_file.released_at == parse_datetime("2022-01-01T12:34:56Z")
     assert not request_file.uploaded
@@ -313,22 +313,22 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
         ],
     )
 
-    uploaded_relpath = FilePath("test/file.txt")
-    not_uploaded_relpath = FilePath("test/file1.txt")
-    not_uploaded_relpath1 = FilePath("test/file2.txt")
+    uploaded_file_path = FilePath("test/file.txt")
+    not_uploaded_file_path = FilePath("test/file1.txt")
+    not_uploaded_file_path1 = FilePath("test/file2.txt")
 
     # mock the situation where a request is still in APPROVED, but one file has
     # been released and uploaded, one file has been released but not uploaded yet,
     # and a third has not been released
-    for relpath in [uploaded_relpath, not_uploaded_relpath]:
+    for file_path in [uploaded_file_path, not_uploaded_file_path]:
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_RELEASE,
             user=checkers[0],
-            path=relpath,
+            path=file_path,
         )
-        bll._dal.release_file(release_request.id, relpath, checkers[0], audit)
-    bll.register_file_upload(release_request, uploaded_relpath, checkers[0])
+        bll._dal.release_file(release_request.id, file_path, checkers[0], audit)
+    bll.register_file_upload(release_request, uploaded_file_path, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
 
@@ -338,20 +338,20 @@ def test_provider_request_release_files_retry(mock_old_api, bll, freezer):
     release_request = factories.refresh_release_request(release_request)
 
     # uploaded file hasn't changed
-    uploaded_request_file = release_request.filegroups["group"].files[uploaded_relpath]
+    uploaded_request_file = release_request.filegroups["group"].files[uploaded_file_path]
     assert uploaded_request_file.released_by == checkers[0]
     assert uploaded_request_file.uploaded
 
     # released but not uploaded file hasn't changed
     not_uploaded_request_file = release_request.filegroups["group"].files[
-        not_uploaded_relpath
+        not_uploaded_file_path
     ]
     assert not_uploaded_request_file.released_by == checkers[0]
     assert not not_uploaded_request_file.uploaded
 
     # not released file has been updated
     not_uploaded_request_file1 = release_request.filegroups["group"].files[
-        not_uploaded_relpath1
+        not_uploaded_file_path1
     ]
     assert not_uploaded_request_file1.released_by == checkers[1]
     assert not not_uploaded_request_file1.uploaded
@@ -411,14 +411,14 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
         ],
     )
 
-    relpath = FilePath("test/file.txt")
-    abspath = release_request.abspath("group" / relpath)
+    file_path = FilePath("test/file.txt")
+    abspath = release_request.abspath("group" / file_path)
     freezer.move_to("2022-01-01T12:34:56")
 
-    bll.register_file_upload(release_request, relpath, checkers[0])
+    bll.register_file_upload(release_request, file_path, checkers[0])
 
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
     assert request_file.uploaded
     assert request_file.uploaded_at == parse_datetime("2022-01-01T12:34:56Z")
 
@@ -488,16 +488,16 @@ def test_provider_register_file_upload_attempt(mock_old_api, bll, freezer):
     )
 
     freezer.move_to("2022-01-01T12:34:56")
-    relpath = FilePath("test/file.txt")
+    file_path = FilePath("test/file.txt")
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
     assert not request_file.uploaded
     assert request_file.upload_attempts == 0
     assert request_file.upload_attempted_at is None
 
-    bll.register_file_upload_attempt(release_request, relpath)
+    bll.register_file_upload_attempt(release_request, file_path)
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
     assert not request_file.uploaded
     assert request_file.upload_attempts == 1
     assert request_file.upload_attempted_at == parse_datetime("2022-01-01T12:34:56Z")
@@ -1594,21 +1594,21 @@ def test_update_file_in_request_invalid_file_type(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    relpath = FilePath("path/file.foo")
+    file_path = FilePath("path/file.foo")
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(workspace, file_path)
     with patch("airlock.utils.LEVEL4_FILE_TYPES", [".foo"]):
         release_request = factories.create_request_at_status(
             "workspace",
             author=author,
-            files=[factories.request_file(path=relpath)],
+            files=[factories.request_file(path=file_path)],
             status=RequestStatus.PENDING,
         )
 
     with pytest.raises(
         exceptions.RequestPermissionDenied, match=r"Cannot update file of type"
     ):
-        bll.update_file_in_request(release_request, relpath, author)
+        bll.update_file_in_request(release_request, file_path, author)
 
 
 def test_update_file_in_request_not_updated(bll):
@@ -1616,17 +1616,17 @@ def test_update_file_in_request_not_updated(bll):
         username="author", workspaces=["workspace"], output_checker=False
     )
 
-    relpath = FilePath("path/file.txt")
+    file_path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(workspace, file_path)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
-        files=[factories.request_file(path=relpath, approved=True)],
+        files=[factories.request_file(path=file_path, approved=True)],
     )
     with pytest.raises(exceptions.RequestPermissionDenied, match=r"not updated"):
-        bll.update_file_in_request(release_request, relpath, author)
+        bll.update_file_in_request(release_request, file_path, author)
 
 
 @pytest.mark.parametrize(
@@ -1767,16 +1767,16 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    relpath = FilePath("path/file.txt")
+    file_path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(workspace, file_path)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
-                path=relpath,
+                path=file_path,
                 group="group",
                 filetype=RequestFileType.OUTPUT,
                 approved=True,
@@ -1785,10 +1785,10 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
     )
     # No change to file content, same file type
     bll.replace_file_in_request(
-        release_request, relpath, author, "new-group", RequestFileType.OUTPUT
+        release_request, file_path, author, "new-group", RequestFileType.OUTPUT
     )
     release_request = factories.refresh_release_request(release_request)
-    request_file = release_request.get_request_file_from_output_path(relpath)
+    request_file = release_request.get_request_file_from_output_path(file_path)
     assert request_file.group == "new-group"
 
 
@@ -1796,16 +1796,16 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
-    relpath = FilePath("path/file.txt")
+    file_path = FilePath("path/file.txt")
     workspace = factories.create_workspace("workspace")
-    factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(workspace, file_path)
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
         status=RequestStatus.RETURNED,
         files=[
             factories.request_file(
-                path=relpath,
+                path=file_path,
                 group="group",
                 filetype=RequestFileType.OUTPUT,
                 approved=True,
@@ -1815,7 +1815,7 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
     # No change to file content, same file type
     with pytest.raises(exceptions.RequestPermissionDenied):
         bll.replace_file_in_request(
-            release_request, relpath, author, "group", RequestFileType.OUTPUT
+            release_request, file_path, author, "group", RequestFileType.OUTPUT
         )
 
 
@@ -2461,7 +2461,7 @@ def test_approve_file(bll):
         release_request,
         AuditEventType.REQUEST_FILE_APPROVE,
         user=checker,
-        path=request_file.relpath,
+        path=request_file.file_path,
         group="group",
     )
 

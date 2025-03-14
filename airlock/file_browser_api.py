@@ -31,30 +31,30 @@ class AirlockContainer(Protocol):
     def get_id(self) -> str:
         """Get the human name for this container."""
 
-    def get_url(self, relpath: FilePath = ROOT_PATH) -> str:
+    def get_url(self, file_path: FilePath = ROOT_PATH) -> str:
         """Get the url for the container object with path"""
 
     def get_contents_url(
-        self, relpath: FilePath, download: bool = False, plaintext: bool = False
+        self, file_path: FilePath, download: bool = False, plaintext: bool = False
     ) -> str:
         """Get the url for the contents of the container object with path"""
 
-    def request_filetype(self, relpath: FilePath) -> RequestFileType | None:
+    def request_filetype(self, file_path: FilePath) -> RequestFileType | None:
         """What kind of file is this, e.g. output, supporting, etc."""
 
     def get_renderer(
-        self, relpath: FilePath, plaintext: bool = False
+        self, file_path: FilePath, plaintext: bool = False
     ) -> renderers.Renderer:
         """Create and return the correct renderer for this path."""
 
-    def get_file_metadata(self, relpath: FilePath) -> FileMetadata | None:
+    def get_file_metadata(self, file_path: FilePath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_file_status(self, relpath: FilePath) -> WorkspaceFileStatus | None:
+    def get_workspace_file_status(self, file_path: FilePath) -> WorkspaceFileStatus | None:
         """Get workspace state of file."""
 
     def get_request_file_status(
-        self, relpath: FilePath, user: User
+        self, file_path: FilePath, user: User
     ) -> RequestFileStatus | None:
         """Get request status of file."""
 
@@ -77,7 +77,7 @@ class PathItem:
         pass
 
     container: AirlockContainer
-    relpath: FilePath
+    file_path: FilePath
 
     type: PathType | None = None
     workspace_status: WorkspaceFileStatus | None = None
@@ -108,16 +108,16 @@ class PathItem:
         """
         return PathItem(
             container=self.container,
-            relpath=self.relpath,
+            file_path=self.file_path,
             type=self.type,
             children=[self],
             expanded=True,
         )
 
     def name(self):
-        if self.relpath == ROOT_PATH:
+        if self.file_path == ROOT_PATH:
             return self.container.get_id()
-        return self.relpath.name
+        return self.file_path.name
 
     def display(self):
         """How should this node be displayed in the tree nav."""
@@ -134,15 +134,15 @@ class PathItem:
         return ""
 
     def url(self):
-        url = self.container.get_url(self.relpath)
+        url = self.container.get_url(self.file_path)
         suffix = "/" if (self.is_directory() and not url.endswith("/")) else ""
-        return self.container.get_url(self.relpath) + suffix
+        return self.container.get_url(self.file_path) + suffix
 
     def contents_url(self, download: bool = False, plaintext: bool = False):
         if self.type != PathType.FILE:
-            raise Exception(f"contents_url called on non-file path {self.relpath}")
+            raise Exception(f"contents_url called on non-file path {self.file_path}")
         return self.container.get_contents_url(
-            self.relpath, download=download, plaintext=plaintext
+            self.file_path, download=download, plaintext=plaintext
         )
 
     def contents_plaintext_url(self):
@@ -150,7 +150,7 @@ class PathItem:
 
     def iframe_sandbox(self):
         # we allow csv files to use scripts, as we render those ourselves
-        if self.relpath.suffix == ".csv":
+        if self.file_path.suffix == ".csv":
             return "allow-scripts"
 
         # disable everything by default
@@ -166,14 +166,14 @@ class PathItem:
             return self.parent.children
 
     def suffix(self):
-        return self.relpath.suffix
+        return self.file_path.suffix
 
     def file_type(self):
         return self.suffix().lstrip(".")
 
     def metadata(self) -> FileMetadata | None:
         if self.type == PathType.FILE:
-            return self.container.get_file_metadata(self.relpath)
+            return self.container.get_file_metadata(self.file_path)
         else:
             return None
 
@@ -227,7 +227,7 @@ class PathItem:
         return self.request_filetype == RequestFileType.WITHDRAWN
 
     def is_valid(self):
-        return is_valid_file_type(Path(self.relpath))
+        return is_valid_file_type(Path(self.file_path))
 
     def html_classes(self):
         """Semantic html classes for this PathItem.
@@ -260,13 +260,13 @@ class PathItem:
 
         return " ".join(classes)
 
-    def get_path(self, relpath: FilePath | str):
-        """Walk the tree and return the PathItem for relpath.
+    def get_path(self, file_path: FilePath | str):
+        """Walk the tree and return the PathItem for file_path.
 
         Will raise PathNotFound if the path is not found.
         """
-        relpath = FilePath(relpath)
-        if relpath == ROOT_PATH:
+        file_path = FilePath(file_path)
+        if file_path == ROOT_PATH:
             return self
 
         def walk_tree(node, head, *tail):
@@ -274,14 +274,14 @@ class PathItem:
                 if child.name() == head:
                     break
             else:
-                raise self.PathNotFound(f"could not find path {relpath}")
+                raise self.PathNotFound(f"could not find path {file_path}")
 
             if not tail:
                 return child
 
             return walk_tree(child, *tail)
 
-        return walk_tree(self, *relpath.parts)
+        return walk_tree(self, *file_path.parts)
 
     def get_selected(self):
         """Get currently selected node.
@@ -400,7 +400,7 @@ def get_workspace_tree(
 
     root_node = PathItem(
         container=workspace,
-        relpath=ROOT_PATH,
+        file_path=ROOT_PATH,
         type=PathType.WORKSPACE,
         parent=None,
         selected=(selected_path == ROOT_PATH),
@@ -436,7 +436,7 @@ def get_request_tree(
     selected_path = FilePath(selected_path)
     root_node = PathItem(
         container=release_request,
-        relpath=ROOT_PATH,
+        file_path=ROOT_PATH,
         type=PathType.REQUEST,
         parent=None,
         selected=(selected_path == ROOT_PATH),
@@ -454,7 +454,7 @@ def get_request_tree(
         expanded = selected or (group_path in (selected_path.parents or []))
         group_node = PathItem(
             container=release_request,
-            relpath=FilePath(name),
+            file_path=FilePath(name),
             type=PathType.FILEGROUP,
             parent=root_node,
             display_text=(
@@ -487,7 +487,7 @@ def get_code_tree(
 ) -> PathItem:
     root_node = PathItem(
         container=repo,
-        relpath=ROOT_PATH,
+        file_path=ROOT_PATH,
         type=PathType.REPO,
         parent=None,
         selected=(selected_path == ROOT_PATH),
@@ -556,11 +556,11 @@ def get_path_tree(
         # now we have them grouped by first path element, we can create a node
         # in the tree for them
         for child, descendants in grouped.items():
-            path = parent.relpath / child
+            path = parent.file_path / child
             selected = path == selected_path
             node = PathItem(
                 container=container,
-                relpath=path,
+                file_path=path,
                 parent=parent,
                 selected=selected,
                 request_filetype=container.request_filetype(path),

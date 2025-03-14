@@ -1419,12 +1419,12 @@ def test_file_review_bad_user(airlock_client, review):
         f"/requests/{review}/{release_request.id}/group/{path}"
     )
     assert response.status_code == 403
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     assert (
         len(
             bll.get_release_request(release_request.id, author)
             .filegroups["group"]
-            .files[relpath]
+            .files[file_path]
             .reviews
         )
         == 0
@@ -1452,12 +1452,12 @@ def test_file_review_bad_file(airlock_client, review):
         f"/requests/{review}/{release_request.id}/group/{bad_path}"
     )
     assert response.status_code == 404
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     assert (
         len(
             bll.get_release_request(release_request.id, author)
             .filegroups["group"]
-            .files[relpath]
+            .files[file_path]
             .reviews
         )
         == 0
@@ -1483,10 +1483,10 @@ def test_file_approve(airlock_client):
         f"/requests/approve/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     review = (
         bll.get_release_request(release_request.id, author)
-        .get_request_file_from_output_path(relpath)
+        .get_request_file_from_output_path(file_path)
         .reviews[airlock_client.user.username]
     )
     assert review.status == RequestFileVote.APPROVED
@@ -1512,10 +1512,10 @@ def test_file_request_changes(airlock_client):
         f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     review = (
         bll.get_release_request(release_request.id, author)
-        .get_request_file_from_output_path(relpath)
+        .get_request_file_from_output_path(file_path)
         .reviews[airlock_client.user.username]
     )
     assert review.status == RequestFileVote.CHANGES_REQUESTED
@@ -1541,9 +1541,9 @@ def test_file_reset_review(airlock_client):
         f"/requests/request_changes/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     release_request = factories.refresh_release_request(release_request)
-    review = release_request.get_request_file_from_output_path(relpath).reviews[
+    review = release_request.get_request_file_from_output_path(file_path).reviews[
         airlock_client.user.username
     ]
     assert review.status == RequestFileVote.CHANGES_REQUESTED
@@ -1554,9 +1554,9 @@ def test_file_reset_review(airlock_client):
         f"/requests/reset_review/{release_request.id}/group/{path}"
     )
     assert response.status_code == 302
-    relpath = FilePath(path)
+    file_path = FilePath(path)
     release_request = factories.refresh_release_request(release_request)
-    reviews = release_request.filegroups["group"].files[relpath].reviews
+    reviews = release_request.filegroups["group"].files[file_path].reviews
     assert len(reviews) == 0
 
     # verify a re-request
@@ -1727,7 +1727,7 @@ def test_file_withdraw_file_bad_request(airlock_client):
 )
 def test_file_change_file_properties(airlock_client, new_group, new_filetype):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
-    test_relpath = "path/test.txt"
+    test_file_path = "path/test.txt"
 
     release_request = factories.create_request_at_status(
         "test1",
@@ -1735,25 +1735,25 @@ def test_file_change_file_properties(airlock_client, new_group, new_filetype):
         status=RequestStatus.PENDING,
         files=[
             factories.request_file(
-                "group", test_relpath, filetype=RequestFileType.OUTPUT
+                "group", test_file_path, filetype=RequestFileType.OUTPUT
             ),
         ],
     )
 
     # ensure it does exist
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     if new_group:
         with pytest.raises(exceptions.FileNotFound):
-            release_request.get_request_file_from_urlpath(f"{new_group}/{test_relpath}")
+            release_request.get_request_file_from_urlpath(f"{new_group}/{test_file_path}")
 
     response = airlock_client.post(
         f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
-            "form-0-file": f"group/{test_relpath}",
+            "form-0-file": f"group/{test_file_path}",
             "form-0-filetype": new_filetype,
-            "next_url": release_request.get_url(f"group/{test_relpath}"),
+            "next_url": release_request.get_url(f"group/{test_file_path}"),
             "filegroup": "group",
             # new filegroup overrides a selected existing one (or the default)
             "new_filegroup": new_group,
@@ -1763,24 +1763,24 @@ def test_file_change_file_properties(airlock_client, new_group, new_filetype):
 
     expected_group = new_group if new_group else "group"
     assert response.headers["location"] == release_request.get_url(
-        f"{expected_group}/{test_relpath}"
+        f"{expected_group}/{test_file_path}"
     )
 
     persisted_request = factories.refresh_release_request(release_request)
 
     request_file = persisted_request.get_request_file_from_urlpath(
-        f"{expected_group}/{test_relpath}"
+        f"{expected_group}/{test_file_path}"
     )
     if new_group:
         with pytest.raises(exceptions.FileNotFound):
-            persisted_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+            persisted_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     assert request_file.filetype == RequestFileType[new_filetype]
 
 
 def test_file_change_file_properties_multiple_files(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
-    test_relpath = "path/test.txt"
-    test_relpath1 = "path/test1.txt"
+    test_file_path = "path/test.txt"
+    test_file_path1 = "path/test1.txt"
 
     release_request = factories.create_request_at_status(
         "test1",
@@ -1788,11 +1788,11 @@ def test_file_change_file_properties_multiple_files(airlock_client):
         status=RequestStatus.PENDING,
         files=[
             factories.request_file(
-                "group", test_relpath, contents="test", filetype=RequestFileType.OUTPUT
+                "group", test_file_path, contents="test", filetype=RequestFileType.OUTPUT
             ),
             factories.request_file(
                 "group",
-                test_relpath1,
+                test_file_path1,
                 contents="test1",
                 filetype=RequestFileType.SUPPORTING,
             ),
@@ -1804,9 +1804,9 @@ def test_file_change_file_properties_multiple_files(airlock_client):
         data={
             "form-TOTAL_FORMS": "2",
             "form-INITIAL_FORMS": "2",
-            "form-0-file": f"group/{test_relpath}",
+            "form-0-file": f"group/{test_file_path}",
             "form-0-filetype": "OUTPUT",
-            "form-1-file": f"group/{test_relpath1}",
+            "form-1-file": f"group/{test_file_path1}",
             "form-1-filetype": "OUTPUT",
             "next_url": release_request.get_url("group/path"),
             "filegroup": "group",
@@ -1820,10 +1820,10 @@ def test_file_change_file_properties_multiple_files(airlock_client):
     persisted_request = factories.refresh_release_request(release_request)
 
     request_file = persisted_request.get_request_file_from_urlpath(
-        f"new_group/{test_relpath}"
+        f"new_group/{test_file_path}"
     )
     request_file1 = persisted_request.get_request_file_from_urlpath(
-        f"new_group/{test_relpath1}"
+        f"new_group/{test_file_path1}"
     )
     assert request_file.filetype == RequestFileType.OUTPUT
     assert request_file1.filetype == RequestFileType.OUTPUT
@@ -1831,7 +1831,7 @@ def test_file_change_file_properties_multiple_files(airlock_client):
 
 def test_file_change_file_properties_no_changes(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
-    test_relpath = "path/test.txt"
+    test_file_path = "path/test.txt"
 
     release_request = factories.create_request_at_status(
         "test1",
@@ -1839,7 +1839,7 @@ def test_file_change_file_properties_no_changes(airlock_client):
         status=RequestStatus.PENDING,
         files=[
             factories.request_file(
-                "group", test_relpath, filetype=RequestFileType.OUTPUT
+                "group", test_file_path, filetype=RequestFileType.OUTPUT
             ),
         ],
     )
@@ -1848,31 +1848,31 @@ def test_file_change_file_properties_no_changes(airlock_client):
     )
 
     # ensure it does exist
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     with pytest.raises(exceptions.FileNotFound):
-        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+        release_request.get_request_file_from_urlpath(f"new_group/{test_file_path}")
 
     response = airlock_client.post(
         f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
-            "form-0-file": f"group/{test_relpath}",
+            "form-0-file": f"group/{test_file_path}",
             "form-0-filetype": "OUTPUT",
-            "next_url": release_request.get_url(f"group/{test_relpath}"),
+            "next_url": release_request.get_url(f"group/{test_file_path}"),
             "filegroup": "group",
             "new_filegroup": "",
         },
     )
     assert response.status_code == 302
     assert response.headers["location"] == release_request.get_url(
-        f"group/{test_relpath}"
+        f"group/{test_file_path}"
     )
 
     persisted_request = factories.refresh_release_request(release_request)
 
     request_file = persisted_request.get_request_file_from_urlpath(
-        f"group/{test_relpath}"
+        f"group/{test_file_path}"
     )
     assert request_file.filetype == RequestFileType.OUTPUT
     # Nothing to do, no new audit logs
@@ -1884,26 +1884,26 @@ def test_file_change_file_properties_no_changes(airlock_client):
 
 def test_change_file_properties_bad_next_url(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
-    test_relpath = "path/test.txt"
+    test_file_path = "path/test.txt"
 
     release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.PENDING,
         files=[
-            factories.request_file("group", test_relpath),
+            factories.request_file("group", test_file_path),
         ],
     )
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     with pytest.raises(exceptions.FileNotFound):
-        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+        release_request.get_request_file_from_urlpath(f"new_group/{test_file_path}")
 
     response = airlock_client.post(
         f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
-            "form-0-file": f"group/{test_relpath}",
+            "form-0-file": f"group/{test_file_path}",
             "form-0-filetype": "OUTPUT",
             # missing value for "next_url" causes the form to fail validation
             "filegroup": "group",
@@ -1915,35 +1915,35 @@ def test_change_file_properties_bad_next_url(airlock_client):
     assert response.status_code == 302
     assert response.headers["location"] == release_request.get_url()
 
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     with pytest.raises(exceptions.FileNotFound):
-        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+        release_request.get_request_file_from_urlpath(f"new_group/{test_file_path}")
 
 
 def test_change_file_properties_permission_denied(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
-    test_relpath = "path/test.txt"
+    test_file_path = "path/test.txt"
 
     release_request = factories.create_request_at_status(
         "test1",
         author=airlock_client.user,
         status=RequestStatus.SUBMITTED,
         files=[
-            factories.request_file("group", test_relpath),
+            factories.request_file("group", test_file_path),
         ],
     )
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     with pytest.raises(exceptions.FileNotFound):
-        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+        release_request.get_request_file_from_urlpath(f"new_group/{test_file_path}")
 
     response = airlock_client.post(
         f"/requests/change-properties/{release_request.id}",
         data={
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
-            "form-0-file": f"group/{test_relpath}",
+            "form-0-file": f"group/{test_file_path}",
             "form-0-filetype": "OUTPUT",
-            "next_url": release_request.get_url(f"group/{test_relpath}"),
+            "next_url": release_request.get_url(f"group/{test_file_path}"),
             "filegroup": "group",
             # new filegroup overrides a selected existing one (or the default)
             "new_filegroup": "new_group",
@@ -1953,12 +1953,12 @@ def test_change_file_properties_permission_denied(airlock_client):
     assert response.status_code == 302
     # redirects to the original group path, not the new one
     assert response.headers["location"] == release_request.get_url(
-        f"group/{test_relpath}"
+        f"group/{test_file_path}"
     )
 
-    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    release_request.get_request_file_from_urlpath(f"group/{test_file_path}")
     with pytest.raises(exceptions.FileNotFound):
-        release_request.get_request_file_from_urlpath(f"new_group/{test_relpath}")
+        release_request.get_request_file_from_urlpath(f"new_group/{test_file_path}")
 
 
 def test_request_multiselect_withdraw_files(airlock_client):
