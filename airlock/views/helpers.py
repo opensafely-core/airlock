@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 from airlock import exceptions
 from airlock.business_logic import bll
 from airlock.file_browser_api import PathItem
-from airlock.types import UrlPath
+from airlock.types import FilePath
 
 
 class ServeFileException(Exception):
@@ -102,9 +102,9 @@ def serve_file(request, renderer):
     return response
 
 
-def get_path_item_from_tree_or_404(tree: PathItem, path: UrlPath | str):
+def get_path_item_from_tree_or_404(tree: PathItem, path: FilePath | str):
     try:
-        return tree.get_path(UrlPath(path))
+        return tree.get_path(FilePath(path))
     except tree.PathNotFound:
         raise Http404()
 

@@ -20,10 +20,10 @@ class FileUploadError(Exception): ...
 def create_filelist(paths, release_request):
     files = []
 
-    for relpath, abspath in paths:
+    for file_path, abspath in paths:
         files.append(
             FileMetadata(
-                name=UrlFileName(relpath),
+                name=UrlFileName(file_path),
                 size=abspath.stat().st_size,
                 sha256=hashlib.sha256(abspath.read_bytes()).hexdigest(),
                 # The schema is defined to take a datetime here but we're giving it a
@@ -31,7 +31,7 @@ def create_filelist(paths, release_request):
                 # external API and manifestly _does_ work, we'd rather leave it as is
                 # that make changes which risk changing the output format.
                 date=modified_time(abspath),  # type: ignore[arg-type]
-                url=UrlFileName(relpath),  # not needed, but has to be set
+                url=UrlFileName(file_path),  # not needed, but has to be set
                 metadata={"tool": "airlock", "airlock_id": release_request.id},
             )
         )
@@ -67,14 +67,14 @@ def get_or_create_release(workspace_name, release_request_id, release_json, user
     return response.headers["Release-Id"]
 
 
-def upload_file(release_id, workspace, relpath, abspath, username):
+def upload_file(release_id, workspace, file_path, abspath, username):
     """Upload file to job server."""
     response = session.post(
         url=f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/{release_id}",
         data=abspath.open("rb"),
         headers={
             "OS-User": username,
-            "Content-Disposition": f'attachment; filename="{relpath}"',
+            "Content-Disposition": f'attachment; filename="{file_path}"',
             "Content-Type": "application/octet-stream",
             "Accept": "application/json",
             "Authorization": settings.AIRLOCK_API_TOKEN,
@@ -84,16 +84,16 @@ def upload_file(release_id, workspace, relpath, abspath, username):
     if response.status_code != 201:
         response_content = response.content.decode()
         error = response.json()["detail"]
-        if f"This version of '{relpath}' has already been uploaded" in error:
+        if f"This version of '{file_path}' has already been uploaded" in error:
             # Ignore attempted re-uploads
             logger.info(
-                "File already uploaded - %s - %s - %s", workspace, relpath, release_id
+                "File already uploaded - %s - %s - %s", workspace, file_path, release_id
             )
         else:
             logger.error(
                 "%s Error uploading file - %s - %s - %s",
                 response.status_code,
-                relpath,
+                file_path,
                 release_id,
                 response_content,
             )

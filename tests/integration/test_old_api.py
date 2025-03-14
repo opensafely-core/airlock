@@ -50,31 +50,31 @@ def test_old_api_get_or_create_release_with_error(responses, caplog):
 
 def test_old_api_upload_file(responses):
     release_request = factories.create_release_request("workspace")
-    relpath = Path("test/file.txt")
+    file_path = Path("test/file.txt")
     release_request = factories.add_request_file(
-        release_request, "group", relpath, "test"
+        release_request, "group", file_path, "test"
     )
-    abspath = release_request.abspath("group" / relpath)
+    abspath = release_request.abspath("group" / file_path)
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
         status=201,
     )
 
-    old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
+    old_api.upload_file("release-id", "workspace", file_path, abspath, "testuser")
     request = responses.calls[0].request
     assert request.body == b"test"
-    assert request.headers["Content-Disposition"] == f'attachment; filename="{relpath}"'
+    assert request.headers["Content-Disposition"] == f'attachment; filename="{file_path}"'
     assert request.headers["OS-User"] == "testuser"
 
 
 def test_old_api_upload_file_error(responses, caplog):
     release_request = factories.create_release_request("workspace")
-    relpath = Path("test/file.txt")
+    file_path = Path("test/file.txt")
     release_request = factories.add_request_file(
-        release_request, "group", relpath, "test"
+        release_request, "group", file_path, "test"
     )
-    abspath = release_request.abspath("group" / relpath)
+    abspath = release_request.abspath("group" / file_path)
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
@@ -82,7 +82,7 @@ def test_old_api_upload_file_error(responses, caplog):
         json={"detail": "job-server error"},
     )
     with pytest.raises(old_api.FileUploadError, match="job-server error"):
-        old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
+        old_api.upload_file("release-id", "workspace", file_path, abspath, "testuser")
     assert len(caplog.messages) == 1
     log = caplog.messages[0]
     assert "Error uploading file" in log
@@ -92,18 +92,18 @@ def test_old_api_upload_file_error(responses, caplog):
 def test_old_api_upload_file_already_uploaded_error(responses, caplog):
     caplog.set_level(logging.INFO)
     release_request = factories.create_release_request("workspace")
-    relpath = Path("test/file.txt")
+    file_path = Path("test/file.txt")
     release_request = factories.add_request_file(
-        release_request, "group", relpath, "test"
+        release_request, "group", file_path, "test"
     )
-    abspath = release_request.abspath("group" / relpath)
+    abspath = release_request.abspath("group" / file_path)
 
     responses.post(
         f"{settings.AIRLOCK_API_ENDPOINT}/releases/release/release-id",
         status=400,
-        json={"detail": f"This version of '{relpath}' has already been uploaded"},
+        json={"detail": f"This version of '{file_path}' has already been uploaded"},
     )
-    old_api.upload_file("release-id", "workspace", relpath, abspath, "testuser")
+    old_api.upload_file("release-id", "workspace", file_path, abspath, "testuser")
 
     assert len(caplog.messages) == 1
     log = caplog.messages[0]

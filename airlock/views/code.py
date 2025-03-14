@@ -10,7 +10,7 @@ from airlock import exceptions
 from airlock.business_logic import bll
 from airlock.file_browser_api import get_code_tree
 from airlock.models import CodeRepo, Workspace
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from airlock.views.helpers import (
     get_path_item_from_tree_or_404,
     get_workspace_or_raise,
@@ -54,7 +54,7 @@ def view(request, workspace_name: str, commit: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_code_tree(repo, UrlPath(path), selected_only)
+    tree = get_code_tree(repo, FilePath(path), selected_only)
 
     path_item = get_path_item_from_tree_or_404(tree, path)
 
@@ -89,7 +89,7 @@ def contents(request, workspace_name: str, commit: str, path: str):
 
     plaintext = request.GET.get("plaintext", False)
     try:
-        renderer = repo.get_renderer(UrlPath(path), plaintext=plaintext)
+        renderer = repo.get_renderer(FilePath(path), plaintext=plaintext)
     except exceptions.FileNotFound:
         raise Http404()
 

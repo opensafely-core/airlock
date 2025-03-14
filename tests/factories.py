@@ -25,7 +25,7 @@ from airlock.models import (
     RequestFile,
     Workspace,
 )
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from users.models import User
 
 
@@ -607,7 +607,7 @@ def add_request_file(
         user = get_or_create_airlock_user(request.author, workspaces=[workspace.name])
 
     bll.add_file_to_request(
-        request, relpath=path, user=user, group_name=group, filetype=filetype
+        request, file_path=path, user=user, group_name=group, filetype=filetype
     )
 
     return refresh_release_request(request)
@@ -615,7 +615,7 @@ def add_request_file(
 
 def create_request_file_bad_path(request_file: RequestFile, bad_path) -> RequestFile:
     bad_request_file_dict = {
-        "relpath": bad_path,
+        "file_path": bad_path,
         "group": request_file.group,
         "file_id": request_file.file_id,
         "reviews": {},
@@ -637,7 +637,7 @@ def get_default_output_checkers():
 
 
 def review_file(
-    request: ReleaseRequest, relpath: UrlPath, status: RequestFileVote, *users
+    request: ReleaseRequest, file_path: FilePath, status: RequestFileVote, *users
 ):
     if not users:  # pragma: no cover
         users = get_default_output_checkers()
@@ -648,13 +648,13 @@ def review_file(
         if status == RequestFileVote.APPROVED:
             bll.approve_file(
                 request,
-                request.get_request_file_from_output_path(relpath),
+                request.get_request_file_from_output_path(file_path),
                 user=user,
             )
         elif status == RequestFileVote.CHANGES_REQUESTED:
             bll.request_changes_to_file(
                 request,
-                request.get_request_file_from_output_path(relpath),
+                request.get_request_file_from_output_path(file_path),
                 user=user,
             )
         else:
@@ -663,18 +663,18 @@ def review_file(
 
 def comment_on_request_file_group(
     request: ReleaseRequest,
-    relpath: UrlPath,
+    file_path: FilePath,
     *users,
 ):
     if not users:
         users = get_default_output_checkers()
 
     for user in users:
-        request_file = request.get_request_file_from_output_path(relpath)
+        request_file = request.get_request_file_from_output_path(file_path)
         bll.group_comment_create(
             request,
             request_file.group,
-            f"A comment on {relpath}",
+            f"A comment on {file_path}",
             Visibility.PRIVATE,
             user,
         )
@@ -689,7 +689,7 @@ class TestRequestFile:
     """
 
     group: str
-    path: UrlPath
+    path: FilePath
     user: User | None
     contents: str = ""
     filetype: RequestFileType = RequestFileType.OUTPUT
@@ -744,7 +744,7 @@ class TestRequestFile:
 
 def request_file(
     group="group",
-    path: UrlPath | str = "test/file.txt",
+    path: FilePath | str = "test/file.txt",
     contents: str = "",
     filetype=RequestFileType.OUTPUT,
     user: User | None = None,
@@ -767,7 +767,7 @@ def request_file(
 
     return TestRequestFile(
         group=group,
-        path=UrlPath(path),
+        path=FilePath(path),
         contents=contents,
         filetype=filetype,
         user=user,
@@ -815,7 +815,7 @@ def create_audit_event(
     user=None,
     workspace: str = "workspace",
     request="request",
-    path=UrlPath("foo/bar"),
+    path=FilePath("foo/bar"),
     extra={"foo": "bar"},
 ):
     if user is None:
@@ -825,7 +825,7 @@ def create_audit_event(
         user=user,
         workspace=workspace,
         request=request,
-        path=UrlPath(path) if path else None,
+        path=FilePath(path) if path else None,
         extra=extra,
     )
     bll._dal.audit_event(event)

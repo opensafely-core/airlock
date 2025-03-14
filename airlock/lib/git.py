@@ -15,7 +15,7 @@ from urllib.parse import urlparse, urlunparse
 # from jobrunner.lib.string_utils import project_name_from_url
 # from jobrunner.lib.subprocess_utils import subprocess_run
 from airlock import settings as config
-from airlock.types import UrlPath
+from airlock.types import FilePath
 
 
 def project_name_from_url(url):
@@ -46,9 +46,9 @@ def list_files_from_repo(repo_url, commit_sha):
         )
     except subprocess.SubprocessError:
         raise GitError(f"Error reading from {repo_url} @ {commit_sha}")
-    # return a list of UrlPaths
+    # return a list of FilePaths
     return [
-        UrlPath(line) for line in response.stdout.decode("utf8").strip().split("\n")
+        FilePath(line) for line in response.stdout.decode("utf8").strip().split("\n")
     ]
 
 

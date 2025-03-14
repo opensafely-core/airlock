@@ -1,6 +1,6 @@
 import pytest
 
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from tests import factories
 
 
@@ -55,7 +55,7 @@ def test_code_view_file(airlock_client):
     repo = factories.create_repo("workspace")
 
     response = airlock_client.get(f"/code/view/workspace/{repo.commit}/project.yaml")
-    assert repo.get_contents_url(UrlPath("project.yaml")) in response.rendered_content
+    assert repo.get_contents_url(FilePath("project.yaml")) in response.rendered_content
 
 
 def test_code_view_file_htmx(airlock_client):
@@ -67,7 +67,7 @@ def test_code_view_file_htmx(airlock_client):
         headers={"HX-Request": "true"},
     )
 
-    assert repo.get_contents_url(UrlPath("project.yaml")) in response.rendered_content
+    assert repo.get_contents_url(FilePath("project.yaml")) in response.rendered_content
     assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
     assert "HX-Request" in response.headers["Vary"]

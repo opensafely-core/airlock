@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 
 from airlock.business_logic import bll
 from airlock.exceptions import ManifestFileError
-from airlock.types import UrlPath
+from airlock.types import FilePath
 from local_db.models import RequestFileMetadata
 from users.models import User
 
@@ -19,11 +19,11 @@ class Command(BaseCommand):
             )
             try:
                 manifest_data = workspace.get_manifest_for_file(
-                    UrlPath(request_file.relpath)
+                    FilePath(request_file.file_path)
                 )
             except (ManifestFileError, KeyError):
                 print(
-                    f"Could not update manifest.json data for {workspace.name}/{request_file.relpath}"
+                    f"Could not update manifest.json data for {workspace.name}/{request_file.file_path}"
                 )
                 continue
             request_file.timestamp = manifest_data["timestamp"]
