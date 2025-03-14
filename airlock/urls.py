@@ -47,12 +47,12 @@ urlpatterns = [
         name="workspace_view",
     ),
     path(
-        "workspaces/view/<str:workspace_name>/<path:path>",
+        "workspaces/view/<str:workspace_name>/<path:file_path>",
         airlock.views.workspace_view,
         name="workspace_view",
     ),
     path(
-        "workspaces/content/<str:workspace_name>/<path:path>",
+        "workspaces/content/<str:workspace_name>/<path:file_path>",
         airlock.views.workspace_contents,
         name="workspace_contents",
     ),

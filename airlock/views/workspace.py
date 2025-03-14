@@ -169,7 +169,7 @@ def get_button_context(path_item, user, workspace):
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"workspace": "workspace_name"})
-def workspace_view(request, workspace_name: str, path: str = ""):
+def workspace_view(request, workspace_name: str, file_path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
     template_dir = "file_browser/workspace/"
     template = template_dir + "index.html"
@@ -179,11 +179,11 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
 
-    tree = get_workspace_tree(workspace, path, selected_only)
+    tree = get_workspace_tree(workspace, file_path, selected_only)
 
-    path_item = get_path_item_from_tree_or_404(tree, path)
+    path_item = get_path_item_from_tree_or_404(tree, file_path)
 
-    is_directory_url = path.endswith("/") or path == ""
+    is_directory_url = file_path.endswith("/") or file_path == ""
     if path_item.is_directory() != is_directory_url:
         return redirect(path_item.url())
 
@@ -191,7 +191,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     project = workspace.project()
 
-    if path_item.is_directory() or path not in workspace.manifest["outputs"]:
+    if path_item.is_directory() or file_path not in workspace.manifest["outputs"]:
         code_url = None
     else:
         code_url = (
@@ -199,11 +199,11 @@ def workspace_view(request, workspace_name: str, path: str = ""):
                 "code_view",
                 kwargs={
                     "workspace_name": workspace.name,
-                    "commit": workspace.get_manifest_for_file(path).get("commit"),
+                    "commit": workspace.get_manifest_for_file(file_path).get("commit"),
                     "path": "project.yaml",
                 },
             )
-            + f"?return_url={workspace.get_url(path)}"
+            + f"?return_url={workspace.get_url(file_path)}"
         )
 
     return TemplateResponse(
@@ -230,21 +230,21 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 @instrument(func_attributes={"workspace": "workspace_name"})
 @xframe_options_sameorigin
 @require_http_methods(["GET"])
-def workspace_contents(request, workspace_name: str, path: str):
+def workspace_contents(request, workspace_name: str, file_path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
 
     try:
-        abspath = workspace.abspath(path)
+        abspath = workspace.abspath(file_path)
     except exceptions.FileNotFound:
         raise Http404()
 
     if not abspath.is_file():
         return HttpResponseBadRequest()
 
-    bll.audit_workspace_file_access(workspace, FilePath(path), request.user)
+    bll.audit_workspace_file_access(workspace, FilePath(file_path), request.user)
 
     plaintext = request.GET.get("plaintext", False)
-    renderer = workspace.get_renderer(FilePath(path), plaintext=plaintext)
+    renderer = workspace.get_renderer(FilePath(file_path), plaintext=plaintext)
     return serve_file(request, renderer)
 
 
