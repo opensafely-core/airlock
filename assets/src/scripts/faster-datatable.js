@@ -41,6 +41,8 @@ const CLASS_SORT_DESC = 'sort-descending';
 
 // Global markers
 let isMarkupGenerated = false;
+let largestColumnItems = [];
+let initialColumnWidths;
 let isSorting = false;
 let isEmpty = false;
 let clusterize;
@@ -57,7 +59,8 @@ clusterize = new Clusterize({
     domUpdated: function() {
       updateCellWidths();
     }
-  }
+  },
+  tag: 'tr' // needed for empty csv files to correctly display "no data" message
 });
 
 wireUpColumnHeaderSortButtons();
@@ -77,18 +80,36 @@ function updateCellWidths() {
   containerEl.classList.remove('table-loading');
   searchWrapper.classList.remove('searching');
 
+  const firstRowEl = contentEl.querySelector('tr:not(.clusterize-extra-row)');
+  const firstRowCells = [...firstRowEl.children];
+
+  if(!initialColumnWidths) {
+    // Get the font of the first non-row-number table cell element
+    const el = firstRowCells[1] || firstRowCells[0]; // in case empty csv file
+    const font = getFont(el);
+
+    // Get the cell padding
+    const padding = getHorizontalPadding(el);
+    initialColumnWidths = largestColumnItems.map(item => padding + getTextWidth(item, font));
+  }  
+
   if (isEmpty) {
+    // First reset the header widths
+    setCellMinWidths(headerCells, 0);
+
+    // Then if sorting (why would you sort an empty table? but you can so...)
+    // update the headers, and stop the sort
+    if(isSorting){
+      endSort()
+    }
+
     // There is no data so we just want the header to fill available space
     const extraSpace = containerEl.getBoundingClientRect().width - headerEl.getBoundingClientRect().width;
     expandCellsToFixedWidth(headerCells.slice(1), extraSpace);
     return;
   }
 
-  // As we're not empty, the cell width is managed by the first row rather than the
-  // header, so we reset the min widths
-  setCellMinWidths(headerCells, 0);
-  const firstRowEl = contentEl.querySelector('tr:not(.clusterize-extra-row)');
-  const firstRowCells = [...firstRowEl.children];
+  setCellMinWidths(headerCells, initialColumnWidths);
   const containerWidth = containerEl.getBoundingClientRect().width;
   const firstRowWidth = firstRowEl.getBoundingClientRect().width;
   if (isSorting) {
@@ -138,10 +159,8 @@ function updateCellWidths() {
     // We scroll the table to ensure the sort column is in place
     scrollEl.scrollLeft = scrollX;
 
-    // Also we have now finished the sort, so we can update the header class
-    headerCells[sortColumn].classList.remove(CLASS_SORTING);
-    headerCells[sortColumn].classList.add(isSortAscending ? CLASS_SORT_ASC : CLASS_SORT_DESC);
-    isSorting = false;
+    // Also we have now finished the sort
+    endSort()
   } else {
     // If we're not sorting then we just want to ensure the table fills the available
     // space.
@@ -152,6 +171,15 @@ function updateCellWidths() {
       setCellMinWidths(firstRowCells, firstRowCells.map(x => 0));
     }
   }
+}
+
+/*
+ * Resets the sort ensuring all the loading indicators are hidden
+ */
+function endSort() {
+  headerCells[sortColumn].classList.remove(CLASS_SORTING);
+  headerCells[sortColumn].classList.add(isSortAscending ? CLASS_SORT_ASC : CLASS_SORT_DESC);
+  isSorting = false;
 }
 
 /**
@@ -213,10 +241,25 @@ function processRows(sortIndex, isSortAscending) {
     // - generate the markup that Clusterize.js expects
     // - mark each row as "active" for the search functionality
     // - add the row index to the data array
+    // - find the longest (string length) in each field to make a guess as to column width
+    //   (this is to reduce the amount the column widths adjust as you sort and filter)
+
+    if (csvRows.length > 0){
+      largestColumnItems = [`${csvRows.length}`]; // Highest row number
+      csvRows[0].data.forEach((item) => {
+        largestColumnItems.push(item);
+      });
+    }
+
     for (var i = 0; i < csvRows.length; i++) {
       csvRows[i].markup = `<tr><td class="row-number">${i + 1}</td><td>${csvRows[i].data.join('</td><td>')}</td></tr>`;
       csvRows[i].data.unshift(i + 1);
       csvRows[i].active = true;
+      csvRows[i].data.forEach((item, idx) => {
+        if(item.length > largestColumnItems[idx].length){
+          largestColumnItems[idx] = item;
+        }        
+      });
     }
     isMarkupGenerated = true;
   }
@@ -292,4 +335,52 @@ function wireUpSearchBox() {
     }, 0)
   }
   searchEl.addEventListener('input', search);
+}
+
+/**
+ * Measures the width of text in pixels using a canvas context
+ * @param {string} text - The text string to measure
+ * @param {string} font - CSS font specification (e.g. "bold 16px Arial")
+ * @returns {number} The width of the text in pixels
+ */
+function getTextWidth(text, font) {
+  const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+  const context = canvas.getContext("2d");
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+
+/**
+ * Gets the font string of a DOM element
+ * @param {HTMLElement} domElement The element to assess
+ * @returns {string} CSS font specification (e.g. "bold 16px Arial")
+ */
+function getFont(domElement) {
+  const fontWeight = getStyleValue(domElement, 'font-weight', 'normal');
+  const fontSize = getStyleValue(domElement, 'font-size', '16px');
+  const fontFamily = getStyleValue(domElement, 'font-family', 'Times New Roman');
+  return `${fontWeight} ${fontSize} ${fontFamily}`;
+}
+
+/**
+ * Get the horizontal padding (left + right) of a DOM element
+ * @param {HTMLElement} domElement The element to assess
+ * @returns {number} The horizontal padding in pixels
+ */
+function getHorizontalPadding(domElement) {
+  const paddingLeft = Number.parseFloat(getStyleValue(domElement, 'padding-left', 0));
+  const paddingRight = Number.parseFloat(getStyleValue(domElement, 'padding-right', 0));
+  return paddingLeft + paddingRight;
+}
+
+/**
+ * Retrieves the computed style value for a given CSS property of a DOM element
+ * @param {HTMLElement} domElement - The DOM element to get the style from
+ * @param {string} property - The CSS property name to look up
+ * @param {*} valueIfNull - Default value to return if the property is not found
+ * @returns {string} The computed style value or the default value if not found
+ */
+function getStyleValue(domElement, property, valueIfNull) {
+  return window.getComputedStyle(domElement).getPropertyValue(property) || valueIfNull;
 }
