@@ -83,6 +83,13 @@
         display:none;
       }
 
+      /* Search results message */
+      .search-results {
+        color: #4d4d4d;
+        font-size: 0.9rem;
+        padding-left: 10px;
+      }
+
       /* The remaining style are the minimal things required by the clusterize.js plugin */
       /**
       * Avoid vertical margins for extra tags
@@ -148,12 +155,13 @@
         {% /datatable %}
         {% vite_asset "assets/src/scripts/datatable.js" %}
       {% elif use_faster_datatable %}
-        <span class="search-wrapper">
-          <input type="search" id="search-table" placeholder="Type to search..."/>
-          <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
-        </span>
-
         <div class="faster-table-wrapper min-w-full table-loading">
+          <span class="search-wrapper">
+            <input type="search" id="search-table" placeholder="Type to search table..."/>
+            <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
+          </span>
+          <span class="search-results">
+          </span>
           <div id="scrollArea">
             <table class="divide-y divide-slate-300
                           [&_td]:text-slate-700 [&_td]:text-sm [&_td]:p-2

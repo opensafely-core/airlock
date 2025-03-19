@@ -31,6 +31,7 @@ const scrollEl = document.getElementById("scrollArea");
 const contentEl = document.getElementById("contentArea");
 const headerEl = document.getElementById("headersArea");
 const searchEl = document.getElementById("search-table");
+const searchResultsEl = document.querySelector(".search-results");
 const searchWrapper = document.querySelector(".search-wrapper");
 const headerCells = [...headerEl.querySelector('tr').children];
 
@@ -45,6 +46,7 @@ let largestColumnItems = [];
 let initialColumnWidths;
 let isSorting = false;
 let isEmpty = false;
+let searchResultsMessage = '';
 let clusterize;
 let sortColumnPositionX;
 let sortColumn;
@@ -92,6 +94,9 @@ function updateCellWidths() {
     const padding = getHorizontalPadding(el);
     initialColumnWidths = largestColumnItems.map(item => padding + getTextWidth(item, font));
   }  
+
+  // Update search message
+  searchResultsEl.innerText = searchResultsMessage;
 
   if (isEmpty) {
     // First reset the header widths
@@ -272,6 +277,15 @@ function processRows(sortIndex, isSortAscending) {
   }
   const markupArray = csvRows.filter(x => x.active).map(x => x.markup);
   isEmpty = markupArray.length === 0;
+
+  if (markupArray.length === csvRows.length) {
+    searchResultsMessage = `Showing all ${csvRows.length} rows`;
+  } else {
+    searchResultsMessage = `Showing ${markupArray.length} row${
+      markupArray.length === 1 ? '' : 's'
+    } (out of ${csvRows.length})`;
+  }
+
   return markupArray;
 }
 
