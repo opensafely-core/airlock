@@ -61,6 +61,30 @@
         min-width: 100%;
       }
 
+      /* Effects when loading the tables */
+      .table-loading-spinner {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        background: white;
+        height: 100%;
+        z-index: 1;
+        pointer-events: none;
+        transition: opacity 0.3s ease-in-out;
+      }
+      .table-loading .table-loading-spinner {
+        opacity: 1;
+      }
+      .table-loading .table-loading-message{
+        opacity: 0;
+        animation: fadeIn 0.2s ease-in-out 100ms forwards;
+      }
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
       /* Centering message that appears when loading or no data provided */
       .clusterize-no-data td{
         text-align: center;
@@ -156,6 +180,11 @@
         {% vite_asset "assets/src/scripts/datatable.js" %}
       {% elif use_faster_datatable %}
         <div class="faster-table-wrapper min-w-full table-loading">
+          <div class="table-loading-spinner">
+            <div class="table-loading-message">
+              Loading...
+            </div>
+          </div>
           <span class="search-wrapper">
             <input type="search" id="search-table" placeholder="Type to search table..."/>
             <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
