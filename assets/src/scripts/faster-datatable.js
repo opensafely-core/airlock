@@ -257,7 +257,7 @@ function processRows(sortIndex, isSortAscending) {
     }
 
     for (var i = 0; i < csvRows.length; i++) {
-      csvRows[i].markup = `<tr><td class="row-number">${i + 1}</td><td>${csvRows[i].data.join('</td><td>')}</td></tr>`;
+      csvRows[i].markup = `<tr><td class="datatable-row-number">${i + 1}</td><td>${csvRows[i].data.join('</td><td>')}</td></tr>`;
       csvRows[i].data.unshift(i + 1);
       csvRows[i].active = true;
       csvRows[i].data.forEach((item, idx) => {
