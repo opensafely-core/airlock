@@ -260,11 +260,6 @@ class Workspace:
 
         return WorkspaceFileStatus.UNRELEASED
 
-    def get_request_file_status(
-        self, relpath: UrlPath, user: User
-    ) -> RequestFileStatus | None:
-        return None  # pragma: nocover
-
     def get_requests_url(self):
         return reverse(
             "requests_for_workspace",
@@ -434,14 +429,6 @@ class CodeRepo:
 
     def request_filetype(self, relpath: UrlPath) -> RequestFileType | None:
         return RequestFileType.CODE
-
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        return None
-
-    def get_request_file_status(
-        self, relpath: UrlPath, user: User
-    ) -> RequestFileStatus | None:
-        return None  # pragma: nocover
 
 
 @dataclass(frozen=True)
@@ -725,9 +712,6 @@ class ReleaseRequest:
             rfile.timestamp,
             _content_hash=rfile.file_id,
         )
-
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        return None
 
     def get_request_file_status(
         self, relpath: UrlPath, user: User

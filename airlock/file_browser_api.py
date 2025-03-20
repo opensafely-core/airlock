@@ -50,14 +50,6 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
-    def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
-        """Get workspace state of file."""
-
-    def get_request_file_status(
-        self, relpath: UrlPath, user: User
-    ) -> RequestFileStatus | None:
-        """Get request status of file."""
-
 
 @dataclass
 class PathItem:
@@ -582,10 +574,11 @@ def get_path_tree(
                 # get_path_tree needs to work with both Workspace and
                 # ReleaseRequest containers, so we have these container specfic
                 # calls
-                node.workspace_status = container.get_workspace_file_status(path)
+                if isinstance(container, Workspace):
+                    node.workspace_status = container.get_workspace_file_status(path)
 
                 # user is required for request status, due to visibility
-                if user:
+                if isinstance(container, ReleaseRequest) and user:
                     node.request_status = container.get_request_file_status(path, user)
 
             tree.append(node)
