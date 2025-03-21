@@ -2593,9 +2593,16 @@ def test_approve_then_request_changes_to_file(bll):
 
 
 @pytest.mark.parametrize(
-    "review", [RequestFileVote.APPROVED, RequestFileVote.CHANGES_REQUESTED]
+    "review,audit_type",
+    [
+        (RequestFileVote.APPROVED, AuditEventType.REQUEST_FILE_APPROVE),
+        (
+            RequestFileVote.CHANGES_REQUESTED,
+            AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
+        ),
+    ],
 )
-def test_review_then_reset_review_file(bll, review):
+def test_review_then_reset_review_file(bll, review, audit_type):
     path = UrlPath("path/file1.txt")
     release_request = factories.create_request_at_status(
         "workspace",
@@ -2626,7 +2633,18 @@ def test_review_then_reset_review_file(bll, review):
         == RequestFileDecision.INCOMPLETE
     )
 
+    # check this vote is the most recent audit event for the group
+    group_audit_log = bll.get_request_audit_log(
+        checker, release_request, rfile.group, exclude_readonly=True
+    )
+    assert group_audit_log[0].type == audit_type
+
     bll.reset_review_file(release_request, path, checker)
+    # check that the vote reset is the most recent audit event for the group
+    group_audit_log = bll.get_request_audit_log(
+        checker, release_request, rfile.group, exclude_readonly=True
+    )
+    assert group_audit_log[0].type == AuditEventType.REQUEST_FILE_RESET_REVIEW
 
     rfile = _get_request_file(release_request, path)
     assert rfile.get_file_vote_for_user(checker) is None
