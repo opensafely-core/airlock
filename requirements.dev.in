@@ -5,6 +5,7 @@
 django-debug-toolbar
 django-debug-toolbar-template-profiler
 djhtml
+hypothesis
 ruff
 pip-tools
 pytest
