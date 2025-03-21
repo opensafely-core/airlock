@@ -966,12 +966,13 @@ class BusinessLogicLayer:
         """Reset a file to have no review from this user"""
 
         permissions.check_user_can_reset_file_review(user, release_request, relpath)
-
+        request_file = release_request.get_request_file_from_output_path(relpath)
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
             user=user,
             path=relpath,
+            group=request_file.group,
         )
 
         self._dal.reset_review_file(release_request.id, relpath, user, audit)
