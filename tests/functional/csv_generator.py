@@ -35,8 +35,7 @@ def _escape_csv_field(field) -> str:
     # Carriage return characters (\r) become newline (\n) characters in the html
     # This is fine, but annoying for the tests which then fail. So easier to just
     # exclude them as a possible csv character
-    while "\r" in field:
-        field = field.replace("\r", "_")
+    field = field.replace("\r", "_")
     return str(field)
 
 

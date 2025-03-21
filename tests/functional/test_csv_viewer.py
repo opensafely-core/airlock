@@ -58,9 +58,7 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
     )
 
     reader = csv.reader(StringIO(csv_file), delimiter=",")
-    csv_list = []
-    for row in reader:  # each row is a list
-        csv_list.append(row)
+    csv_list = list(reader)
 
     failures = page.evaluate(
         """(csv_list) => {
@@ -104,5 +102,9 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
     # In theory we should tidy up by closing the context. But there is a bug which
     # causes this test to hang when run with coverage turned on. So we check to see
     # if coverage is on, and if not we tidy up.
+    # This (https://github.com/HypothesisWorks/hypothesis/issues/4052) is possibly the
+    # same bug. But it's not clear whether it's hypothesis, pytest or coverage at fault
+    # and it seeems to get fixed in higher versions of python. Maybe can test if it's
+    # still a problem if we move higher than python 3.11
     if "coverage" not in sys.modules.keys():  # pragma: no cover
         context.close()
