@@ -3098,6 +3098,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_released_files_for_workspace",
     "get_released_files_for_request",
     "register_file_upload_attempt",
+    "hide_audit_events_for_turn",
 }
 
 
@@ -3760,3 +3761,36 @@ def test_group_comment_delete_invalid_params(bll):
         bll.group_comment_delete(release_request, "badgroup", test_comment.id, author)
 
     assert len(release_request.filegroups["group"].comments) == 1
+
+
+def test_hide_all_audit_logs_from_turn(bll):
+    checker = factories.get_default_output_checkers()[0]
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
+    )
+    rfile = release_request.get_request_file_from_urlpath(
+        UrlPath("group/test/file.txt")
+    )
+    bll.approve_file(release_request, rfile, checker)
+    bll.group_comment_create(
+        release_request, "group", "A comment", Visibility.PUBLIC, checker
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    audit_log = bll.get_request_audit_log(checker, release_request)
+    for log in audit_log:
+        assert not log.hidden
+
+    bll.hide_audit_events_for_turn(release_request, release_request.review_turn)
+    audit_log = bll.get_request_audit_log(checker, release_request)
+
+    for log in audit_log[0:2]:
+        assert int(log.extra["review_turn"]) == release_request.review_turn
+        assert log.hidden
+    for log in audit_log[2:]:
+        turn = log.extra.get("review_turn")
+        if turn is not None:
+            assert int(turn) < release_request.review_turn
+        assert not log.hidden

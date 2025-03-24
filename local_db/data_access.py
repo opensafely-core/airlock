@@ -437,9 +437,16 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 path=UrlPath(audit.path) if audit.path else None,
                 extra=audit.extra,
                 created_at=audit.created_at,
+                hidden=audit.hidden,
             )
             for audit in qs
         ]
+
+    def hide_audit_events_for_turn(self, request_id: str, review_turn: int):
+        with transaction.atomic():
+            AuditLog.objects.filter(
+                request=request_id, extra__review_turn=str(review_turn)
+            ).update(hidden=True)
 
     def _get_filegroup(self, request_id: str, group: str):
         try:

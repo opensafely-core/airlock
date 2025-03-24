@@ -72,6 +72,7 @@ class AuditEvent:
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
     created_at: datetime = field(default_factory=timezone.now, compare=False)
+    hidden: bool = False
 
     WIDTH = max(len(k.name) for k in AuditEventType)
 
@@ -113,6 +114,8 @@ class AuditEvent:
         for k, v in self.extra.items():
             msg.append(f"{k}={v}")
 
+        if self.hidden:
+            msg.append("hidden=True")
         return " ".join(msg)
 
     def description(self):

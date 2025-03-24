@@ -149,12 +149,22 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        user: User,
+        audit: AuditEvent,
     ):
         raise NotImplementedError()
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        user: User,
+        audit: AuditEvent,
     ):
         raise NotImplementedError()
 
@@ -164,7 +174,12 @@ class DataAccessLayerProtocol(Protocol):
         raise NotImplementedError()
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        reviewer: User,
+        audit: AuditEvent,
     ):
         raise NotImplementedError()
 
@@ -180,6 +195,9 @@ class DataAccessLayerProtocol(Protocol):
         exclude: set[AuditEventType] | None = None,
         size: int | None = None,
     ) -> list[AuditEvent]:
+        raise NotImplementedError()
+
+    def hide_audit_events_for_turn(self, request_id: str, review_turn: int):
         raise NotImplementedError()
 
     def group_edit(
@@ -1235,6 +1253,9 @@ class BusinessLogicLayer:
             group=path.parts[0],
         )
         self._dal.audit_event(audit)
+
+    def hide_audit_events_for_turn(self, request: ReleaseRequest, review_turn):
+        self._dal.hide_audit_events_for_turn(request.id, review_turn)
 
     def validate_update_dicts(self, updates):
         if updates is None:

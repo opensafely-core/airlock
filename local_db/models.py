@@ -266,6 +266,7 @@ class AuditLog(models.Model):
     path = models.TextField(null=True)
     extra = models.JSONField(default=dict)
     created_at = models.DateTimeField(default=timezone.now)
+    hidden = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
