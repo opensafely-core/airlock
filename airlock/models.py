@@ -441,6 +441,7 @@ class FileReview:
     status: RequestFileVote
     created_at: datetime
     updated_at: datetime
+    review_turn: int
 
     @classmethod
     def from_dict(cls, attrs):

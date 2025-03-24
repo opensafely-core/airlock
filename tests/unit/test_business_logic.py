@@ -2455,6 +2455,7 @@ def test_approve_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2545,6 +2546,7 @@ def test_request_changes_to_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2554,6 +2556,50 @@ def test_request_changes_to_file(bll):
         path=path,
         group="group",
     )
+
+
+def test_request_file_votes_review_turn(bll):
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
+    )
+    assert "group" in release_request.filegroups
+
+    assert release_request.review_turn == 1
+    checker = factories.create_airlock_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    bll.request_changes_to_file(release_request, request_file, checker)
+
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
+    assert (
+        rfile.get_decision(release_request.submitted_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
+    assert rfile.reviews[checker.user_id].review_turn == 1
+
+    # return the request; turn is incremented; file review still recorded as turn 1
+    bll.return_request(release_request, checker)
+    release_request = factories.refresh_release_request(release_request)
+    rfile = _get_request_file(release_request, path)
+    assert release_request.review_turn == 2
+    assert rfile.reviews[checker.user_id].review_turn == 1
+
+    # submit (now in turn 3) and approve
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PUBLIC, release_request.author
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.submit_request(release_request, release_request.author)
+    release_request = factories.refresh_release_request(release_request)
+    bll.approve_file(release_request, request_file, checker)
+    release_request = factories.refresh_release_request(release_request)
+    rfile = _get_request_file(release_request, path)
+    assert release_request.review_turn == 3
+    assert rfile.reviews[checker.user_id].review_turn == 3
 
 
 def test_approve_then_request_changes_to_file(bll):
@@ -2590,6 +2636,7 @@ def test_approve_then_request_changes_to_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
 
 @pytest.mark.parametrize(

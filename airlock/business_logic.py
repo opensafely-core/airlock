@@ -935,7 +935,13 @@ class BusinessLogicLayer:
             group=request_file.group,
         )
 
-        self._dal.approve_file(release_request.id, request_file.relpath, user, audit)
+        self._dal.approve_file(
+            release_request.id,
+            request_file.relpath,
+            release_request.review_turn,
+            user,
+            audit,
+        )
 
     def request_changes_to_file(
         self,
@@ -957,7 +963,11 @@ class BusinessLogicLayer:
         )
 
         self._dal.request_changes_to_file(
-            release_request.id, request_file.relpath, user, audit
+            release_request.id,
+            request_file.relpath,
+            release_request.review_turn,
+            user,
+            audit,
         )
 
     def reset_review_file(
@@ -1041,7 +1051,11 @@ class BusinessLogicLayer:
         )
 
         self._dal.mark_file_undecided(
-            release_request.id, relpath, review.reviewer, audit
+            release_request.id,
+            relpath,
+            release_request.review_turn,
+            review.reviewer,
+            audit,
         )
 
     def group_edit(
