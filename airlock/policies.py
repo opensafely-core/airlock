@@ -195,14 +195,21 @@ def check_can_review_file_on_request(request: "ReleaseRequest", relpath: UrlPath
 
 
 def check_can_mark_file_undecided(request: "ReleaseRequest", review: "FileReview"):
-    if request.status != RequestStatus.RETURNED:
+    """
+    This file can be marked as undecided
+    Allowed for files on RETURNED requests that have been reviewed as CHANGED_REQUESTED
+    (done prior to re-submission)
+    OR
+    for files on PARTIALLY_REVIEWED requests (done prior to early return)
+    """
+    if request.status == RequestStatus.RETURNED:
+        if review.status != RequestFileVote.CHANGES_REQUESTED:
+            raise exceptions.RequestReviewDenied(
+                f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
+            )
+    elif request.status != RequestStatus.PARTIALLY_REVIEWED:
         raise exceptions.RequestReviewDenied(
             f"cannot change file review to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
-        )
-
-    if review.status != RequestFileVote.CHANGES_REQUESTED:
-        raise exceptions.RequestReviewDenied(
-            f"cannot change file review from {review.status.name} to {RequestFileVote.UNDECIDED.name} from request in state {request.status.name}"
         )
 
 

@@ -2847,10 +2847,17 @@ def test_mark_file_undecided(bll):
 @pytest.mark.parametrize(
     "request_status,file_status,allowed",
     [
-        # can only mark undecided for a changes_requested file on a returned request
+        # not allowed on submitted requests
         (RequestStatus.SUBMITTED, RequestFileVote.CHANGES_REQUESTED, False),
+        # can only mark undecided for a changes_requested file on a returned request
         (RequestStatus.RETURNED, RequestFileVote.APPROVED, False),
         (RequestStatus.RETURNED, RequestFileVote.CHANGES_REQUESTED, True),
+        # can mark undecided for approved or changes requested on a partially reviewed
+        # request (will be pre-early return)
+        (RequestStatus.PARTIALLY_REVIEWED, RequestFileVote.APPROVED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestFileVote.CHANGES_REQUESTED, True),
+        # not allowed on reviewed requests
+        (RequestStatus.REVIEWED, RequestFileVote.CHANGES_REQUESTED, False),
     ],
 )
 def test_mark_file_undecided_permission_errors(
