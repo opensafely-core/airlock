@@ -1047,8 +1047,45 @@ class BusinessLogicLayer:
 
     def return_request(self, release_request: ReleaseRequest, user: User):
         permissions.check_user_can_return_request(user, release_request)
+        if release_request.submitted_reviews_count() < 2:
+            # This is an early return; revert activity on the current turn before we return the request
+            self.revert_turn_activity(release_request, user)
+
         self.set_status(release_request, RequestStatus.RETURNED, user)
         self._dal.start_new_turn(release_request.id)
+
+    def revert_turn_activity(self, release_request: ReleaseRequest, user: User):
+        """
+        Revert turn acitivty for an early return
+        Votes: reset or mark undecided for all votes from this turn
+        Comments: delete all from this turn
+        Set all audit logs from this turn to hidden. Only the
+        early return audit and return status change log will remain visible
+        """
+        reviews_to_reset = [
+            (relpath, review)
+            for relpath, request_file in release_request.output_files().items()
+            for review in request_file.reviews.values()
+            if review.review_turn == release_request.review_turn
+        ]
+
+        for relpath, review in reviews_to_reset:
+            if review.reviewer.username in release_request.submitted_reviews:
+                self.mark_file_undecided(
+                    release_request, review, relpath, review.reviewer
+                )
+            else:
+                self.reset_review_file(release_request, relpath, review.reviewer)
+
+        for filegroup in release_request.filegroups.values():
+            for comment in filegroup.comments:
+                if comment.review_turn == release_request.review_turn:
+                    bll.group_comment_delete(
+                        release_request, filegroup.name, comment.id, comment.author
+                    )
+
+        self.hide_audit_events_for_turn(release_request, release_request.review_turn)
+        self.audit_early_return(release_request, user)
 
     def mark_file_undecided(
         self,
@@ -1057,7 +1094,10 @@ class BusinessLogicLayer:
         relpath: UrlPath,
         user: User,
     ):
-        """Change an existing changes-requested file in a returned request to undecided before re-submitting"""
+        """
+        Change an existing file review in a submitted review to undecided before (early) returning
+        or re-submitting
+        """
         policies.check_can_mark_file_undecided(release_request, review)
 
         audit = AuditEvent.from_request(
@@ -1251,6 +1291,14 @@ class BusinessLogicLayer:
             user=user,
             path=path,
             group=path.parts[0],
+        )
+        self._dal.audit_event(audit)
+
+    def audit_early_return(self, request: ReleaseRequest, user: User):
+        audit = AuditEvent.from_request(
+            request,
+            AuditEventType.REQUEST_EARLY_RETURN,
+            user=user,
         )
         self._dal.audit_event(audit)
 
