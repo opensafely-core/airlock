@@ -865,6 +865,24 @@ def test_release_request_filegroups_missing_public_comment(
     assert release_request.filegroups_missing_public_comment() == expected_missing
 
 
+def test_release_request_early_return_does_not_require_group_comments(bll):
+    checker = factories.get_default_output_checkers()[0]
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                group="test-group",
+                approved=False,
+                changes_requested=True,
+            )
+        ],
+    )
+    bll.return_request(release_request, checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.filegroups_missing_public_comment() == []
+
+
 def test_returned_release_request_filegroups_missing_public_comment_file_withdrawn(bll):
     author = factories.create_airlock_user(workspaces=["workspace"])
     release_request = factories.create_request_at_status(
