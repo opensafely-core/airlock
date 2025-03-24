@@ -337,3 +337,54 @@ def test_request_comment_and_audit_visibility(bll):
     assert visible.vote(RequestFileVote.CHANGES_REQUESTED, checkers[0])
     assert not visible.comment("turn 3 checker 1 private", checkers[1])
     assert visible.comment("turn 3 checker 0 public", checkers[0])
+
+
+def test_request_comment_and_audit_visibility_hidden_items(bll):
+    author = factories.create_airlock_user(username="author1", workspaces=["workspace"])
+    checkers = factories.get_default_output_checkers()
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(group="group", path="file.txt", approved=True)],
+    )
+
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 0 private",
+        Visibility.PRIVATE,
+        checkers[0],
+    )
+    bll.group_comment_create(
+        release_request,
+        "group",
+        "turn 1 checker 1 private",
+        Visibility.PRIVATE,
+        checkers[1],
+    )
+
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.review_turn == 1
+    assert release_request.get_turn_phase() == ReviewTurnPhase.INDEPENDENT
+
+    def get_visible_items(user):
+        return VisibleItemsHelper.for_group(release_request, user, "group", bll)
+
+    # in ReviewTurnPhase.INDEPENDENT, checkers can only see own comments, author can see nothing
+    visible = get_visible_items(checkers[0])
+    assert visible.comment("turn 1 checker 0 private", checkers[0])
+    assert visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])
+
+    # hide everything for this turn
+    bll.hide_audit_events_for_turn(release_request, 1)
+    release_request = factories.refresh_release_request(release_request)
+    visible = get_visible_items(checkers[0])
+    assert not visible.comment("turn 1 checker 0 private", checkers[0])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[0])
+    assert not visible.comment("turn 1 checker 1 private", checkers[1])
+    assert not visible.vote(RequestFileVote.APPROVED, checkers[1])

@@ -3787,17 +3787,13 @@ def test_hide_all_audit_logs_from_turn(bll):
     release_request = factories.refresh_release_request(release_request)
 
     audit_log = bll.get_request_audit_log(checker, release_request)
-    for log in audit_log:
-        assert not log.hidden
-
-    bll.hide_audit_events_for_turn(release_request, release_request.review_turn)
-    audit_log = bll.get_request_audit_log(checker, release_request)
 
     for log in audit_log[0:2]:
-        assert int(log.extra["review_turn"]) == release_request.review_turn
-        assert log.hidden
-    for log in audit_log[2:]:
-        turn = log.extra.get("review_turn")
-        if turn is not None:
-            assert int(turn) < release_request.review_turn
-        assert not log.hidden
+        assert log.extra.get("review_turn") == str(release_request.review_turn)
+
+    bll.hide_audit_events_for_turn(release_request, release_request.review_turn)
+    audit_log_post_hide = bll.get_request_audit_log(checker, release_request)
+
+    assert len(audit_log_post_hide) == len(audit_log) - 2
+    for log in audit_log_post_hide:
+        assert log.extra.get("review_turn") != str(release_request.review_turn)
