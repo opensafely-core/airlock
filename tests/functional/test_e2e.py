@@ -339,9 +339,7 @@ def test_e2e_release_files(
     expect(submit_review_button).to_be_visible()
     expect(submit_review_button).to_be_disabled()
 
-    # Reuse the locators from the workspace view to click on filegroup and then file
-    # Click to open the filegroup tree
-    find_and_click(page, filegroup_link)
+    # Reuse the locators from the workspace view to click on file
     find_and_click(page, file_link)
     # Check the expected iframe content is visible
     expect(iframe_locator).to_be_visible()
