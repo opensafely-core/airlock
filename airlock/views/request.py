@@ -169,10 +169,12 @@ def _get_request_button_context(user, release_request):
         else:
             reject_btn.tooltip = "Rejecting a request is disabled until review has been submitted by two reviewers"
             return_btn.tooltip = "Return request before full review"
-            return_btn.modal_confirm_message = (
-                "Are you sure you want to return this request before both reviews "
+            return_btn.modal_confirm_message = mark_safe(
+                "<p>Are you sure you want to return this request before both reviews "
                 "are submitted? Typically you would only do this if the request "
-                "author has asked for an early return to make changes."
+                "author has asked for an early return to make changes.</p>"
+                "<p class='font-bold text-red-500'>WARNING: This will reset any activity "
+                "from the current turn (file reviews will be reset and comments will be deleted).</p>"
             )
 
         # A request can be released if it is in REVIEWED status and all files are
