@@ -127,6 +127,7 @@ def test_e2e_release_files(
 
     # Check the expected iframe content is visible
     iframe_locator = page.locator("#content-iframe")
+    expect(iframe_locator).to_be_visible()
     invalid_file_content = iframe_locator.content_frame.get_by_text(
         "file.foo is not a valid file type"
     )
@@ -139,6 +140,7 @@ def test_e2e_release_files(
     find_and_click(page, page.locator("#tree").get_by_role("link", name="file.txt"))
 
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     valid_file_content = iframe_locator.content_frame.get_by_text(
         "I am the file content"
     )
@@ -164,6 +166,7 @@ def test_e2e_release_files(
         f"{live_server.url}/workspaces/view/test-workspace/subdir/file.txt"
     )
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     expect(valid_file_content).to_be_visible()
 
     # The "Add file to request" button is disabled
@@ -204,6 +207,7 @@ def test_e2e_release_files(
     find_and_click(page, file_link)
 
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     expect(valid_file_content).to_be_visible()
 
     # Go back to the Workspace view so we can add a supporting file
@@ -250,6 +254,7 @@ def test_e2e_release_files(
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, subdir_link)
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     expect(valid_file_content).to_be_visible()
 
     # Click on the supporting file link.
@@ -258,6 +263,7 @@ def test_e2e_release_files(
     assert_tree_element_is_not_selected(page, file_link)
 
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     supporting_file_content = iframe_locator.content_frame.get_by_text(
         "I am the supporting file content"
     )
@@ -268,6 +274,7 @@ def test_e2e_release_files(
     assert_tree_element_is_selected(file_link)
     assert_tree_element_is_not_selected(page, supporting_file_link)
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     expect(valid_file_content).to_be_visible()
 
     # Add context & controls to the filegroup
@@ -337,6 +344,7 @@ def test_e2e_release_files(
     find_and_click(page, filegroup_link)
     find_and_click(page, file_link)
     # Check the expected iframe content is visible
+    expect(iframe_locator).to_be_visible()
     expect(valid_file_content).to_be_visible()
 
     # File is not yet approved, so the release button is disabled
