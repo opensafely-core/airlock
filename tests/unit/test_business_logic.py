@@ -2455,6 +2455,7 @@ def test_approve_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2545,6 +2546,7 @@ def test_request_changes_to_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[0] == AuditEvent.from_request(
@@ -2554,6 +2556,50 @@ def test_request_changes_to_file(bll):
         path=path,
         group="group",
     )
+
+
+def test_request_file_votes_review_turn(bll):
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file(path=path)],
+    )
+    assert "group" in release_request.filegroups
+
+    assert release_request.review_turn == 1
+    checker = factories.create_airlock_user(output_checker=True)
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    bll.request_changes_to_file(release_request, request_file, checker)
+
+    rfile = _get_request_file(release_request, path)
+    assert rfile.get_file_vote_for_user(checker) == RequestFileVote.CHANGES_REQUESTED
+    assert (
+        rfile.get_decision(release_request.submitted_reviews.keys())
+        == RequestFileDecision.INCOMPLETE
+    )
+    assert rfile.reviews[checker.user_id].review_turn == 1
+
+    # return the request; turn is incremented; file review still recorded as turn 1
+    bll.return_request(release_request, checker)
+    release_request = factories.refresh_release_request(release_request)
+    rfile = _get_request_file(release_request, path)
+    assert release_request.review_turn == 2
+    assert rfile.reviews[checker.user_id].review_turn == 1
+
+    # submit (now in turn 3) and approve
+    bll.group_comment_create(
+        release_request, "group", "a comment", Visibility.PUBLIC, release_request.author
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.submit_request(release_request, release_request.author)
+    release_request = factories.refresh_release_request(release_request)
+    bll.approve_file(release_request, request_file, checker)
+    release_request = factories.refresh_release_request(release_request)
+    rfile = _get_request_file(release_request, path)
+    assert release_request.review_turn == 3
+    assert rfile.reviews[checker.user_id].review_turn == 3
 
 
 def test_approve_then_request_changes_to_file(bll):
@@ -2590,6 +2636,7 @@ def test_approve_then_request_changes_to_file(bll):
         rfile.get_decision(release_request.submitted_reviews.keys())
         == RequestFileDecision.INCOMPLETE
     )
+    assert rfile.reviews[checker.user_id].review_turn == release_request.review_turn
 
 
 @pytest.mark.parametrize(
@@ -2800,10 +2847,17 @@ def test_mark_file_undecided(bll):
 @pytest.mark.parametrize(
     "request_status,file_status,allowed",
     [
-        # can only mark undecided for a changes_requested file on a returned request
+        # not allowed on submitted requests
         (RequestStatus.SUBMITTED, RequestFileVote.CHANGES_REQUESTED, False),
+        # can only mark undecided for a changes_requested file on a returned request
         (RequestStatus.RETURNED, RequestFileVote.APPROVED, False),
         (RequestStatus.RETURNED, RequestFileVote.CHANGES_REQUESTED, True),
+        # can mark undecided for approved or changes requested on a partially reviewed
+        # request (will be pre-early return)
+        (RequestStatus.PARTIALLY_REVIEWED, RequestFileVote.APPROVED, True),
+        (RequestStatus.PARTIALLY_REVIEWED, RequestFileVote.CHANGES_REQUESTED, True),
+        # not allowed on reviewed requests
+        (RequestStatus.REVIEWED, RequestFileVote.CHANGES_REQUESTED, False),
     ],
 )
 def test_mark_file_undecided_permission_errors(
@@ -3051,6 +3105,7 @@ DAL_AUDIT_EXCLUDED = {
     "get_released_files_for_workspace",
     "get_released_files_for_request",
     "register_file_upload_attempt",
+    "hide_audit_events_for_turn",
 }
 
 
@@ -3713,3 +3768,180 @@ def test_group_comment_delete_invalid_params(bll):
         bll.group_comment_delete(release_request, "badgroup", test_comment.id, author)
 
     assert len(release_request.filegroups["group"].comments) == 1
+
+
+def test_hide_all_audit_logs_from_turn(bll):
+    checker = factories.get_default_output_checkers()[0]
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "test/file.txt")],
+    )
+    rfile = release_request.get_request_file_from_urlpath(
+        UrlPath("group/test/file.txt")
+    )
+    bll.approve_file(release_request, rfile, checker)
+    bll.group_comment_create(
+        release_request, "group", "A comment", Visibility.PUBLIC, checker
+    )
+    release_request = factories.refresh_release_request(release_request)
+
+    audit_log = bll.get_request_audit_log(checker, release_request)
+
+    for log in audit_log[0:2]:
+        assert log.extra.get("review_turn") == str(release_request.review_turn)
+
+    bll.hide_audit_events_for_turn(release_request, release_request.review_turn)
+    audit_log_post_hide = bll.get_request_audit_log(checker, release_request)
+
+    assert len(audit_log_post_hide) == len(audit_log) - 2
+    for log in audit_log_post_hide:
+        assert log.extra.get("review_turn") != str(release_request.review_turn)
+
+
+def test_early_return(bll):
+    checker1, checker2 = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file("group", "test/file.txt"),
+            factories.request_file("group", "test/file1.txt"),
+        ],
+    )
+
+    urlpath1 = UrlPath("group/test/file.txt")
+    urlpath2 = UrlPath("group/test/file1.txt")
+
+    # checker1 requests changes to both files, adds a comment, submits review
+    for urlpath in [urlpath1, urlpath2]:
+        rfile = release_request.get_request_file_from_urlpath(urlpath)
+        bll.request_changes_to_file(release_request, rfile, checker1)
+    bll.group_comment_create(
+        release_request, "group", "A comment", Visibility.PRIVATE, checker1
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.review_request(release_request, checker1)
+
+    # checker2 approves one file
+    rfile = release_request.get_request_file_from_urlpath(urlpath1)
+    bll.approve_file(release_request, rfile, checker2)
+
+    release_request = factories.refresh_release_request(release_request)
+
+    def _visible_audit_events_for_turn(audit_logs, review_turn):
+        return [
+            log.type
+            for log in audit_logs
+            if log.extra.get("review_turn") == str(review_turn)
+        ]
+
+    # check  currently visible audit logs for this turn
+    checker1_events = _visible_audit_events_for_turn(
+        bll.get_request_audit_log(checker1, release_request, exclude_readonly=True),
+        release_request.review_turn,
+    )
+    assert checker1_events == [
+        AuditEventType.REQUEST_REVIEW,
+        AuditEventType.REQUEST_COMMENT,
+        AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
+        AuditEventType.REQUEST_FILE_REQUEST_CHANGES,
+    ]
+
+    checker2_events = _visible_audit_events_for_turn(
+        bll.get_request_audit_log(checker2, release_request, exclude_readonly=True),
+        release_request.review_turn,
+    )
+    assert checker2_events == [AuditEventType.REQUEST_FILE_APPROVE]
+
+    author_events = _visible_audit_events_for_turn(
+        bll.get_request_audit_log(
+            release_request.author, release_request, exclude_readonly=True
+        ),
+        release_request.review_turn,
+    )
+    assert author_events == []
+
+    # checker2 returns early
+    bll.return_request(release_request, checker2)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert release_request.filegroups["group"].comments == []
+    rfile1 = release_request.get_request_file_from_urlpath(urlpath1)
+    assert rfile1.get_file_vote_for_user(checker1) == RequestFileVote.UNDECIDED
+    assert rfile1.get_file_vote_for_user(checker2) is None
+    rfile2 = release_request.get_request_file_from_urlpath(urlpath2)
+    assert rfile2.get_file_vote_for_user(checker1) == RequestFileVote.UNDECIDED
+    assert rfile2.get_file_vote_for_user(checker2) is None
+
+    # After early return, all users see only the return and early return logs
+    for user in [release_request.author, checker1, checker2]:
+        audit_events = _visible_audit_events_for_turn(
+            bll.get_request_audit_log(user, release_request, exclude_readonly=True),
+            release_request.review_turn - 1,
+        )
+        assert audit_events == [
+            AuditEventType.REQUEST_RETURN,
+            AuditEventType.REQUEST_EARLY_RETURN,
+        ]
+
+
+def test_early_return_after_resubmission(bll):
+    checker1, checker2 = factories.get_default_output_checkers()
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file("group", "test/file.txt", approved=True),
+            factories.request_file("group", "test/file1.txt", changes_requested=True),
+        ],
+    )
+
+    urlpath1 = UrlPath("group/test/file.txt")
+    urlpath2 = UrlPath("group/test/file1.txt")
+
+    # author adds a comment and resubmits
+    bll.group_comment_create(
+        release_request, "group", "A comment", Visibility.PUBLIC, release_request.author
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.submit_request(release_request, release_request.author)
+    release_request = factories.refresh_release_request(release_request)
+
+    # file 1 is still approved
+    rfile1 = release_request.get_request_file_from_urlpath(urlpath1)
+    for user in [checker1, checker2]:
+        assert rfile1.get_file_vote_for_user(user) == RequestFileVote.APPROVED
+
+    # file 2 has been set to undecided on re-submission
+    # set to approved in this turn for both checkers and add comment
+    rfile2 = release_request.get_request_file_from_urlpath(urlpath2)
+    for user in [checker1, checker2]:
+        assert rfile2.get_file_vote_for_user(user) == RequestFileVote.UNDECIDED
+        bll.approve_file(release_request, rfile2, user)
+        bll.group_comment_create(
+            release_request, "group", "comment", Visibility.PRIVATE, user
+        )
+
+    # neither user has submitted their review
+    release_request = factories.refresh_release_request(release_request)
+    # group currently has 6 comments, 2 from checkers in first review, 1 from
+    # author on first submission, 1 from author on resubmission,
+    # and 2 from checkers in this turn
+    assert len(release_request.filegroups["group"].comments) == 6
+
+    # checker2 returns early
+    bll.return_request(release_request, checker2)
+    release_request = factories.refresh_release_request(release_request)
+
+    # comments from previous turns are still there
+    assert len(release_request.filegroups["group"].comments) == 4
+
+    # rfile1 wasn't changed in this turn, stays as approved
+    rfile1 = release_request.get_request_file_from_urlpath(urlpath1)
+    for checker in [checker1, checker2]:
+        assert rfile1.get_file_vote_for_user(checker) == RequestFileVote.APPROVED
+
+    rfile2 = release_request.get_request_file_from_urlpath(urlpath2)
+    for checker in [checker1, checker2]:
+        assert rfile2.get_file_vote_for_user(checker) is None

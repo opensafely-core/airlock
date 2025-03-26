@@ -49,6 +49,10 @@ def filter_visible_items(
     of said item.
     """
     for item in items:
+        # First check if this item is always hidden from users
+        if getattr(item, "hidden", False):
+            continue
+
         # you can always see things you've authored. Doing this first
         # simplifies later logic, and avoids potential bugs with users adding
         # items but then they can not see the item they just added

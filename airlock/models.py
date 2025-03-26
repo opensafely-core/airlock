@@ -46,6 +46,7 @@ AUDIT_MSG_FORMATS = {
     AuditEventType.REQUEST_REJECT: "Rejected request",
     AuditEventType.REQUEST_RETURN: "Returned request",
     AuditEventType.REQUEST_RELEASE: "Released request",
+    AuditEventType.REQUEST_EARLY_RETURN: "Request returned early; comments and votes for turn reset",
     AuditEventType.REQUEST_EDIT: "Edited the Context/Controls",
     AuditEventType.REQUEST_COMMENT: "Commented",
     AuditEventType.REQUEST_COMMENT_DELETE: "Comment deleted",
@@ -72,6 +73,7 @@ class AuditEvent:
     extra: dict[str, str] = field(default_factory=dict)
     # this is used when querying the db for audit log times
     created_at: datetime = field(default_factory=timezone.now, compare=False)
+    hidden: bool = False
 
     WIDTH = max(len(k.name) for k in AuditEventType)
 
@@ -113,6 +115,8 @@ class AuditEvent:
         for k, v in self.extra.items():
             msg.append(f"{k}={v}")
 
+        if self.hidden:
+            msg.append("hidden=True")
         return " ".join(msg)
 
     def description(self):
@@ -441,6 +445,7 @@ class FileReview:
     status: RequestFileVote
     created_at: datetime
     updated_at: datetime
+    review_turn: int
 
     @classmethod
     def from_dict(cls, attrs):
@@ -958,7 +963,7 @@ class ReleaseRequest:
     def filegroups_missing_public_comment(self) -> list[str]:
         """
         A filegroup requires a public comment in the current turn if:
-        - it is currently RETURNED OR
+        - it is currently RETURNED and not early-returned OR
         - it is under review and independent review is complete
         AND:
         - any of its files have CONFLICTED or CHANGES_REQUESTED decisions
@@ -975,6 +980,9 @@ class ReleaseRequest:
 
         match self.status:
             case RequestStatus.RETURNED:
+                # The previous turn had < 2 submitted reviews - this is an early return
+                if len(self.turn_reviewers) < 2:
+                    return []
                 reviewers = self.turn_reviewers
             case RequestStatus.REVIEWED:
                 # public comments are not enforced until independent reivew is complete

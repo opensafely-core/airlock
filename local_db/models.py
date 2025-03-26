@@ -242,6 +242,7 @@ class FileReview(models.Model):
     status = EnumField(default=RequestFileVote.CHANGES_REQUESTED, enum=RequestFileVote)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    review_turn = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ("file", "reviewer")
@@ -253,6 +254,7 @@ class FileReview(models.Model):
             status=self.status,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            review_turn=self.review_turn,
         )
 
 
@@ -264,6 +266,7 @@ class AuditLog(models.Model):
     path = models.TextField(null=True)
     extra = models.JSONField(default=dict)
     created_at = models.DateTimeField(default=timezone.now)
+    hidden = models.BooleanField(default=False)
 
     class Meta:
         indexes = [

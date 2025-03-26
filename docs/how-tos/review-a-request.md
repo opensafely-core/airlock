@@ -1,5 +1,17 @@
 Two output checkers perform must perform an independent review of
-each requested file.
+each requested file before the release request can be progressed to the
+next stage.
+
+!!! warning "Returning a request early"
+    A release request that has been submitted for review can be returned to
+    the researcher at any point in the review turn. This allows researchers
+    to rectify mistakes without requiring two independent output checkers
+    to review every file.
+
+    If you return a release request early, the current review turn is aborted; any
+    activity from the current turn will be reset. Any reviews on files
+    during the current turn will be reset, and any comments made
+    during the current turn will be deleted.
 
 ## View release requests that require action
 

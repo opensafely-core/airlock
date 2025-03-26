@@ -296,7 +296,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def approve_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        user: User,
+        audit: AuditEvent,
     ):
         with transaction.atomic():
             # nb. the business logic layer approve_file() should confirm that this path
@@ -309,12 +314,18 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 file=request_file, reviewer=user.user_id
             )
             review.status = RequestFileVote.APPROVED
+            review.review_turn = review_turn
             review.save()
 
             self._create_audit_log(audit)
 
     def request_changes_to_file(
-        self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        user: User,
+        audit: AuditEvent,
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -325,6 +336,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 file=request_file, reviewer=user.user_id
             )
             review.status = RequestFileVote.CHANGES_REQUESTED
+            review.review_turn = review_turn
             review.save()
 
             self._create_audit_log(audit)
@@ -348,7 +360,12 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
     def mark_file_undecided(
-        self, request_id: str, relpath: UrlPath, reviewer: User, audit: AuditEvent
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        review_turn: int,
+        reviewer: User,
+        audit: AuditEvent,
     ):
         with transaction.atomic():
             request_file = RequestFileMetadata.objects.get(
@@ -358,6 +375,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 file=request_file, reviewer=reviewer.user_id
             )
             review.status = RequestFileVote.UNDECIDED
+            review.review_turn = review_turn
             review.save()
 
             self._create_audit_log(audit)
@@ -419,9 +437,16 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
                 path=UrlPath(audit.path) if audit.path else None,
                 extra=audit.extra,
                 created_at=audit.created_at,
+                hidden=audit.hidden,
             )
             for audit in qs
         ]
+
+    def hide_audit_events_for_turn(self, request_id: str, review_turn: int):
+        with transaction.atomic():
+            AuditLog.objects.filter(
+                request=request_id, extra__review_turn=str(review_turn)
+            ).update(hidden=True)
 
     def _get_filegroup(self, request_id: str, group: str):
         try:
