@@ -1,7 +1,22 @@
-<div id="selected-contents" class="h-full">
-  {% if path_item.type.name != "REPO" %}
-    {% with template_dir|add:path_item.type.name.lower|add:".html" as template %}
-      {% include template %}
-    {% endwith %}
-  {% endif %}
+<div class="h-full">
+
+  <div id="card-buttons">
+    {% fragment as buttons %}
+      {% if path_item.type.name != "REPO" %}
+        {% with template_dir|add:"buttons/"|add:path_item.type.name.lower|add:".html" as buttons_template %}
+          {% include buttons_template %}
+        {% endwith %}
+      {% endif %}
+    {% endfragment %}
+  </div>
+
+
+  <div id="selected-contents">
+    {% if path_item.type.name != "REPO" %}
+      {% with template_dir|add:path_item.type.name.lower|add:".html" as template %}
+        {% include template %}
+      {% endwith %}
+    {% endif %}
+  </div>
+
 </div>

@@ -1,5 +1,12 @@
 {% if request.htmx %}
   {% include "file_browser/request/header.html" %}
+
+  {% if path_item.type.name != "REPO" %}
+    {% with template_dir|add:"buttons/"|add:path_item.type.name.lower|add:".html" as buttons_template %}
+      {% include buttons_template %}
+    {% endwith %}
+  {% endif %}
+
 {% endif %}
 
 {% include "file_browser/contents.html" %}
