@@ -13,11 +13,11 @@ RENDERER_TESTS = [
     (".csv", "text/html", False, "airlock/templates/file_browser/csv.html"),
     (".txt", "text/html", False, "airlock/templates/file_browser/text.html"),
     (".log", "text/html", False, "airlock/templates/file_browser/text.html"),
-    (".html", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
-    (".png", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
-    (".csv", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
-    (".txt", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
-    (".log", "text/html", True, "airlock/templates/file_browser/plaintext.html"),
+    (".html", "text/html", True, "airlock/templates/file_browser/text.html"),
+    (".png", "text/html", True, "airlock/templates/file_browser/text.html"),
+    (".csv", "text/html", True, "airlock/templates/file_browser/text.html"),
+    (".txt", "text/html", True, "airlock/templates/file_browser/text.html"),
+    (".log", "text/html", True, "airlock/templates/file_browser/text.html"),
 ]
 
 
