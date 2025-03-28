@@ -378,22 +378,22 @@ def test_csv_filtering(live_server, page, context, bll):
     for age_band in age_bands:
         expect(page.locator("body")).to_contain_text(age_band)
 
-    # Filter the mean column to value 20 (in age band 21-40)
-    column_filter = page.get_by_placeholder("Filter mean")
-    column_filter.fill("20")
-    expect(page.locator("body")).to_contain_text("21-40")
+    # Filter to rows with a "30"
+    table_filter = page.get_by_role("searchbox")
+    table_filter.fill("30")
+    expect(page.locator("body")).to_contain_text("41-60")
 
-    for age_band in age_bands - {"21-40"}:
+    for age_band in age_bands - {"41-60"}:
         expect(page.locator("body")).not_to_contain_text(age_band)
 
     # Filter the mean column to a value that doesn't match anything
-    column_filter.fill("foo")
+    table_filter.fill("foo")
     for age_band in age_bands:
         expect(page.locator("body")).not_to_contain_text(age_band)
     expect(page.locator("body")).to_contain_text("No results match")
 
     # Reset the filter by removing text
-    column_filter.fill("")
+    table_filter.fill("")
     for age_band in age_bands:
         expect(page.locator("body")).to_contain_text(age_band)
 

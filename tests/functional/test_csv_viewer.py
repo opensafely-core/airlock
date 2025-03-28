@@ -3,6 +3,7 @@ import sys
 from io import StringIO
 
 from hypothesis import given, settings
+from playwright.sync_api import expect
 
 from airlock.types import UrlPath
 from tests import factories
@@ -24,6 +25,17 @@ from .csv_generator import csv_file
 # So this is why we instead pass the csv file into pyright.evaluate() and let
 # the evaluated javascript do the comparison, before returning an array of any
 # failures
+
+# NB There is a bug which causes these tests to hang when run with coverage turned
+# on e.g. `just test-all` if a hypothesis test calls `context.close()`. This
+# (https://github.com/HypothesisWorks/hypothesis/issues/4052) is possibly the same
+# bug. But it's not clear whether it's hypothesis, pytest or coverage at fault and
+# it seeems to get fixed in higher versions of python. So this might not be true if
+# we migrate to higher than python 3.11. The code to add to the final hypothesis
+# test in this file is:
+#
+# if "coverage" not in sys.modules.keys():  # pragma: no cover
+#   context.close()
 
 
 @given(csv_file=csv_file(min_lines=2, max_lines=10, num_columns=5))
@@ -99,12 +111,162 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
 
     assert len(failures) == 0, print(repr(failures))
 
-    # In theory we should tidy up by closing the context. But there is a bug which
-    # causes this test to hang when run with coverage turned on. So we check to see
-    # if coverage is on, and if not we tidy up.
-    # This (https://github.com/HypothesisWorks/hypothesis/issues/4052) is possibly the
-    # same bug. But it's not clear whether it's hypothesis, pytest or coverage at fault
-    # and it seeems to get fixed in higher versions of python. Maybe can test if it's
-    # still a problem if we move higher than python 3.11
+    # We can tidy up here without hanging because there is a hypothesis test
+    # after this one. See the comment at the top of the file for more detail
+    context.close()
+
+
+# The current table virtualization implementation only shows 200 rows, plus
+# the header. So we simluate at least a 210 row csv file.
+@given(csv_file=csv_file(min_lines=210, max_lines=250, num_columns=5, just_text=True))
+@settings(deadline=None, max_examples=20)
+def test_csv_sorting(live_server, browser, csv_file):
+    # Normally we pass "context" and "page" as per function fixtures.
+    # However hypothesis would then use the same context/page for each
+    # test run and occasionally caching causes tests to fail. So instead
+    # we create a new context and page for each test run
+    context = browser.new_context()
+    page = context.new_page()
+    workspace = factories.create_workspace("my-workspace")
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        csv_file,
+    )
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    column_sort_index = 2
+
+    # We get a handle on the sort button for the n and (n+1)th column
+    sort_button_1 = page.get_by_role("button").nth(column_sort_index + 1)
+    sort_button_2 = page.get_by_role("button").nth(column_sort_index + 2)
+
+    reader = csv.reader(StringIO(csv_file), delimiter=",")
+    csv_list = list(reader)
+
+    # We don't want the first row as that is treated as a header
+    rows = csv_list[1:]
+    rows_sorted_1 = sorted(rows, key=lambda x: (x[column_sort_index]))
+    rows_sorted_2 = sorted(rows, key=lambda x: (x[column_sort_index + 1]))
+
+    first_row_sorted_asc = rows_sorted_1[0]
+    last_row_sorted_column_value = rows_sorted_1[-1][column_sort_index]
+    first_row_second_sort_column_value = rows_sorted_2[0][column_sort_index + 1]
+
+    # There seems to be an edge case where if every value in the column
+    # is already sorted, a javascript sort will not do anything, while the
+    # python sort shifts some rows about. If the value in the first row
+    # is the same after sorting, then we assume the first row stayed in
+    # place
+    if first_row_sorted_asc[column_sort_index] == rows[0][column_sort_index]:
+        first_row_sorted_asc = rows[0]
+
+    # sort ascending by nth column
+    sort_button_1.click()
+
+    # wait for sorting to finish
+    expect(
+        page.locator(
+            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
+        )
+    ).to_be_visible()
+
+    # check first row is as expected
+    for item in first_row_sorted_asc:
+        expect(page.locator("tbody tr:nth-child(1)").first).to_contain_text(
+            item, timeout=1
+        )
+
+    # sort descending by nth column
+    sort_button_1.click()
+
+    # wait for sorting to finish
+    expect(
+        page.locator(
+            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
+        )
+    ).to_be_visible()
+
+    # Check cell in sorted column first row is as expected.
+    # The sort behaviour in python/javascript is sufficiently different that
+    # it's hard to get this correct after the first sort. So rather than adding
+    # unnecessary complexity to the test, we just check that the first value in
+    # the sorted column is as expected
+    expect(
+        page.locator("tbody tr:nth-child(1)").first.locator(
+            f"td:nth-child({column_sort_index + 2})"
+        )
+    ).to_contain_text(last_row_sorted_column_value, timeout=1)
+
+    # sort ascending by (n+1)th column
+    sort_button_2.click()
+
+    # wait for sorting to finish
+    expect(
+        page.locator(
+            f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
+        )
+    ).to_be_visible()
+
+    expect(
+        page.locator("tbody tr:nth-child(1)").first.locator(
+            f"td:nth-child({column_sort_index + 3})"
+        )
+    ).to_contain_text(first_row_second_sort_column_value, timeout=1)
+
+    # See note at the top of file
     if "coverage" not in sys.modules.keys():  # pragma: no cover
         context.close()
+
+
+# Ensure every element in a large csv table is eventually visible with scolling
+def test_csv_scroll(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+    num_rows = 1000
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "\r\n".join([f"value,value,value{i}" for i in range(num_rows)]),
+    )
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    page.locator("tbody").hover()
+    for i in range(num_rows):
+        row_locator = page.get_by_text(f"value{i}", exact=True)
+        if not row_locator.is_visible():  # pragma: no cover (if we ever revert to non-virtualized tables then this is never True)
+            # We need to scroll the table sufficiently so the next row appears.
+            # This scrolls 6000 pixels which seems to be about right. NB "visible"
+            # in the playwright context means it is potentially visible, even if
+            # currently off screen. So we need to scroll by a long way because
+            # initially there are 200 visible rows, and we need to scroll until
+            # the virtualized html table generates the next batch of rows.
+            page.mouse.wheel(0, 6000)
+            expect(row_locator).to_be_visible()

@@ -22,5 +22,13 @@
       "module": "pytest",
       "console": "integratedTerminal"
     },
+    {
+      "name": "Debug: Playwright test file",
+      "type": "debugpy",
+      "request": "launch",
+      "args": ["${file}", "--headed"],
+      "module": "pytest",
+      "console": "integratedTerminal"
+    },
   ]
 }
