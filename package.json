@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.1.1",
+    "clusterize.js": "^1.0.0",
     "htmx.org": "^2.0.3",
     "simple-datatables": "^9.1.0"
   }
