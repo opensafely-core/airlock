@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from email.utils import parsedate
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -88,13 +87,7 @@ def serve_file(request, renderer):
     Handles sending 304 Not Modified if possible.
     """
 
-    last_requested = request.headers.get("If-Modified-Since")
-
     if request.headers.get("If-None-Match") == renderer.etag:
-        response = HttpResponseNotModified(headers=renderer.headers())
-    elif last_requested and parsedate(last_requested) >= parsedate(
-        renderer.last_modified
-    ):
         response = HttpResponseNotModified(headers=renderer.headers())
     else:
         response = renderer.get_response()

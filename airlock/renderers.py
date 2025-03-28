@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import mimetypes
 import re
 from dataclasses import dataclass
@@ -28,11 +29,36 @@ class RendererTemplate:
 
     @classmethod
     def from_name(cls, name: str) -> Self:
-        template = cast(Template, loader.get_template(name))
-        return cls(name, template=template, path=Path(template.origin.name))
+        template = cls.get_template(name)
+        return cls(
+            name,
+            template=template,
+            path=Path(template.origin.name),
+        )
+
+    @staticmethod
+    def get_template(name) -> Template:
+        return cast(Template, loader.get_template(name))
+
+    @staticmethod
+    def content_key(template: Template) -> str:
+        # loader.get_template() returns a different Template depending on
+        # which template engine is used. Usually this will be a DjangoTemplates
+        # engine (django.template.backends.django.Template), but we cast it to the
+        # publicly exposed django.template.Template. Both versions of Template have
+        # a .render() method which works for the response, but django.template.Template
+        # doesn't have a template attribute, which we need for getting the source content
+        # So we just tell mypy to ignore here.
+        return hashlib.sha256(template.template.source.encode()).hexdigest()  # type: ignore
 
     def cache_id(self):
-        return filesystem_key(self.path.stat())
+        # cache the template using its content rather than filesystem data
+        # Django caches templates by default, so loading the template again
+        # is cheap
+        # We don't want to use the template mtime in the cache ID because it
+        # will change after a deploy, even if the content is the same
+        template = self.get_template(self.name)
+        return self.content_key(template)
 
 
 @dataclass
