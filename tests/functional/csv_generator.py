@@ -53,6 +53,9 @@ def csv_row(draw, columns):
     return tuple(_escape_csv_field(draw(column)) for column in columns)
 
 
+ascii_lowers = functools.partial(
+    text, min_size=1, max_size=20, alphabet=string.ascii_lowercase
+)
 valid_column_types = [
     integers,
     floats,
@@ -61,7 +64,13 @@ valid_column_types = [
 
 
 @composite
-def csv_rows(draw, num_columns: int = 5, min_lines: int = 2, max_lines: int = 10):
+def csv_rows(
+    draw,
+    num_columns: int = 5,
+    min_lines: int = 2,
+    max_lines: int = 10,
+    just_text: bool = False,
+):
     """
     Strategy to produce a list of csv rows
 
@@ -73,8 +82,8 @@ def csv_rows(draw, num_columns: int = 5, min_lines: int = 2, max_lines: int = 10
     Returns:
       list[tuple]: a list of csv rows as tuples
     """
-
-    columns = [draw(sampled_from(valid_column_types))() for _ in range(num_columns)]
+    column_types = [ascii_lowers] if just_text else valid_column_types
+    columns = [draw(sampled_from(column_types))() for _ in range(num_columns)]
     rows = draw(
         lists(
             csv_row(columns=columns),
@@ -86,7 +95,13 @@ def csv_rows(draw, num_columns: int = 5, min_lines: int = 2, max_lines: int = 10
 
 
 @composite
-def csv_file(draw, num_columns: int = 5, min_lines: int = 2, max_lines: int = 10):
+def csv_file(
+    draw,
+    num_columns: int = 5,
+    min_lines: int = 2,
+    max_lines: int = 10,
+    just_text: bool = False,
+):
     """
     Strategy to produce a CSV file as a string. Uses `csv_rows` strategy to
     generate the data.
@@ -102,7 +117,12 @@ def csv_file(draw, num_columns: int = 5, min_lines: int = 2, max_lines: int = 10
 
     rows = list(
         draw(
-            csv_rows(min_lines=min_lines, max_lines=max_lines, num_columns=num_columns)
+            csv_rows(
+                min_lines=min_lines,
+                max_lines=max_lines,
+                num_columns=num_columns,
+                just_text=just_text,
+            )
         )
     )
 
