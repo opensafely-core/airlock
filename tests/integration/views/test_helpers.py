@@ -31,17 +31,17 @@ def test_serve_file(tmp_path, rf):
     response = helpers.serve_file(request, renderer)
     assert response.status_code == 304
 
-    request = rf.get(
-        "/", headers={"If-Modified-Since": "Tue, 05 Mar 2024 15:35:04 GMT"}
-    )
-    response = helpers.serve_file(request, renderer)
-    assert response.status_code == 304
-
-    request = rf.get(
-        "/", headers={"If-Modified-Since": "Tue, 05 Mar 2023 15:35:04 GMT"}
-    )
-    response = helpers.serve_file(request, renderer)
+    # update file content
+    test_file.write_text("newfoo")
+    new_renderer = renderers.Renderer.from_file(test_file)
+    assert new_renderer.etag != renderer.etag
+    request = rf.get("/", headers={"If-None-Match": renderer.etag})
+    response = helpers.serve_file(request, new_renderer)
     assert response.status_code == 200
+
+    request = rf.get("/", headers={"If-None-Match": new_renderer.etag})
+    response = helpers.serve_file(request, new_renderer)
+    assert response.status_code == 304
 
 
 def test_serve_file_template_changes(tmp_path, rf, settings):

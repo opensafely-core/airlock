@@ -40,8 +40,10 @@ def test_renderers_get_renderer_workspace(
 
     if template_path:
         assert isinstance(renderer.template, renderers.RendererTemplate)
-        template_cache_id = renderers.filesystem_key(renderer.template.path.stat())
-        assert renderer.cache_id == f"{content_cache_id}-{template_cache_id}"
+        assert (
+            renderer.cache_id
+            == f"{content_cache_id}-{renderer.template.content_cache_id}"
+        )
     else:
         assert renderer.cache_id == content_cache_id
 
@@ -81,8 +83,10 @@ def test_renderers_get_renderer_request(
 
     if template_path:
         assert isinstance(renderer.template, renderers.RendererTemplate)
-        template_cache_id = renderers.filesystem_key(renderer.template.path.stat())
-        assert renderer.cache_id == f"{request_file.file_id}-{template_cache_id}"
+        assert (
+            renderer.cache_id
+            == f"{request_file.file_id}-{renderer.template.content_cache_id}"
+        )
     else:
         assert renderer.cache_id == request_file.file_id
 
