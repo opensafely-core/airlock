@@ -26,14 +26,17 @@ class RendererTemplate:
     name: str
     path: Path
     template: Template
+    content_cache_id: str
 
     @classmethod
     def from_name(cls, name: str) -> Self:
         template = cls.get_template(name)
+        content_cache_id = cls.content_key(template)
         return cls(
             name,
             template=template,
             path=Path(template.origin.name),
+            content_cache_id=content_cache_id,
         )
 
     @staticmethod
@@ -50,6 +53,9 @@ class RendererTemplate:
         # doesn't have a template attribute, which we need for getting the source content
         # So we just tell mypy to ignore here.
         return hashlib.sha256(template.template.source.encode()).hexdigest()  # type: ignore
+
+    def reload(self):
+        return type(self).from_name(self.name)
 
     def cache_id(self):
         # cache the template using its content rather than filesystem data
@@ -86,6 +92,10 @@ class Renderer:
             stream: IO[Any] = abspath.open("r", errors="replace")
         else:
             stream = abspath.open("rb")
+
+        # check if this template's content has changed since the TemplateRenderer was loaded
+        if cls.template and (cls.template.content_cache_id != cls.template.cache_id()):
+            cls.template = cls.template.reload()
 
         return cls(
             stream=stream,
