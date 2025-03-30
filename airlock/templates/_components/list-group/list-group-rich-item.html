@@ -1,0 +1,68 @@
+<li class="relative transition-colors hover:bg-oxford-50 group {{ class }}">
+  <dl class="flex flex-col gap-2 px-4 py-4 sm:px-6">
+    <div class="flex gap-x-2">
+      <dt class="sr-only">{{ type }}:</dt>
+      <dd class="
+                 text-base font-semibold text-oxford-600 transition-colors
+                 {% if no_truncate %}leading-tight{% else %}truncate{% endif %}
+                 group-hover:text-oxford-900
+                 group-focus:text-oxford-900
+                ">
+        {% if url %}
+          <a
+            class="
+                   focus:bg-oxford-50 focus:outline-none focus:ring-2 focus:ring-inset
+                   before:absolute before:top-0 before:bottom-0 before:right-0 before:left-0 before:h-full before:w-full
+                   {{ title_class }}
+                  "
+            href="{{ url }}"
+          >
+            {{ title }}
+          </a>
+        {% else %}
+          <span class="{{ title_class }}">{{ title }}</span>
+        {% endif %}
+      </dd>
+
+      {% if date %}
+        <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row justify-center items-center">
+          <dt>Created:</dt>
+          <dd>
+            <time datetime="{{ date|date:"Y-m-d H:i:sO" }}">
+              {{ date|date:"d M Y" }} at {{ date|date:"H:i" }}
+            </time>
+          </dd>
+        </div>
+      {% endif %}
+
+      {% if status_text %}
+        <dt class="sr-only">Status:</dt>
+        <dd class="ml-auto flex-shrink-0">
+
+          {% if status_text == "APPROVED - FILES UPLOADING" or status_text == "RELEASED" %}
+
+            {% pill variant="success" text=status_text %}
+
+          {% elif status_text == "SUBMITTED" or status_text == "ONE REVIEW SUBMITTED" or status_text == "ALL REVIEWS SUBMITTED" %}
+            {% pill variant="primary" text=status_text %}
+
+          {% elif status_text == "REJECTED" %}
+            {% pill variant="danger" text=status_text %}
+
+          {% elif status_text == "RETURNED" %}
+            {% pill variant="warning" text=status_text %}
+
+          {% elif status_text == "PENDING" %}
+            {% pill variant="info" text=status_text %}
+
+          {% elif status_text == "WITHDRAWN" %}
+            {% pill variant="danger-outline" text=status_text %}
+
+          {% endif %}
+
+        </dd>
+      {% endif %}
+    </div>
+    {{ children }}
+  </dl>
+</li>

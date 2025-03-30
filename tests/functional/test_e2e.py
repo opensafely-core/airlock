@@ -39,6 +39,18 @@ def assert_tree_element_is_selected(locator):
     expect(locator).to_have_class(re.compile("selected"))
 
 
+def project_title_dropdown(page):
+    project_locator = page.locator("#projects").get_by_role(
+        "region", name="Test Project"
+    )
+    find_and_click(page, project_locator)
+
+
+def workspaces_dropdown(page):
+    expect(page.locator("body")).to_contain_text("test-workspace")
+    find_and_click(page, page.locator("#workspaces").first)
+
+
 def test_e2e_release_files(
     page, live_server, context, dev_users, release_files_stubber
 ):
@@ -105,11 +117,17 @@ def test_e2e_release_files(
     login_as(live_server, page, "researcher")
 
     # Click on to workspaces link
-    find_and_click(page, page.get_by_test_id("nav-workspaces"))
-    expect(page.locator("body")).to_contain_text("Workspaces for Researcher")
+    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    expect(page.locator("body")).to_contain_text("Workspaces & Requests for Researcher")
+
+    # Click on a project to expand dropdown
+    project_title_dropdown(page)
+
+    # Click on a Workspace to expand dropdown
+    workspaces_dropdown(page)
 
     # Click on the workspace
-    find_and_click(page, page.get_by_role("link", name="test-workspace"))
+    find_and_click(page, page.get_by_role("link", name="Go to test-workspace"))
     expect(page.locator("body")).to_contain_text("subdir")
     # subdirectories start off collapsed; the file links are not present
     expect(page.get_by_role("link", name="file.txt")).to_have_count(0)
@@ -306,8 +324,11 @@ def test_e2e_release_files(
 
     # Before we log the researcher out and continue, let's just check
     # their requests
-    find_and_click(page, page.get_by_test_id("nav-requests"))
-    expect(page).to_have_url(live_server.url + "/requests/researcher")
+    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    expect(page).to_have_url(live_server.url + "/workspaces/")
+
+    project_title_dropdown(page)
+    workspaces_dropdown(page)
 
     authored_request_locator = page.locator("#authored-requests")
     expect(authored_request_locator).to_contain_text("SUBMITTED")
@@ -611,7 +632,7 @@ def test_e2e_reject_request(page, live_server, dev_users):
     # Page contains rejected message text
     expect(page.locator("body")).to_contain_text("Request has been rejected")
     # Requests view does not show rejected request
-    find_and_click(page, page.get_by_test_id("nav-requests"))
+    find_and_click(page, page.get_by_test_id("nav-reviews"))
     expect(page.locator("body")).not_to_contain_text("test-workspace by author")
 
 
@@ -676,11 +697,13 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     login_as(live_server, page, "researcher")
 
     # Click on to workspaces link
-    find_and_click(page, page.get_by_test_id("nav-workspaces"))
-    expect(page.locator("body")).to_contain_text("Workspaces for Researcher")
+    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    expect(page.locator("body")).to_contain_text("Workspaces & Requests for Researcher")
 
     # Click on the workspace
-    find_and_click(page, page.get_by_role("link", name="test-workspace"))
+    project_title_dropdown(page)
+    workspaces_dropdown(page)
+    find_and_click(page, page.get_by_role("link", name="Go to test-workspace"))
 
     # We now have a "View all release requests for workspace" button
     find_and_click(page, page.locator("#requests-workspace-button"))
