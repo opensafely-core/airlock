@@ -34,8 +34,7 @@ def iter_nav(items, request):
 
 def menu(request):
     items = [
-        NavItem(name="Workspaces", url_name="workspace_index"),
-        NavItem(name="Requests", url_name="requests_for_researcher"),
+        NavItem(name="Workspaces & Requests", url_name="workspace_index"),
         NavItem(name="Docs", url_name="docs_home"),
     ]
 
@@ -49,7 +48,7 @@ def menu(request):
             reviews_menu = NavItem(
                 name="Reviews", url_name="requests_for_output_checker"
             )
-            items.insert(2, reviews_menu)
+            items.insert(1, reviews_menu)
     return {"nav": list(iter_nav(items, request))}
 
 

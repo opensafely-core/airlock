@@ -1,28 +1,52 @@
 {% extends "base.html" %}
 
-{% block metatitle %}{{ workspace_type|title }} for {% airlock_user user=request.user %} |  Airlock{% endblock metatitle %}
+{% block metatitle %}{{ workspace_type|title }} & Requests for {% airlock_user user=request.user %} |  Airlock{% endblock metatitle %}
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title=workspace_type|title|add:" for "|add:request.user.fullname %}
+    {% airlock_header title=workspace_type|title|add:" & Requests for "|add:request.user.fullname %}
     {% for project, workspaces in projects.items %}
       {% #card %}
-        <details class="group" open>
-          <summary class="list-none">
-            {% fragment as custom_button %}<span class="opacity-75 ml-1"><img height="30" width="30" class="inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+
+        <details class="group">
+          <summary class="list-none" id="projects">
+            {% fragment as custom_button %}<span class="opacity-75 ml-auto"><img height="30" width="30" class="inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
               <img height="30" width="30" class="hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
             {% card title=project.display_name custom_button=custom_button %}
               </summary>
-              <ul>
-                <li>
-                  {% #list_group id="workspaces" %}
-                    {% for workspace in workspaces %}
-                      {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
-                    {% endfor %}
-                  {% /list_group %}
-                </li>
-              </ul>
+              {% for workspace in workspaces %}
+                <details class="group/inner">
+                  <summary class="list-none">
+                    {% fragment as button %}<span class="opacity-75 ml-auto"><img height="30" width="30" class="inline-block group-open/inner:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+                      <img height="30" width="30" class="hidden group-open/inner:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
+                    {% #airlock_list_group id="workspaces" %}
+                      {% #airlock_list_dropdown custom_button=button %}
+                        <div>
+                          {{ workspace.display_name }}
+                        </div>
+                      {% /airlock_list_dropdown %}
+                    {% /airlock_list_group %}
+                  </summary>
+                  <div>
+                    <a class="header__link px-6 sm:px-12" href="{{ workspace.get_url }}">Go to {{ workspace.display_name }}</a>
+                  </div>
+                  <ul>
+                    {% #airlock_list_group id="authored-requests" %}
+                      {% for release_request in authored_requests|dictsortreversed:"created_at" %}
+                        {% if workspace.display_name == release_request.workspace %}
+                          <div class="transition-colors px-6 hover:bg-oxford-50 focus:bg-oxford-50">
+                            {% airlock_list_group_rich_item type="Request" date=release_request.created_at title=release_request.get_short_id url=release_request.get_url status_text=release_request.status.description %}
+                          </div>
+                        {% endif %}
+                      {% empty %}
+                        {% list_group_empty title="No requests" description="You do not have any authored requests" %}
+                      {% endfor %}
+                    {% /airlock_list_group %}
+                  </ul>
+                </details>
+              {% endfor %}
               </details>
+
             {% /card %}
       {% empty %}
         {% #card title=workspace_type.title container=True %}
