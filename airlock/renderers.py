@@ -130,9 +130,9 @@ class CSVRenderer(Renderer):
         headers = next(reader, [])
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
-        ctx = {"headers": headers, "rows": rows, "use_datatables": True}
+        ctx = {"headers": headers, "rows": rows, "use_clusterize_table": True}
         if any(len(row) != header_col_count for _, row in rows):
-            ctx["use_datatables"] = False
+            ctx["use_clusterize_table"] = False
         return ctx
 
 
