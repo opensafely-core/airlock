@@ -261,7 +261,7 @@ def test_csv_scroll(live_server, page, context):
     page.locator("tbody").hover()
     for i in range(num_rows):
         row_locator = page.get_by_text(f"value{i}", exact=True)
-        if not row_locator.is_visible():  # pragma: no cover (if we ever revert to non-virtualized tables then this is never True)
+        if not row_locator.is_visible():  # pragma: no branch (if we ever revert to non-virtualized tables then this is never True)
             # We need to scroll the table sufficiently so the next row appears.
             # This scrolls 6000 pixels which seems to be about right. NB "visible"
             # in the playwright context means it is potentially visible, even if
