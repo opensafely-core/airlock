@@ -29,23 +29,23 @@
       }
 
       /* Ensure the correct sort icon displays */
-      .csv-table-wrapper .clusterize-table-sorter .datatable-icon--ascending,
-      .csv-table-wrapper .clusterize-table-sorter .datatable-icon--descending,
-      .csv-table-wrapper .clusterize-table-sorter .datatable-icon--sorting{
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--ascending,
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--descending,
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--sorting{
         display: none;
       }
-      .csv-table-wrapper .sort-ascending .datatable-icon--ascending {
+      .clusterize-table-wrapper .sort-ascending .datatable-icon--ascending {
         display: block;
       }
-      .csv-table-wrapper .sort-descending .datatable-icon--descending {
+      .clusterize-table-wrapper .sort-descending .datatable-icon--descending {
         display: block;
       }
-      .csv-table-wrapper .table-sorting .datatable-icon--sorting {
+      .clusterize-table-wrapper .table-sorting .datatable-icon--sorting {
         display: block;
       }
-      .csv-table-wrapper .sort-ascending .datatable-icon--no-sort,
-      .csv-table-wrapper .sort-descending .datatable-icon--no-sort,
-      .csv-table-wrapper .table-sorting .datatable-icon--no-sort  {
+      .clusterize-table-wrapper .sort-ascending .datatable-icon--no-sort,
+      .clusterize-table-wrapper .sort-descending .datatable-icon--no-sort,
+      .clusterize-table-wrapper .table-sorting .datatable-icon--no-sort  {
         display: none;
       }
 
@@ -146,7 +146,7 @@
 
     <div id="airlock-table">
       {% if use_clusterize_table %}
-        <div class="csv-table-wrapper min-w-full table-loading">
+        <div class="clusterize-table-wrapper min-w-full table-loading">
           <div class="table-loading-spinner">
             <div class="table-loading-message">
               Loading...
@@ -193,7 +193,7 @@
               </tbody>
             </table>
             {% comment %}
-            The csv renderer relies on the data being passed in a table with
+            The csv clusterize renderer relies on the data being passed in a table with
             id="table-content". display:none ensures the browser doesn't try
             to render it (which is the costly thing we avoid with a virtualized table)
             {% endcomment %}
@@ -207,7 +207,7 @@
             </table>
           </div>
         </div>
-        {% vite_asset "assets/src/scripts/csv-datatable.js" %}
+        {% vite_asset "assets/src/scripts/clusterize-datatable.js" %}
       {% else %}
         <table>
           <thead>

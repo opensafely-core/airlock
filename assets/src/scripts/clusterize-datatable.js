@@ -18,7 +18,7 @@ Clusterize.prototype.insertToDOM = function(rows, cache) {
 }
 
 // Get handles for key elements
-const containerEl = document.querySelector('.csv-table-wrapper');
+const containerEl = document.querySelector('.clusterize-table-wrapper');
 const scrollEl = document.getElementById("scrollArea");
 const contentEl = document.getElementById("contentArea");
 const headerEl = document.getElementById("headersArea");
@@ -33,7 +33,7 @@ const CLASS_SORT_ASC = 'sort-ascending';
 const CLASS_SORT_DESC = 'sort-descending';
 
 // Global markers
-let csvRows = [];
+let tableRows = [];
 let isMarkupGenerated = false;
 let largestColumnItems = [];
 let initialColumnWidths;
@@ -293,12 +293,12 @@ function processRows(sortIndex, isSortAscending) {
     const tableContentRows = tableContent.querySelectorAll('tbody tr');
     tableContentRows.forEach((row, i) => {
       const cells = Array.from(row.children);
-      csvRows.push({
+      tableRows.push({
         markup: row.outerHTML,
         active: true,
         data: cells.map((cell) => cell.textContent.trim()),
       })
-      csvRows[i].data.forEach((item, idx) => {
+      tableRows[i].data.forEach((item, idx) => {
         if(largestColumnItems.length < idx + 1) {
           largestColumnItems.push(item);
         } else if(item.length > largestColumnItems[idx].length){
@@ -313,25 +313,25 @@ function processRows(sortIndex, isSortAscending) {
     // "longest" value will always end up being 10..0 and the 1 tends to be
     // narrower in most fonts. So let's pretend the highest number is made
     // up of 3s to get a reasonable max width that doesn't shift perceptibly
-    largestColumnItems[0] = `${csvRows.length}`.replace(/./g,"3");
+    largestColumnItems[0] = `${tableRows.length}`.replace(/./g,"3");
     isMarkupGenerated = true;
   }
   if (sortIndex || sortIndex === 0) {
-    csvRows.sort((a, b) => {
+    tableRows.sort((a, b) => {
       const valA = a.data[sortIndex];
       const valB = b.data[sortIndex];
       return isSortAscending ? mixedSort(valA, valB) : mixedSort(valB, valA);
     });
   }
-  const markupArray = csvRows.filter(x => x.active).map(x => x.markup);
+  const markupArray = tableRows.filter(x => x.active).map(x => x.markup);
   isEmpty = markupArray.length === 0;
 
-  if (markupArray.length === csvRows.length) {
-    searchResultsMessage = `Showing all ${csvRows.length} rows`;
+  if (markupArray.length === tableRows.length) {
+    searchResultsMessage = `Showing all ${tableRows.length} rows`;
   } else {
     searchResultsMessage = `Showing ${markupArray.length} row${
       markupArray.length === 1 ? '' : 's'
-    } (out of ${csvRows.length})`;
+    } (out of ${tableRows.length})`;
   }
 
   return markupArray;
@@ -380,10 +380,10 @@ function wireUpSearchBox() {
 
   function search() {
     const searchTerms = searchEl.value.toLowerCase().trim().split(/ +/);
-    for (let i = 0; i < csvRows.length; i++) {
-      csvRows[i].active = true;
+    for (let i = 0; i < tableRows.length; i++) {
+      tableRows[i].active = true;
       for (let j = 0; j < searchTerms.length; j++) {
-        csvRows[i].active = csvRows[i].active && csvRows[i].markup.toLowerCase().indexOf(searchTerms[j]) > -1;
+        tableRows[i].active = tableRows[i].active && tableRows[i].markup.toLowerCase().indexOf(searchTerms[j]) > -1;
       }
     }
 
