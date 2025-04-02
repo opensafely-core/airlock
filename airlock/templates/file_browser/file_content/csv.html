@@ -16,6 +16,8 @@
         text-align: right;
         color: rgb(186 189 197);
       }
+
+      /* Make the header stick to the top */
       #airlock-table thead tr {
         position: sticky;
       }
@@ -25,44 +27,187 @@
       #airlock-table thead tr:nth-child(2) {
         top: 2.374em; /* determined via binary search  */
       }
+
+      /* Ensure the correct sort icon displays */
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--ascending,
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--descending,
+      .clusterize-table-wrapper .clusterize-table-sorter .datatable-icon--sorting{
+        display: none;
+      }
+      .clusterize-table-wrapper .sort-ascending .datatable-icon--ascending {
+        display: block;
+      }
+      .clusterize-table-wrapper .sort-descending .datatable-icon--descending {
+        display: block;
+      }
+      .clusterize-table-wrapper .table-sorting .datatable-icon--sorting {
+        display: block;
+      }
+      .clusterize-table-wrapper .sort-ascending .datatable-icon--no-sort,
+      .clusterize-table-wrapper .sort-descending .datatable-icon--no-sort,
+      .clusterize-table-wrapper .table-sorting .datatable-icon--no-sort  {
+        display: none;
+      }
+
+      /* Enable scrolling on the scroll area (unless loading to avoid page jank) */
+      #scrollArea {
+        max-height: calc(100vh - 50px); /* 50px to account for the height of the search input*/
+        overflow: auto;
+      }
+      .table-loading #scrollArea {
+        overflow: hidden;
+      }
+      .table-loading table {
+        min-width: 100%;
+      }
+
+      /* Effects when loading the tables */
+      .table-loading-spinner {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        background: white;
+        height: 100%;
+        z-index: 1;
+        pointer-events: none;
+        transition: opacity 0.3s ease-in-out;
+      }
+      .table-loading .table-loading-spinner {
+        opacity: 1;
+      }
+      .table-loading .table-loading-message{
+        opacity: 0;
+        animation: fadeIn 0.2s ease-in-out 100ms forwards;
+      }
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Centering message that appears when loading or no data provided */
+      .clusterize-no-data td{
+        text-align: center;
+      }
+
+      /* Searching... icon */
+      .search-wrapper {
+        position: relative;
+      }
+      .search-wrapper .icon {
+        position: absolute;
+        top: calc(50% - 12px);
+        right: 5px;
+        display: none;
+      }
+      .search-wrapper.searching .icon {
+        display: block;
+      }
+      .search-wrapper.searching input::-webkit-search-cancel-button {
+        display:none;
+      }
+
+      /* Search results message */
+      .search-results {
+        color: #4d4d4d;
+        font-size: 0.9rem;
+        padding-left: 10px;
+      }
+
+      /* The remaining style are the minimal things required by the clusterize.js plugin */
+      /**
+      * Avoid vertical margins for extra tags
+      * Necessary for correct calculations when rows have nonzero vertical margins
+      */
+      .clusterize-extra-row{
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
+      /* By default extra tag .clusterize-keep-parity added to keep parity of rows.
+      * Useful when used :nth-child(even/odd)
+      */
+      .clusterize-extra-row.clusterize-keep-parity{
+        display: none;
+      }
+
+      /* During initialization clusterize adds tabindex to force the browser to keep focus
+      * on the scrolling list, see issue #11
+      * Outline removes default browser's borders for focused elements.
+      */
+      .clusterize-content{
+        outline: 0;
+        counter-reset: clusterize-counter;
+      }
     </style>
   </head>
 
   <body>
 
     <div id="airlock-table">
-      {% if use_datatables %}
-        {% #datatable column_filter searchable sortable %}
-          <thead>
-            <tr>
-              <th data-searchable="false">
-                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                  {% datatable_sort_icon %}
-                </span>
-              </th>
-              {% for header in headers %}
-                <th>
-                  <div class="flex flex-row gap-2 items-center">
-                    {{ header }}
-                    <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                      {% datatable_sort_icon %}
-                    </span>
-                  </div>
-                </th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for index, row in rows %}
-              <tr>
-                <td class="datatable-row-number" data-order="{{ index }}">{{ index }}</td>
-                {% for cell in row %}
-                  <td data-order="{{ cell }}">{{ cell }}</td>
+      {% if use_clusterize_table %}
+        <div class="clusterize-table-wrapper min-w-full table-loading">
+          <div class="table-loading-spinner">
+            <div class="table-loading-message">
+              Loading...
+              <img height="16" width="16" class="icon animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
+            </div>
+          </div>
+          <span class="search-wrapper">
+            <input type="search" id="search-table" placeholder="Type to search table..."/>
+            <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
+          </span>
+          <span class="search-results">
+          </span>
+          <div id="scrollArea">
+            <table class="divide-y divide-slate-300
+                          [&_td]:text-slate-700 [&_td]:text-sm [&_td]:p-2
+                          [&_tr]:border-t [&_tr]:border-slate-200 first:[&_tr]:border-t-0 [&_tr]:bg-white even:[&_tr]:bg-slate-50
+                          [&_th]:bg-slate-200 [&_th]:text-slate-900 [&_th]:text-sm [&_th]:font-semibold [&_th]:leading-5 [&_th]:text-left [&_th]:whitespace-nowrap [&_th]:w-auto">
+              <thead id="headersArea">
+                <tr>
+                  <th class="sort-ascending">
+                    <button class="clusterize-table-sorter p-2 relative text-left w-full">
+                      <div class="flex flex-row gap-2 items-center">
+                        <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                          {% datatable_sort_icon %}
+                        </span>
+                      </div>
+                    </button>
+                  </th>
+                  {% for header in headers %}
+                    <th>
+                      <button class="clusterize-table-sorter p-2 relative text-left w-full">
+                        <div class="flex flex-row gap-2 items-center">
+                          {{ header }}
+                          <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                            {% datatable_sort_icon %}
+                          </span>
+                        </div>
+                      </button>
+                    </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody id="contentArea" class="clusterize-content">
+              </tbody>
+            </table>
+            {% comment %}
+            The csv clusterize renderer relies on the data being passed in a table with
+            id="table-content". display:none ensures the browser doesn't try
+            to render it (which is the costly thing we avoid with a virtualized table)
+            {% endcomment %}
+            <table id="table-content" style="display:none">
+              <tbody>
+                {% for index, row in rows %}
+                  <tr><td class="datatable-row-number">{{ index }}</td>
+                    {% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
                 {% endfor %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        {% /datatable %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% vite_asset "assets/src/scripts/clusterize-datatable.js" %}
       {% else %}
         <table>
           <thead>
@@ -89,7 +234,6 @@
       {% endif %}
 
     </div>
-    {% vite_asset "assets/src/scripts/datatable.js" %}
   </body>
 
 </html>

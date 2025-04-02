@@ -8,6 +8,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         datatable: "assets/src/scripts/datatable.js",
+        "clusterize-datatable": "assets/src/scripts/clusterize-datatable.js",
         htmx: "assets/src/scripts/htmx.js",
         main: "assets/src/scripts/main.js",
         resizer: "assets/src/scripts/resizer.js",
