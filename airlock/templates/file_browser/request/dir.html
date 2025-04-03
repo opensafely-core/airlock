@@ -68,8 +68,25 @@
         </th>
         {% if content_buttons.multiselect_withdraw.show %}
           <th class="clusterize-fixed-width">
-            <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
-          </th>
+          {% comment %}
+            Currently if we have more than 200 rows then the select all becomes
+            problematic because not all the checkboxes are rendered. We suspect
+            no-one will want to add more than 200 files to a request at any
+            point and so disable the checkbox here if there are more than 200
+            rows. Discussion here:
+            https://bennettoxford.slack.com/archives/C069YDR4NCA/p1743677871496259
+            If we want to support this, then we would:
+            - give the select all a "name" attribute (e.g. selected_directory) so it is passed in the form POST
+            - the "value" attribute would be {{ path_item.relpath }}
+            - change the following methods so that if a "selected_directory" attribute is POSTED
+              then the list of selected files is all the immediate children of that directory
+              rather than the list of selected files in the POST request:
+                - airlock.views.request_multiselect
+                - airlock.views.workspace_multiselect
+          {% endcomment %}
+            {% if path_item.children|length < 200%}
+              <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
+            {% endif %}
         {% endif %}
       </tr>
     {% endfragment %}
