@@ -50,17 +50,20 @@
   }
 
   /* Effects when loading the tables */
-  .table-loading-spinner {
+  .clusterize-table-wrapper {
+    position:relative;
+  }
+  .loading-indicator {
     opacity: 0;
     position: absolute;
     width: 100%;
     background: white;
     height: 100%;
-    z-index: 1;
+    z-index: 10;
     pointer-events: none;
     transition: opacity 0.3s ease-in-out;
   }
-  .table-loading .table-loading-spinner {
+  .table-loading .loading-indicator {
     opacity: 1;
   }
   .table-loading .table-loading-message{
@@ -129,7 +132,7 @@
   }
 </style>
 <div class="clusterize-table-wrapper min-w-full table-loading">
-  <div class="table-loading-spinner">
+  <div class="loading-indicator htmx-indicator">
     <div class="table-loading-message">
       Loading...
       <img height="16" width="16" class="icon animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">

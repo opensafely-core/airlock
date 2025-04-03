@@ -24,6 +24,7 @@
         hx-select="#selected-contents"
         hx-swap="outerHTML show:window:none"
         hx-target="#selected-contents"
+        hx-indicator=".loading-indicator"
         id="tree"
       >
         {% include "file_browser/tree.html" with path=root.fake_parent %}
