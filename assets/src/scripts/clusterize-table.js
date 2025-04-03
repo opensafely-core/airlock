@@ -31,6 +31,9 @@ let headerCells = [...headerEl.querySelector('tr').children];
 const CLASS_SORTING = 'table-sorting';
 const CLASS_SORT_ASC = 'sort-ascending';
 const CLASS_SORT_DESC = 'sort-descending';
+const rows_in_block = 50;
+const blocks_in_cluster = 4;
+const totalRenderedRows = rows_in_block * blocks_in_cluster;
 
 // Global markers
 let tableRows = [];
@@ -96,6 +99,8 @@ function initializeClusterize() {
     rows: processRows(),
     scrollId: 'scrollArea',
     contentId: 'contentArea',
+    rows_in_block,
+    blocks_in_cluster,
     callbacks: {
       domUpdated: function() {
         updateCellWidths();
@@ -127,7 +132,13 @@ function updateCellWidths() {
   searchWrapper.classList.remove('searching');
 
   const firstRowEl = contentEl.querySelector('tr:not(.clusterize-extra-row)');
+  if(!firstRowEl) return; // if empty then we bail
   const firstRowCells = [...firstRowEl.children];
+
+  // updateCellWidths is also called when the page resizes, so we
+  // may need to adjust the height of the table e.g. if things above
+  // the table now take up more/less space
+  fitHeight()
 
   if(initialColumnWidths.length === 0) {
     // Get the font of the first non-row-number table cell element
@@ -142,12 +153,19 @@ function updateCellWidths() {
   // Update search message
   searchResultsEl.innerText = searchResultsMessage;
 
-  if (isEmpty) {
+  if (isEmpty || totalRenderedRows > tableRows.length) {
+    // If the table is empty then we can collapse it to the width of 
+    // it's header cells - potentially then padding them out to fill
+    // the screen.
+
+    // Similarly, if the number of rows in the table is less than the
+    // amount that clusterize renders, then the entire table will
+    // already be rendered and the same logic applies.
+
     // First reset the header widths
     setCellMinWidths(headerCells, 0);
 
-    // Then if sorting (why would you sort an empty table? but you can so...)
-    // update the headers, and stop the sort
+    // Then if sorting need to update the headers, and stop the sort
     if(isSorting){
       endSort()
     }
@@ -159,8 +177,8 @@ function updateCellWidths() {
   }
 
   setCellMinWidths(headerCells, initialColumnWidths);
-  const containerWidth = containerEl.getBoundingClientRect().width;
-  const firstRowWidth = firstRowEl.getBoundingClientRect().width;
+  let containerWidth = containerEl.getBoundingClientRect().width;
+  let firstRowWidth = firstRowEl.getBoundingClientRect().width;
   if (isSorting) {
     // When you click on a column header to sort a column you would expect the header
     // to stay in the same place, and not shift left or right. However because the
@@ -188,7 +206,10 @@ function updateCellWidths() {
       // to accommodate this. We don't make the row number column wider as this
       // looks a bit odd if it gets really wide.
       const extraSpace = sortColumnPositionX - widthToLeft;
-      expandCellsToFixedWidth(firstRowCells.slice(1, sortColumn), extraSpace);
+      const cellsToTheLeft = firstRowCells.filter((x,i) => {
+        return i < sortColumn && !headerCells[i].classList.contains('clusterize-fixed-width')
+      });
+      expandCellsToFixedWidth(cellsToTheLeft, extraSpace);
     } else {
       // The space to the left is enough, but maybe too much. We therefore need
       // to scroll the table to the left so that the sort column remains in its
@@ -202,7 +223,10 @@ function updateCellWidths() {
       // the table to be full width, so we make each cell to the right bigger to
       // fill the gap.
       const extraSpace = availableGapToRightOfSortColumn - widthToRight - 20;
-      expandCellsToFixedWidth(firstRowCells.slice(sortColumn + 1), extraSpace);
+      const cellsToTheRight = firstRowCells.filter((x,i) => {
+        return i >= sortColumn && !headerCells[i].classList.contains('clusterize-fixed-width')
+      });
+      expandCellsToFixedWidth(cellsToTheRight, extraSpace);
     }
 
     // We scroll the table to ensure the sort column is in place
@@ -215,9 +239,22 @@ function updateCellWidths() {
     // space.
     if (firstRowWidth < containerWidth) {
       const extraSpace = containerWidth - firstRowWidth - 20;
-      expandCellsToFixedWidth(firstRowCells.slice(1), extraSpace);
+      const cellsThatCanExpand = firstRowCells.filter((x,i) => {
+        return !headerCells[i].classList.contains('clusterize-fixed-width')
+      });
+      expandCellsToFixedWidth(cellsThatCanExpand, extraSpace);
     } else {
       setCellMinWidths(firstRowCells, firstRowCells.map(x => 0));
+
+      // if the table is smaller than the window we may need to make it fill the space
+      containerWidth = containerEl.getBoundingClientRect().width;
+      firstRowWidth = firstRowEl.getBoundingClientRect().width;
+      const extraSpace = containerWidth - firstRowWidth - 20;
+      const cellsThatCanExpand = firstRowCells.filter((x,i) => {
+        return !headerCells[i].classList.contains('clusterize-fixed-width')
+      });
+      expandCellsToFixedWidth(cellsThatCanExpand, extraSpace);
+
     }
   }
 }
@@ -307,22 +344,6 @@ function mixedSort(a, b) {
   
   // Both are strings, compare lexicographically
   return String(a).localeCompare(String(b));
-}
-
-/**
- * Escapes special characters in text to so they display correctly in HTML.
- * Converts &, <, >, ", and ' to their HTML entity equivalents.
- * See https://stackoverflow.com/a/6234804/596639
- * @param {string} text The original text to display
- * @returns {string} HTML-escaped version of the input text
- */
-function escapeHtml(text) {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 }
 
 /**
