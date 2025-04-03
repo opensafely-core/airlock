@@ -276,6 +276,14 @@ load-example-data: devenv && manifests
     cp $workspace/output/rows.csv $workspace/output/rows_LARGE.csv
     for i in {1..4}; do cat $workspace/output/rows.csv >> $workspace/output/rows_LARGE.csv; done
 
+    # Make a large workspace
+    workspace_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_WORKSPACE_DIR%/}/large-workspace/10k-files"
+    mkdir -p "${workspace_dir}"
+    for i in {1..9999}; do echo "I am but one file $i of 10000" > "$workspace_dir/file_$i.txt"; done
+    workspace_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_WORKSPACE_DIR%/}/large-workspace/400-files"
+    mkdir -p "${workspace_dir}"
+    for i in {1..399}; do echo "I am but one file $i of 400" > "$workspace_dir/file_$i.txt"; done
+
     request_dir="${AIRLOCK_WORK_DIR%/}/${AIRLOCK_REQUEST_DIR%/}/example-workspace/test-request"
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir
