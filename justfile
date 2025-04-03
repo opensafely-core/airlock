@@ -290,7 +290,7 @@ manifests:
 
 # generate the automated state diagrams from code
 state-diagram file="docs/reference/request-states.md":
-    cat scripts/statemachine.py | {{ just_executable() }} manage shell > {{ file }}
+    {{ just_executable() }} manage statemachine {{ file }}
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS: devenv
