@@ -35,3 +35,18 @@ too much space for short filenames
 #updateRequestFile {
   @apply w-screen max-w-[60vw]
 }
+
+
+/*
+Apply hyperlink styles in clusterize tables - similar to the datatables.css file
+*/
+.clusterize-table-wrapper {
+  & a {
+    @apply text-oxford-600 font-semibold underline decoration-oxford-300 underline-offset-2 duration-200 transition-colors ease-in-out focus:bg-bn-sun-300;
+
+    &:hover,
+    &:focus {
+      @apply text-oxford-800 decoration-transparent;
+    }
+  }
+}
