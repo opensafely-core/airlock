@@ -18,14 +18,14 @@ Clusterize.prototype.insertToDOM = function(rows, cache) {
 }
 
 // Get handles for key elements
-const containerEl = document.querySelector('.clusterize-table-wrapper');
-const scrollEl = document.getElementById("scrollArea");
-const contentEl = document.getElementById("contentArea");
-const headerEl = document.getElementById("headersArea");
-const searchEl = document.getElementById("search-table");
-const searchResultsEl = document.querySelector(".search-results");
-const searchWrapper = document.querySelector(".search-wrapper");
-const headerCells = [...headerEl.querySelector('tr').children];
+let containerEl = document.querySelector('.clusterize-table-wrapper');
+let scrollEl = document.getElementById("scrollArea");
+let contentEl = document.getElementById("contentArea");
+let headerEl = document.getElementById("headersArea");
+let searchEl = document.getElementById("search-table");
+let searchResultsEl = document.querySelector(".search-results");
+let searchWrapper = document.querySelector(".search-wrapper");
+let headerCells = [...headerEl.querySelector('tr').children];
 
 // CONST strings
 const CLASS_SORTING = 'table-sorting';
@@ -36,7 +36,7 @@ const CLASS_SORT_DESC = 'sort-descending';
 let tableRows = [];
 let isMarkupGenerated = false;
 let largestColumnItems = [];
-let initialColumnWidths;
+let initialColumnWidths = [];
 let isSorting = false;
 let isEmpty = false;
 let searchResultsMessage = '';
@@ -45,26 +45,76 @@ let sortColumnPositionX;
 let sortColumn;
 let isSortAscending;
 
-// Wire up the table using Clusterize.js
-clusterize = new Clusterize({
-  rows: processRows(),
-  scrollId: 'scrollArea',
-  contentId: 'contentArea',
-  callbacks: {
-    domUpdated: function() {
-      updateCellWidths();
-    }
-  },
-  no_data_text: "No results match",
-  tag: 'tr' // needed for empty csv files to correctly display "no data" message
-});
+/**
+ * If we load another clusterize table without a full page refresh then
+ * there are a few things we need to tidy up before we do so.
+ */
+function cleanUp() {
+  
+  // Update our DOM references as the html will have all been replaced
+  containerEl = document.querySelector('.clusterize-table-wrapper');
+  scrollEl = document.getElementById("scrollArea");
+  contentEl = document.getElementById("contentArea");
+  headerEl = document.getElementById("headersArea");
+  searchEl = document.getElementById("search-table");
+  searchResultsEl = document.querySelector(".search-results");
+  searchWrapper = document.querySelector(".search-wrapper");
+  headerCells = [...headerEl.querySelector('tr').children];
 
-wireUpColumnHeaderSortButtons();
-wireUpSearchBox();
+  // Reset our initial variables
+  tableRows = [];
+  isMarkupGenerated = false;
+  largestColumnItems = [];
+  initialColumnWidths = [];
+  isSorting = false;
+  isEmpty = false;
+  searchResultsMessage = '';
+}
 
-// We need to update all the cell widths whenever the window resizes. But
-// we use a debounce function so that the update is not called continuously
-window.addEventListener('resize', debounce(updateCellWidths, 150));
+/**
+ * Ensure the table fills the remaining vertical space on the page. This only works
+ * if the entire page content fits within a single screen and the clusterize table
+ * has nothing beneath it. That is true for the current two use cases: csv files and
+ * the file browser, but might not be true for future use cases so this would need
+ * to change.
+ */
+function fitHeight() {
+  scrollEl.style.maxHeight = `calc(99vh - ${scrollEl.getBoundingClientRect().y}px)`;
+}
+
+function initializeClusterize() {
+  if(!document.getElementById('clusterize-table-content')) {
+    // No clusterize table body, so either we've already wired this one up
+    // or an error has happened
+    return;
+  }
+  cleanUp();
+  fitHeight();
+
+  // Wire up the table using Clusterize.js
+  clusterize = new Clusterize({
+    rows: processRows(),
+    scrollId: 'scrollArea',
+    contentId: 'contentArea',
+    callbacks: {
+      domUpdated: function() {
+        updateCellWidths();
+      }
+    },
+    no_data_text: "No results match",
+    tag: 'tr' // needed for empty csv files to correctly display "no data" message
+  });
+
+  wireUpColumnHeaderSortButtons();
+  wireUpSearchBox();
+
+  // We need to update all the cell widths whenever the window resizes. But
+  // we use a debounce function so that the update is not called continuously
+  window.addEventListener('resize', debounce(updateCellWidths, 150));
+}
+
+initializeClusterize();
+document.body.addEventListener("htmx:afterSettle", () => initializeClusterize());
 
 /**
  * This keeps all the column widths updated when:
@@ -79,7 +129,7 @@ function updateCellWidths() {
   const firstRowEl = contentEl.querySelector('tr:not(.clusterize-extra-row)');
   const firstRowCells = [...firstRowEl.children];
 
-  if(!initialColumnWidths) {
+  if(initialColumnWidths.length === 0) {
     // Get the font of the first non-row-number table cell element
     const el = firstRowCells[1] || firstRowCells[0]; // in case empty csv file
     const font = getFont(el);
@@ -343,7 +393,10 @@ function processRows(sortIndex, isSortAscending) {
 function wireUpColumnHeaderSortButtons() {
   headerCells.forEach((el, idx) => {
     const button = el.querySelector('button');
-    button.addEventListener('click', () => {
+    if(!button) return;
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       isSortAscending = !el.classList.contains(CLASS_SORT_ASC);
       headerCells.forEach(header => {
         header.classList.remove(CLASS_SORTING);
@@ -352,7 +405,10 @@ function wireUpColumnHeaderSortButtons() {
       });
       headerCells[idx].classList.add(CLASS_SORTING);
       isSorting = true;
-      sortColumnPositionX = Math.max(0, headerCells[idx].getBoundingClientRect().x);
+      sortColumnPositionX = Math.max(
+        0, 
+        headerCells[idx].getBoundingClientRect().x - containerEl.getBoundingClientRect().x
+      );
       sortColumn = idx;
 
       // So that the "sorting" icon can appear we need to push the table
