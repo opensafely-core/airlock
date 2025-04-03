@@ -1,6 +1,8 @@
 import re
+from unittest.mock import Mock, patch
 
 import pytest
+from django.core.management import call_command
 from playwright.sync_api import expect
 
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
@@ -988,16 +990,13 @@ def test_request_uploaded_files_status(
 
 
 def test_request_uploaded_files_counts(
-    live_server,
-    context,
-    page,
-    bll,
-    mock_old_api,
+    live_server, context, page, bll, upload_files_stubber, settings
 ):
-    # make a release request in APPROVED status
+    # make a release request in APPROVED status (we need to create it as REVIEWED
+    # so we can use it to mock the job-server call when it's moved to APPROVED)
     release_request = factories.create_request_at_status(
         "workspace",
-        status=RequestStatus.APPROVED,
+        status=RequestStatus.REVIEWED,
         files=[
             factories.request_file(
                 group="group", contents="1", path="file1.txt", approved=True
@@ -1018,6 +1017,29 @@ def test_request_uploaded_files_counts(
         ),
     )
 
+    # Mock the responses from job-server
+    # we want to test that the upload counts change as files are uploaded
+    # We'll do this by running the file uploader for one iteration at a time,
+    # and making only a single upload succeed each time
+    upload_files_stubber(
+        release_request,
+        response_statuses=[
+            201,
+            500,
+            500,  # run 1: file 1 is uploaded, files 1 and 2 fail
+            201,
+            500,  # run 2: file 2 is uploaded, file 3 fails
+            201,  # run 3: file 3 is uploaded
+        ],
+    )
+    # make the failed uploads retry immediately on the next run of the file uploader
+    settings.UPLOAD_RETRY_DELAY = 0
+
+    # release files to set status to APPROVED
+    bll.release_files(release_request, output_checker)
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.status == RequestStatus.APPROVED
+
     page.goto(live_server.url + release_request.get_url())
 
     # In approved status, the release files button is never visible
@@ -1035,23 +1057,35 @@ def test_request_uploaded_files_counts(
 
     assert_still_uploading(0)
 
-    # update the uploaded file count in the background, without reloading the page
-    bll.register_file_upload(release_request, UrlPath("file1.txt"), output_checker)
+    # run the file uploader once to update the uploaded file count in the background,
+    # without reloading the page
+    call_command("run_file_uploader", run_fn=Mock(side_effect=[True, False]))
     assert_still_uploading(1)
 
-    bll.register_file_upload(release_request, UrlPath("file2.txt"), output_checker)
+    call_command("run_file_uploader", run_fn=Mock(side_effect=[True, False]))
     assert_still_uploading(2)
 
-    # complete the upload
-    bll.register_file_upload(release_request, UrlPath("file3.txt"), output_checker)
+    # complete the upload, but mock the function to update the request status so it
+    # isn't set to released yet
+    release_request = factories.refresh_release_request(release_request)
+    from airlock.management.commands.run_file_uploader import (
+        get_upload_files_and_update_request_status,
+    )
+
+    files_to_upload = get_upload_files_and_update_request_status(release_request)
+    with patch(
+        "airlock.management.commands.run_file_uploader.get_upload_files_and_update_request_status"
+    ) as patched:
+        patched.side_effect = [files_to_upload, []]
+        call_command("run_file_uploader", run_fn=Mock(side_effect=[True, False]))
 
     # test for the race condition where the upload has been completed but the
     # status hasn't yet been updated; in this case we want to continue to poll
     # until the status has change to RELEASED
     assert_still_uploading(3)
 
-    # Now update the status to released
-    bll.set_status(release_request, RequestStatus.RELEASED, output_checker)
+    # Now update the status to released by running the uploader one more time
+    call_command("run_file_uploader", run_fn=Mock(side_effect=[True, False]))
 
     # all files uploaded AND status updated; page has refreshed and no
     # htmx attributes on the parent element anymore
