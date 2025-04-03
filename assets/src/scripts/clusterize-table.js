@@ -47,6 +47,7 @@ let clusterize;
 let sortColumnPositionX;
 let sortColumn;
 let isSortAscending;
+let isInitialized = false;
 
 /**
  * If we load another clusterize table without a full page refresh then
@@ -72,6 +73,7 @@ function cleanUp() {
   isSorting = false;
   isEmpty = false;
   searchResultsMessage = '';
+  isInitialized = false;
 }
 
 /**
@@ -104,6 +106,11 @@ function initializeClusterize() {
     callbacks: {
       domUpdated: function() {
         updateCellWidths();
+        if(!isInitialized) {
+          isInitialized = true;
+          document.body.dispatchEvent(new CustomEvent("clusterize-table-ready", {detail: tableRows.length}));
+        } 
+        document.body.dispatchEvent(new CustomEvent("clusterize-table-updated", {detail: tableRows.length}));
       }
     },
     no_data_text: "No results match",
