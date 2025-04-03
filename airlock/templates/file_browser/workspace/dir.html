@@ -39,66 +39,72 @@
       {% csrf_token %}
       <input type=hidden name="next_url" value="{{ request.path }}"/>
 
-      {% #datatable column_filter searchable sortable %}
-        <thead>
-          <tr>
-            <th>
+      {% fragment as header_row %}
+        <tr>
+          <th class="sort-ascending">
+            <button class="clusterize-table-sorter p-2 relative text-left w-full">
               <div class="flex flex-row gap-2 items-center">
                 File
                 <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
                   {% datatable_sort_icon %}
                 </span>
               </div>
-            </th>
-            <th>
+            </button>
+          </th>
+          <th>
+            <button class="clusterize-table-sorter p-2 relative text-left w-full">
               <div class="flex flex-row gap-2 items-center">
                 Review State
                 <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
                   {% datatable_sort_icon %}
                 </span>
               </div>
-            </th>
-            <th>
+            </button>
+          </th>
+          <th>
+            <button class="clusterize-table-sorter p-2 relative text-left w-full">
               <div class="flex flex-row gap-2 items-center">
                 Size
                 <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
                   {% datatable_sort_icon %}
                 </span>
               </div>
-            </th>
-            <th>
+            </button>
+          </th>
+          <th>
+            <button class="clusterize-table-sorter p-2 relative text-left w-full">
               <div class="flex flex-row gap-2 items-center">
                 Modified
                 <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
                   {% datatable_sort_icon %}
                 </span>
               </div>
+            </button>
+          </th>
+          {% if not content_buttons.multiselect_add.disabled %}
+            <th data-searchable="false" data-sortable="false">
+              <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
             </th>
+          {% endif %}
+        </tr>
+      {% endfragment %}
+      {% #clusterize_table header_row=header_row %}
+        {% for path in path_item.children %}
+          <tr>
+            <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+            <td>{{ path.display_status }}</td>
+            <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+            <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
             {% if not content_buttons.multiselect_add.disabled %}
-              <th data-searchable="false" data-sortable="false">
-                <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
-              </th>
+              <td>
+                {% if not path.is_directory %}
+                  {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                {% endif %}
+              </td>
             {% endif %}
           </tr>
-        </thead>
-        <tbody>
-          {% for path in path_item.children %}
-            <tr>
-              <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
-              <td>{{ path.display_status }}</td>
-              <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
-              <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-              {% if not content_buttons.multiselect_add.disabled %}
-                <td>
-                  {% if not path.is_directory %}
-                    {% form_checkbox name="selected" value=path.relpath custom_field=True %}
-                  {% endif %}
-                </td>
-              {% endif %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      {% /datatable %}
+        {% endfor %}
+      {% /clusterize_table %}
     </form>
   {% endif %}
 {% /card %}
