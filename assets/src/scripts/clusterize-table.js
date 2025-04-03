@@ -283,13 +283,13 @@ function escapeHtml(text) {
 function processRows(sortIndex, isSortAscending) {
   if (!isMarkupGenerated) {
     // First time this is called, so we need to:
-    // - find the table rows from the hidden "#table-content" tables
+    // - find the table rows from the hidden "#clusterize-table-content" tables
     // - extract the text content from each cell for sorting/searching
     // - mark each row as "active" for the search functionality
     // - find the longest (string length) in each field to make a guess as to column width
     //   (this is to reduce the amount the column widths adjust as you sort and filter)
 
-    const tableContent = document.getElementById('table-content');
+    const tableContent = document.getElementById('clusterize-table-content');
     const tableContentRows = tableContent.querySelectorAll('tbody tr');
     tableContentRows.forEach((row, i) => {
       const cells = Array.from(row.children);

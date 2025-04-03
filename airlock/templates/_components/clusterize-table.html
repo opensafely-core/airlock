@@ -2,20 +2,18 @@
 {% load static %}
 
 <style>
-  #airlock-table td.datatable-row-number {
+  .clusterize-table-wrapper td.datatable-row-number {
     text-align: right;
     color: rgb(186 189 197);
   }
 
   /* Make the header stick to the top */
-  #airlock-table thead tr {
+  .clusterize-table-wrapper thead tr {
     position: sticky;
+    z-index: 1;
   }
-  #airlock-table thead tr:first-child {
+  .clusterize-table-wrapper thead tr:first-child {
     top: 0;
-  }
-  #airlock-table thead tr:nth-child(2) {
-    top: 2.374em; /* determined via binary search  */
   }
 
   /* Ensure the correct sort icon displays */
@@ -156,14 +154,14 @@
     </table>
     {% comment %}
     The csv clusterize renderer relies on the data being passed in a table with
-    id="table-content". display:none ensures the browser doesn't try
+    id="clusterize-table-content". display:none ensures the browser doesn't try
     to render it (which is the costly thing we avoid with a virtualized table)
     {% endcomment %}
-    <table id="table-content" style="display:none">
+    <table id="clusterize-table-content" style="display:none">
       <tbody>
         {{ children }}
       </tbody>
     </table>
   </div>
 </div>
-{% vite_asset "assets/src/scripts/clusterize-datatable.js" %}
+{% vite_asset "assets/src/scripts/clusterize-table.js" %}
