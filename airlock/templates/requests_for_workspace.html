@@ -30,25 +30,15 @@
     {% #list_group id="requests-workspace" %}
       {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
         {% fragment as title %}{{ request.get_short_id }} by {% airlock_user user=request.author %}{% endfragment %}
-        {% fragment as status %}{% pill variant="info" text=request.status.description %}{% endfragment %}
-        {% #list_group_rich_item title=title url=request.get_url custom_status=status %}
-          <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
-            <div class="flex flex-row gap-1 w-full">
-              <dt class="text-xs ml-auto">Created:</dt>
-              <dd>
-                <time datetime="{{ request.created_at|date:"Y-m-d H:i:sO" }}">
-                  {{ request.created_at|date:"d M Y" }} at
-                  {{ request.created_at|date:"H:i" }}
-                </time>
-              </dd>
-            </div>
-          </div>
-        {% /list_group_rich_item %}
+        {% #airlock_list_group_rich_item title=title url=request.get_url status_text=request.status.description %}
+          <div class="group-hover:pointer-events-none ml-auto sm:flex-row -mt-4 -mb-6 -mr-5">
+            {% airlock_list_group_rich_item date=request.created_at %}
+              </div>
+            {% /airlock_list_group_rich_item %}
 
-      {% empty %}
-        {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
-      {% endfor %}
-    {% /list_group %}
-  {% /card %}
-
-{% endblock content %}
+        {% empty %}
+          {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
+        {% endfor %}
+      {% /list_group %}
+    {% /card %}
+  {% endblock content %}

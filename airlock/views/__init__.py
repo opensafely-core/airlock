@@ -22,7 +22,6 @@ from .request import (
     request_view,
     request_withdraw,
     requests_for_output_checker,
-    requests_for_researcher,
     requests_for_workspace,
     uploaded_files_count,
 )
@@ -47,7 +46,6 @@ __all__ = [
     "file_withdraw",
     "request_contents",
     "requests_for_output_checker",
-    "requests_for_researcher",
     "request_multiselect",
     "request_reject",
     "file_reset_review",

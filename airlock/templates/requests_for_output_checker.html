@@ -9,11 +9,10 @@
     {% airlock_header title="Requests for review" %}
 
     {% #card title="Outstanding requests awaiting review" %}
-      {% #list_group id="outstanding-requests" %}
+      {% #airlock_list_group id="outstanding-requests" %}
         {% for release_request, request_progress in outstanding_requests %}
           {% fragment as title %}{{ release_request.get_short_id }} by {% airlock_user user=release_request.author %}{% endfragment %}
-          {% fragment as status %}{% pill variant="primary" text=release_request.status.description %}{% endfragment %}
-          {% #list_group_rich_item type="Outstanding request" title=title url=release_request.get_url custom_status=status %}
+          {% #airlock_list_group_rich_item type="Outstanding request" title=title url=release_request.get_url status_text=release_request.status.description %}
             <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
               <div class="flex flex-row gap-1 w-full">
                 <dt>Workspace:</dt>
@@ -26,19 +25,18 @@
                 </dd>
               </div>
             </div>
-          {% /list_group_rich_item %}
+          {% /airlock_list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
         {% endfor %}
-      {% /list_group %}
+      {% /airlock_list_group %}
     {% /card %}
 
     {% #card title="Requests returned for changes/questions" %}
-      {% #list_group id="returned-requests" %}
+      {% #airlock_list_group id="returned-requests" %}
         {% for release_request in returned_requests %}
           {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
-          {% fragment as status %}{% pill variant="warning" text=release_request.status.description %}{% endfragment %}
-          {% #list_group_rich_item type="Returned request" title=title url=release_request.get_url custom_status=status %}
+          {% #airlock_list_group_rich_item type="Returned request" title=title url=release_request.get_url status_text=release_request.status.description %}
             <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
               <div class="flex flex-row gap-1 w-full">
                 <dt>Workspace:</dt>
@@ -47,20 +45,19 @@
                 </dd>
               </div>
             </div>
-          {% /list_group_rich_item %}
+          {% /airlock_list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
         {% endfor %}
-      {% /list_group %}
+      {% /airlock_list_group %}
     {% /card %}
 
     {% if approved_requests %}
       {% #card title="Approved requests awaiting release" %}
-        {% #list_group id="returned-requests" %}
+        {% #airlock_list_group id="returned-requests" %}
           {% for release_request in approved_requests %}
             {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
-            {% fragment as status %}{% pill variant="success" text=release_request.status.description %}{% endfragment %}
-            {% #list_group_rich_item type="Approved request" title=title url=release_request.get_url custom_status=status %}
+            {% #airlock_list_group_rich_item type="Approved request" title=title url=release_request.get_url status_text=release_request.status.description %}
               <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
                 <div class="flex flex-row gap-1 w-full">
                   <dt>Workspace:</dt>
@@ -69,9 +66,9 @@
                   </dd>
                 </div>
               </div>
-            {% /list_group_rich_item %}
+            {% /airlock_list_group_rich_item %}
           {% endfor %}
-        {% /list_group %}
+        {% /airlock_list_group %}
       {% /card %}
     {% endif %}
 
