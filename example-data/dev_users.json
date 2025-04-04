@@ -18,6 +18,10 @@
         "example-workspace_2": {
           "project_details": {"name": "Project 1", "ongoing": true},
           "archived": true
+        },
+        "large-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
         }
       }
     }
@@ -41,6 +45,10 @@
         "example-workspace_2": {
           "project_details": {"name": "Project 1", "ongoing": true},
           "archived": true
+        },
+        "large-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
         }
       }
     }
@@ -64,6 +72,10 @@
         "example-workspace_2": {
           "project_details": {"name": "Project 1", "ongoing": true},
           "archived": true
+        },
+        "large-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
         }
       }
     }
@@ -88,6 +100,10 @@
         "example-workspace_2": {
           "project_details": {"name": "Project 1", "ongoing": true},
           "archived": true
+        },
+        "large-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
         }
       }
     }

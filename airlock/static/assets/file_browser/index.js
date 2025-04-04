@@ -151,4 +151,4 @@ if (document.readyState !== "loading") {
 
 // Every time a datatable is rendered we need to update the checkboxes
 // so they match the saved state
-document.body.addEventListener("datatable-ready", renderCheckboxStatus);
+document.body.addEventListener("clusterize-table-updated", renderCheckboxStatus);

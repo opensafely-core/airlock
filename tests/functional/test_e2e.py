@@ -552,7 +552,7 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
 
     # Withdraw file2 from the directory page
     page.goto(live_server.url + release_request.get_url("default/subdir"))
-    expect(page.locator(".datatable-table")).to_be_visible()
+    expect(page.locator(".clusterized")).to_be_visible()
     find_and_click(
         page, page.locator('input[name="selected"][value="default/subdir/file2.txt"]')
     )
@@ -571,9 +571,9 @@ def test_e2e_withdraw_and_readd_file(page, live_server, dev_users):
 
     # Change our mind on file 1: go to *workspace* page and re-add it
     page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
-    # We have to wait for the datatable to finish rendering before we interact with the
+    # We have to wait for the table to finish rendering before we interact with the
     # checkboxes otherwise the wrong thing gets selected
-    expect(page.locator(".datatable-table")).to_be_visible()
+    expect(page.locator(".clusterized")).to_be_visible()
     find_and_click(page, page.locator(f'input[name="selected"][value="{path1}"]'))
 
     find_and_click(page, page.locator("button[value=add_files]"))
