@@ -108,6 +108,10 @@ function initializeClusterize() {
         updateCellWidths();
         if(!isInitialized) {
           isInitialized = true;
+
+          // Mark the table so we know it is ready
+          containerEl.classList.add('clusterized')
+
           document.body.dispatchEvent(new CustomEvent("clusterize-table-ready", {detail: tableRows.length}));
         } 
         document.body.dispatchEvent(new CustomEvent("clusterize-table-updated", {detail: tableRows.length}));
