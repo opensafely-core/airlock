@@ -3,27 +3,27 @@
 {% load airlock %}
 
 {% #card title=path_item.name container=True %}
-  {% #datatable column_filter searchable sortable %}
-    <thead>
-      <tr>
-        <th>
+  {% fragment as header_row %}
+    <tr>
+      <th class="sort-ascending">
+        <button class="clusterize-table-sorter p-2 relative text-left w-full">
           <div class="flex flex-row gap-2 items-center">
             File
             <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
               {% datatable_sort_icon %}
             </span>
           </div>
-        </th>
+        </button>
+      </th>
+    </tr>
+  {% endfragment %}
+  {% #clusterize_table header_row=header_row %}
+    {% for path in path_item.children %}
+      <tr>
+        <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
       </tr>
-    </thead>
-    <tbody>
-      {% for path in path_item.children %}
-        <tr>
-          <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  {% /datatable %}
+    {% endfor %}
+  {% /clusterize_table %}
 {% /card %}
 
 {% vite_hmr_client %}

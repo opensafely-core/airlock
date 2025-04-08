@@ -434,7 +434,7 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     # go back to the folder view
     page.go_back()
     # should load the table
-    expect(page.locator(".datatable-table")).to_be_visible()
+    expect(page.locator(".clusterized")).to_be_visible()
 
     # refresh the folder view by clicking on the folder in the tree view
     page.locator('.tree a[href$="outputs/"]').click()
@@ -443,7 +443,7 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     # complete
     wait_for_htmx(page)
     # should load the table but previously didn't
-    expect(page.locator(".datatable-table")).to_be_visible()
+    expect(page.locator(".clusterized")).to_be_visible()
 
 
 def test_checkbox_caching(live_server, page, context):
