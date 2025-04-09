@@ -194,6 +194,14 @@ DATABASES = {
             # https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
             "transaction_mode": "IMMEDIATE",
         },
+        # Specify a test db so that django uses a filesystem db instead on an in-memory
+        # one. This means it can use WAL mode in tests and prevents the "table is locked"
+        # error when two threads read and write at the same time (i.e. in the functional
+        # tests, where we have htmx polling in the running liveserver browser, and we
+        # also update a release request in the test code)
+        "TEST": {
+            "NAME": WORK_DIR / "test_db.sqlite3",
+        },
     }
 }
 
