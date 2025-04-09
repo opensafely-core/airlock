@@ -157,9 +157,9 @@ django==5.2 \
     #   django-markdownify
     #   django-vite
     #   slippers
-django-extensions==3.2.3 \
-    --hash=sha256:44d27919d04e23b3f40231c4ab7af4e61ce832ef46d610cc650d53e68328410a \
-    --hash=sha256:9600b7562f79a92cbf1fde6403c04fee314608fefbb595502e34383ae8203401
+django-extensions==4.0 \
+    --hash=sha256:212210eee6b82c998ddf37ed0a9f7f1a539219c211f8c5f07ca71afb36e31460 \
+    --hash=sha256:8524e70adf2f2d7312288d80354bbf28b9b2cff0ff02f06e586deb723f89039e
     # via -r requirements.prod.in
 django-htmx==1.23.0 \
     --hash=sha256:71e6242ac6bd32a0e14fcb12b340f901c9a924f0b4e9b461a5e6a6eea8d9c6dd \
@@ -558,9 +558,9 @@ typeguard==2.13.3 \
     --hash=sha256:00edaa8da3a133674796cf5ea87d9f4b4c367d77476e185e80251cc13dfbb8c4 \
     --hash=sha256:5e3e3be01e887e7eafae5af63d1f36c849aaa94e3a0112097312aabfa16284f1
     # via slippers
-typing-extensions==4.13.0 \
-    --hash=sha256:0a4ac55a5820789d87e297727d229866c9650f6521b64206413c4fbada24d95b \
-    --hash=sha256:c8dd92cc0d6425a97c18fbb9d1954e5ff92c1ca881a309c45f06ebc0b79058e5
+typing-extensions==4.13.1 \
+    --hash=sha256:4b6cf02909eb5495cfbc3f6e8fd49217e6cc7944e145cdda8caa3734777f9e69 \
+    --hash=sha256:98795af00fb9640edec5b8e31fc647597b4691f099ad75f469a2616be1a76dff
     # via
     #   opentelemetry-sdk
     #   pydantic
