@@ -9,7 +9,7 @@
     {% airlock_header title="Requests for review" %}
 
     {% #card title="Outstanding requests awaiting review" %}
-      {% #airlock_list_group id="outstanding-requests" %}
+      {% #list_group id="outstanding-requests" %}
         {% for release_request, request_progress in outstanding_requests %}
           {% fragment as title %}{{ release_request.get_short_id }} by {% airlock_user user=release_request.author %}{% endfragment %}
           {% #airlock_list_group_rich_item type="Outstanding request" title=title url=release_request.get_url status_text=release_request.status.description %}
@@ -29,11 +29,11 @@
         {% empty %}
           {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
         {% endfor %}
-      {% /airlock_list_group %}
+      {% /list_group %}
     {% /card %}
 
     {% #card title="Requests returned for changes/questions" %}
-      {% #airlock_list_group id="returned-requests" %}
+      {% #list_group id="returned-requests" %}
         {% for release_request in returned_requests %}
           {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
           {% #airlock_list_group_rich_item type="Returned request" title=title url=release_request.get_url status_text=release_request.status.description %}
@@ -49,12 +49,12 @@
         {% empty %}
           {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
         {% endfor %}
-      {% /airlock_list_group %}
+      {% /list_group %}
     {% /card %}
 
     {% if approved_requests %}
       {% #card title="Approved requests awaiting release" %}
-        {% #airlock_list_group id="returned-requests" %}
+        {% #list_group id="returned-requests" %}
           {% for release_request in approved_requests %}
             {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
             {% #airlock_list_group_rich_item type="Approved request" title=title url=release_request.get_url status_text=release_request.status.description %}
@@ -68,7 +68,7 @@
               </div>
             {% /airlock_list_group_rich_item %}
           {% endfor %}
-        {% /airlock_list_group %}
+        {% /list_group %}
       {% /card %}
     {% endif %}
 

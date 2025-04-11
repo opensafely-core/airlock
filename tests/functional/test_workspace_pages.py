@@ -36,7 +36,7 @@ def test_workspaces_index_as_researcher(live_server, page, researcher_user):
 def test_copiloted_workspaces_index_no_workspaces(live_server, page, researcher_user):
     # Copiloted workspaces nav item is not visible
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).not_to_contain_text("Copiloted Workspaces")
+    expect(page.locator("body")).not_to_contain_text("Copiloted Workspaces & Requests")
 
     page.goto(live_server.url + "/copiloted-workspaces/")
     expect(page.locator("body")).to_contain_text("No copiloted workspaces available")
@@ -48,7 +48,7 @@ def test_copiloted_workspaces_index_no_workspaces(live_server, page, researcher_
 def test_copiloted_workspaces_index_as_copilot(live_server, page, copilot_user):
     # Copiloted workspaces nav item is visible
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).to_contain_text("Copiloted Workspaces")
+    expect(page.locator("body")).to_contain_text("Copiloted Workspaces & Requests")
 
     page.goto(live_server.url + "/copiloted-workspaces/")
     expect(page.locator("body")).to_contain_text("test-dir1")

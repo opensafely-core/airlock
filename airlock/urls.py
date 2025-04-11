@@ -73,6 +73,11 @@ urlpatterns = [
     ),
     # requests
     path(
+        "requests/",
+        RedirectView.as_view(pattern_name="workspace_index"),
+        name="workspaces_requests",
+    ),
+    path(
         "requests/output_checker",
         airlock.views.requests_for_output_checker,
         name="requests_for_output_checker",
