@@ -25,7 +25,7 @@
                    {% if location.is_active %}border-t-oxford-600/50 text-oxford-600{% endif %}
                   "
             href="{{ location.url }}"
-            data-testid="nav-{{ location.name|lower }}"
+            data-testid="nav-{{ location.name|slugify }}"
           >
             {{ location.name }}
             {% if location.is_active %}<span class="sr-only">(current)</span>{% endif %}

@@ -17,14 +17,18 @@ def workspaces():
 def test_workspaces_index_as_ouput_checker(live_server, page, output_checker_user):
     # this should only list their workspaces, even though they can access all workspaces
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).to_contain_text("Workspaces for Test Output Checker")
+    expect(page.locator("body")).to_contain_text(
+        "Workspaces & Requests for Test Output Checker"
+    )
     expect(page.locator("body")).not_to_contain_text("test-dir1")
     expect(page.locator("body")).to_contain_text("test-dir2")
 
 
 def test_workspaces_index_as_researcher(live_server, page, researcher_user):
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).to_contain_text("Workspaces for Test Researcher")
+    expect(page.locator("body")).to_contain_text(
+        "Workspaces & Requests for Test Researcher"
+    )
     expect(page.locator("body")).to_contain_text("test-dir1")
     expect(page.locator("body")).not_to_contain_text("test-dir2")
 
@@ -32,7 +36,7 @@ def test_workspaces_index_as_researcher(live_server, page, researcher_user):
 def test_copiloted_workspaces_index_no_workspaces(live_server, page, researcher_user):
     # Copiloted workspaces nav item is not visible
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).not_to_contain_text("Copiloted Workspaces")
+    expect(page.locator("body")).not_to_contain_text("Copiloted Workspaces & Requests")
 
     page.goto(live_server.url + "/copiloted-workspaces/")
     expect(page.locator("body")).to_contain_text("No copiloted workspaces available")
@@ -44,7 +48,7 @@ def test_copiloted_workspaces_index_no_workspaces(live_server, page, researcher_
 def test_copiloted_workspaces_index_as_copilot(live_server, page, copilot_user):
     # Copiloted workspaces nav item is visible
     page.goto(live_server.url + "/workspaces/")
-    expect(page.locator("body")).to_contain_text("Copiloted Workspaces")
+    expect(page.locator("body")).to_contain_text("Copiloted Workspaces & Requests")
 
     page.goto(live_server.url + "/copiloted-workspaces/")
     expect(page.locator("body")).to_contain_text("test-dir1")

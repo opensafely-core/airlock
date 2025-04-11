@@ -8,25 +8,15 @@ def predicate_false(request):
 
 def test_iter_nav(rf):
     items = [
-        nav.NavItem("Workspace", "workspace_index"),
-        nav.NavItem("Requests", "requests_for_researcher", predicate_false),
+        nav.NavItem("Workspaces & Requests", "workspace_index"),
     ]
 
     request = rf.get("/workspaces/")
     assert list(nav.iter_nav(items, request)) == [
         {
-            "name": "Workspace",
+            "name": "Workspaces & Requests",
             "url": "/workspaces/",
             "is_active": True,
-        }
-    ]
-
-    request = rf.get("/other/")
-    assert list(nav.iter_nav(items, request)) == [
-        {
-            "name": "Workspace",
-            "url": "/workspaces/",
-            "is_active": False,
         }
     ]
 
@@ -37,6 +27,7 @@ def test_iter_nav_output_checker(rf):
     )
     items = [
         nav.NavItem("Reviews", "requests_for_output_checker"),
+        nav.NavItem("Workspaces & Requests", "workspace_index", predicate_false),
     ]
 
     request = rf.get("/requests/output_checker")
@@ -45,6 +36,15 @@ def test_iter_nav_output_checker(rf):
             "name": "Reviews",
             "url": "/requests/output_checker",
             "is_active": True,
+        }
+    ]
+
+    request = rf.get("/other/")
+    assert list(nav.iter_nav(items, request)) == [
+        {
+            "name": "Reviews",
+            "url": "/requests/output_checker",
+            "is_active": False,
         }
     ]
 
