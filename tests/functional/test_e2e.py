@@ -117,7 +117,7 @@ def test_e2e_release_files(
     login_as(live_server, page, "researcher")
 
     # Click on to workspaces link
-    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    find_and_click(page, page.get_by_test_id("nav-workspaces-requests"))
     expect(page.locator("body")).to_contain_text("Workspaces & Requests for Researcher")
 
     # Click on a project to expand dropdown
@@ -324,7 +324,7 @@ def test_e2e_release_files(
 
     # Before we log the researcher out and continue, let's just check
     # their requests
-    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    find_and_click(page, page.get_by_test_id("nav-workspaces-requests"))
     expect(page).to_have_url(live_server.url + "/workspaces/")
 
     project_title_dropdown(page)
@@ -697,7 +697,7 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     login_as(live_server, page, "researcher")
 
     # Click on to workspaces link
-    find_and_click(page, page.get_by_test_id("nav-workspaces & requests"))
+    find_and_click(page, page.get_by_test_id("nav-workspaces-requests"))
     expect(page.locator("body")).to_contain_text("Workspaces & Requests for Researcher")
 
     # Click on the workspace

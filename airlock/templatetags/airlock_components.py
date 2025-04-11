@@ -15,7 +15,6 @@ register_components(
         "airlock_user": "_components/user.html",
         "airlock_list_dropdown": "_components/list-group/list-group-item-dropdown.html",
         "airlock_list_group_rich_item": "_components/list-group/list-group-rich-item.html",
-        "airlock_list_group": "_components/list-group/list-group.html",
     },
     register,
 )
