@@ -152,15 +152,10 @@ django==5.2 \
     --hash=sha256:91ceed4e3a6db5aedced65e3c8f963118ea9ba753fc620831c77074e620e7d83
     # via
     #   -r requirements.prod.in
-    #   django-extensions
     #   django-htmx
     #   django-markdownify
     #   django-vite
     #   slippers
-django-extensions==4.1 \
-    --hash=sha256:0699a7af28f2523bf8db309a80278519362cd4b6e1fd0a8cd4bf063e1e023336 \
-    --hash=sha256:7b70a4d28e9b840f44694e3f7feb54f55d495f8b3fa6c5c0e5e12bcb2aa3cdeb
-    # via -r requirements.prod.in
 django-htmx==1.23.0 \
     --hash=sha256:71e6242ac6bd32a0e14fcb12b340f901c9a924f0b4e9b461a5e6a6eea8d9c6dd \
     --hash=sha256:bca2d7590f3df8611a32a436b9f098d8bccb9762b99b01c08dc42336966700a0
