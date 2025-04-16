@@ -2,7 +2,6 @@ ansi2html
 Django
 django-vite
 slippers
-django-extensions
 django-htmx
 django-markdownify
 whitenoise
