@@ -912,7 +912,7 @@ def test_request_download_file_permissions(
 def test_request_index_user_permitted_requests(airlock_client):
     airlock_client.login(workspaces=["test1"])
     release_request = factories.create_release_request("test1", airlock_client.user)
-    response = airlock_client.get("/requests/researcher")
+    response = airlock_client.get("/workspaces/")
     authored_ids = {r.id for r in response.context["authored_requests"]}
 
     assert authored_ids == {release_request.id}
@@ -969,7 +969,7 @@ def test_request_index_user_output_checker(airlock_client):
         files=[factories.request_file()],
     )
 
-    response = airlock_client.get("/requests/researcher")
+    response = airlock_client.get("/workspaces/")
 
     authored_ids = {r.id for r in response.context["authored_requests"]}
 
@@ -1355,6 +1355,27 @@ def test_requests_for_workspace(airlock_client):
         "test1", user=author2, status=RequestStatus.PENDING
     )
     factories.add_request_file(release_request2, "group", "path/test2.txt")
+
+    factories.create_request_at_status(
+        "test1",
+        RequestStatus.REJECTED,
+        files=[
+            factories.request_file(
+                "group", "file.txt", contents="foobar", approved=True
+            ),
+        ],
+    )
+
+    factories.create_request_at_status(
+        "test1",
+        status=RequestStatus.WITHDRAWN,
+        files=[
+            factories.request_file(
+                "group", "file.txt", contents="foobar", approved=True
+            ),
+        ],
+        withdrawn_after=RequestStatus.RETURNED,
+    )
 
     response = airlock_client.get("/requests/workspace/test1")
 

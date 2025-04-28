@@ -34,22 +34,23 @@ def iter_nav(items, request):
 
 def menu(request):
     items = [
-        NavItem(name="Workspaces", url_name="workspace_index"),
-        NavItem(name="Requests", url_name="requests_for_researcher"),
+        NavItem(name="Workspaces & Requests", url_name="workspace_index"),
         NavItem(name="Docs", url_name="docs_home"),
     ]
+    nav_index = 1
 
     if request.user.is_authenticated:
-        if request.user.copiloted_workspaces:
-            copiloted_workspaces_menu = NavItem(
-                name="Copiloted Workspaces", url_name="copiloted_workspace_index"
-            )
-            items.insert(1, copiloted_workspaces_menu)
         if permissions.user_can_review(request.user):
             reviews_menu = NavItem(
                 name="Reviews", url_name="requests_for_output_checker"
             )
-            items.insert(2, reviews_menu)
+            items.insert(nav_index, reviews_menu)
+        if request.user.copiloted_workspaces:
+            copiloted_workspaces_menu = NavItem(
+                name="Copiloted Workspaces",
+                url_name="copiloted_workspace_index",
+            )
+            items.insert(nav_index, copiloted_workspaces_menu)
     return {"nav": list(iter_nav(items, request))}
 
 

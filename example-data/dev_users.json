@@ -85,7 +85,7 @@
     "details": {
       "username": "copilot",
       "fullname": "Copilot",
-      "output_checker": false,
+      "output_checker": true,
       "staff": true,
       "workspaces": {},
       "copiloted_workspaces": {

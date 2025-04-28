@@ -1,0 +1,13 @@
+<li {% if disabled %}class="block px-4 py-3 font-semibold cursor-not-allowed text-slate-700 break-words sm:px-6 {{ class }}"{% endif %}>
+  <div class="flex items-center justify-between px-4 sm:px-6">
+    {% if not disabled %}
+      <a class="transition-colors duration-200 px-2 py-3 font-semibold text-oxford-600 break-words sm:px-2 {{ class }}" {% attrs aria-checked aria-labelled-by href role %}>
+        {{ children }}
+      </a>
+      {% if custom_button %}
+        {{ custom_button }}
+      {% endif %}
+    {% endif %}
+  </div>
+
+</li>

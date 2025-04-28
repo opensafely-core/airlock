@@ -51,10 +51,18 @@ def grouped_workspaces(workspaces):
 def workspace_index(request):
     workspaces = bll.get_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
+    authored_requests = bll.get_requests_authored_by_user(request.user)
+    workspace_header = "Workspaces & Requests for "
+
     return TemplateResponse(
         request,
         "workspaces.html",
-        {"projects": projects, "workspace_type": "workspaces"},
+        {
+            "projects": projects,
+            "workspace_type": "workspaces",
+            "workspace_header": workspace_header,
+            "authored_requests": authored_requests,
+        },
     )
 
 
@@ -62,10 +70,15 @@ def workspace_index(request):
 def copilot_workspace_index(request):
     workspaces = bll.get_copiloted_workspaces_for_user(request.user)
     projects = dict(grouped_workspaces(workspaces))
+    workspace_header = "Copiloted Workspaces for "
     return TemplateResponse(
         request,
         "workspaces.html",
-        {"projects": projects, "workspace_type": "copiloted workspaces"},
+        {
+            "projects": projects,
+            "workspace_type": "copiloted workspaces",
+            "workspace_header": workspace_header,
+        },
     )
 
 

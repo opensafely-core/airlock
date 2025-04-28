@@ -80,19 +80,6 @@ def requests_for_output_checker(request):
     )
 
 
-@instrument
-def requests_for_researcher(request):
-    authored_requests = bll.get_requests_authored_by_user(request.user)
-
-    return TemplateResponse(
-        request,
-        "requests_for_researcher.html",
-        {
-            "authored_requests": authored_requests,
-        },
-    )
-
-
 def _get_request_button_context(user, release_request):
     # default context for request-level actions with everything hidden
     # author actions
