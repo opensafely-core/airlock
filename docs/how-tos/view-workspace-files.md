@@ -1,4 +1,4 @@
-To view files in a workspace, navigate to the Workspaces view using the links in the
+To view files in a workspace, navigate to the 'Workspaces & Requests' view using the links in the
 navigation bar. This will show you a list of workspaces that you have access to, organised
 by Project.
 
