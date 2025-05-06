@@ -22,3 +22,7 @@ https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f
 mypy
 django-stubs[compatible-mypy]
 types-requests
+
+# The following is a work-around for a bug in pip-compile. For more information, see:
+# https://github.com/jazzband/pip-tools/issues/2176
+pip==25.0.1
