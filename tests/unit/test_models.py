@@ -8,6 +8,7 @@ from django.conf import settings
 
 from airlock import exceptions, permissions
 from airlock.enums import (
+    RequestFileDecision,
     RequestFileType,
     RequestStatus,
     ReviewTurnPhase,
@@ -1061,3 +1062,86 @@ def test_coderepo_from_workspace(bll):
     CodeRepo.from_workspace(
         workspace, workspace.manifest["outputs"]["foo.txt"]["commit"]
     )
+
+
+def test_displayed_decision_for_conflicting_file_reviews(bll):
+    path = UrlPath("path/file1.txt")
+
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=True
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        author=author,
+        files=[factories.request_file(path=path)],
+    )
+    checker1 = factories.create_airlock_user(
+        username="checker1", workspaces=[], output_checker=True
+    )
+    checker2 = factories.create_airlock_user(
+        username="checker2", workspaces=[], output_checker=True
+    )
+    researcher1 = factories.create_airlock_user(
+        username="researcher1", workspaces=[], output_checker=False
+    )
+
+    request_file = release_request.get_request_file_from_output_path(path)
+
+    bll.approve_file(release_request, request_file, checker1)
+    bll.request_changes_to_file(release_request, request_file, checker2)
+    # If changes are requested, the checker needs to comment on the group
+    bll.group_comment_create(
+        release_request, request_file.group, "a comment", Visibility.PUBLIC, checker2
+    )
+
+    # Reviewers must submit their independent review before we can assess
+    # a file's decision
+
+    factories.submit_independent_review(release_request, checker1, checker2)
+
+    release_request = factories.refresh_release_request(release_request)
+
+    # check file decision displayed to output checkers
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), checker1
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CONFLICTED
+
+    # check file decision displayed to the author (who also has output checker permissions)
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), author
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.INCOMPLETE
+
+    # check file decision displayed to the author after the request has been returned(who also has output checker permissions)
+    bll.return_request(release_request, checker2)
+    release_request = factories.refresh_release_request(release_request)
+
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), author
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CHANGES_REQUESTED
+
+    # check file decision displayed to output checkers after request has been returned
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), checker1
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CONFLICTED
+
+    # check file decision displayed to researcher after request has been returned
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), researcher1
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CHANGES_REQUESTED
