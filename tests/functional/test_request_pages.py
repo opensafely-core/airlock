@@ -466,15 +466,24 @@ def test_file_vote_buttons(
     changes_requested_selected_disabled,
     decision_tooltip,
 ):
-    checker = factories.create_api_user(
-        username="checker", workspaces=_workspace_dict(), output_checker=True
-    )
+    user_data = {
+        "author": dict(
+            username="researcher", workspaces=_workspace_dict(), output_checker=True
+        ),
+        "checker": dict(
+            username="checker", workspaces=_workspace_dict(), output_checker=True
+        ),
+    }
+
+    author = factories.create_airlock_user(**user_data["author"])
+    checkers = [
+        factories.create_airlock_user(**user_data["checker"]),
+        factories.get_default_output_checkers()[0],
+    ]
 
     release_request = factories.create_request_at_status(
         "workspace",
-        author=factories.create_airlock_user(
-            username="researcher", workspaces=_workspace_dict(), output_checker=False
-        ),
+        author=author,
         status=status,
         withdrawn_after=RequestStatus.PENDING,
         files=[
@@ -483,15 +492,12 @@ def test_file_vote_buttons(
                 path="file1.txt",
                 approved=current_vote == RequestFileVote.APPROVED,
                 changes_requested=current_vote == RequestFileVote.CHANGES_REQUESTED,
-                checkers=[
-                    factories.create_airlock_user(**checker),
-                    factories.get_default_output_checkers()[0],
-                ],
+                checkers=checkers,
             ),
         ],
     )
 
-    login_as_user(live_server, context, checker)
+    login_as_user(live_server, context, user_data["checker"])
     page.goto(live_server.url + release_request.get_url("group/file1.txt"))
 
     approve_button = page.locator("#file-approve-button")
@@ -523,8 +529,56 @@ def test_file_vote_buttons(
     if status == RequestStatus.REVIEWED and current_vote == RequestFileVote.APPROVED:
         changes_requested_button.click()
         decision_locator.hover()
+
+        # decision displayed for output checker
         expect(page.locator("body")).to_contain_text(
             "Output checkers have reviewed this file and disagree"
+        )
+
+    if (
+        status == RequestStatus.REVIEWED
+        and current_vote == RequestFileVote.CHANGES_REQUESTED
+    ):
+        page.goto(live_server.url + release_request.get_url("group"))
+
+        comment_button = page.get_by_role("button", name="Make comment visible to all")
+        expect(comment_button).to_be_visible()
+        comment_button.click()
+
+        # check file decision displayed to the author (who also has output checker permissions)
+        login_as_user(live_server, context, user_data["author"])
+
+        page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+
+        page.reload()
+
+        decision_locator.hover()
+        expect(page.locator("body")).to_contain_text(
+            "Overall decision will be displayed after two"
+        )
+
+        # request is returned by output checker
+        login_as_user(live_server, context, user_data["checker"])
+        page.reload()
+        page.goto(live_server.url + release_request.get_url())
+
+        return_request_button = page.locator("button[data-modal=returnRequest]")
+        modal_return_request_button = page.locator("#return-request-button")
+        expect(return_request_button).to_be_enabled()
+
+        expect(modal_return_request_button).not_to_be_visible()
+        return_request_button.click()
+
+        expect(modal_return_request_button).to_be_visible()
+        modal_return_request_button.click()
+
+        # check file decision displayed to the author after request is returned
+        login_as_user(live_server, context, user_data["author"])
+        page.goto(live_server.url + release_request.get_url("group/file1.txt"))
+        page.reload()
+        decision_locator.hover()
+        expect(page.locator("body")).to_contain_text(
+            "Two independent output checkers have requested changes"
         )
 
 
@@ -1302,75 +1356,3 @@ def test_request_action_required_alert(
     page.locator(".tree__file").filter(has_text="file1").click()
     expect(content_alert).to_be_visible()
     expect(content_alert_link).to_be_visible()
-
-
-def test_conflicted_file_decision(live_server, context, page, bll):
-    path = UrlPath("path/file1.txt")
-
-    user_data = {
-        "author": dict(
-            username="author", workspaces=_workspace_dict(), output_checker=True
-        ),
-        "checker1": dict(
-            username="checker1", workspaces=_workspace_dict(), output_checker=True
-        ),
-        "checker2": dict(
-            username="checker2", workspaces=_workspace_dict(), output_checker=True
-        ),
-    }
-    author = factories.create_airlock_user(**user_data["author"])
-    checker1 = factories.create_airlock_user(**user_data["checker1"])
-    checker2 = factories.create_airlock_user(**user_data["checker2"])
-
-    release_request = factories.create_request_at_status(
-        "workspace",
-        author=author,
-        status=RequestStatus.SUBMITTED,
-        files=[factories.request_file(path=path)],
-    )
-
-    request_file = release_request.get_request_file_from_output_path(path)
-
-    bll.approve_file(release_request, request_file, checker1)
-    bll.request_changes_to_file(release_request, request_file, checker2)
-
-    # If changes are requested, the checker needs to comment on the group
-    bll.group_comment_create(
-        release_request, request_file.group, "a comment", Visibility.PUBLIC, checker2
-    )
-
-    factories.submit_independent_review(release_request, checker1, checker2)
-
-    release_request = factories.refresh_release_request(release_request)
-
-    # check file decision displayed to output checkers
-    login_as_user(live_server, context, user_data["checker1"])
-    page.goto(live_server.url + release_request.get_url("group/path/file1.txt"))
-
-    decision_locator = page.locator(".request-file-status")
-    decision_locator.hover()
-    expect(page.locator("body")).to_contain_text(
-        "Output checkers have reviewed this file and disagree"
-    )
-
-    # logout by clearing cookies
-    context.clear_cookies()
-
-    # check file decision displayed to the author (who also has output checker permissions)
-    login_as_user(live_server, context, user_data["author"])
-    page.goto(live_server.url + release_request.get_url("group/path/file1.txt"))
-
-    decision_locator.hover()
-    expect(page.locator("body")).to_contain_text(
-        "Overall decision will be displayed after two"
-    )
-
-    # check file decision displayed to the author after request is returned
-    bll.return_request(release_request, checker2)
-    release_request = factories.refresh_release_request(release_request)
-    page.reload()
-
-    decision_locator.hover()
-    expect(page.locator("body")).to_contain_text(
-        "Two independent output checkers have requested changes"
-    )

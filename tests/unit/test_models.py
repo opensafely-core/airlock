@@ -1083,6 +1083,9 @@ def test_displayed_decision_for_conflicting_file_reviews(bll):
     checker2 = factories.create_airlock_user(
         username="checker2", workspaces=[], output_checker=True
     )
+    researcher1 = factories.create_airlock_user(
+        username="researcher1", workspaces=[], output_checker=False
+    )
 
     request_file = release_request.get_request_file_from_output_path(path)
 
@@ -1104,20 +1107,17 @@ def test_displayed_decision_for_conflicting_file_reviews(bll):
     release_request_file = release_request.get_request_file_status(
         UrlPath("group/path/file1.txt"), checker1
     )
-    assert (
-        release_request_file
-        and release_request_file.decision == RequestFileDecision.CONFLICTED
-    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CONFLICTED
 
     # check file decision displayed to the author (who also has output checker permissions)
     release_request_file = release_request.get_request_file_status(
         UrlPath("group/path/file1.txt"), author
     )
 
-    assert (
-        release_request_file
-        and release_request_file.decision == RequestFileDecision.INCOMPLETE
-    )
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.INCOMPLETE
 
     # check file decision displayed to the author after the request has been returned(who also has output checker permissions)
     bll.return_request(release_request, checker2)
@@ -1126,7 +1126,22 @@ def test_displayed_decision_for_conflicting_file_reviews(bll):
     release_request_file = release_request.get_request_file_status(
         UrlPath("group/path/file1.txt"), author
     )
-    assert (
-        release_request_file
-        and release_request_file.decision == RequestFileDecision.CHANGES_REQUESTED
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CHANGES_REQUESTED
+
+    # check file decision displayed to output checkers after request has been returned
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), checker1
     )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CONFLICTED
+
+    # check file decision displayed to researcher after request has been returned
+    release_request_file = release_request.get_request_file_status(
+        UrlPath("group/path/file1.txt"), researcher1
+    )
+
+    assert release_request_file is not None  # keep mypy happy
+    assert release_request_file.decision == RequestFileDecision.CHANGES_REQUESTED
