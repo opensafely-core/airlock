@@ -518,12 +518,18 @@ def group_presenter(release_request, relpath, request):
     reset_votes_button = ButtonContext.with_request_defaults(
         release_request.id, "group_reset_votes", group=group
     )
+    approve_button = ButtonContext.with_request_defaults(
+        release_request.id, "group_approve", group=group
+    )
     if permissions.user_can_currently_review_request(request.user, release_request):
         request_changes_button.show = True
         request_changes_button.disabled = False
         request_changes_button.tooltip = (
             "Request changes for all unreviewed files in this group"
         )
+        approve_button.show = True
+        approve_button.disabled = False
+        approve_button.tooltip = "Approve all unreviewed files in this group"
 
         if permissions.user_can_reset_review(request.user, release_request):
             reset_votes_button.show = True
@@ -565,6 +571,7 @@ def group_presenter(release_request, relpath, request):
             exclude_readonly=True,
         ),
         # group voting buttons
+        "approve_button": approve_button,
         "request_changes_button": request_changes_button,
         "reset_votes_button": reset_votes_button,
     }
@@ -1147,6 +1154,41 @@ def group_comment_visibility_public(request, request_id, group):
 @require_http_methods(["POST"])
 def group_request_changes(request, request_id, group):
     release_request = get_release_request_or_raise(request.user, request_id)
+    info_messages, errors, changes_requested_count = _group_vote(
+        request.user, release_request, group, bll.request_changes_to_file
+    )
+    if changes_requested_count:
+        plural_suffix = "s" if changes_requested_count > 1 else ""
+        messages.success(
+            request,
+            f"Changes have been requested for {changes_requested_count} file{plural_suffix}",
+        )
+    display_multiple_messages(request, info_messages, "info")
+    display_multiple_messages(request, errors, "error")
+
+    return redirect(release_request.get_url(group))
+
+
+@instrument(func_attributes={"release_request": "request_id", "group": "group"})
+@require_http_methods(["POST"])
+def group_approve(request, request_id, group):
+    release_request = get_release_request_or_raise(request.user, request_id)
+    info_messages, errors, approved_file_count = _group_vote(
+        request.user, release_request, group, bll.approve_file
+    )
+    if approved_file_count:
+        plural_suffix = "s" if approved_file_count > 1 else ""
+        messages.success(
+            request,
+            f"{approved_file_count} file{plural_suffix} have been approved",
+        )
+    display_multiple_messages(request, info_messages, "info")
+    display_multiple_messages(request, errors, "error")
+
+    return redirect(release_request.get_url(group))
+
+
+def _group_vote(user, release_request, group, vote_fn):
     filegroup = release_request.filegroups.get(group)
     if filegroup is None:
         raise Http404(f"bad group {group}")
@@ -1154,21 +1196,19 @@ def group_request_changes(request, request_id, group):
     # Raise permission denied if user isn't allowed to review this request at
     # this time
     try:
-        permissions.check_user_can_currently_review_request(
-            request.user, release_request
-        )
+        permissions.check_user_can_currently_review_request(user, release_request)
     except (exceptions.RequestPermissionDenied, exceptions.RequestReviewDenied) as exc:
         raise PermissionDenied(str(exc))
 
     # Track the number of files we update so we can report it to the user
-    approved_files = 0
+    voted_files = 0
+    approved_already = 0
     changes_requested_already = 0
-    changes_requested = 0
     errors = []
     for output_file in filegroup.output_files:
-        match output_file.get_file_vote_for_user(request.user):
+        match output_file.get_file_vote_for_user(user):
             case RequestFileVote.APPROVED:
-                approved_files += 1
+                approved_already += 1
             case RequestFileVote.CHANGES_REQUESTED:
                 changes_requested_already += 1
             case RequestFileVote.UNDECIDED | None:
@@ -1181,40 +1221,29 @@ def group_request_changes(request, request_id, group):
                 # We don't want to raise this error immediately, because we still want
                 # to be able to tell the user what succeeded.
                 try:
-                    bll.request_changes_to_file(
-                        release_request, output_file, request.user
-                    )
-                    changes_requested += 1
+                    vote_fn(release_request, output_file, user)
+                    voted_files += 1
                 except exceptions.RequestReviewDenied as exc:
-                    errors.append(
-                        f"Error requesting changes for {output_file.relpath}: {exc}"
-                    )
+                    errors.append(f"Error voting on {output_file.relpath}: {exc}")
                     span = trace.get_current_span()
                     span.record_exception(exc)
             case _:  # pragma: no cover
                 assert False, "Unknown vote status"
 
     info_messages = []
-    if approved_files:
-        pluralize = approved_files > 1
+    if approved_already:
+        pluralize = approved_already > 1
         info_messages.append(
-            f"You have already approved {approved_files} file{'s' if pluralize else ''} which {'have' if pluralize else 'has'} not been updated"
+            f"You have already approved {approved_already} file{'s' if pluralize else ''} which {'have' if pluralize else 'has'} not been updated"
         )
     if changes_requested_already:
+        pluralize = changes_requested_already > 1
         plural_suffix = "s" if changes_requested_already > 1 else ""
         info_messages.append(
-            f"You have already requested changes for {changes_requested_already} file{plural_suffix}"
+            f"You have already requested changes for {changes_requested_already} file{plural_suffix} which {'have' if pluralize else 'has'} not been updated"
         )
-    if changes_requested:
-        plural_suffix = "s" if changes_requested > 1 else ""
-        messages.success(
-            request,
-            f"Changes have been requested for {changes_requested} file{plural_suffix}",
-        )
-    display_multiple_messages(request, info_messages, "info")
-    display_multiple_messages(request, errors, "error")
 
-    return redirect(release_request.get_url(group))
+    return info_messages, errors, voted_files
 
 
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})
