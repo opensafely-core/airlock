@@ -3146,7 +3146,8 @@ def test_group_request_changes_bad_group(airlock_client):
     assert response.status_code == 404
 
 
-def test_group_approve(airlock_client):
+def test_group_approve(airlock_client, settings):
+    settings.ALLOW_GROUP_APPROVAL = True
     checker = factories.create_airlock_user(
         username="checker", workspaces=[], output_checker=True
     )
@@ -3190,16 +3191,46 @@ def test_group_approve(airlock_client):
     assert other_group_file.get_file_vote_for_user(checker) is None
 
 
-def test_group_approve_nothing_to_approve(airlock_client, settings):
+def test_group_approve_not_allowed(airlock_client, settings):
+    settings.ALLOW_GROUP_APPROVAL = False
     checker = factories.create_airlock_user(
         username="checker", workspaces=[], output_checker=True
     )
+    airlock_client.login_with_user(checker)
+
     release_request = factories.create_request_at_status(
         "workspace",
         author=factories.create_airlock_user(),
         status=RequestStatus.SUBMITTED,
         files=[
-            # approved by this user
+            factories.request_file("group", path="file1.txt"),
+            factories.request_file("group", path="file2.txt"),
+            factories.request_file(
+                "group", path="file3.txt", filetype=RequestFileType.SUPPORTING
+            ),
+            factories.request_file("group1", path="file4.txt"),
+        ],
+    )
+
+    response = airlock_client.post(
+        f"/requests/approve-group/{release_request.id}/group"
+    )
+
+    assert response.status_code == 403
+
+
+def test_group_approve_nothing_to_approve(airlock_client, settings):
+    settings.ALLOW_GROUP_APPROVAL = True
+    checker = factories.create_airlock_user(
+        username="checker", workspaces=[], output_checker=True
+    )
+    airlock_client.login_with_user(checker)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=factories.create_airlock_user(),
+        status=RequestStatus.SUBMITTED,
+        files=[
             factories.request_file(
                 "group", path="file1.txt", changes_requested=True, checkers=[checker]
             ),
@@ -3209,12 +3240,11 @@ def test_group_approve_nothing_to_approve(airlock_client, settings):
             ),
         ],
     )
-    airlock_client.login_with_user(checker)
 
     response = airlock_client.post(
-        f"/requests/approve-group/{release_request.id}/group",
-        follow=True,
+        f"/requests/approve-group/{release_request.id}/group", follow=True
     )
+
     assert (
         "You have already approved 1 file which has not been updated"
         in response.rendered_content
@@ -3223,6 +3253,22 @@ def test_group_approve_nothing_to_approve(airlock_client, settings):
         "You have already requested changes for 1 file which has not been updated"
         in response.rendered_content
     )
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+def test_group_approve_button(airlock_client, settings, allowed):
+    settings.ALLOW_GROUP_APPROVAL = allowed
+    airlock_client.login(username="checker", output_checker=True)
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "file.txt")],
+    )
+    response = airlock_client.get(release_request.get_url("group"), follow=True)
+    assert 'id="group-request-changes"' in response.rendered_content
+    assert 'id="group-reset-votes"' in response.rendered_content
+    assert ('id="group-approve"' in response.rendered_content) == allowed
 
 
 def test_group_reset_votes(airlock_client):

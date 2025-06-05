@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -12,7 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions, permissions
+from airlock import exceptions, permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import (
     PathType,
@@ -527,9 +527,10 @@ def group_presenter(release_request, relpath, request):
         request_changes_button.tooltip = (
             "Request changes for all unreviewed files in this group"
         )
-        approve_button.show = True
-        approve_button.disabled = False
-        approve_button.tooltip = "Approve all unreviewed files in this group"
+        if policies.check_can_group_approve():
+            approve_button.show = True
+            approve_button.disabled = False
+            approve_button.tooltip = "Approve all unreviewed files in this group"
 
         if permissions.user_can_reset_review(request.user, release_request):
             reset_votes_button.show = True
@@ -1172,6 +1173,9 @@ def group_request_changes(request, request_id, group):
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})
 @require_http_methods(["POST"])
 def group_approve(request, request_id, group):
+    if not policies.check_can_group_approve():
+        return HttpResponseForbidden("Group approval is not allowed")
+
     release_request = get_release_request_or_raise(request.user, request_id)
     info_messages, errors, approved_file_count = _group_vote(
         request.user, release_request, group, bll.approve_file

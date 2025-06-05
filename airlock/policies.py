@@ -15,6 +15,8 @@ in an editing status (submitted/partially reviewed/reviewed)
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from django.conf import settings
+
 from airlock import exceptions
 from airlock.enums import (
     RequestFileType,
@@ -272,3 +274,7 @@ def check_for_missing_filegroup_comments(request):
         raise exceptions.RequestPermissionDenied(
             f"Filegroup(s) are missing comments: {groups}"
         )
+
+
+def check_can_group_approve():
+    return settings.ALLOW_GROUP_APPROVAL
