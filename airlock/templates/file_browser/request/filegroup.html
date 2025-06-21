@@ -18,6 +18,22 @@
 {% fragment as buttons %}
   {% if not group.inline %}
     <div class="flex items-center gap-2">
+      {% if group.approve_button.show %}
+        {% #modal id="group-approve" button_small=True button_text="Approve" button_tooltip=group.approve_button.tooltip button_variant="success" %}
+          {% #card container=True title="Approve all files in group "|add:group.name %}
+            <form action="{{ group.approve_button.url }}" method="POST">
+              {% csrf_token %}
+              <div class="pb-8">
+                Approve all unreviewed output files in group <strong>{{ group.name }}</strong>.
+                If you have already requested changes for a file, your vote will NOT be changed.
+              </div>
+              {% #button type="submit" variant="success" class="action-button" small=True id="group-approve-button" %}Approve{% /button %}
+              {% #button variant="secondary-outline" type="cancel" small=True %}Cancel{% /button %}
+            </form>
+          {% /card %}
+        {% /modal %}
+      {% endif %}
+
       {% if group.request_changes_button.show %}
         {% #modal id="group-request-changes" button_small=True button_text="Request changes" button_tooltip=group.request_changes_button.tooltip button_variant="warning" %}
           {% #card container=True title="Request changes for all remaining files in group "|add:group.name %}

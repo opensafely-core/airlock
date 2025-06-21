@@ -46,3 +46,6 @@ PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers/
 PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=.playwright-browsers/chrome-linux/chrome
 # mac
 # PLAYWRIGHT_BROWSER_EXECUTABLE_PATH=.playwright-browsers/chrome-mac/Chromium.app/Contents/MacOS/Chromium
+
+# Make the Approve button for a group visible
+# AIRLOCK_ALLOW_GROUP_APPROVAL=True
