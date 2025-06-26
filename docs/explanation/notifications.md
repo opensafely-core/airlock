@@ -42,7 +42,7 @@ Notifications are sent at various stages during the release request workflow. No
 - Slack notification to output checkers
 - Author notified by email
 
-## Request released (all files successsully uploaded)
+## Request released (all files successfully uploaded)
 
 - GitHub issue closed
 - Author notified by email
