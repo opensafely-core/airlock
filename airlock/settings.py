@@ -437,3 +437,6 @@ SCREENSHOT_DIR = BASE_DIR / "docs" / "screenshots"
 
 UPLOAD_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_DELAY", 1))
 UPLOAD_RETRY_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_RETRY_DELAY", 60))
+
+
+ALLOW_GROUP_APPROVAL = os.environ.get("AIRLOCK_ALLOW_GROUP_APPROVAL", False)

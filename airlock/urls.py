@@ -194,6 +194,11 @@ urlpatterns = [
         name="group_reset_votes",
     ),
     path(
+        "requests/approve-group/<str:request_id>/<str:group>",
+        airlock.views.group_approve,
+        name="group_approve",
+    ),
+    path(
         "requests/<str:request_id>/uploaded-files-count",
         airlock.views.uploaded_files_count,
         name="uploaded_files_count",
