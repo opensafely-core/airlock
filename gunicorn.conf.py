@@ -7,8 +7,7 @@ import services.tracing as tracing
 workers = 4
 
 # listen
-port = 8000
-bind = "0.0.0.0"
+bind = "0.0.0.0:8000"
 
 
 # Because of Gunicorn's pre-fork web server model, we need to initialise opentelemetry
