@@ -206,7 +206,7 @@ manage *ARGS: devenv
 
 # run tests
 test *ARGS: devenv get-chromium
-    $BIN/python -m pytest "$@"
+    $BIN/python -m pytest -W error::UserWarning "$@"
 
 
 # run tests as they will be in run CI (checking code coverage etc)
@@ -223,7 +223,8 @@ test *ARGS: devenv get-chromium
       --cov=old_api \
       --cov=services \
       --cov-report=html \
-      --cov-report=term-missing:skip-covered
+      --cov-report=term-missing:skip-covered \
+      -W error::UserWarning "$@"
 
 
 # load example data so there's something to look at in development
