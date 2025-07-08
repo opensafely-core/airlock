@@ -2,7 +2,7 @@ set dotenv-load := true
 set positional-arguments
 
 
-export VIRTUAL_ENV  := env_var_or_default("VIRTUAL_ENV", ".venv")
+export VIRTUAL_ENV  := env("VIRTUAL_ENV", ".venv")
 
 export BIN := VIRTUAL_ENV + if os_family() == "unix" { "/bin" } else { "/Scripts" }
 export PIP := BIN + if os_family() == "unix" { "/python -m pip" } else { "/python.exe -m pip" }
