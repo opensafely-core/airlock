@@ -407,7 +407,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "format": "[{asctime}] {levelname} {message}",
+            "format": "[{asctime}] [{name}] {levelname} {message}",
             "datefmt": "%d/%b/%Y %H:%M:%S",
             "style": "{",
         },
@@ -428,6 +428,11 @@ LOGGING = {
         "django.template": {
             "level": "DEBUG",
             "filters": ["missing_variable_error"],
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,  # This stops it from also going to root logger, and logging twice.
         },
     },
 }
