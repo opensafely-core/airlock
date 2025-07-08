@@ -1,13 +1,17 @@
+import logging
 import time
 from typing import cast
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import auth
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.defaults import server_error
 from opentelemetry import trace
 
+from airlock.exceptions import RequestTimeout
 from users.auth import Level4AuthenticationBackend
 
 
@@ -59,3 +63,27 @@ class UserMiddleware:
 
         qs = urlencode({"next": request.get_full_path()}, safe="/")
         return redirect(self.login_url + f"?{qs}")
+
+
+class TimeoutExceptionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        if not isinstance(exception, RequestTimeout):
+            return None
+
+        trace.get_current_span().set_attribute("timeout", True)
+
+        logging.getLogger("django.request").error(
+            f"Timeout for {request.path}",
+            exc_info=(type(exception), exception, exception.__traceback__),
+        )
+
+        default_response = server_error(request)
+        return HttpResponse(
+            default_response.content, status=504, content_type="text/html"
+        )

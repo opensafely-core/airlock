@@ -1,8 +1,11 @@
 import time
 
 import pytest
+from django.urls import path
 from opentelemetry import trace
 
+from airlock.exceptions import RequestTimeout
+from airlock.views.helpers import login_exempt
 from tests import factories
 from tests.conftest import get_trace
 
@@ -116,3 +119,26 @@ def test_middleware_user_trace_with_no_user(airlock_client):
         "user_id": "anonymous",
         "username": "anonymous",
     }
+
+
+# set up some a test view/url to use
+@login_exempt
+def timeout(request):
+    raise RequestTimeout("timeout")
+
+
+# note: we need to use login, as the user middleware expects that to exist
+urlpatterns = [path("login/", timeout, name="login")]
+
+
+def test_timeout_exception_middleware(airlock_client, settings):
+    # use our custom url routes.
+    settings.ROOT_URLCONF = "tests.integration.test_middleware"
+    tracer = trace.get_tracer("test")
+    with tracer.start_as_current_span("mock_django_span"):
+        response = airlock_client.get("/login/")
+
+    assert response.status_code == 504
+
+    spans = get_trace()
+    assert spans[0].attributes["timeout"]
