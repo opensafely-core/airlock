@@ -223,7 +223,8 @@ test *ARGS: devenv get-chromium
       --cov=old_api \
       --cov=services \
       --cov-report=html \
-      --cov-report=term-missing:skip-covered
+      --cov-report=term-missing:skip-covered \
+      -vvv
 
 
 # load example data so there's something to look at in development
