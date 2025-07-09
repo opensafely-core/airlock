@@ -1,4 +1,5 @@
 import contextlib
+import os
 import subprocess
 import sys
 import tempfile
@@ -102,3 +103,75 @@ def test_run_gunicorn_timeout():
             print(stderr)  # pragma: nocover
 
     assert "gunicorn failed to start within" in str(exc)
+
+
+def create_test_wsgi_application():
+    """Create a test WSGI app
+
+    It adds an additional url/view to the existing airlock app, to enable
+    testing timeouts.
+    """
+    # we defer all these import as they need doing in the gunicorn worker
+    # process
+    import django
+
+    django.setup()
+
+    from django.conf import settings
+    from django.core.wsgi import get_wsgi_application
+    from django.urls import path
+
+    # Need login_exempt to not get redirected to login
+    # Need to import this here as it requires django.setup()
+    from airlock.views.helpers import login_exempt
+
+    @login_exempt
+    def slow_test_view(request):
+        """View that intentionally times out"""
+        time.sleep(5)
+        raise Exception("view did not timeout")  # pragma: nocover
+
+    # Add test URL pattern to the existing urlpatterns
+    urlconf_module = __import__(settings.ROOT_URLCONF, fromlist=[""])
+    test_pattern = path("test-timeout/", slow_test_view, name="test-timeout")
+    urlconf_module.urlpatterns.append(test_pattern)
+
+    # use default application
+    return get_wsgi_application()
+
+
+# module level so we can using as gunicorn wsgi app
+application = create_test_wsgi_application()
+
+
+def test_gunicorn_timeout():
+    cmd = [
+        "--config",
+        "gunicorn.conf.py",
+        "--timeout",
+        "1",
+        "--workers",
+        "1",
+        "--access-logfile",
+        "-",
+        "tests.functional.test_gunicorn:application",
+    ]
+
+    env = os.environ.copy()
+    # this will export otel spans to stdout
+    env["OTEL_EXPORTER_CONSOLE"] = "true"
+
+    with run_gunicorn(cmd, timeout=5, env=env) as (client, process):
+        response = client.get("http://localhost/test-timeout/")
+        # leave some for gunicorn to clean up
+        time.sleep(1)
+
+    stdout, stderr = process.communicate()
+    print(stdout)
+    print(stderr)  # should be empty
+
+    assert "GET /test-timeout/" in stdout
+    assert "airlock.exceptions.RequestTimeout" in stdout
+    assert response.status_code == 504
+    # check otel json is emitted for timedout request
+    assert '"name": "GET test-timeout/"' in stdout
