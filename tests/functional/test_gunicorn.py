@@ -59,7 +59,8 @@ def run_gunicorn(args, timeout, check_url="/", env=None):
 
             # check it is up
             try:
-                client.get("http://localhost/{check_url.lstrip('/')}")
+                response = client.get(f"http://localhost/{check_url.lstrip('/')}")
+                assert response.status_code < 500
                 break
             except Exception:
                 pass
