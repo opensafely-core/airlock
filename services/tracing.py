@@ -15,6 +15,8 @@ def get_provider():
         attributes={
             "service.name": os.environ.get("OTEL_SERVICE_NAME", "airlock"),
             "service.namespace": os.environ.get("BACKEND", "unknown"),
+            "rap.backend": os.environ.get("BACKEND", "unknown"),
+            "rap.service": "airlock",
         }
     )
     return TracerProvider(resource=resource)
