@@ -163,7 +163,7 @@ def test_gunicorn_timeout():
     env["OTEL_EXPORTER_CONSOLE"] = "true"
 
     with run_gunicorn(cmd, timeout=5, env=env) as (client, process):
-        response = client.get("http://localhost/test-timeout/")
+        response = client.get("http://localhost/test-timeout/", timeout=5)
         # leave some for gunicorn to clean up
         time.sleep(1)
 
@@ -173,6 +173,7 @@ def test_gunicorn_timeout():
 
     assert "GET /test-timeout/" in stdout
     assert "airlock.exceptions.RequestTimeout" in stdout
+    assert "(timeout=1)" in stdout
     assert response.status_code == 504
     # check otel json is emitted for timedout request
     assert '"name": "GET test-timeout/"' in stdout

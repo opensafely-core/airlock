@@ -27,5 +27,5 @@ def post_fork(server, worker):
 # error and emit logs and telemetry.
 def worker_abort(worker):
     raise RequestTimeout(
-        f"gunicorn worker {worker.pid} timed out (timeout={worker.timeout})"
+        f"gunicorn worker {worker.pid} timed out (timeout={worker.cfg.timeout})"
     )
