@@ -1,5 +1,6 @@
 import contextlib
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,8 @@ def run_gunicorn(args, timeout, check_url="/", env=None):
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env
         )
+        # store the socket on the process for easy access
+        process.socket = socket  # type: ignore
 
         # we use httpx as it supports unix sockets
         client = httpx.Client(transport=httpx.HTTPTransport(uds=socket))
@@ -145,7 +148,7 @@ def create_test_wsgi_application():
 application = create_test_wsgi_application()
 
 
-def test_gunicorn_timeout():
+def test_gunicorn_view_timeout():
     cmd = [
         "--config",
         "gunicorn.conf.py",
@@ -177,3 +180,30 @@ def test_gunicorn_timeout():
     assert response.status_code == 504
     # check otel json is emitted for timedout request
     assert '"name": "GET test-timeout/"' in stdout
+
+
+def test_gunicorn_connection_timeout():
+    cmd = [
+        "--config",
+        "gunicorn.conf.py",
+        "--timeout",
+        "1",
+        "--workers",
+        "1",
+        "--access-logfile",
+        "-",
+        "airlock.wsgi:application",
+    ]
+
+    with run_gunicorn(cmd, timeout=5) as (client, process):
+        # connect but do not send a request, and wait for timeout
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(process.socket)
+        time.sleep(1)
+
+    stdout, stderr = process.communicate()
+    print(stdout)
+    print(stderr)  # should be empty
+
+    assert "airlock.exceptions.RequestTimeout" not in stdout
+    assert "No request sent timeout, exiting" in stdout
