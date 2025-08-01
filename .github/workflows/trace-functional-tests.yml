@@ -48,7 +48,7 @@ jobs:
 
       - name: Notify slack of failures
         if: failure()
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           errors: true
           method: chat.postMessage
