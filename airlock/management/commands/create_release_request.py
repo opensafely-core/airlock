@@ -34,8 +34,6 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
-        # In production, we want this check to run forever. Using a
-        # function means that we can test it on a finite number of loops.
         parser.add_argument(
             "username",
             help="user name of user to create this release request; must have permission to access the workspace",
@@ -57,12 +55,6 @@ class Command(BaseCommand):
         workspace = bll.get_workspace(workspace_name, user)
         # record some info about the files
         groups_data = []
-        # total_files: defaultdict[str, int] = defaultdict(int)
-        # total_files_released: defaultdict[str, int] = defaultdict(int)
-        # total_files_already_added: defaultdict[str, int] = defaultdict(int)
-        # files_to_add: defaultdict[str, list[UrlPath]] = defaultdict(list)
-        # file_errors: defaultdict[str, list[UrlPath]] = defaultdict(list)
-
         for dir_path in options["dirs"]:
             self.stdout.write(f"Finding files for {dir_path}")
 
