@@ -128,6 +128,16 @@ def test_code_view_no_commit(airlock_client, code_url, redirected_url):
 
 def test_code_contents_file(airlock_client):
     airlock_client.login(output_checker=True)
+    repo = factories.create_repo("workspace", files=[("file.unknown", "unknown")])
+    response = airlock_client.get(
+        f"/code/contents/workspace/{repo.commit}/file.unknown"
+    )
+    assert response.status_code == 200
+    assert response.content == b'<pre class="unknown">\nunknown\n</pre>\n'
+
+
+def test_code_contents_file_yaml(airlock_client):
+    airlock_client.login(output_checker=True)
     repo = factories.create_repo("workspace")
     response = airlock_client.get(
         f"/code/contents/workspace/{repo.commit}/project.yaml"

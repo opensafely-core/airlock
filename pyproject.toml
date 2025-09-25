@@ -33,6 +33,7 @@ filterwarnings = [
 
 [tool.coverage.run]
 branch = true
+patch = ["subprocess"]
 # Required to get full coverage when using Playwright
 concurrency = ["greenlet", "thread"]
 plugins = ["django_coverage_plugin"]

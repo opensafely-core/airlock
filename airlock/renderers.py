@@ -225,6 +225,7 @@ FILE_RENDERERS = {
     ".txt": TextRenderer,
     ".json": TextRenderer,
     ".md": TextRenderer,
+    ".yaml": TextRenderer,
 }
 
 
