@@ -351,14 +351,47 @@ and use it to log into airlock at localhost:7000. You should now see any workspa
 for with your local job-runner.
 
 Note that in order to actually release from Airlock to your local job-server, you will need a different user
-who is a valid job-server user (second approvals can be done by a dummy dev user). If you are testing releases, you can modify your `dev_users.json` to allow a researcher user to access the relevant workspace, and use the dev users to
-create the release request and do the first approval.  Then switch to your real GitHub user for the release (ensure that
-your user in your local job-server has the Output Checker role).
+who is a valid job-server user (second approvals can be done by a dummy dev user). In order to test releases, you
+can use dummy dev users to create the release and perform the first output checker review, and then switch to your
+real GitHub user for the second review and release (ensure that your user in your local job-server has the Output
+Checker role).
 
-Note that the `dev_users.json` is expected to be located at AIRLOCK_WORK_DIR, so you will need to copy it to
-your local job-runner repo's workdir. To switch Airlock to using dev users, stop the server, comment out
-`AIRLOCK_API_TOKEN=` in your `.env` file, and restart. To switch back to using prod-like 3 word token logins, uncomment
-`AIRLOCK_API_TOKEN=` again and restart (both django server and file uploader).
+First ensure you have a dev users file available. The following command will create a dev users file if it doesn't
+already exist, and will print the location of the file.
+
+```
+just load-dev-users
+```
+
+Update the researcher_1 user's "workspaces" to add an entry that matches your job-server workspace so that
+researcher_1 can create a release request for this workspace:
+
+```
+...
+
+"researcher_1": {
+    ...
+      "workspaces": {
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        ...
+        "my-jobserver-test-workspace": {
+          "project_details": {"name": "Test Project", "ongoing": true},
+          "archived": false
+        }
+      }
+    ...
+  }
+...  
+
+```
+
+To switch Airlock to using dev users, stop the server, comment out `AIRLOCK_API_TOKEN=` in your `.env` file, and restart. 
+
+To switch back to using prod-like 3 word token logins, uncomment `AIRLOCK_API_TOKEN=` again and restart (both django
+server and file uploader).
 
 
 ## Deployment
