@@ -44,7 +44,7 @@ def test_serve_file(tmp_path, rf):
     assert response.status_code == 304
 
 
-def test_serve_file_template_changes(tmp_path, rf, settings):
+def test_serve_file_template_reloads(tmp_path, rf, settings):
     settings.TEMPLATES = [
         {
             "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -58,7 +58,7 @@ def test_serve_file_template_changes(tmp_path, rf, settings):
     template_file.write_text("{{ text }}")
 
     class TestRenderer(renderers.TextRenderer):
-        template = renderers.RendererTemplate.from_name("test_template.html")
+        template = renderers.RendererTemplate("test_template.html")
 
     test_file = tmp_path / "test.foo"
     test_file.write_text("foo")
@@ -75,6 +75,8 @@ def test_serve_file_template_changes(tmp_path, rf, settings):
     response = helpers.serve_file(request, renderer)
     assert response.status_code == 200
     assert response.rendered_content == "foo"
+    previous_etag = response.headers["etag"]
+    previous_last_modified = response.headers["last-modified"]
 
     # update the template
     template_file.write_text("{{ text }}123")
@@ -91,9 +93,10 @@ def test_serve_file_template_changes(tmp_path, rf, settings):
     # A new call to serve_file() will be called with a new renderer, so it will
     # include any changes to the renderer's cache ID or last_modified date
     new_renderer = TestRenderer.from_file(test_file)
+
     # The etag is the combined cache ID based on both file and template; it has
     # changed because the template has been updated
-    assert new_renderer.etag != renderer.etag
+    assert previous_etag != renderer.etag
     # last_modified is based on the file content only, so has not changed
     assert new_renderer.last_modified == renderer.last_modified
 
@@ -102,8 +105,8 @@ def test_serve_file_template_changes(tmp_path, rf, settings):
         # headers with etag and last_modified from the renderer used in the
         # first request
         headers={
-            "If-None-Match": renderer.etag,
-            "If-Modified-Since": renderer.last_modified,
+            "If-None-Match": previous_etag,
+            "If-Modified-Since": previous_last_modified,
         },
     )
 
