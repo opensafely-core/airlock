@@ -28,7 +28,7 @@ def test_renderers_get_renderer_workspace(
     path = tmp_path / ("test" + suffix)
     # use a csv as test data, it works for other types too
     path.write_text("a,b,c\n1,2,3")
-    content_cache_id = "65e73ba8-b"
+    content_hash = "65e73ba8-b"
 
     time = 1709652904  # date this test was written
     os.utime(path, (time, time))
@@ -40,12 +40,9 @@ def test_renderers_get_renderer_workspace(
 
     if template_path:
         assert isinstance(renderer.template, renderers.RendererTemplate)
-        assert (
-            renderer.cache_id
-            == f"{content_cache_id}-{renderer.template.content_cache_id}"
-        )
+        assert renderer.cache_id == f"{content_hash}-{renderer.template.content_hash}"
     else:
-        assert renderer.cache_id == content_cache_id
+        assert renderer.cache_id == content_hash
 
     response = renderer.get_response()
     if hasattr(response, "render"):
@@ -85,7 +82,7 @@ def test_renderers_get_renderer_request(
         assert isinstance(renderer.template, renderers.RendererTemplate)
         assert (
             renderer.cache_id
-            == f"{request_file.file_id}-{renderer.template.content_cache_id}"
+            == f"{request_file.file_id}-{renderer.template.content_hash}"
         )
     else:
         assert renderer.cache_id == request_file.file_id

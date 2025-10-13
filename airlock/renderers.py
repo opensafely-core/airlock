@@ -6,10 +6,9 @@ import mimetypes
 import re
 from dataclasses import dataclass
 from email.utils import formatdate
-from functools import cached_property
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import IO, Any, ClassVar, Self, cast
+from typing import IO, Any, ClassVar, cast
 
 from ansi2html import Ansi2HTMLConverter
 from django.http import FileResponse, HttpResponseBase
@@ -24,47 +23,25 @@ from airlock.utils import is_valid_file_type
 @dataclass
 class RendererTemplate:
     name: str
-    path: Path
-    template: Template
-    content_cache_id: str
 
-    @classmethod
-    def from_name(cls, name: str) -> Self:
-        template = cls.get_template(name)
-        content_cache_id = cls.content_key(template)
-        return cls(
-            name,
-            template=template,
-            path=Path(template.origin.name),
-            content_cache_id=content_cache_id,
-        )
+    @property
+    def template(self) -> Template:
+        # This is cached by django, so is fast
+        t = cast(Template, loader.get_template(self.name))
 
-    @staticmethod
-    def get_template(name) -> Template:
-        return cast(Template, loader.get_template(name))
+        # Calculate content hash if not already done, an attach it to the
+        # django template instance. This is a little hacky, but its convenient
+        # way to ensure that the content hash changes if the template has been
+        # reloaded, which is really only when DEBUG=True. As our tests run with
+        # DEBUG=True, this is marked as nocover.
+        if not hasattr(t, "airlock_content_hash"):  # pragma: no cover
+            t.airlock_content_hash = hashlib.md5(t.template.source.encode()).hexdigest()  # type: ignore
+        return t
 
-    @staticmethod
-    def content_key(template: Template) -> str:
-        # loader.get_template() returns a different Template depending on
-        # which template engine is used. Usually this will be a DjangoTemplates
-        # engine (django.template.backends.django.Template), but we cast it to the
-        # publicly exposed django.template.Template. Both versions of Template have
-        # a .render() method which works for the response, but django.template.Template
-        # doesn't have a template attribute, which we need for getting the source content
-        # So we just tell mypy to ignore here.
-        return hashlib.sha256(template.template.source.encode()).hexdigest()  # type: ignore
-
-    def reload(self):
-        return type(self).from_name(self.name)
-
-    def cache_id(self):
-        # cache the template using its content rather than filesystem data
-        # Django caches templates by default, so loading the template again
-        # is cheap
-        # We don't want to use the template mtime in the cache ID because it
-        # will change after a deploy, even if the content is the same
-        template = self.get_template(self.name)
-        return self.content_key(template)
+    @property
+    def content_hash(self):
+        # type ignore because its our own monkeypatched attribute
+        return self.template.airlock_content_hash  # type: ignore
 
 
 @dataclass
@@ -92,10 +69,6 @@ class Renderer:
             stream: IO[Any] = abspath.open("r", errors="replace")
         else:
             stream = abspath.open("rb")
-
-        # check if this template's content has changed since the TemplateRenderer was loaded
-        if cls.template and (cls.template.content_cache_id != cls.template.cache_id()):
-            cls.template = cls.template.reload()
 
         return cls(
             stream=stream,
@@ -136,11 +109,11 @@ class Renderer:
     def context(self):
         raise NotImplementedError()
 
-    @cached_property
+    @property
     def cache_id(self):
         cache_id = self.file_cache_id
         if self.template:
-            cache_id += "-" + self.template.cache_id()
+            cache_id += "-" + self.template.content_hash
 
         return cache_id
 
@@ -158,7 +131,7 @@ class Renderer:
 
 
 class CSVRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/file_content/csv.html")
+    template = RendererTemplate("file_browser/file_content/csv.html")
     is_text: ClassVar[bool] = True
 
     def context(self):
@@ -173,7 +146,7 @@ class CSVRenderer(Renderer):
 
 
 class TextRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/file_content/text.html")
+    template = RendererTemplate("file_browser/file_content/text.html")
     is_text: ClassVar[bool] = True
 
     def context(self):
@@ -184,7 +157,7 @@ class TextRenderer(Renderer):
 
 
 class InvalidFileRenderer(Renderer):
-    template = RendererTemplate.from_name("file_browser/file_content/text.html")
+    template = RendererTemplate("file_browser/file_content/text.html")
 
     def context(self):
         return {
