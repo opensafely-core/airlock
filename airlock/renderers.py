@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import IO, Any, ClassVar, cast
 
 from ansi2html import Ansi2HTMLConverter
+from django.conf import settings
 from django.http import FileResponse, HttpResponseBase
 from django.template import Template, loader
 from django.template.response import SimpleTemplateResponse
 from django.utils.safestring import mark_safe
 
 from airlock.types import UrlPath
-from airlock.utils import is_valid_file_type
+from airlock.utils import is_valid_file_type, truncate_log_stream
 
 
 @dataclass
@@ -153,6 +154,7 @@ class TextRenderer(Renderer):
         return {
             "text": self.stream.read(),
             "class": Path(self.filename).suffix.lstrip("."),
+            "truncated": False,
         }
 
 
@@ -163,6 +165,7 @@ class InvalidFileRenderer(Renderer):
         return {
             "text": f"{self.filename} is not a valid file type and cannot be displayed.",
             "class": "",
+            "truncated": False,
         }
 
 
@@ -173,7 +176,10 @@ class LogRenderer(TextRenderer):
         # We don't need the full HTML file that's produced, so just extract the <pre></pre>
         # tag which contains the log content and the inline styles.
         conv = Ansi2HTMLConverter()
-        text = conv.convert(self.stream.read())
+
+        # truncate the logs if needed
+        log, truncated = truncate_log_stream(self.stream, settings.MAX_LOG_BYTES)
+        text = conv.convert(log)
         match = re.match(
             r".*(?P<style_tag><style.*</style>).*(?P<pre_tag><pre.*</pre>).*",
             text,
@@ -189,6 +195,7 @@ class LogRenderer(TextRenderer):
         return {
             "text": text,
             "class": Path(self.filename).suffix.lstrip("."),
+            "truncated": truncated,
         }
 
 
