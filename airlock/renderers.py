@@ -197,6 +197,7 @@ class LogRenderer(TextRenderer):
             "text": text,
             "class": Path(self.filename).suffix.lstrip("."),
             "truncated": truncated,
+            "limit_kb": settings.MAX_LOG_BYTES // 1000,
         }
 
 
