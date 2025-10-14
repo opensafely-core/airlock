@@ -96,6 +96,7 @@ class Renderer:
     def get_response(self):
         if self.template:
             context = self.context()
+            context.setdefault("filename", self.filename)
             response: HttpResponseBase = SimpleTemplateResponse(
                 self.template.template, context
             )

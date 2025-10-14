@@ -763,7 +763,7 @@ def test_request_contents_file(airlock_client):
         f"/requests/content/{release_request.id}/default/file.txt"
     )
     assert response.status_code == 200
-    assert b'<pre class="txt">\ntest\n</pre>' in response.content
+    assert b'<pre class="txt">test</pre>' in response.content
     audit_log = bll.get_request_audit_log(
         user=airlock_client.user,
         request=release_request,
