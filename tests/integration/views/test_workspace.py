@@ -456,7 +456,7 @@ def test_workspace_contents_file(airlock_client):
     factories.write_workspace_file("workspace", "file.txt", "test")
     response = airlock_client.get("/workspaces/content/workspace/file.txt")
     assert response.status_code == 200
-    assert response.content == b'<pre class="txt">\ntest\n</pre>\n'
+    assert b'<pre class="txt">\ntest\n</pre>' in response.content
 
 
 def test_workspace_contents_dir(airlock_client):

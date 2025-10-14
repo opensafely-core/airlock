@@ -1,3 +1,8 @@
+{% if truncated|default:False %}
+  {% #alert variant="info" title="Log truncated" class="mt-4" no_icon=True %}
+    This file is too large, and we have only show you the last secion.
+  {% /alert %}
+{% endif %}
 <pre class="{{ class }}">
 {{ text }}
 </pre>
