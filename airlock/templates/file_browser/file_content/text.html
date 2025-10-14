@@ -3,7 +3,8 @@
 {% block content %}
   {% if truncated|default:False %}
     {% #alert variant="info" title="Log truncated" class="mt-4" no_icon=True %}
-      This file is too large, so we have only shown you the last section.
+      This log file is larger than the log viewing limit of {{ limit_kb }}kb, so we have only shown you the last {{ limit_kb }}kb.
+      If you need to see more of the log, contact OpenSAFELY tech support.
     {% /alert %}
   {% endif %}
 <pre class="{{ class }}">{{ text }}</pre>
