@@ -1,8 +1,10 @@
-{% if truncated|default:False %}
-  {% #alert variant="info" title="Log truncated" class="mt-4" no_icon=True %}
-    This file is too large, and we have only show you the last secion.
-  {% /alert %}
-{% endif %}
-<pre class="{{ class }}">
-{{ text }}
-</pre>
+{% extends "file_browser/file_content/content_base.html" %}
+{% block metatitle %}{{ filename }}{% endblock %}
+{% block content %}
+  {% if truncated|default:False %}
+    {% #alert variant="info" title="Log truncated" class="mt-4" no_icon=True %}
+      This file is too large, so we have only shown you the last section.
+    {% /alert %}
+  {% endif %}
+<pre class="{{ class }}">{{ text }}</pre>
+{% endblock %}
