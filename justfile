@@ -199,6 +199,15 @@ run *ARGS: devenv docs-build
 run-gunicorn *args: devenv
     $BIN/gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
+
+run-uploader:
+  just manage run_file_uploader
+
+
+run-all: 
+  { just run-uploader & just run 7000; }
+
+
 # run Django's manage.py entrypoint
 manage *ARGS: devenv
     $BIN/python manage.py "$@"
@@ -226,8 +235,21 @@ test *ARGS: devenv get-chromium
       --cov-report=term-missing:skip-covered
 
 
+load-dev-users:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Configure user details for local login
+    # But don't clobber any existing dev users file
+    echo "Dev users file located at ${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
+    if [[ -e "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}" ]]; then
+        echo "File already exists, skipping"
+    else
+        cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
+    fi
+
+
 # load example data so there's something to look at in development
-load-example-data: devenv && manifests
+load-example-data: devenv load-dev-users && manifests
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -288,8 +310,6 @@ load-example-data: devenv && manifests
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir
 
-    # Configure user details for local login
-    cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
 
 # generate or update manifests and git repos for local test workspaces
 manifests:

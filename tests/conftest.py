@@ -55,6 +55,9 @@ def temp_test_settings(settings, tmp_path):
     settings.GIT_REPO_DIR.mkdir(parents=True)
     # Ensure no tests attempt to call the real releases endpont
     settings.AIRLOCK_API_ENDPOINT = "https://example.com/job-server"
+    # Ensure no tests attempt to call jobserver for notifications (tests for notifications
+    # themselves explicitly override this setting)
+    settings.AIRLOCK_API_TOKEN = ""
 
 
 @pytest.fixture

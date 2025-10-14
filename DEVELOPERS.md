@@ -311,6 +311,89 @@ just job-server/create-workspace
 ```
 
 
+### Running Airlock with a local job-server and job-runner integration
+
+job-runner (RAP controller and RAP agent) can be run with a local job-server using the instructions
+[here](https://github.com/opensafely-core/job-runner/blob/main/DEVELOPERS.md#running-locally-with-a-local-job-server).
+
+This runs job-server on localhost:8000 and the RAP controller web-app on localhost:3000.
+
+To use all 4 local components together (RAP controller, RAP agent, job-server, Airlock), make the following
+changes to your .env file:
+
+```
+# point workdir at your local job-runner repo's workdir
+AIRLOCK_WORK_DIR=/absolute/path/to/local/job-runner/workdir/
+# Set workspace dir to the medium_privacy/workspaces dir, which will be  located relative to AIRLOCK_WORK_DIR
+# (i.e. in you local job-runner repo - these are the workspaces files airlock should be allowed to access)
+AIRLOCK_WORKSPACE_DIR=medium_privacy/workspaces/
+
+# change endpoint to port local job-server is running on 
+AIRLOCK_API_ENDPOINT="http://localhost:8000/api/v2"
+
+# Set AIRLOCK_API_TOKENT to a valid backend token from your locally running jobserver (find it at staff/backends - any
+# valid backend token is accepted)
+AIRLOCK_API_TOKEN="token-from-job-server-backend"
+```
+
+In separate terminal windows, run:
+1) job-server (with `just run`)
+2) job-runner (with `just run` - this runs the RAP agent, RAP controller and the controller webapp all together)
+3) airlock (`just run 7000` - run on any port that doesn't clash with job-server, which is using 8000)
+4) airlock file uploader (`just manage run_file_uploader`)
+
+Go to job-server at localhost:8000 and login with GitHub. Create at least one job request in the workspace
+that you set up in your local job-server and let it run to completion (this ensures you have at least one
+workspace available to view in Airlock).
+
+Obtain a 3 word token from http://localhost:8000/settings/
+and use it to log into airlock at localhost:7000. You should now see any workspaces that you have run jobs
+for with your local job-runner.
+
+Note that in order to actually release from Airlock to your local job-server, you will need a different user
+who is a valid job-server user (second approvals can be done by a dummy dev user). In order to test releases, you
+can use dummy dev users to create the release and perform the first output checker review, and then switch to your
+real GitHub user for the second review and release (ensure that your user in your local job-server has the Output
+Checker role).
+
+First ensure you have a dev users file available. The following command will create a dev users file if it doesn't
+already exist, and will print the location of the file.
+
+```
+just load-dev-users
+```
+
+Update the researcher_1 user's "workspaces" to add an entry that matches your job-server workspace so that
+researcher_1 can create a release request for this workspace:
+
+```
+...
+
+"researcher_1": {
+    ...
+      "workspaces": {
+        "example-workspace": {
+          "project_details": {"name": "Project 1", "ongoing": true},
+          "archived": false
+        },
+        ...
+        "my-jobserver-test-workspace": {
+          "project_details": {"name": "Test Project", "ongoing": true},
+          "archived": false
+        }
+      }
+    ...
+  }
+...  
+
+```
+
+To switch Airlock to using dev users, stop the server, comment out `AIRLOCK_API_TOKEN=` in your `.env` file, and restart. 
+
+To switch back to using prod-like 3 word token logins, uncomment `AIRLOCK_API_TOKEN=` again and restart (both django
+server and file uploader).
+
+
 ## Deployment
 
 New versions should be deployed automatically on merge to `main` after a
