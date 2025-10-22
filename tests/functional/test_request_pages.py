@@ -8,7 +8,7 @@ from playwright.sync_api import expect
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
 from airlock.types import UrlPath
 from tests import factories
-from tests.functional.conftest import login_as_user
+from tests.functional.conftest import login_as_user, wait_for_htmx
 
 
 def test_request_file_withdraw(live_server, context, page, bll):
@@ -1184,6 +1184,8 @@ def test_file_browser_expand_collapse(live_server, page, context):
     request_link.click(
         position={"x": request_link.bounding_box()["width"] - 10, "y": 10}
     )
+    # Ensure that any htmx operations are finished
+    wait_for_htmx(page)
     expect(file1_locator).to_be_visible()
 
     # Clicking the far right of the file browser in line with the group name
@@ -1191,6 +1193,8 @@ def test_file_browser_expand_collapse(live_server, page, context):
     group_link = page.locator(".tree__folder-name").filter(has_text="group")
     expect(file1_locator).to_be_visible()
     group_link.click(position={"x": group_link.bounding_box()["width"] - 10, "y": 1})
+    # Ensure that any htmx operations are finished
+    wait_for_htmx(page)
     expect(file1_locator).to_be_visible()
 
     # Clicking the far right of the file browser in line with the folder name
@@ -1198,6 +1202,8 @@ def test_file_browser_expand_collapse(live_server, page, context):
     folder_link = page.locator(".tree__folder-name").filter(has_text="folder")
     expect(file1_locator).to_be_visible()
     folder_link.click(position={"x": folder_link.bounding_box()["width"] - 10, "y": 1})
+    # Ensure that any htmx operations are finished
+    wait_for_htmx(page)
     expect(file1_locator).to_be_visible()
 
     # Clicking the far right of the file browser in line with the file name
@@ -1205,6 +1211,8 @@ def test_file_browser_expand_collapse(live_server, page, context):
     file_link = page.locator(".tree__file").filter(has_text="file1")
     expect(page.locator("#file1txt-title")).not_to_be_visible()
     file_link.click(position={"x": file_link.bounding_box()["width"] - 10, "y": 1})
+    # Ensure that any htmx operations are finished
+    wait_for_htmx(page)
     expect(page.locator("#file1txt-title")).to_be_visible()
 
 
