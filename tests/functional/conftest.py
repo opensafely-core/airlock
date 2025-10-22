@@ -18,9 +18,11 @@ expect.set_options(timeout=15_000)
 
 def wait_for_htmx(page):
     # see https://htmx.org/docs/#request-operations
-    # Wait for the htmx-added class to be removed so we know
+    # Wait for the htmx loading classes to be removed so we know
     # htmx operations are done
-    expect(page.locator(".htmx-added")).to_have_count(0)
+    expect(
+        page.locator(".htmx-request, .htmx-settling, .htmx-swapping, .htmx-added")
+    ).to_have_count(0)
 
 
 @pytest.fixture(scope="session", autouse=True)
