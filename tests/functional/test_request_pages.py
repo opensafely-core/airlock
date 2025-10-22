@@ -8,7 +8,7 @@ from playwright.sync_api import expect
 from airlock.enums import RequestFileType, RequestFileVote, RequestStatus, Visibility
 from airlock.types import UrlPath
 from tests import factories
-from tests.functional.conftest import login_as_user, wait_for_htmx
+from tests.functional.conftest import click_and_htmx, login_as_user, wait_for_htmx
 
 
 def test_request_file_withdraw(live_server, context, page, bll):
@@ -42,7 +42,7 @@ def test_request_file_withdraw(live_server, context, page, bll):
     bll.set_status(release_request, RequestStatus.SUBMITTED, author)
 
     file2_locator = page.locator("#tree").get_by_role("link", name="file2.txt")
-    file2_locator.click()
+    click_and_htmx(page, file2_locator)
     expect(page.locator("#withdraw-file-button")).not_to_be_visible()
 
 
@@ -1271,21 +1271,24 @@ def test_request_header_content(live_server, page, context):
     expect(request_header_subtitle).to_contain_text("the-file-group")
 
     # Now test visibility of links without whole page refreshes
-    page.locator(".tree__folder-name").filter(
-        has_text=pending_release_request.id
-    ).click()
+    click_and_htmx(
+        page,
+        page.locator(".tree__folder-name").filter(has_text=pending_release_request.id),
+    )
     expect(request_overview_as_link).not_to_be_visible()
     expect(request_overview_as_header).to_be_visible()
     expect(request_header_subtitle).not_to_contain_text("the-file-group")
-    page.locator(".tree__folder-name").filter(has_text="the-file-group").click()
+    click_and_htmx(
+        page, page.locator(".tree__folder-name").filter(has_text="the-file-group")
+    )
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
     expect(request_header_subtitle).to_contain_text("the-file-group")
-    page.locator(".tree__folder-name").filter(has_text="folder").click()
+    click_and_htmx(page, page.locator(".tree__folder-name").filter(has_text="folder"))
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
     expect(request_header_subtitle).to_contain_text("the-file-group")
-    page.locator(".tree__file").filter(has_text="file1").click()
+    click_and_htmx(page, page.locator(".tree__file").filter(has_text="file1"))
     expect(request_overview_as_link).to_be_visible()
     expect(request_overview_as_header).not_to_be_visible()
     expect(request_header_subtitle).to_contain_text("the-file-group")
@@ -1352,15 +1355,17 @@ def test_request_action_required_alert(
     expect(content_alert_link).to_be_visible()
 
     # Now test visibility of links without whole page refreshes
-    page.locator(".tree__folder-name").filter(has_text=release_request.id).click()
+    click_and_htmx(
+        page, page.locator(".tree__folder-name").filter(has_text=release_request.id)
+    )
     expect(content_alert).to_be_visible()
     expect(content_alert_link).not_to_be_visible()
-    page.locator(".tree__folder-name").filter(has_text="group").click()
+    click_and_htmx(page, page.locator(".tree__folder-name").filter(has_text="group"))
     expect(content_alert).to_be_visible()
     expect(content_alert_link).to_be_visible()
-    page.locator(".tree__folder-name").filter(has_text="folder").click()
+    click_and_htmx(page, page.locator(".tree__folder-name").filter(has_text="folder"))
     expect(content_alert).to_be_visible()
     expect(content_alert_link).to_be_visible()
-    page.locator(".tree__file").filter(has_text="file1").click()
+    click_and_htmx(page, page.locator(".tree__file").filter(has_text="file1"))
     expect(content_alert).to_be_visible()
     expect(content_alert_link).to_be_visible()

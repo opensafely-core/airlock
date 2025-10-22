@@ -13,7 +13,17 @@ from playwright.sync_api import expect
 from tests import factories
 
 
-expect.set_options(timeout=15_000)
+expect.set_options(timeout=5_000)
+
+
+def click_and_htmx(page, locator):
+    """
+    Helper function to click on a locator element and wait for
+    any htmx operations that it might trigger.
+    """
+    locator.click()
+    # Make sure any clicks that do htmx operations are complete
+    wait_for_htmx(page)
 
 
 def wait_for_htmx(page):
