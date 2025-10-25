@@ -37,7 +37,7 @@ jobs:
       - name: Run functional tests
         id: run_test
         run: |
-          just test -k functional --tracing retain-on-failure
+          HYPOTHESIS_MAX_EXAMPLES=100 just test -k functional --tracing retain-on-failure
         
       - name: Upload trace artifact
         if: failure()

@@ -6,6 +6,8 @@ from playwright.sync_api import expect
 from airlock.enums import RequestStatus
 from tests import factories
 
+from .conftest import click_and_htmx
+
 
 @pytest.fixture(autouse=True)
 def release_request(researcher_user):
@@ -68,7 +70,7 @@ def test_code_from_workspace(live_server, page, context):
         .get_by_role("link", name="project.yaml")
         .locator(".file:scope")
     )
-    file_link.click()
+    click_and_htmx(page, file_link)
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)
 
@@ -108,6 +110,6 @@ def test_code_from_request(
         .get_by_role("link", name="project.yaml")
         .locator(".file:scope")
     )
-    file_link.click()
+    click_and_htmx(page, file_link)
     expect(return_button).to_be_visible()
     expect(return_button).to_have_attribute("href", file_url)

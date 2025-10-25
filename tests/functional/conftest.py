@@ -13,14 +13,26 @@ from playwright.sync_api import expect
 from tests import factories
 
 
-expect.set_options(timeout=15_000)
+expect.set_options(timeout=5_000)
+
+
+def click_and_htmx(page, locator):
+    """
+    Helper function to click on a locator element and wait for
+    any htmx operations that it might trigger.
+    """
+    locator.click()
+    # Make sure any clicks that do htmx operations are complete
+    wait_for_htmx(page)
 
 
 def wait_for_htmx(page):
     # see https://htmx.org/docs/#request-operations
-    # Wait for the htmx-added class to be removed so we know
+    # Wait for the htmx loading classes to be removed so we know
     # htmx operations are done
-    expect(page.locator(".htmx-added")).to_have_count(0)
+    expect(
+        page.locator(".htmx-request, .htmx-settling, .htmx-swapping, .htmx-added")
+    ).to_have_count(0)
 
 
 @pytest.fixture(scope="session", autouse=True)

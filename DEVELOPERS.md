@@ -217,6 +217,16 @@ at each action in each test:
 playwright show-trace /path/to/trace.zip
 ```
 
+#### Hypothesis tests
+
+We use hypothesis in some functional tests (e.g. [test_csv_viewer.py](tests/functional/test_csv_viewer.py).
+These can be slow, so by default only run with 5 examples. Scheduled CI tests run them regularly with
+the default 100 examples.  To run the tests with a different number of examples, use:
+
+```
+HYPOTHESIS_MAX_EXAMPLES=200 just test ...
+```
+
 
 ### Django Debug Toolbar
 

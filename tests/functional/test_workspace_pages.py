@@ -5,7 +5,7 @@ from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 
-from .conftest import login_as_user, wait_for_htmx
+from .conftest import click_and_htmx, login_as_user
 
 
 @pytest.fixture(autouse=True)
@@ -430,7 +430,7 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     # goto folder view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
     # view file via treeview click
-    page.locator('.tree a[href*="file1.csv"]').click()
+    click_and_htmx(page, page.locator('.tree a[href*="file1.csv"]'))
     # ensure the file has loaded
     expect(page.locator("#file1csv-title")).to_be_visible()
     # refresh the page
@@ -441,11 +441,10 @@ def test_bug_rendering_datatable_in_combination_with_back_button(
     expect(page.locator(".clusterized")).to_be_visible()
 
     # refresh the folder view by clicking on the folder in the tree view
-    page.locator('.tree a[href$="outputs/"]').click()
-
-    # The above click triggers an htmx request. This waits for that to
+    # The click triggers an htmx request, so we also wait for that to
     # complete
-    wait_for_htmx(page)
+    click_and_htmx(page, page.locator('.tree a[href$="outputs/"]'))
+
     # should load the table but previously didn't
     expect(page.locator(".clusterized")).to_be_visible()
 
@@ -579,7 +578,7 @@ def test_checkbox_caching_appears_after_back_button(live_server, page, context):
     page.check(file_1_selector)
     expect(page.locator(file_1_selector)).to_be_checked()
     # view file via treeview click
-    page.locator('.tree a[href*="file1.csv"]').click()
+    click_and_htmx(page, page.locator('.tree a[href*="file1.csv"]'))
     # ensure the file has loaded
     expect(page.locator("#file1csv-title")).to_be_visible()
     # go back to the folder view
@@ -618,7 +617,7 @@ def test_checkbox_caching_works_following_back_button(live_server, page, context
     # goto folder view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
     # view file via treeview click
-    page.locator('.tree a[href*="file1.csv"]').click()
+    click_and_htmx(page, page.locator('.tree a[href*="file1.csv"]'))
     # ensure the file has loaded
     expect(page.locator("#file1csv-title")).to_be_visible()
     # go back to the folder view

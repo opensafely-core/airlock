@@ -189,11 +189,9 @@ def test_screenshot_from_creation_to_release(
     take_screenshot(page.locator("#tree"), "request_tree.png")
 
     context_input = page.locator("#id_context")
-    # context_input.click()
     context_input.fill("These files describe data by age band.")
 
     controls_input = page.locator("#id_controls")
-    # controls_input.click()
     controls_input.fill("Small numbers have been suppressed.")
 
     # Add context & controls to the filegroup
