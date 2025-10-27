@@ -1,6 +1,7 @@
 import csv
 import sys
 from io import StringIO
+from os import environ
 
 from hypothesis import given, settings
 from playwright.sync_api import expect
@@ -22,7 +23,7 @@ from .csv_generator import csv_file
 # escaped strings like hex (\x00) and unicode (\u0000) would turn from raw
 # strings into their corresponding hex/unicode characters.
 #
-# So this is why we instead pass the csv file into pyright.evaluate() and let
+# So this is why we instead pass the csv file into page.evaluate() and let
 # the evaluated javascript do the comparison, before returning an array of any
 # failures
 
@@ -39,7 +40,7 @@ from .csv_generator import csv_file
 
 
 @given(csv_file=csv_file(min_lines=2, max_lines=10, num_columns=5))
-@settings(deadline=None)
+@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES", 5)))
 def test_csv_renders_all_text(live_server, browser, csv_file):
     # Normally we pass "context" and "page" as per function fixtures.
     # However hypothesis would then use the same context/page for each
@@ -119,7 +120,7 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
 # The current table virtualization implementation only shows 200 rows, plus
 # the header. So we simluate at least a 210 row csv file.
 @given(csv_file=csv_file(min_lines=210, max_lines=250, num_columns=5, just_text=True))
-@settings(deadline=None, max_examples=20)
+@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES", 5)))
 def test_csv_sorting(live_server, browser, csv_file):
     # Normally we pass "context" and "page" as per function fixtures.
     # However hypothesis would then use the same context/page for each

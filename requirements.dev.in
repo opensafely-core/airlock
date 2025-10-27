@@ -9,7 +9,7 @@ httpx
 hypothesis
 ruff
 pip-tools
-playwright==1.52.0
+playwright
 pytest
 pytest-cov
 pytest-django
