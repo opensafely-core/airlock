@@ -26,6 +26,8 @@ class GroupData:
     total_files_already_added: int = 0
     files_to_add: list[UrlPath] = field(default_factory=list)
     file_errors: list[UrlPath] = field(default_factory=list)
+    context: str | None = None
+    controls: str | None = None
 
 
 class Command(BaseCommand):
@@ -44,6 +46,16 @@ class Command(BaseCommand):
             nargs="+",
             help="list of directory paths containing output files to add",
         )
+        parser.add_argument(
+            "--context",
+            default="",
+            help="Group context; if multiple groups are created, the same context will be added for each group",
+        )
+        parser.add_argument(
+            "--controls",
+            default="",
+            help="Group controls; if multiple groups are created, the same controls will be added for each group",
+        )
 
     def handle(self, username, workspace_name, **options):
         user = User.objects.get(user_id=username)
@@ -55,6 +67,8 @@ class Command(BaseCommand):
         workspace = bll.get_workspace(workspace_name, user)
         # record some info about the files
         groups_data = []
+        context = options["context"]
+        controls = options["controls"]
         for dir_path in options["dirs"]:
             self.stdout.write(f"Finding files for {dir_path}")
 
@@ -62,7 +76,7 @@ class Command(BaseCommand):
             directory = workspace.abspath(dir_path)  # validate path
             # make a group for this directory, using the directory
             group_name = dir_path.replace("/", "-")
-            group_data = GroupData(name=group_name)
+            group_data = GroupData(name=group_name, context=context, controls=controls)
 
             # add all files anywhere under this directory
             for filepath in directory.rglob("*"):
@@ -123,5 +137,16 @@ class Command(BaseCommand):
 
                 if added > 0 and added % 100 == 0:  # pragma: no cover
                     self.stdout.write(f"{added}/{total} files added")
+
+            # Add group context and controls, but only if the group exists (i.e. it
+            # has had some files added to it, either now or previously)
+            if group_data.name in request.filegroups and (context or controls):
+                bll.group_edit(
+                    request,
+                    group=group_data.name,
+                    context=group_data.context,
+                    controls=group_data.controls,
+                    user=user,
+                )
 
             self.stdout.write(f"Total: {added}/{total} added (group {group_data.name})")

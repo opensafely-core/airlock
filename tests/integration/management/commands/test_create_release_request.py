@@ -41,6 +41,9 @@ def test_create_release_request(bll):
         "test-dir/test-subdir/file3.txt",
         "test-dir1/test-subdir/file5.txt",
     }
+    for filegroup in release_request.filegroups.values():
+        assert filegroup.context == ""
+        assert filegroup.controls == ""
 
 
 @pytest.mark.django_db
@@ -147,3 +150,31 @@ def test_create_release_request_with_file_errors(bll, capsys, verbosity):
     assert "Couldn't add files: 1" in output
     error_detail_in_output = "- test-dir/file2.foo" in output
     assert error_detail_in_output == (verbosity > 1)
+
+
+@pytest.mark.django_db
+def test_create_release_request_with_context_and_controls(bll):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+
+    assert not bll.get_requests_authored_by_user(author)
+
+    factories.write_workspace_file(workspace, "test-dir1/file1.txt", contents="file1")
+    factories.write_workspace_file(workspace, "test-dir2/file2.txt", contents="file2")
+
+    call_command(
+        "create_release_request",
+        "author",
+        "workspace",
+        dirs=["test-dir1", "test-dir2"],
+        context="The context",
+        controls="The controls",
+    )
+
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert set(release_request.filegroups) == {"test-dir1", "test-dir2"}
+    for filegroup in release_request.filegroups.values():
+        assert filegroup.context == "The context"
+        assert filegroup.controls == "The controls"
