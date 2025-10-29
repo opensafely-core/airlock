@@ -2,6 +2,7 @@ import pytest
 from django.core.management import call_command
 
 from airlock.enums import RequestStatus
+from airlock.exceptions import RequestPermissionDenied
 from tests import factories
 
 
@@ -44,6 +45,7 @@ def test_create_release_request(bll):
     for filegroup in release_request.filegroups.values():
         assert filegroup.context == ""
         assert filegroup.controls == ""
+    assert release_request.status == RequestStatus.PENDING
 
 
 @pytest.mark.django_db
@@ -178,3 +180,57 @@ def test_create_release_request_with_context_and_controls(bll):
     for filegroup in release_request.filegroups.values():
         assert filegroup.context == "The context"
         assert filegroup.controls == "The controls"
+    assert release_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_create_submitted_release_request(bll, capsys):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+
+    assert not bll.get_requests_authored_by_user(author)
+
+    factories.write_workspace_file(workspace, "test-dir1/file1.txt", contents="file1")
+
+    call_command(
+        "create_release_request",
+        "author",
+        "workspace",
+        dirs=["test-dir1"],
+        context="The context",
+        controls="The controls",
+        submit=True,
+    )
+
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert release_request.status == RequestStatus.SUBMITTED
+    output = capsys.readouterr().out
+    assert "Release request submitted" in output
+
+
+@pytest.mark.django_db
+def test_create_submitted_release_request_incomplete_context_controls(bll):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+
+    assert not bll.get_requests_authored_by_user(author)
+
+    factories.write_workspace_file(workspace, "test-dir1/file1.txt", contents="file1")
+
+    with pytest.raises(
+        RequestPermissionDenied, match="Incomplete context and/or controls"
+    ):
+        call_command(
+            "create_release_request",
+            "author",
+            "workspace",
+            dirs=["test-dir1"],
+            submit=True,
+        )
+
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert release_request.status == RequestStatus.PENDING

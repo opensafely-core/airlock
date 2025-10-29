@@ -26,8 +26,8 @@ class GroupData:
     total_files_already_added: int = 0
     files_to_add: list[UrlPath] = field(default_factory=list)
     file_errors: list[UrlPath] = field(default_factory=list)
-    context: str | None = None
-    controls: str | None = None
+    context: str = ""
+    controls: str = ""
 
 
 class Command(BaseCommand):
@@ -55,6 +55,11 @@ class Command(BaseCommand):
             "--controls",
             default="",
             help="Group controls; if multiple groups are created, the same controls will be added for each group",
+        )
+        parser.add_argument(
+            "--submit",
+            action="store_true",
+            help="Submit this release request for review",
         )
 
     def handle(self, username, workspace_name, **options):
@@ -150,3 +155,9 @@ class Command(BaseCommand):
                 )
 
             self.stdout.write(f"Total: {added}/{total} added (group {group_data.name})")
+
+        if options["submit"]:
+            refreshed_request = bll.get_or_create_current_request(workspace.name, user)
+            assert refreshed_request.id == request.id
+            bll.submit_request(refreshed_request, user)
+            self.stdout.write("Release request submitted")
