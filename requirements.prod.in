@@ -1,0 +1,20 @@
+ansi2html
+Django
+django-extensions
+django-vite
+slippers
+django-htmx
+django-markdownify
+whitenoise
+gunicorn
+opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2025.03.06.161237.zip
+requests
+pydantic<2
+ulid
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-django
+opentelemetry-instrumentation-requests
+opentelemetry-sdk
+# docs
+mkdocs
+mkdocs-material
