@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.core.management import call_command
 
@@ -234,3 +236,86 @@ def test_create_submitted_release_request_incomplete_context_controls(bll):
     assert len(release_requests) == 1
     release_request = release_requests[0]
     assert release_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_create_submitted_release_request_already_submitted(bll, capsys):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    factories.write_workspace_file(workspace, "test-dir1/file1.txt", contents="file1")
+    # create submitted release request for this file and user
+    factories.create_request_at_status(
+        author=author,
+        workspace=workspace,
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(
+                group="test-dir", path="test-dir1/file1.txt", approved=True
+            )
+        ],
+    )
+
+    with pytest.raises(
+        RequestPermissionDenied, match="cannot edit request that is in state SUBMITTED"
+    ):
+        call_command(
+            "create_release_request",
+            "author",
+            "workspace",
+            dirs=["test-dir1"],
+            context="The context",
+            controls="The controls",
+            submit=True,
+        )
+
+
+@pytest.mark.django_db
+def test_create_submitted_release_request_updated_file(bll, mock_old_api, capsys):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+
+    assert not bll.get_requests_authored_by_user(author)
+
+    factories.write_workspace_file(
+        workspace, "test-dir/file_released.txt", contents="file_released"
+    )
+    # create a previous release for this file
+    factories.create_request_at_status(
+        author=author,
+        workspace=workspace,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                group="test-dir", path="test-dir/file_released.txt", approved=True
+            )
+        ],
+    )
+
+    # can't submit because there were no files to add
+    with pytest.raises(
+        RequestPermissionDenied,
+        match=re.escape(
+            "No output files on request; 1 file(s) already released, 0 file(s) with errors"
+        ),
+    ):
+        call_command(
+            "create_release_request",
+            "author",
+            "workspace",
+            dirs=["test-dir"],
+            submit=True,
+        )
+    # update the file
+    factories.write_workspace_file(
+        workspace, "test-dir/file_released.txt", contents="updated"
+    )
+
+    call_command(
+        "create_release_request",
+        "author",
+        "workspace",
+        dirs=["test-dir"],
+    )
+
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 2

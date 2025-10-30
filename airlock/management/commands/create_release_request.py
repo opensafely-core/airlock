@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import FileNotFound
+from airlock.exceptions import FileNotFound, RequestPermissionDenied
 from airlock.types import UrlPath
 from users.models import User
 
@@ -159,5 +159,22 @@ class Command(BaseCommand):
         if options["submit"]:
             refreshed_request = bll.get_or_create_current_request(workspace.name, user)
             assert refreshed_request.id == request.id
-            bll.submit_request(refreshed_request, user)
+            try:
+                bll.submit_request(refreshed_request, user)
+            except RequestPermissionDenied:
+                # Show a more useful error if we can't submit because there were no files on the request
+                # This is likely because a regular job hasn't been rerun so there are no updated files
+                if not request.output_files():
+                    already_released = sum(
+                        group_data.total_files_released for group_data in groups_data
+                    )
+                    file_errors = sum(
+                        len(group_data.file_errors) for group_data in groups_data
+                    )
+                    raise RequestPermissionDenied(
+                        "No output files on request; "
+                        f"{already_released} file(s) already released, "
+                        f"{file_errors} file(s) with errors"
+                    )
+                raise
             self.stdout.write("Release request submitted")
