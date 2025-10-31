@@ -1,19 +1,18 @@
 # Load .env files by default
+
 set dotenv-load := true
 
 # used by docker compose
+
 export DEV_USERID := `id -u`
 export DEV_GROUPID := `id -g`
-
 
 # list available commands
 default:
     @{{ just_executable() }} --list
 
-
 _dotenv:
     {{ just_executable() }} --justfile {{ justfile_directory() }}/../justfile _dotenv
-
 
 build env="dev": _dotenv
     #!/usr/bin/env bash
@@ -26,11 +25,9 @@ build env="dev": _dotenv
     # build the thing
     docker compose build --pull {{ env }}
 
-
-# Fetch and extract the chromium version we need for testing 
+# Fetch and extract the chromium version we need for testing
 get-chromium:
     PLATFORM="linux-gnu" {{ just_executable() }} --justfile {{ justfile_directory() }}/../justfile get-chromium
-
 
 # run tests in dev container
 test *pytest_args="": _dotenv build get-chromium
@@ -38,29 +35,24 @@ test *pytest_args="": _dotenv build get-chromium
     # Note, we do *not* run coverage in docker, as we want to use xdist, and coverage does not seem to work reliably.
     docker compose run --rm test pytest {{ pytest_args }}
 
-
 # run server in dev|prod container
 serve env="dev" *args="": _dotenv
     {{ just_executable() }} build {{ env }}
     docker compose up {{ args }} {{ env }}
 
-
 # run command in dev|prod container
 run env="dev" *args="": _dotenv (build env)
     docker compose run --rm --service-ports {{ env }} {{ args }}
 
-
 # exec command in existing dev|prod container
 exec env="dev" *args="bash": _dotenv (build env)
     docker compose exec {{ env }} {{ args }}
-
 
 # run a basic functional smoke test against a running airlock
 smoke-test host="http://localhost:8000": _dotenv
     #!/bin/bash
     set -eu
     curl -I {{ host }} -s --compressed --fail --retry 20 --retry-delay 1 --retry-all-errors
-
 
 # stop and remove all airlock containers
 clean:
@@ -70,10 +62,8 @@ clean:
     docker compose down
     docker container prune --force --filter label=com.docker.compose.project=$COMPOSE_PROJECT_NAME
 
-
 # remove all state
 clean-volumes: clean
     #!/bin/bash
     set -eux
     rm -rf staticfiles/*
-

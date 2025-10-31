@@ -18,13 +18,6 @@ def python_version():
     return (BASE_DIR / ".python-version").read_text().strip()
 
 
-def test_justfile(python_version):
-    contents = (BASE_DIR / "justfile").read_text()
-    match = re.search(r"DEFAULT_PYTHON.*python([\d\.]+)", contents)
-    assert match is not None
-    assert match.group(1) == python_version
-
-
 @pytest.mark.parametrize(
     "filename",
     BASE_DIR.glob(".github/workflows/*.yml"),

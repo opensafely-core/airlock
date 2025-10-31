@@ -1,51 +1,11 @@
 set dotenv-load := true
-set positional-arguments
-
-
-export VIRTUAL_ENV  := env_var_or_default("VIRTUAL_ENV", ".venv")
-
-export BIN := VIRTUAL_ENV + if os_family() == "unix" { "/bin" } else { "/Scripts" }
-export PIP := BIN + if os_family() == "unix" { "/python -m pip" } else { "/python.exe -m pip" }
-
-export DEFAULT_PYTHON := if os_family() == "unix" { "python3.11" } else { "python" }
-
+set positional-arguments := true
 
 # list available commands
 default:
     @{{ just_executable() }} --list
 
-
-# ensure valid virtualenv
-virtualenv:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    # allow users to specify python version in .env
-    PYTHON_VERSION=${PYTHON_VERSION:-python3.11}
-
-    # create venv and install latest pip that's compatible with pip-tools
-    if [[ ! -d $VIRTUAL_ENV ]]; then
-      $PYTHON_VERSION -m venv $VIRTUAL_ENV
-      $PIP install pip==25.0.1
-    fi
-
-
-# compile all requirements.in files (by default only adds/removes packages; `-U` upgrades all; `-P <package>` upgrades one)
-compile-reqs *ARGS: devenv
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    command="pip-compile --quiet --allow-unsafe --generate-hashes --strip-extras"
-    for req_file in requirements.prod.in requirements.dev.in; do
-      echo $command "$req_file" "$@"
-      $BIN/$command "$req_file" "$@"
-    done
-
-# update to the latest version of the internal pipeline library
-update-pipeline:
-    ./scripts/upgrade-pipeline.sh requirements.prod.in
-
-# create a valid .env if none exists
+# Create a valid .env if none exists
 _dotenv:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -55,37 +15,25 @@ _dotenv:
       cp dotenv-sample .env
     fi
 
+# Clean up temporary files
+clean:
+    rm -rf .venv
 
-# ensure dev and prod requirements installed and up to date
-devenv: virtualenv _dotenv
-    #!/usr/bin/env bash
-    set -euo pipefail
+# Install production requirements into and remove extraneous packages from venv
+prodenv:
+    uv sync --no-dev
 
-    for req_file in requirements.dev.txt requirements.prod.txt; do
-      # If we've installed this file before and the original hasn't been
-      # modified since then bail early
-      record_file="$VIRTUAL_ENV/$req_file"
-      if [[ -e "$record_file" && "$record_file" -nt "$req_file" ]]; then
-        continue
-      fi
+# update to the latest version of the internal pipeline library
+update-pipeline:
+    ./scripts/upgrade-pipeline.sh pyproject.toml
 
-      if cmp --silent "$req_file" "$record_file"; then
-        # If the timestamp has been changed but not the contents (as can happen
-        # when switching branches) then just update the timestamp
-        touch "$record_file"
-      else
-        # Otherwise actually install the requirements
+# && dependencies are run after the recipe has run. Needs just>=0.9.9. This is
+# a killer feature over Makefiles.
+#
 
-        # --no-deps is recommended when using hashes, and also works around a
-        # bug with constraints and hashes. See:
-        # https://pip.pypa.io/en/stable/topics/secure-installs/#do-not-use-setuptools-directly
-        $PIP install --no-deps -r "$req_file"
-
-        # Make a record of what we just installed
-        cp "$req_file" "$record_file"
-      fi
-    done
-
+# Install dev requirements into venv without removing extraneous packages
+devenv: _dotenv
+    uv sync --inexact
 
 # Fetch and extract the chromium version we need for testing
 get-chromium:
@@ -142,17 +90,66 @@ get-chromium:
         echo "Unsupported OS $PLATFORM found"
     fi
 
+# Upgrade a single package to the latest version as of the cutoff in pyproject.toml
+upgrade-package package: && devenv
+    uv lock --upgrade-package {{ package }}
 
-# lint and check formatting but don't modify anything
+# Upgrade all packages to the latest versions as of the cutoff in pyproject.toml
+upgrade-all: && devenv
+    uv lock --upgrade
+
+# Move the cutoff date in pyproject.toml to N days ago (default: 7) at midnight UTC
+bump-uv-cutoff days="7":
+    #!/usr/bin/env -S uvx --with tomlkit python3
+
+    import datetime
+    import tomlkit
+
+    with open("pyproject.toml", "rb") as f:
+        content = tomlkit.load(f)
+
+    new_datetime = (
+        datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=int("{{ days }}"))
+    ).replace(hour=0, minute=0, second=0, microsecond=0)
+    new_timestamp = new_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if existing_timestamp := content["tool"]["uv"].get("exclude-newer"):
+        if new_datetime < datetime.datetime.fromisoformat(existing_timestamp):
+            print(
+                f"Existing cutoff {existing_timestamp} is more recent than {new_timestamp}, not updating."
+            )
+            exit(0)
+    content["tool"]["uv"]["exclude-newer"] = new_timestamp
+
+    with open("pyproject.toml", "w") as f:
+        tomlkit.dump(content, f)
+
+# This is the default input command to update-dependencies action
+# https://github.com/bennettoxford/update-dependencies-action
+
+# Bump the timestamp cutoff to midnight UTC 7 days ago and upgrade all dependencies
+update-dependencies: bump-uv-cutoff upgrade-all
+
+# Run the various dev checks but does not change any files
 check: devenv
     #!/usr/bin/env bash
+
+    set -euo pipefail
+
+    # Make sure dates in pyproject.toml and uv.lock are in sync
+    unset UV_EXCLUDE_NEWER
+    rc=0
+    uv lock --check || rc=$?
+    if test "$rc" != "0" ; then
+        echo "Timestamp cutoffs in uv.lock must match those in pyproject.toml. See DEVELOPERS.md for details and hints." >&2
+        exit $rc
+    fi
 
     failed=0
 
     check() {
       # Display the command we're going to run, in bold and with the "$BIN/"
       # prefix removed if present
-      echo -e "\e[1m=> ${1#"$BIN/"}\e[0m"
+      echo -e "\e[1m=> ${1}\e[0m"
       # Run it
       eval $1
       # Increment the counter on failure
@@ -163,10 +160,10 @@ check: devenv
       fi
     }
 
-    check "$BIN/ruff format --diff --quiet ."
-    check "$BIN/ruff check --output-format=full ."
-    check "$BIN/mypy airlock/ local_db/ tests/"
-    check "$BIN/djhtml --tabwidth 2 --check airlock/"
+    check "uv run ruff format --diff --quiet ."
+    check "uv run ruff check --output-format=full ."
+    check "uv run mypy airlock/ local_db/ tests/"
+    check "uv run djhtml --tabwidth 2 --check airlock/"
     check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
     check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
     check "just state-diagram /tmp/airlock-states.md && diff -u /tmp/airlock-states.md docs/reference/request-states.md"
@@ -179,51 +176,46 @@ check: devenv
       exit 1
     fi
 
-
 # run mypy type checker
-mypy *ARGS: devenv
-    $BIN/mypy airlock/ local_db/ tests/ "$@"
-
+mypy *ARGS:
+    uv run mypy airlock/ local_db/ tests/ "$@"
 
 # fix the things we can automate: linting, formatting, import sorting, diagrams
-fix: devenv && state-diagram
-    $BIN/ruff format .
-    $BIN/ruff check --fix .
-    $BIN/djhtml --tabwidth 2 airlock/
+fix: && state-diagram
+    uv run ruff format .
+    uv run ruff check --fix .
+    uv run djhtml --tabwidth 2 airlock/
+    just --fmt --unstable --justfile justfile
+    just --fmt --unstable --justfile docker/justfile
 
 # run airlock with django dev server
-run *ARGS: devenv docs-build
-    $BIN/python manage.py runserver "$@"
+run *ARGS: docs-build
+    uv run python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
-run-gunicorn *args: devenv
-    $BIN/gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
-
+run-gunicorn *args:
+    uv run gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
 run-uploader:
-  just manage run_file_uploader
+    just manage run_file_uploader
 
-
-run-all: 
-  { just run-uploader & just run 7000; }
-
+run-all:
+    { just run-uploader & just run 7000; }
 
 # run Django's manage.py entrypoint
-manage *ARGS: devenv
-    $BIN/python manage.py "$@"
-
+manage *ARGS:
+    uv run python manage.py "$@"
 
 # run tests
-test *ARGS: devenv get-chromium
-    $BIN/python -m pytest "$@"
-
+test *ARGS: get-chromium
+    uv run python -m pytest "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: devenv docs-build get-chromium
+@test-all: docs-build get-chromium
     #!/usr/bin/env bash
     set -euo pipefail
 
-    $BIN/python -m pytest \
+    uv run python -m pytest \
       --cov=airlock \
       --cov=assets \
       --cov=local_db \
@@ -233,7 +225,6 @@ test *ARGS: devenv get-chromium
       --cov=services \
       --cov-report=html \
       --cov-report=term-missing:skip-covered
-
 
 load-dev-users:
     #!/usr/bin/env bash
@@ -246,7 +237,6 @@ load-dev-users:
     else
         cp example-data/dev_users.json "${AIRLOCK_WORK_DIR%/}/${AIRLOCK_DEV_USERS_FILE}"
     fi
-
 
 # load example data so there's something to look at in development
 load-example-data: devenv load-dev-users && manifests
@@ -310,11 +300,9 @@ load-example-data: devenv load-dev-users && manifests
     mkdir -p $request_dir
     cp -a $workspace/output $request_dir
 
-
 # generate or update manifests and git repos for local test workspaces
 manifests:
-    cat scripts/manifests.py | $BIN/python manage.py shell
-
+    cat scripts/manifests.py | uv run python manage.py shell
 
 # generate the automated state diagrams from code
 state-diagram file="docs/reference/request-states.md":
@@ -322,18 +310,16 @@ state-diagram file="docs/reference/request-states.md":
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS: devenv
-    "$BIN"/mkdocs serve --clean {{ ARGS }}
+    uv run mkdocs serve --clean {{ ARGS }}
 
 # Build the documentation
 docs-build *ARGS: devenv
-    "$BIN"/mkdocs build --clean {{ ARGS }}
-
+    uv run mkdocs build --clean {{ ARGS }}
 
 # Remove built assets and node_modules
 assets-clean:
     rm -rf assets/out
     rm -rf node_modules
-
 
 # Install the Node.js dependencies
 assets-install *args="":
@@ -347,7 +333,6 @@ assets-install *args="":
 
     npm ci {{ args }}
     touch node_modules/.written
-
 
 # Build the Node.js assets
 assets-build:
@@ -365,7 +350,6 @@ assets-build:
 
     npm run build
     touch assets/out/.written
-
 
 # Install npm toolchain, build and collect assets
 assets: assets-install assets-build

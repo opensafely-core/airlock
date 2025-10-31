@@ -1,6 +1,6 @@
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -102,4 +102,4 @@ def upload_file(release_id, workspace, relpath, abspath, username):
 
 def modified_time(path: Path) -> str:
     mtime = path.stat().st_mtime
-    return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(mtime, tz=UTC).isoformat()

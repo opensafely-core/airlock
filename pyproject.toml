@@ -1,3 +1,32 @@
+[project]
+  name = "airlock"
+  version = "0.1.0"
+  description = "Airlock"
+  readme = "README.md"
+  requires-python = ">=3.11"
+  
+  dependencies = [
+    "ansi2html",
+    "Django",
+    "django-vite",
+    "slippers",
+    "django-htmx",
+    "django-markdownify",
+    "whitenoise",
+    "gunicorn",
+    "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2025.03.06.161237.zip",
+    "requests",
+    "pydantic<2",
+    "ulid",
+    "opentelemetry-exporter-otlp-proto-http",
+    "opentelemetry-instrumentation-django",
+    "opentelemetry-instrumentation-requests",
+    "opentelemetry-sdk",
+    # docs
+    "mkdocs",
+    "mkdocs-material",
+]
+
 [tool.ruff]
 # Exclude upstream assets files from jobserver
 exclude = [
@@ -93,3 +122,34 @@ follow_imports = "skip"
 
 [tool.django-stubs]
 django_settings_module = "airlock.settings"
+
+
+# Note: any `exclude-newer-package` timestamps should be removed if > 7 days old
+# See https://github.com/opensafely-core/repo-template/blob/main/DEVELOPERS.md for details
+[tool.uv]
+exclude-newer = "2025-10-24T00:00:00Z"
+exclude-newer-package = {}
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar",
+    "django-debug-toolbar-template-profiler",
+    "djhtml",
+    "httpx",
+    "hypothesis",
+    "ruff",
+    "playwright",
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+    "pytest-freezer",
+    "pytest-playwright",
+    "responses",
+    # Currently using our fork of django_coverage_plugin, pending
+    # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
+    "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip",
+    # Type-checking and type stubs
+    "mypy",
+    "django-stubs[compatible-mypy]",
+    "types-requests",
+]

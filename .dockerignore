@@ -1,6 +1,7 @@
 # We ignore all hidden files/directories in the project root. Specific
 # exceptions to this can be added as negated patterns below.
 /.*
+!.python-version
 
 # Backup files
 **/*~
@@ -10,7 +11,6 @@
 # Python files
 **/__pycache__
 **/*.pyc
-/pyproject.toml
 /tests
 
 # Tooling effluent
