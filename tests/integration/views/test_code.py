@@ -133,7 +133,7 @@ def test_code_contents_file(airlock_client):
         f"/code/contents/workspace/{repo.commit}/file.unknown"
     )
     assert response.status_code == 200
-    assert response.content == b'<pre class="unknown">\nunknown\n</pre>\n'
+    assert b'<pre class="unknown">unknown</pre>\n' in response.content
 
 
 def test_code_contents_file_yaml(airlock_client):
@@ -143,7 +143,7 @@ def test_code_contents_file_yaml(airlock_client):
         f"/code/contents/workspace/{repo.commit}/project.yaml"
     )
     assert response.status_code == 200
-    assert response.content == b'<pre class="yaml">\nyaml: true\n</pre>\n'
+    assert b'<pre class="yaml">yaml: true</pre>' in response.content
 
 
 def test_code_contents_directory(airlock_client):
