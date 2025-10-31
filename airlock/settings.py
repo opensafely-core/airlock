@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     "django_vite",
     "slippers",
     "django_htmx",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [

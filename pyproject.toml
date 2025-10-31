@@ -25,6 +25,7 @@
     # docs
     "mkdocs",
     "mkdocs-material",
+    "django-extensions>=4.1",
 ]
 
 [tool.ruff]
