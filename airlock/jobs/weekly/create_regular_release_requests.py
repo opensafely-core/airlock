@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 from django.conf import settings
 from django.core.management import call_command
@@ -20,7 +19,7 @@ class Job(WeeklyJob):
     help = "Create release requests for regularly run jobs."
 
     def execute(self):
-        tracer = trace.get_tracer(os.environ.get("OTEL_SERVICE_NAME", "airlock"))
+        tracer = trace.get_tracer("scheduled_commands")
         release_requests = get_config_data()
         for release_request in release_requests:
             # Don't trace context/controls
