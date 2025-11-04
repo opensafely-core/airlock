@@ -2,6 +2,7 @@
 Automatically create a release request
 """
 
+import json
 import logging
 from dataclasses import dataclass, field
 
@@ -10,7 +11,7 @@ from django.core.management.base import BaseCommand
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import FileNotFound, RequestPermissionDenied
+from airlock.exceptions import FileNotFound
 from airlock.types import UrlPath
 from users.models import User
 
@@ -65,6 +66,19 @@ class Command(BaseCommand):
     def handle(self, username, workspace_name, **options):
         user = User.objects.get(user_id=username)
         request = bll.get_or_create_current_request(workspace_name, user)
+        if request.is_under_review():
+            self.stdout.write(
+                f"A release request for workspace '{workspace_name}' is already under review for user '{username}'"
+            )
+            # Management commands expect to write their output to std out, so return it as a (json)string
+            return json.dumps(
+                {
+                    "completed": False,
+                    "request_id": request.id,
+                    "message": "Already submitted",
+                }
+            )
+
         # If we retrieved an exisiting release request for this user, make sure
         # it's editable (i.e. in author-owned state) first
         permissions.check_user_can_edit_request(user, request)
@@ -129,6 +143,22 @@ class Command(BaseCommand):
                 for relpath in group_data.file_errors:
                     self.stdout.write(f"- {relpath}")
 
+        # Return early if all files have already been released
+        all_released = all(
+            group_data.total_files == group_data.total_files_released
+            for group_data in groups_data
+        )
+        if all_released:
+            assert not request.output_files()
+            self.stdout.write("All files have already been released")
+            return json.dumps(
+                {
+                    "completed": False,
+                    "request_id": request.id,
+                    "message": "Already released",
+                }
+            )
+
         for group_data in groups_data:
             self.stdout.write(f"\nAdding files for group {group_data.name}")
             self.stdout.write("===================================================")
@@ -159,22 +189,14 @@ class Command(BaseCommand):
         if options["submit"]:
             refreshed_request = bll.get_or_create_current_request(workspace.name, user)
             assert refreshed_request.id == request.id
-            try:
-                bll.submit_request(refreshed_request, user)
-            except RequestPermissionDenied:
-                # Show a more useful error if we can't submit because there were no files on the request
-                # This is likely because a regular job hasn't been rerun so there are no updated files
-                if not request.output_files():
-                    already_released = sum(
-                        group_data.total_files_released for group_data in groups_data
-                    )
-                    file_errors = sum(
-                        len(group_data.file_errors) for group_data in groups_data
-                    )
-                    raise RequestPermissionDenied(
-                        "No output files on request; "
-                        f"{already_released} file(s) already released, "
-                        f"{file_errors} file(s) with errors"
-                    )
-                raise
+            # The request should be submittable, because we already checked that
+            # it's editable (i.e. in author-owned state), and we've checked that it's
+            # not all-released. If there are any other errors, we let them be raised
+            # here; if this is being called by the runjobs job, the exception will be
+            # handled there.
+            bll.submit_request(refreshed_request, user)
             self.stdout.write("Release request submitted")
+
+        return json.dumps(
+            {"completed": True, "request_id": request.id, "message": "Success"}
+        )

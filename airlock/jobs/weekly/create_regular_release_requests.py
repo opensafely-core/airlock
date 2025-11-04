@@ -39,16 +39,26 @@ class Job(WeeklyJob):
                 }
                 try:
                     validate_config_data(release_request)
-                    call_command(
+                    result = call_command(
                         "create_release_request",
                         release_request["username"],
                         release_request["workspace_name"],
                         **kwargs,
                     )
-                    logger.info(
-                        "Release request created for %s",
-                        release_request["workspace_name"],
-                    )
+                    result = json.loads(result)
+                    span.set_attributes({f"result.{k}": v for k, v in result.items()})
+                    if result["completed"]:
+                        logger.info(
+                            "Release request created for %s: %s",
+                            release_request["workspace_name"],
+                            result["request_id"],
+                        )
+                    else:
+                        logger.info(
+                            "Release request creation not completed for %s: %s",
+                            release_request["workspace_name"],
+                            result["message"],
+                        )
                 except Exception as error:
                     span.record_exception(error)
                     logger.error(

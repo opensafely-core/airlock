@@ -1,4 +1,4 @@
-import re
+import json
 
 import pytest
 from django.core.management import call_command
@@ -244,7 +244,7 @@ def test_create_submitted_release_request_already_submitted(bll, capsys):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     factories.write_workspace_file(workspace, "test-dir1/file1.txt", contents="file1")
     # create submitted release request for this file and user
-    factories.create_request_at_status(
+    request = factories.create_request_at_status(
         author=author,
         workspace=workspace,
         status=RequestStatus.SUBMITTED,
@@ -255,9 +255,7 @@ def test_create_submitted_release_request_already_submitted(bll, capsys):
         ],
     )
 
-    with pytest.raises(
-        RequestPermissionDenied, match="cannot edit request that is in state SUBMITTED"
-    ):
+    result = json.loads(
         call_command(
             "create_release_request",
             "author",
@@ -267,6 +265,10 @@ def test_create_submitted_release_request_already_submitted(bll, capsys):
             controls="The controls",
             submit=True,
         )
+    )
+    assert not result["completed"]
+    assert result["request_id"] == request.id
+    assert result["message"] == "Already submitted"
 
 
 @pytest.mark.django_db
@@ -291,31 +293,49 @@ def test_create_submitted_release_request_updated_file(bll, mock_old_api, capsys
         ],
     )
 
-    # can't submit because there were no files to add
-    with pytest.raises(
-        RequestPermissionDenied,
-        match=re.escape(
-            "No output files on request; 1 file(s) already released, 0 file(s) with errors"
-        ),
-    ):
-        call_command(
-            "create_release_request",
-            "author",
-            "workspace",
-            dirs=["test-dir"],
-            submit=True,
-        )
+    assert len(bll.get_requests_authored_by_user(author)) == 1
+
+    # The release request attempt doesn't error, but isn't completed because
+    # all files are already released
+    result = call_command(
+        "create_release_request",
+        "author",
+        "workspace",
+        dirs=["test-dir"],
+        context="1",
+        controls="2",
+        submit=True,
+    )
+    result = json.loads(result)
+    assert not result["completed"]
+    assert result["message"] == "Already released"
+
+    # An empty release request was created, but no files added
+    assert len(bll.get_requests_authored_by_user(author)) == 2
+    latest_release_request = bll.get_current_request(workspace.name, author)
+    assert result["request_id"] == latest_release_request.id
+    assert latest_release_request.status == RequestStatus.PENDING
+    assert not latest_release_request.output_files()
+
     # update the file
     factories.write_workspace_file(
         workspace, "test-dir/file_released.txt", contents="updated"
     )
 
-    call_command(
+    result = call_command(
         "create_release_request",
         "author",
         "workspace",
         dirs=["test-dir"],
+        context="1",
+        controls="2",
+        submit=True,
     )
-
-    release_requests = bll.get_requests_authored_by_user(author)
-    assert len(release_requests) == 2
+    result = json.loads(result)
+    # The previous empty release request is used
+    assert result["completed"]
+    assert result["message"] == "Success"
+    assert len(bll.get_requests_authored_by_user(author)) == 2
+    latest_release_request = bll.get_current_request(workspace.name, author)
+    assert result["request_id"] == latest_release_request.id
+    assert latest_release_request.status == RequestStatus.SUBMITTED
