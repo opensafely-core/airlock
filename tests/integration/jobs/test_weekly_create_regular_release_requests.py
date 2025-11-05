@@ -122,10 +122,12 @@ def test_weekly_runjobs(bll, mock_config, caplog):
         for record in caplog.records
         if record.name == "airlock.jobs.weekly.create_regular_release_requests"
     ]
-    assert len(logs) == 2
+    assert len(logs) == 4
     assert {log.message for log in logs} == {
-        f"Release request created for workspace: {release_requests[0].id}",
-        f"Release request created for workspace1: {release_requests[1].id}",
+        "Starting automated release request for workspace",
+        f"Release request complete for workspace: {release_requests[0].id}",
+        "Starting automated release request for workspace1",
+        f"Release request complete for workspace1: {release_requests[1].id}",
     }
 
     spans = get_trace()
@@ -184,11 +186,13 @@ def test_weekly_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog
         for record in caplog.records
         if record.name == "airlock.jobs.weekly.create_regular_release_requests"
     ]
-    assert len(logs) == 2
+    assert len(logs) == 4
 
     assert {log.message for log in logs} == {
+        "Starting automated release request for workspace",
         "Release request creation not completed for workspace: Already submitted",
-        f"Release request created for workspace1: {pending_release_request.id}",
+        "Starting automated release request for workspace1",
+        f"Release request complete for workspace1: {pending_release_request.id}",
     }
 
     spans = get_trace()
@@ -250,11 +254,13 @@ def test_weekly_runjobs_already_released(bll, mock_old_api, mock_config, caplog)
         for record in caplog.records
         if record.name == "airlock.jobs.weekly.create_regular_release_requests"
     ]
-    assert len(logs) == 2
+    assert len(logs) == 4
 
     assert {log.message for log in logs} == {
+        "Starting automated release request for workspace",
         "Release request creation not completed for workspace: Already released",
-        f"Release request created for workspace1: {pending_release_request.id}",
+        "Starting automated release request for workspace1",
+        f"Release request complete for workspace1: {pending_release_request.id}",
     }
 
     spans = get_trace()
@@ -300,8 +306,9 @@ def test_weekly_runjobs_validation_error(bll, caplog):
         for record in caplog.records
         if record.name == "airlock.jobs.weekly.create_regular_release_requests"
     ]
-    assert len(logs) == 1
+    assert len(logs) == 2
     assert {log.message for log in logs} == {
+        "Starting automated release request for workspace",
         "Failed to create release request for workspace - Invalid config type for 'dirs': expected <class 'list'>, got <class 'str'>",
     }
 
