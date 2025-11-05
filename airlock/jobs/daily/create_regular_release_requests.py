@@ -2,7 +2,7 @@ import json
 import logging
 
 from django.conf import settings
-from django_extensions.management.jobs import WeeklyJob
+from django_extensions.management.jobs import DailyJob
 from opentelemetry import trace
 
 from airlock import actions
@@ -16,7 +16,7 @@ CONFIG_PATH = settings.WORK_DIR / "regular_release_requests.json"
 class ConfigValidationError(Exception): ...
 
 
-class Job(WeeklyJob):
+class Job(DailyJob):
     help = "Create release requests for regularly run jobs."
 
     def execute(self):

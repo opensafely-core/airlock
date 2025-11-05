@@ -6,7 +6,7 @@ import pytest
 from django.core.management import call_command
 
 from airlock.enums import RequestStatus
-from airlock.jobs.weekly.create_regular_release_requests import (
+from airlock.jobs.daily.create_regular_release_requests import (
     ConfigValidationError,
     get_config_data,
     validate_config_data,
@@ -33,7 +33,7 @@ def setup_test_data():
 @pytest.fixture
 def mock_config():
     with patch(
-        "airlock.jobs.weekly.create_regular_release_requests.CONFIG_PATH",
+        "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH",
         FIXTURE_DIR / "regular_release_requests.json",
     ):
         yield
@@ -41,7 +41,7 @@ def mock_config():
 
 def test_get_config_data_file_does_not_exist():
     with patch(
-        "airlock.jobs.weekly.create_regular_release_requests.CONFIG_PATH",
+        "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH",
         FIXTURE_DIR / "non_existent_file.json",
     ):
         assert get_config_data() == []
@@ -109,18 +109,18 @@ def test_create_regular_release_requests(bll, mock_config):
 
 
 @pytest.mark.django_db
-def test_weekly_runjobs(bll, mock_config, caplog):
+def test_daily_runjobs(bll, mock_config, caplog):
     caplog.set_level(logging.INFO)
     author = User.objects.get(user_id="author")
     assert not bll.get_requests_authored_by_user(author)
-    call_command("runjobs", "weekly")
+    call_command("runjobs", "daily")
     release_requests = bll.get_requests_authored_by_user(author)
     assert len(release_requests) == 2
 
     logs = [
         record
         for record in caplog.records
-        if record.name == "airlock.jobs.weekly.create_regular_release_requests"
+        if record.name == "airlock.jobs.daily.create_regular_release_requests"
     ]
     assert len(logs) == 4
     assert {log.message for log in logs} == {
@@ -156,7 +156,7 @@ def test_weekly_runjobs(bll, mock_config, caplog):
 
 
 @pytest.mark.django_db
-def test_weekly_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog):
+def test_daily_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog):
     caplog.set_level(logging.INFO)
     author = User.objects.get(user_id="author")
     # create submitted release request
@@ -179,12 +179,12 @@ def test_weekly_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog
     )
     assert (len(bll.get_requests_authored_by_user(author))) == 2
 
-    call_command("runjobs", "weekly")
+    call_command("runjobs", "daily")
 
     logs = [
         record
         for record in caplog.records
-        if record.name == "airlock.jobs.weekly.create_regular_release_requests"
+        if record.name == "airlock.jobs.daily.create_regular_release_requests"
     ]
     assert len(logs) == 4
 
@@ -224,7 +224,7 @@ def test_weekly_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog
 
 
 @pytest.mark.django_db
-def test_weekly_runjobs_already_released(bll, mock_old_api, mock_config, caplog):
+def test_daily_runjobs_already_released(bll, mock_old_api, mock_config, caplog):
     caplog.set_level(logging.INFO)
     author = User.objects.get(user_id="author")
 
@@ -247,12 +247,12 @@ def test_weekly_runjobs_already_released(bll, mock_old_api, mock_config, caplog)
     )
     assert (len(bll.get_requests_authored_by_user(author))) == 2
 
-    call_command("runjobs", "weekly")
+    call_command("runjobs", "daily")
 
     logs = [
         record
         for record in caplog.records
-        if record.name == "airlock.jobs.weekly.create_regular_release_requests"
+        if record.name == "airlock.jobs.daily.create_regular_release_requests"
     ]
     assert len(logs) == 4
 
@@ -293,18 +293,18 @@ def test_weekly_runjobs_already_released(bll, mock_old_api, mock_config, caplog)
 
 
 @pytest.mark.django_db
-def test_weekly_runjobs_validation_error(bll, caplog):
+def test_daily_runjobs_validation_error(bll, caplog):
     caplog.set_level(logging.INFO)
     with patch(
-        "airlock.jobs.weekly.create_regular_release_requests.CONFIG_PATH",
+        "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH",
         FIXTURE_DIR / "regular_release_requests_bad_config.json",
     ):
-        call_command("runjobs", "weekly")
+        call_command("runjobs", "daily")
 
     logs = [
         record
         for record in caplog.records
-        if record.name == "airlock.jobs.weekly.create_regular_release_requests"
+        if record.name == "airlock.jobs.daily.create_regular_release_requests"
     ]
     assert len(logs) == 2
     assert {log.message for log in logs} == {
