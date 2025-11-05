@@ -436,6 +436,10 @@ LOGGING = {
             "level": "ERROR",
             "propagate": False,  # This stops it from also going to root logger, and logging twice.
         },
+        "airlock": {
+            "level": "INFO",
+            "propagate": True,  # use the root handler
+        },
     },
 }
 

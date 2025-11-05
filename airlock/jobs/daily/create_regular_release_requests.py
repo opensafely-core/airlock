@@ -2,9 +2,10 @@ import json
 import logging
 
 from django.conf import settings
-from django.core.management import call_command
-from django_extensions.management.jobs import WeeklyJob
+from django_extensions.management.jobs import DailyJob
 from opentelemetry import trace
+
+from airlock import actions
 
 
 logger = logging.getLogger(__name__)
@@ -15,13 +16,16 @@ CONFIG_PATH = settings.WORK_DIR / "regular_release_requests.json"
 class ConfigValidationError(Exception): ...
 
 
-class Job(WeeklyJob):
+class Job(DailyJob):
     help = "Create release requests for regularly run jobs."
 
     def execute(self):
         tracer = trace.get_tracer("scheduled_commands")
         release_requests = get_config_data()
         for release_request in release_requests:
+            logger.info(
+                f"Starting automated release request for {release_request['workspace_name']}"
+            )
             # Don't trace context/controls
             attributes_to_trace = {
                 k: v
@@ -39,16 +43,24 @@ class Job(WeeklyJob):
                 }
                 try:
                     validate_config_data(release_request)
-                    call_command(
-                        "create_release_request",
+                    result = actions.create_release_request(
                         release_request["username"],
                         release_request["workspace_name"],
                         **kwargs,
                     )
-                    logger.info(
-                        "Release request created for %s",
-                        release_request["workspace_name"],
-                    )
+                    span.set_attributes({f"result.{k}": v for k, v in result.items()})
+                    if result["completed"]:
+                        logger.info(
+                            "Release request complete for %s: %s",
+                            release_request["workspace_name"],
+                            result["request_id"],
+                        )
+                    else:
+                        logger.info(
+                            "Release request creation not completed for %s: %s",
+                            release_request["workspace_name"],
+                            result["message"],
+                        )
                 except Exception as error:
                     span.record_exception(error)
                     logger.error(
