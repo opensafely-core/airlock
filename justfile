@@ -15,6 +15,21 @@ _dotenv:
       cp dotenv-sample .env
     fi
 
+# Check if a .env exists
+# Use this (rather than _dotenv or devenv) for recipes that require that a .env file exists.
+# just will not pick up environment variables from a .env that it's just created,
+# and there isn't an easy way to load those into the environment, so we just
+
+# prompt the user to run just devenv to set up their local environment properly.
+_checkenv:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ ! -f .env ]]; then
+        echo "No '.env' file found; run 'just devenv' to create one"
+        exit 1
+    fi
+
 # Clean up temporary files
 clean:
     rm -rf .venv
@@ -129,45 +144,54 @@ bump-uv-cutoff days="7":
 # Bump the timestamp cutoff to midnight UTC 7 days ago and upgrade all dependencies
 update-dependencies: bump-uv-cutoff upgrade-all
 
-# Run the various dev checks but does not change any files
-check: devenv
-    #!/usr/bin/env bash
+format *args:
+    uv run ruff format --diff --quiet {{ args }} .
+    uv run djhtml --tabwidth 2 --check airlock/
 
+lint *args:
+    uv run ruff check {{ args }} .
+
+lint-actions:
+    docker run --rm -v $(pwd):/repo:ro --workdir /repo rhysd/actionlint:1.7.8 -color
+
+# run mypy type checker
+mypy *ARGS:
+    uv run mypy airlock/ local_db/ tests/ "$@"
+
+shellcheck:
+    #!/usr/bin/env bash
     set -euo pipefail
 
-    # Make sure dates in pyproject.toml and uv.lock are in sync
-    unset UV_EXCLUDE_NEWER
-    rc=0
-    uv lock --check || rc=$?
-    if test "$rc" != "0" ; then
-        echo "Timestamp cutoffs in uv.lock must match those in pyproject.toml. See DEVELOPERS.md for details and hints." >&2
-        exit $rc
-    fi
+    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.9.0
+
+# Run the various dev checks but does not change any files
+check:
+    #!/usr/bin/env bash
+    set -euo pipefail
 
     failed=0
 
     check() {
-      # Display the command we're going to run, in bold and with the "$BIN/"
-      # prefix removed if present
       echo -e "\e[1m=> ${1}\e[0m"
+      rc=0
       # Run it
-      eval $1
+      eval $1 || rc=$?
       # Increment the counter on failure
-      if [[ $? != 0 ]]; then
+      if [[ $rc != 0 ]]; then
         failed=$((failed + 1))
         # Add spacing to separate the error output from the next check
         echo -e "\n"
       fi
     }
 
-    check "uv run ruff format --diff --quiet ."
-    check "uv run ruff check --output-format=full ."
-    check "uv run mypy airlock/ local_db/ tests/"
-    check "uv run djhtml --tabwidth 2 --check airlock/"
-    check "docker run --rm -i ghcr.io/hadolint/hadolint:v2.12.0-alpine < docker/Dockerfile"
-    check "find docker/ airlock/ job-server -name \*.sh -print0 | xargs -0 docker run --rm -v \"$PWD:/mnt\" koalaman/shellcheck:v0.9.0"
+    check "just check-lockfile"
+    check "just format"
+    check "just mypy"
+    check "just lint"
+    check "just lint-actions"
+    check "just shellcheck"
     check "just state-diagram /tmp/airlock-states.md && diff -u /tmp/airlock-states.md docs/reference/request-states.md"
-    check "docker run --rm -v $(pwd):/repo --workdir /repo rhysd/actionlint:1.7.1 -color"
+    test -d docker/ && check "just docker/lint"
 
     if [[ $failed > 0 ]]; then
       echo -en "\e[1;31m"
@@ -176,9 +200,18 @@ check: devenv
       exit 1
     fi
 
-# run mypy type checker
-mypy *ARGS:
-    uv run mypy airlock/ local_db/ tests/ "$@"
+# validate uv.lock
+check-lockfile:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Make sure dates in pyproject.toml and uv.lock are in sync
+    unset UV_EXCLUDE_NEWER
+    rc=0
+    uv lock --check || rc=$?
+    if test "$rc" != "0" ; then
+        echo "Timestamp cutoffs in uv.lock must match those in pyproject.toml. See DEVELOPERS.md for details and hints." >&2
+        exit $rc
+    fi
 
 # fix the things we can automate: linting, formatting, import sorting, diagrams
 fix: && state-diagram
@@ -193,7 +226,7 @@ run *ARGS: docs-build
     uv run python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
-run-gunicorn *args:
+run-gunicorn *args: _checkenv
     uv run gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
 run-uploader:
@@ -203,15 +236,15 @@ run-all:
     { just run-uploader & just run 7000; }
 
 # run Django's manage.py entrypoint
-manage *ARGS:
+manage *ARGS: _checkenv
     uv run python manage.py "$@"
 
 # run tests
-test *ARGS: get-chromium
+test *ARGS: _checkenv get-chromium
     uv run python -m pytest "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: docs-build get-chromium
+@test-all: _checkenv docs-build get-chromium
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -239,7 +272,7 @@ load-dev-users:
     fi
 
 # load example data so there's something to look at in development
-load-example-data: devenv load-dev-users && manifests
+load-example-data: _checkenv load-dev-users && manifests
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -301,19 +334,19 @@ load-example-data: devenv load-dev-users && manifests
     cp -a $workspace/output $request_dir
 
 # generate or update manifests and git repos for local test workspaces
-manifests:
+manifests: _checkenv
     cat scripts/manifests.py | uv run python manage.py shell
 
 # generate the automated state diagrams from code
-state-diagram file="docs/reference/request-states.md":
+state-diagram file="docs/reference/request-states.md": _checkenv
     {{ just_executable() }} manage statemachine {{ file }}
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
-docs-serve *ARGS: devenv
+docs-serve *ARGS:
     uv run mkdocs serve --clean {{ ARGS }}
 
 # Build the documentation
-docs-build *ARGS: devenv
+docs-build *ARGS:
     uv run mkdocs build --clean {{ ARGS }}
 
 # Remove built assets and node_modules
