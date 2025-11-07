@@ -15,6 +15,10 @@ services:
         # env vars supplied by just
         - BUILD_DATE
         - GITREF
+        # env vars from .env
+        - UBUNTU_VERSION
+        - UV_VERSION
+        - NODE_VERSION
     # use dockers builitin PID daemon
     init: true
     ports:
