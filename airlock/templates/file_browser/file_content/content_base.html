@@ -1,0 +1,31 @@
+{% load static %}
+{% load django_vite %}
+
+<!DOCTYPE html>
+<html lang="en" class="min-h-screen">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block metatitle %}Airlock{% endblock metatitle %}</title>
+
+    {% block extra_meta %}{% endblock %}
+
+    {% vite_hmr_client %}
+    {% vite_asset "assets/src/scripts/base.js" app="job_server" %}
+    {% vite_asset "assets/src/scripts/main.js" %}
+
+    <link rel="stylesheet" href="{% static 'assets/components.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/icons.css' %}">
+
+    {% block extra_styles %}{% endblock %}
+
+    <link rel="icon" href="{% static "favicon.ico" %}">
+    <link rel="icon" href="{% static "icon.svg" %}" type="image/svg+xml">
+  </head>
+
+  <body class="flex flex-col min-h-screen text-slate bg-white">
+    {% block content %}{% endblock %}
+  </body>
+</html>
