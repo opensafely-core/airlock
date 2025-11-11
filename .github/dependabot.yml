@@ -24,3 +24,10 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 7
+
+  # Security updates only
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 0
