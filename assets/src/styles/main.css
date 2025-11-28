@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@import "../../templates/_components/alert/alert.css";
+@import "../../templates/_components/multiselect/multiselect.css";
+
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 
