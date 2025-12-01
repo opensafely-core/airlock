@@ -11,6 +11,9 @@ updates:
       timezone: "Europe/London"
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -24,10 +27,3 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 7
-
-  # Security updates only
-  - package-ecosystem: "uv"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
