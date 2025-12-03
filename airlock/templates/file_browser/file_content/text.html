@@ -1,3 +1,11 @@
-<pre class="{{ class }}">
-{{ text }}
-</pre>
+{% extends "file_browser/file_content/content_base.html" %}
+{% block metatitle %}{{ filename }}{% endblock %}
+{% block content %}
+  {% if truncated|default:False %}
+    {% #alert variant="info" title="Log truncated" class="mt-4" no_icon=True %}
+      This log file is larger than the log viewing limit of {{ limit_kb }}kb, so we have only shown you the last {{ limit_kb }}kb.
+      If you need to see more of the log, contact OpenSAFELY tech support.
+    {% /alert %}
+  {% endif %}
+<pre class="{{ class }}">{{ text }}</pre>
+{% endblock %}

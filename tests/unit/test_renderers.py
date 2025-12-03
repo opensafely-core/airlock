@@ -28,7 +28,7 @@ def test_renderers_get_renderer_workspace(
     path = tmp_path / ("test" + suffix)
     # use a csv as test data, it works for other types too
     path.write_text("a,b,c\n1,2,3")
-    content_cache_id = "65e73ba8-b"
+    content_hash = "65e73ba8-b"
 
     time = 1709652904  # date this test was written
     os.utime(path, (time, time))
@@ -40,12 +40,9 @@ def test_renderers_get_renderer_workspace(
 
     if template_path:
         assert isinstance(renderer.template, renderers.RendererTemplate)
-        assert (
-            renderer.cache_id
-            == f"{content_cache_id}-{renderer.template.content_cache_id}"
-        )
+        assert renderer.cache_id == f"{content_hash}-{renderer.template.content_hash}"
     else:
-        assert renderer.cache_id == content_cache_id
+        assert renderer.cache_id == content_hash
 
     response = renderer.get_response()
     if hasattr(response, "render"):
@@ -85,7 +82,7 @@ def test_renderers_get_renderer_request(
         assert isinstance(renderer.template, renderers.RendererTemplate)
         assert (
             renderer.cache_id
-            == f"{request_file.file_id}-{renderer.template.content_cache_id}"
+            == f"{request_file.file_id}-{renderer.template.content_hash}"
         )
     else:
         assert renderer.cache_id == request_file.file_id
@@ -187,3 +184,32 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
         '<span class="ansi1 ansi32">This is green and bold.</span>'
         in response.rendered_content
     )
+
+
+@pytest.mark.parametrize(
+    "log,limit,expected,truncated",
+    [
+        ("LINE1\nLINE2\nLINE3\n", 12, "LINE3\n", True),  # line 2 striped
+        ("LINE1\nLINE2\nLINE3\n", 13, "LINE2\nLINE3\n", True),  # line 2 not stripped
+        ("LINE1LINE3\n", 6, "LINE3\n", True),  # single line
+        ("LINE2\nLINE3\n", 30, "LINE2\nLINE3\n", False),  # under limit
+    ],
+)
+def test_log_renderer_handles_truncation(
+    tmp_path, settings, log, limit, expected, truncated
+):
+    settings.MAX_LOG_BYTES = limit
+    log_file = tmp_path / "test.log"
+    log_file.write_text(log)
+    relpath = log_file.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(log_file, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+    assert expected in response.rendered_content
+    assert "LINE1" not in response.rendered_content
+    if truncated:
+        assert "Log truncated" in response.rendered_content
+    else:
+        assert "Log truncated" not in response.rendered_content

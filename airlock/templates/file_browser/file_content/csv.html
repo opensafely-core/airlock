@@ -1,81 +1,65 @@
+{% extends "file_browser/file_content/content_base.html" %}
 {% load airlock %}
-{% load django_vite %}
-{% load static %}
-
-<!DOCTYPE html>
-<html lang="en" class="min-h-screen">
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    {% vite_hmr_client %}
-    {% vite_asset "assets/src/scripts/main.js" %}
-
-  </head>
-
-  <body>
-
-    <div id="airlock-table">
-      {% if use_clusterize_table %}
-        {% fragment as header_row %}
-          <tr>
-            <th class="sort-ascending">
+{% block metatitle %}{{ filename }}{% endblock %}
+{% block content %}
+  <div id="airlock-table">
+    {% if use_clusterize_table %}
+      {% fragment as header_row %}
+        <tr>
+          <th class="sort-ascending">
+            <button class="clusterize-table-sorter p-2 relative text-left w-full">
+              <div class="flex flex-row gap-2 items-center">
+                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                  {% datatable_sort_icon %}
+                </span>
+              </div>
+            </button>
+          </th>
+          {% for header in headers %}
+            <th>
               <button class="clusterize-table-sorter p-2 relative text-left w-full">
                 <div class="flex flex-row gap-2 items-center">
+                  {{ header }}
                   <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
                     {% datatable_sort_icon %}
                   </span>
                 </div>
               </button>
             </th>
+          {% endfor %}
+        </tr>
+      {% endfragment %}
+      {% #clusterize_table header_row=header_row %}
+        {% for index, row in rows %}
+          <tr><td class="datatable-row-number">{{ index }}</td>
+            {% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+        {% endfor %}
+      {% /clusterize_table %}
+
+    {% else %}
+      <table>
+        <thead>
+          <tr>
+            <th></th>
             {% for header in headers %}
               <th>
-                <button class="clusterize-table-sorter p-2 relative text-left w-full">
-                  <div class="flex flex-row gap-2 items-center">
-                    {{ header }}
-                    <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                      {% datatable_sort_icon %}
-                    </span>
-                  </div>
-                </button>
+                {{ header }}
               </th>
             {% endfor %}
           </tr>
-        {% endfragment %}
-        {% #clusterize_table header_row=header_row %}
+        </thead>
+        <tbody>
           {% for index, row in rows %}
-            <tr><td class="datatable-row-number">{{ index }}</td>
-              {% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
-          {% endfor %}
-        {% /clusterize_table %}
-
-      {% else %}
-        <table>
-          <thead>
             <tr>
-              <th></th>
-              {% for header in headers %}
-                <th>
-                  {{ header }}
-                </th>
+              <td>{{ index }}</td>
+              {% for cell in row %}
+                <td>{{ cell }}</td>
               {% endfor %}
             </tr>
-          </thead>
-          <tbody>
-            {% for index, row in rows %}
-              <tr>
-                <td>{{ index }}</td>
-                {% for cell in row %}
-                  <td>{{ cell }}</td>
-                {% endfor %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
 
-    </div>
-  </body>
-
-</html>
+  </div>
+{% endblock %}
