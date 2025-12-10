@@ -19,12 +19,21 @@ class GroupData:
     total_files_released: int = 0
     total_files_already_added: int = 0
     files_to_add: list[UrlPath] = field(default_factory=list)
+    supporting_files_to_add: list[UrlPath] = field(default_factory=list)
     context: str = ""
     controls: str = ""
 
 
 def create_release_request(
-    username, workspace_name, *, dirs, context="", controls="", submit=False, **kwargs
+    username,
+    workspace_name,
+    *,
+    dirs,
+    supporting_files=None,
+    context="",
+    controls="",
+    submit=False,
+    **kwargs,
 ):
     user = User.objects.get(user_id=username)
     request = bll.get_or_create_current_request(workspace_name, user)
@@ -37,6 +46,8 @@ def create_release_request(
             "request_id": request.id,
             "message": "Already submitted",
         }
+
+    supporting_files = supporting_files or []
 
     # If we retrieved an exisiting release request for this user, make sure
     # it's editable (i.e. in author-owned state) first
@@ -64,7 +75,10 @@ def create_release_request(
                 state = workspace.get_workspace_file_status(relpath)
 
                 if policies.can_add_file_to_request(workspace, relpath):
-                    group_data.files_to_add.append(relpath)
+                    if str(relpath) in supporting_files:
+                        group_data.supporting_files_to_add.append(relpath)
+                    else:
+                        group_data.files_to_add.append(relpath)
                 elif state == WorkspaceFileStatus.RELEASED:
                     group_data.total_files_released += 1
                 else:
@@ -103,17 +117,27 @@ def create_release_request(
         if group_data.files_to_add:
             logger.info(f"Adding files for group {group_data.name}")
             total = len(group_data.files_to_add)
-            added = 0
+            output_files_added = 0
+            supporting_files_added = 0
             for relpath in group_data.files_to_add:
                 bll.add_file_to_request(
                     request, relpath, user, group_data.name, RequestFileType.OUTPUT
                 )
-                added += 1
+                output_files_added += 1
 
-                if added > 0 and added % 100 == 0:  # pragma: no cover
-                    logger.debug(f"{added}/{total} files added")
+                if (
+                    output_files_added > 0 and output_files_added % 100 == 0
+                ):  # pragma: no cover
+                    logger.debug(f"{output_files_added}/{total} files added")
 
-            logger.info(f"Total: {added}/{total} added (group {group_data.name})")
+            for relpath in group_data.supporting_files_to_add:
+                bll.add_file_to_request(
+                    request, relpath, user, group_data.name, RequestFileType.SUPPORTING
+                )
+
+            logger.info(
+                f"Total: {output_files_added + supporting_files_added}/{total} added (group {group_data.name})"
+            )
         else:
             logger.info(
                 f"No files to add for group {group_data.name}; {group_data.total_files_already_added} already added"

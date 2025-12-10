@@ -29,6 +29,11 @@ class Command(BaseCommand):
             help="list of directory paths containing output files to add",
         )
         parser.add_argument(
+            "--supporting-files",
+            nargs="*",
+            help="list of paths to files to be added as supporting files; must exist in one of the specified dirs",
+        )
+        parser.add_argument(
             "--context",
             default="",
             help="Group context; if multiple groups are created, the same context will be added for each group",
