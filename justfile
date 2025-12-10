@@ -106,12 +106,17 @@ get-chromium:
     fi
 
 # Upgrade a single package to the latest version as of the cutoff in pyproject.toml
-upgrade-package package: && devenv
+upgrade-package package: && uvmirror devenv
     uv lock --upgrade-package {{ package }}
 
 # Upgrade all packages to the latest versions as of the cutoff in pyproject.toml
-upgrade-all: && devenv
+upgrade-all: && uvmirror devenv
     uv lock --upgrade
+
+# update the uv mirror requirements file
+uvmirror file="requirements.uvmirror.txt":
+    rm -f {{ file }}
+    uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras > {{ file }}
 
 # Move the cutoff date in pyproject.toml to N days ago (default: 7) at midnight UTC
 bump-uv-cutoff days="7":
