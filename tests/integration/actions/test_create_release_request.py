@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from airlock.actions import create_release_request
-from airlock.enums import RequestStatus
+from airlock.enums import RequestFileType, RequestStatus
 from airlock.exceptions import FileNotFound, RequestPermissionDenied
 from tests import factories
 
@@ -43,6 +43,59 @@ def test_create_release_request(bll):
         "test-dir/test-subdir/file3.txt",
         "test-dir1/test-subdir/file5.txt",
     }
+    for filegroup in release_request.filegroups.values():
+        assert filegroup.context == ""
+        assert filegroup.controls == ""
+    assert release_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_create_release_request_with_supporting_files(bll):
+    workspace = factories.create_workspace("workspace")
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+
+    assert not bll.get_requests_authored_by_user(author)
+
+    factories.write_workspace_file(workspace, "test-dir/file1.txt", contents="file1")
+    factories.write_workspace_file(
+        workspace, "test-dir/supporting_file1.txt", contents="supporting file1"
+    )
+    factories.write_workspace_file(
+        workspace, "test-dir1/test-subdir/file2.txt", contents="file2"
+    )
+    factories.write_workspace_file(
+        workspace,
+        "test-dir1/test-subdir/supporting_file2.txt",
+        contents="supporting file2",
+    )
+
+    create_release_request(
+        "author",
+        "workspace",
+        dirs=["test-dir", "test-dir1/test-subdir"],
+        supporting_files=[
+            "test-dir/supporting_file1.txt",
+            "test-dir1/test-subdir/supporting_file2.txt",
+        ],
+    )
+
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert set(release_request.filegroups) == {"test-dir", "test-dir1-test-subdir"}
+    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+        "test-dir/file1.txt",
+        "test-dir1/test-subdir/file2.txt",
+    }
+    assert {
+        str(rfile.relpath)
+        for rfile in release_request.all_files_by_name.values()
+        if rfile.filetype == RequestFileType.SUPPORTING
+    } == {
+        "test-dir/supporting_file1.txt",
+        "test-dir1/test-subdir/supporting_file2.txt",
+    }
+
     for filegroup in release_request.filegroups.values():
         assert filegroup.context == ""
         assert filegroup.controls == ""
