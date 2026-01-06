@@ -10,7 +10,7 @@ from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 
-from .conftest import login_as_user
+from .conftest import login_as_user, wait_for_table_load
 from .utils import screenshot_element_with_padding, take_screenshot
 
 
@@ -117,8 +117,7 @@ def test_screenshot_from_creation_to_release(
 
     # Directory view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
-    # let the table load
-    expect(page.locator(".clusterized")).to_be_visible()
+    wait_for_table_load(page)
     take_screenshot(page, "workspace_directory_view.png")
     # Content only in directory view
     content = page.locator("#selected-contents")
@@ -126,8 +125,7 @@ def test_screenshot_from_creation_to_release(
 
     # File view page
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file1.csv")))
-    # wait briefly (100ms) for the table to load before screenshotting
-    page.wait_for_timeout(100)
+    wait_for_table_load(page)
     take_screenshot(page, "workspace_file_view.png")
 
     # More dropdown
@@ -213,6 +211,8 @@ def test_screenshot_from_creation_to_release(
             live_server.url
             + release_request.get_url(UrlPath("my-group/outputs/file1.csv"))
         )
+        page.wait_for_timeout(100)
+        wait_for_table_load(page)
 
         if screenshot:
             # Screenshot the request file page before voting
@@ -376,6 +376,7 @@ def test_screenshot_from_creation_to_release(
     )
     # multiselect view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    wait_for_table_load(page)
     take_screenshot(page, "multiselect_update.png")
     # screenshot the tree icon and the page
     take_screenshot(
@@ -384,6 +385,7 @@ def test_screenshot_from_creation_to_release(
     )
     # file view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs/file2.csv")))
+    wait_for_table_load(page)
     take_screenshot(page, "file_update.png")
     page.locator("button[value=update_files]").click()
     take_screenshot(page, "file_update_modal.png")

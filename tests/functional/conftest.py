@@ -35,6 +35,19 @@ def wait_for_htmx(page):
     ).to_have_count(0)
 
 
+def wait_for_table_load(page):
+    page.wait_for_function(
+        """() => {
+            const el = document.querySelector('.loading-indicator.htmx-indicator');
+            return getComputedStyle(el).opacity === '0';
+        }""",
+    )
+    # even though the opacity valuer has finished animating to 0, it can still
+    # take a few frames for the compositor to finish rendering, before we can
+    # screenshot without issue.
+    page.wait_for_timeout(200)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def set_env():
     # This is required for playwright tests with Django
