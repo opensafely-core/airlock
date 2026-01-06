@@ -103,6 +103,11 @@ def test_screenshot_from_creation_to_release(
         "outputs/supporting.txt",
         "The supporting content",
     )
+    factories.write_workspace_file(
+        workspace,
+        "metadata/action_name.log",
+        "This is a line of log output\n" * 1000,
+    )
 
     # Log in as a researcher
     login_as_user(live_server, context, user_dicts["author"])
@@ -114,6 +119,10 @@ def test_screenshot_from_creation_to_release(
     # workspace view page
     page.goto(live_server.url + workspace.get_url())
     take_screenshot(page, "workspace_view.png")
+
+    page.goto(live_server.url + workspace.get_url(UrlPath("metadata/action_name.log")))
+    wait_for_table_load(page)
+    take_screenshot(page, "workspace_view_metadata.png")
 
     # Directory view
     page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))

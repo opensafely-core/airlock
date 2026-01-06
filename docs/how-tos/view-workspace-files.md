@@ -1,6 +1,6 @@
 To view files in a workspace, navigate to the 'Workspaces & Requests' view using the links in the
 navigation bar. This will show you a list of workspaces that you have access to, organised
-by Project.
+by project.
 
 ![Workspaces index](../screenshots/workspaces_index.png)
 
@@ -8,6 +8,17 @@ Click on a workspace to view its files. The landing page for a workspace shows s
 browsable file tree.
 
 ![Workspace view](../screenshots/workspace_view.png)
+
+The `metadata/` directory contains job log files. These contain the output your
+code generated when it last ran, and are useful for debugging issues.
+
+!!!note "Log files may be truncated"
+     To reduce risk of accidental disclosure of pseudonymous patient level
+     data, only the last few hundred lines of a log file are displayed in
+     Airlock. This should allow debugging of any issues. Contact tech support
+     if you need access to the full log.
+
+![Log files in Metadata](../screenshots/workspace_view_metadata.png)
 
 Clicking on a directory will display a list of the files it contains, with some metadata
 about the file, such as size, type and last modified date.

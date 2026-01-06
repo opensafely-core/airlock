@@ -5,7 +5,7 @@ The how-to guides provide practical steps for working with Airlock.
 
 For researchers:
 
-* [View output files in a workspace](view-workspace-files.md)
+* [View files in a workspace](view-workspace-files.md)
 * [Create and submit a release request](create-and-submit-a-release-request.md)
 * [Respond to a returned request](respond-to-returned-request.md)
 * [Edit a file on a request](edit-file-on-request.md)
