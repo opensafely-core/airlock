@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from opentelemetry import trace
 
 from airlock import renderers
 from airlock.types import UrlPath
@@ -198,17 +199,24 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
 def test_log_renderer_handles_truncation(
     tmp_path, settings, log, limit, expected, truncated
 ):
+    tracer = trace.get_tracer("tests")
     settings.MAX_LOG_BYTES = limit
     log_file = tmp_path / "test.log"
     log_file.write_text(log)
     relpath = log_file.relative_to(tmp_path)
     Renderer = renderers.get_renderer(relpath)
     renderer = Renderer.from_file(log_file, relpath)
-    response = renderer.get_response()
+
+    with tracer.start_as_current_span("test") as span:
+        response = renderer.get_response()
+
     response.render()
     assert response.status_code == 200
     assert expected in response.rendered_content
     assert "LINE1" not in response.rendered_content
+    assert span.attributes["job.log_truncated"] == truncated  # type: ignore
+    assert span.attributes["job.log_size"] == len(log)  # type: ignore
+
     if truncated:
         assert "Log truncated" in response.rendered_content
     else:

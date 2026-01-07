@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import IO
 
+from opentelemetry import trace
 from pipeline.constants import LEVEL4_FILE_TYPES
 
 from airlock.types import UrlPath
@@ -15,14 +16,22 @@ def truncate_log_stream(stream: IO[str], n: int):
 
     If it has been truncated, remove any partial lines.
     """
-    full_stream = stream.read()
-    if len(full_stream) > n:
-        truncated = full_stream[-n:]
-        newline_pos = truncated.find("\n")
+    span = trace.get_current_span()
+    truncated = False
+    log = stream.read()
+    size = len(log)
+    span.set_attribute("job.log_size", size)
+
+    if size > n:
+        truncated_log = log[-n:]
+        newline_pos = truncated_log.find("\n")
         # if there is more than 1 line
-        if newline_pos != len(truncated) - 1:
+        if newline_pos != len(truncated_log) - 1:
             # remove any partial lines
-            truncated = truncated[newline_pos + 1 :]
-        return truncated, True
-    else:
-        return full_stream, False
+            truncated_log = truncated_log[newline_pos + 1 :]
+        log = truncated_log
+        truncated = True
+
+    span.set_attribute("job.log_truncated", truncated)
+
+    return log, truncated
