@@ -402,7 +402,7 @@ AIRLOCK_API_TOKEN="token-from-job-server-backend"
 ```
 
 In separate terminal windows, run:
-1) job-server (with `just run`)
+1) job-server (with `just run-all` - this runs the server and the rap_status_service to fetch job updates)
 2) job-runner (with `just run` - this runs the RAP agent, RAP controller and the controller webapp all together)
 3) airlock (`just run 7000` - run on any port that doesn't clash with job-server, which is using 8000)
 4) airlock file uploader (`just manage run_file_uploader`)
