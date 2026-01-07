@@ -396,7 +396,7 @@ AIRLOCK_WORKSPACE_DIR=medium_privacy/workspaces/
 # change endpoint to port local job-server is running on 
 AIRLOCK_API_ENDPOINT="http://localhost:8000/api/v2"
 
-# Set AIRLOCK_API_TOKENT to a valid backend token from your locally running jobserver (find it at staff/backends - any
+# Set AIRLOCK_API_TOKEN to a valid backend token from your locally running jobserver (find it at staff/backends - any
 # valid backend token is accepted)
 AIRLOCK_API_TOKEN="token-from-job-server-backend"
 ```
