@@ -1,3 +1,4 @@
+import inspect
 import logging
 from pathlib import Path
 from unittest.mock import patch
@@ -5,8 +6,10 @@ from unittest.mock import patch
 import pytest
 from django.core.management import call_command
 
+from airlock.actions import create_release_request as create_release_request_action
 from airlock.enums import RequestStatus
 from airlock.jobs.daily.create_regular_release_requests import (
+    CONFIG_TYPES,
     ConfigValidationError,
     get_config_data,
     validate_config_data,
@@ -50,12 +53,28 @@ def test_get_config_data_file_does_not_exist():
         assert get_config_data() == []
 
 
+def test_config_types():
+    signature = inspect.signature(create_release_request_action)
+    config_keys = set(signature.parameters) - {"kwargs"}
+    assert config_keys == set(CONFIG_TYPES)
+
+
 @pytest.mark.parametrize(
     "config,errors",
     [
         # missing required keys
         ({}, ["keys missing in config"]),
         ({"dirs": ["output"]}, ["keys missing in config"]),
+        # bad key
+        (
+            {
+                "workspace_name": "workspace",
+                "username": "author",
+                "dirs": ["output"],
+                "foo": "bar",
+            },
+            ["Unknown config key: 'foo'"],
+        ),
         # invalid types
         (
             {"workspace_name": "workspace", "username": "author", "dirs": "output"},
