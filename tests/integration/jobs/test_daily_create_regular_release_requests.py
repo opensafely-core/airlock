@@ -28,6 +28,9 @@ def setup_test_data():
     workspace1 = factories.create_workspace("workspace1")
     factories.write_workspace_file(workspace, "test-dir/file1.txt", contents="file1")
     factories.write_workspace_file(workspace1, "test-dir/file2.txt", contents="file2")
+    factories.write_workspace_file(
+        workspace1, "test-dir/supporting.txt", contents="supporting"
+    )
 
 
 @pytest.fixture
@@ -57,6 +60,15 @@ def test_get_config_data_file_does_not_exist():
         (
             {"workspace_name": "workspace", "username": "author", "dirs": "output"},
             ["Invalid config type for 'dirs'"],
+        ),
+        (
+            {
+                "workspace_name": "workspace",
+                "username": "author",
+                "dirs": ["output"],
+                "supporting_files": "file",
+            },
+            ["Invalid config type for 'supporting_files'"],
         ),
         (
             {"workspace_name": 1, "username": "author", "dirs": ["output"]},
@@ -148,6 +160,7 @@ def test_daily_runjobs(bll, mock_config, caplog):
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": release_requests[1].id,
         "result.completed": True,
@@ -216,6 +229,7 @@ def test_daily_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog)
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": pending_release_request.id,
         "result.completed": True,
@@ -285,6 +299,7 @@ def test_daily_runjobs_already_released(bll, mock_old_api, mock_config, caplog):
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": pending_release_request.id,
         "result.completed": True,

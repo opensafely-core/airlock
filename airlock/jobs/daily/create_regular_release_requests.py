@@ -80,6 +80,7 @@ def validate_config_data(release_request_data):
     """Ensure the loaded config data has required keys and it's in the right shape"""
     expected_types = {
         "dirs": list,
+        "supporting_files": list,
         "submit": bool,
     }
     errors = []
