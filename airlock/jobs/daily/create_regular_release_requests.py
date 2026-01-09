@@ -95,7 +95,9 @@ def validate_config_data(release_request_data):
     )
 
     if missing_required_keys:
-        errors.append("keys missing in config: " + ",".join(missing_required_keys))
+        errors.append(
+            "keys missing in config: " + ",".join(sorted(missing_required_keys))
+        )
 
     # check types
     for key, value in release_request_data.items():
