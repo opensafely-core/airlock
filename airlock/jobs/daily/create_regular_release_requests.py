@@ -12,6 +12,16 @@ logger = logging.getLogger(__name__)
 
 CONFIG_PATH = settings.WORK_DIR / "regular_release_requests.json"
 
+CONFIG_TYPES = {
+    "username": str,
+    "workspace_name": str,
+    "dirs": list,
+    "context": str,
+    "controls": str,
+    "supporting_files": list,
+    "submit": bool,
+}
+
 
 class ConfigValidationError(Exception): ...
 
@@ -78,10 +88,6 @@ def get_config_data():
 
 def validate_config_data(release_request_data):
     """Ensure the loaded config data has required keys and it's in the right shape"""
-    expected_types = {
-        "dirs": list,
-        "submit": bool,
-    }
     errors = []
     # required keys are present
     missing_required_keys = {"username", "workspace_name", "dirs"} - set(
@@ -89,12 +95,19 @@ def validate_config_data(release_request_data):
     )
 
     if missing_required_keys:
-        errors.append("keys missing in config: " + ",".join(missing_required_keys))
+        errors.append(
+            "keys missing in config: " + ",".join(sorted(missing_required_keys))
+        )
 
     # check types
     for key, value in release_request_data.items():
-        expected_type = expected_types.get(key, str)
-        if not isinstance(value, expected_type):
+        # Every config key should have a type explicitly specified (and there's a test to ensure that all
+        # possible parameters passed to create_release_request are included in CONFIG_TYPES). If the key
+        # isn't there, there's some error in the config.
+        expected_type = CONFIG_TYPES.get(key)
+        if expected_type is None:
+            errors.append(f"Unknown config key: '{key}'")
+        elif not isinstance(value, expected_type):
             errors.append(
                 f"Invalid config type for '{key}': expected {expected_type}, got {type(value)}"
             )

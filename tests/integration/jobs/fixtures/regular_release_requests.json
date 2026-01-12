@@ -8,6 +8,7 @@
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ["test-dir"],
+        "supporting_files": ["test-dir/supporting.txt"],
         "context": "the context",
         "controls": "the controls",
         "submit": true

@@ -1,3 +1,4 @@
+import inspect
 import logging
 from pathlib import Path
 from unittest.mock import patch
@@ -5,8 +6,10 @@ from unittest.mock import patch
 import pytest
 from django.core.management import call_command
 
+from airlock.actions import create_release_request as create_release_request_action
 from airlock.enums import RequestStatus
 from airlock.jobs.daily.create_regular_release_requests import (
+    CONFIG_TYPES,
     ConfigValidationError,
     get_config_data,
     validate_config_data,
@@ -28,6 +31,9 @@ def setup_test_data():
     workspace1 = factories.create_workspace("workspace1")
     factories.write_workspace_file(workspace, "test-dir/file1.txt", contents="file1")
     factories.write_workspace_file(workspace1, "test-dir/file2.txt", contents="file2")
+    factories.write_workspace_file(
+        workspace1, "test-dir/supporting.txt", contents="supporting"
+    )
 
 
 @pytest.fixture
@@ -47,16 +53,41 @@ def test_get_config_data_file_does_not_exist():
         assert get_config_data() == []
 
 
+def test_config_types():
+    signature = inspect.signature(create_release_request_action)
+    config_keys = set(signature.parameters) - {"kwargs"}
+    assert config_keys == set(CONFIG_TYPES)
+
+
 @pytest.mark.parametrize(
     "config,errors",
     [
         # missing required keys
         ({}, ["keys missing in config"]),
         ({"dirs": ["output"]}, ["keys missing in config"]),
+        # bad key
+        (
+            {
+                "workspace_name": "workspace",
+                "username": "author",
+                "dirs": ["output"],
+                "foo": "bar",
+            },
+            ["Unknown config key: 'foo'"],
+        ),
         # invalid types
         (
             {"workspace_name": "workspace", "username": "author", "dirs": "output"},
             ["Invalid config type for 'dirs'"],
+        ),
+        (
+            {
+                "workspace_name": "workspace",
+                "username": "author",
+                "dirs": ["output"],
+                "supporting_files": "file",
+            },
+            ["Invalid config type for 'supporting_files'"],
         ),
         (
             {"workspace_name": 1, "username": "author", "dirs": ["output"]},
@@ -148,6 +179,7 @@ def test_daily_runjobs(bll, mock_config, caplog):
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": release_requests[1].id,
         "result.completed": True,
@@ -216,6 +248,7 @@ def test_daily_runjobs_already_submitted(bll, mock_old_api, mock_config, caplog)
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": pending_release_request.id,
         "result.completed": True,
@@ -285,6 +318,7 @@ def test_daily_runjobs_already_released(bll, mock_old_api, mock_config, caplog):
         "workspace_name": "workspace1",
         "username": "author",
         "dirs": ("test-dir",),
+        "supporting_files": ("test-dir/supporting.txt",),
         "submit": True,
         "result.request_id": pending_release_request.id,
         "result.completed": True,
