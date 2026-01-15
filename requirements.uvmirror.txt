@@ -2,7 +2,7 @@
 #    uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras
 ansi2html==1.9.2
     # via airlock
-anyio==4.12.0
+anyio==4.12.1
     # via httpx
 asgiref==3.11.0
     # via
@@ -14,7 +14,7 @@ backrefs==6.1
     # via mkdocs-material
 bleach==6.3.0
     # via django-markdownify
-certifi==2025.11.12
+certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
@@ -35,7 +35,7 @@ coverage==7.13.1
     #   pytest-cov
 distro==1.9.0
     # via ruyaml
-django==5.2.9 ; python_full_version < '3.12'
+django==5.2.10 ; python_full_version < '3.12'
     # via
     #   airlock
     #   django-debug-toolbar
@@ -46,7 +46,7 @@ django==5.2.9 ; python_full_version < '3.12'
     #   django-stubs-ext
     #   django-vite
     #   slippers
-django==6.0 ; python_full_version >= '3.12'
+django==6.0.1 ; python_full_version >= '3.12'
     # via
     #   airlock
     #   django-debug-toolbar
@@ -88,7 +88,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.148.8
+hypothesis==6.150.0
 idna==3.11
     # via
     #   anyio
@@ -102,7 +102,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.7.5 ; platform_python_implementation != 'PyPy'
+librt==0.7.7 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10
     # via
@@ -186,7 +186,7 @@ packaging==25.0
     #   pytest
 paginate==0.5.7
     # via mkdocs-material
-pathspec==0.12.1
+pathspec==1.0.1
     # via
     #   mkdocs
     #   mypy
@@ -210,7 +210,7 @@ pygments==2.19.2
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==10.19.1
+pymdown-extensions==10.20
     # via mkdocs-material
 pytest==9.0.2
     # via
@@ -274,7 +274,7 @@ typeguard==2.13.3
     # via slippers
 types-pyyaml==6.0.12.20250915
     # via django-stubs
-types-requests==2.32.4.20250913
+types-requests==2.32.4.20260107
 typing-extensions==4.15.0
     # via
     #   anyio
