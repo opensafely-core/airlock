@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+
 import pytest
 from playwright.sync_api import expect
 
@@ -380,11 +381,12 @@ def test_e2e_release_files(
     assert "test <em>comment</em>" in comments_locator.inner_html()
     pill_locator = comments_locator.locator(".rounded-full")
     pill_texts = pill_locator.all_inner_texts()
-    # There is only one comment, and we expect 3 pills, for the Blinded and Private status, and
-    # the created_at date (in that order)
-    assert len(pill_texts) == 3
+    # There is only one comment, and we expect 4 pills, for the Blinded and Private status,
+    # the created_at date, and the review turn (in that order)
+    assert len(pill_texts) == 4
     assert pill_texts[0:2] == ["Blinded", "Private"]
     assert pill_texts[2].startswith(str(datetime.today().year))
+    assert pill_texts[3] == "1"
 
     # now the submit review button is enabled
     click_and_htmx(page, page.locator("#request-home-button"))
