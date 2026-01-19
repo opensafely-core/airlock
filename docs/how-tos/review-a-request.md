@@ -140,6 +140,10 @@ You can choose to make a comment public and visible to everyone, or
 private, visible only to other output checkers. In either case, comments are
 hidden from the researcher until the request is returned (or approved/released).
 
+Each comment will display its status (public or private), the date it was created,
+and the review turn in which it was created. Comments are displayed in reverse
+chronological order.
+
 ![Comments on submitted request](../screenshots/reviewed_request_comments.png)
 
 Comments that are created as private can be updated to public at a later stage.
