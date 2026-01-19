@@ -701,10 +701,12 @@ def test_get_visible_comments_for_group_class(bll):
     assert release_request.get_turn_phase() == ReviewTurnPhase.CONSOLIDATING
 
     for checker in checkers:
+        # Note: comments are show in descending created_at date order, so the last created
+        # (public) comment is shown first
         assert get_comment_metadata(checker) == [
-            "comment_private",
-            "comment_private",
             "comment_public",
+            "comment_private",
+            "comment_private",
         ]
 
     assert get_comment_metadata(author) == []
@@ -716,9 +718,9 @@ def test_get_visible_comments_for_group_class(bll):
 
     for checker in checkers:
         assert get_comment_metadata(checker) == [
-            "comment_private",
-            "comment_private",
             "comment_public",
+            "comment_private",
+            "comment_private",
         ]
 
     assert get_comment_metadata(author) == ["comment_public"]
@@ -745,19 +747,14 @@ def test_get_visible_comments_for_group_class(bll):
 
     release_request = factories.refresh_release_request(release_request)
 
-    # comments from previous round are visible
-    assert get_comment_metadata(checkers[0]) == [
-        "comment_private",
-        "comment_private",
-        "comment_public",
-        "comment_blinded",
-    ]
-    assert get_comment_metadata(checkers[1]) == [
-        "comment_private",
-        "comment_private",
-        "comment_public",
-        "comment_blinded",
-    ]
+    # comments from previous round are visible, in reverse order
+    for checker in checkers:
+        assert get_comment_metadata(checker) == [
+            "comment_blinded",
+            "comment_public",
+            "comment_private",
+            "comment_private",
+        ]
 
 
 def test_release_request_filegroups_with_no_files(bll):
