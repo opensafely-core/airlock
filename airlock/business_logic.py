@@ -341,7 +341,10 @@ class BusinessLogicLayer:
             )
 
     def get_or_create_current_request(
-        self, workspace: str, user: User
+        self,
+        workspace: str,
+        user: User,
+        audit_extra: dict[str, str] | None = None,
     ) -> ReleaseRequest:
         """
         Get the current request for a workspace/user, or create a new one if there is
@@ -361,6 +364,7 @@ class BusinessLogicLayer:
             type=AuditEventType.REQUEST_CREATE,
             user=user,
             workspace=workspace,
+            extra=audit_extra or {},
             # for this specific audit, the DAL will set request id once its
             # created, as we do not know it yet
         )
@@ -599,6 +603,7 @@ class BusinessLogicLayer:
         user: User,
         group_name: str = "default",
         filetype: RequestFileType = RequestFileType.OUTPUT,
+        audit_extra: dict[str, str] | None = None,
     ) -> ReleaseRequest:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
@@ -609,6 +614,7 @@ class BusinessLogicLayer:
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
 
+        audit_extra = audit_extra or {}
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_FILE_ADD,
@@ -616,6 +622,7 @@ class BusinessLogicLayer:
             path=relpath,
             group=group_name,
             filetype=filetype.name,
+            **audit_extra,
         )
 
         manifest = workspace.get_manifest_for_file(relpath)
@@ -923,7 +930,12 @@ class BusinessLogicLayer:
         )
         self._dal.register_file_upload(release_request.id, relpath, audit)
 
-    def submit_request(self, request: ReleaseRequest, user: User):
+    def submit_request(
+        self,
+        request: ReleaseRequest,
+        user: User,
+        audit_extra: dict[str, str] | None = None,
+    ):
         """
         Change status to SUBMITTED. If the request is currently in
         RETURNED status, mark any changes-requested reviews as undecided.
@@ -938,7 +950,7 @@ class BusinessLogicLayer:
                 for review in rfile.changes_requested_reviews():
                     self.mark_file_undecided(request, review, rfile.relpath, user)
 
-        self.set_status(request, RequestStatus.SUBMITTED, user)
+        self.set_status(request, RequestStatus.SUBMITTED, user, audit_extra=audit_extra)
         self._dal.start_new_turn(request.id)
 
     def approve_file(
@@ -1130,9 +1142,11 @@ class BusinessLogicLayer:
         context: str,
         controls: str,
         user: User,
+        audit_extra: dict[str, str] | None = None,
     ):
         permissions.check_user_can_edit_request(user, release_request)
 
+        audit_extra = audit_extra or {}
         audit = AuditEvent.from_request(
             request=release_request,
             type=AuditEventType.REQUEST_EDIT,
@@ -1140,6 +1154,8 @@ class BusinessLogicLayer:
             group=group,
             context=context,
             controls=controls,
+            path=None,
+            **audit_extra,
         )
 
         self._dal.group_edit(release_request.id, group, context, controls, audit)

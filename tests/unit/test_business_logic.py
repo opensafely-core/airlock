@@ -828,6 +828,30 @@ def test_provider_get_or_create_current_request_for_user(bll):
         bll.get_current_request("workspace", user)
 
 
+def test_provider_get_or_create_current_request_with_audit_extra(bll):
+    workspace = factories.create_workspace("workspace")
+    user = factories.create_airlock_user(
+        username="testuser", workspaces=["workspace"], output_checker=False
+    )
+
+    assert bll.get_current_request("workspace", user) is None
+
+    release_request = bll.get_or_create_current_request(
+        "workspace", user, audit_extra={"foo": "bar"}
+    )
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log == [
+        AuditEvent(
+            type=AuditEventType.REQUEST_CREATE,
+            user=user,
+            workspace=workspace.name,
+            request=release_request.id,
+            extra={"foo": "bar"},
+        )
+    ]
+
+
 def test_provider_get_current_request_for_former_user(bll):
     factories.create_workspace("workspace")
     user = factories.create_airlock_user(
@@ -1348,6 +1372,25 @@ def test_submit_request(bll, mock_notifications):
     assert_last_notification(mock_notifications, "request_submitted")
 
 
+def test_submit_request_with_audit_extra(bll, mock_notifications):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    release_request = factories.create_request_at_status(
+        workspace="workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[factories.request_file()],
+    )
+    # factories.add_request_file(release_request, "group", "test/file.txt")
+    # bll.group_edit(release_request, "group", "foo", "bar", author)
+    # release_request = bll.get_release_request(release_request.id, author)
+    bll.submit_request(release_request, author, audit_extra={"foo": "bar"})
+    assert release_request.status == RequestStatus.SUBMITTED
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[0].extra == {"foo": "bar", "review_turn": "0"}
+
+
 def test_resubmit_request(bll, mock_notifications):
     """
     From returned
@@ -1616,6 +1659,21 @@ def test_add_file_to_request_already_released(bll, mock_old_api):
         bll.add_file_to_request(
             release_request, "file.txt", user, filetype=RequestFileType.OUTPUT
         )
+
+
+def test_add_file_to_request_with_audit_kwargs(bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    path = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, path)
+    release_request = factories.create_release_request(
+        workspace,
+        user=author,
+    )
+    bll.add_file_to_request(release_request, path, author, audit_extra={"foo": "bar"})
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[0].type == AuditEventType.REQUEST_FILE_ADD
+    assert audit_log[0].extra["foo"] == "bar"
 
 
 def test_update_file_in_request_invalid_file_type(bll):
@@ -3185,6 +3243,31 @@ def test_group_edit_author(bll):
     assert audit_log[0].extra["group"] == "group"
     assert audit_log[0].extra["context"] == "foo"
     assert audit_log[0].extra["controls"] == "bar"
+
+
+def test_group_edit_with_audit_extra(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    release_request = factories.create_release_request("workspace", user=author)
+    factories.add_request_file(
+        release_request,
+        "group",
+        "test/file.txt",
+    )
+    release_request = factories.refresh_release_request(release_request)
+    bll.group_edit(
+        release_request, "group", "foo", "bar", author, audit_extra={"is_extra": True}
+    )
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].type == AuditEventType.REQUEST_EDIT
+    assert audit_log[0].user == author
+    assert audit_log[0].extra["group"] == "group"
+    assert audit_log[0].extra["context"] == "foo"
+    assert audit_log[0].extra["controls"] == "bar"
+    assert audit_log[0].extra["is_extra"] is True
 
 
 @pytest.mark.parametrize(
