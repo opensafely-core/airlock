@@ -36,6 +36,9 @@ def create_release_request(
     submit=False,
     **kwargs,
 ):
+    # Extra audit log kwargs to indicate actions performed by this code were automated
+    audit_extra = {"automated_action": "true"}
+
     if not username:
         # look for the user who created the files to be released
         # read the manifest file, look for the most recently created output file
@@ -83,7 +86,9 @@ def create_release_request(
             f"Could not retrieve user information from API for user '{username}'"
         )
 
-    request = bll.get_or_create_current_request(workspace_name, user)
+    request = bll.get_or_create_current_request(
+        workspace_name, user, audit_extra=audit_extra
+    )
     if request.is_under_review():
         logger.info(
             f"A release request for workspace '{workspace_name}' is already under review for user '{username}'"
@@ -168,7 +173,12 @@ def create_release_request(
             supporting_files_added = 0
             for relpath in group_data.files_to_add:
                 bll.add_file_to_request(
-                    request, relpath, user, group_data.name, RequestFileType.OUTPUT
+                    request,
+                    relpath,
+                    user,
+                    group_data.name,
+                    RequestFileType.OUTPUT,
+                    audit_extra=audit_extra,
                 )
                 output_files_added += 1
 
@@ -179,7 +189,12 @@ def create_release_request(
 
             for relpath in group_data.supporting_files_to_add:
                 bll.add_file_to_request(
-                    request, relpath, user, group_data.name, RequestFileType.SUPPORTING
+                    request,
+                    relpath,
+                    user,
+                    group_data.name,
+                    RequestFileType.SUPPORTING,
+                    audit_extra=audit_extra,
                 )
 
             logger.info(
@@ -200,6 +215,7 @@ def create_release_request(
                 context=group_data.context,
                 controls=group_data.controls,
                 user=user,
+                audit_extra=audit_extra,
             )
 
     if submit:
@@ -210,7 +226,7 @@ def create_release_request(
         # not all-released. If there are any other errors, we let them be raised
         # here; if this is being called by the runjobs job, the exception will be
         # handled there.
-        bll.submit_request(refreshed_request, user)
+        bll.submit_request(refreshed_request, user, audit_extra=audit_extra)
         logger.info("Release request submitted")
 
     return {

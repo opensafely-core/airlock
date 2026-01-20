@@ -57,6 +57,11 @@ def test_create_release_request(bll):
         assert filegroup.controls == ""
     assert release_request.status == RequestStatus.PENDING
 
+    # All auditable events in an automated release request are registered as automated actions
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    for log in audit_log:
+        assert log.extra["automated_action"] == "true"
+
 
 @pytest.mark.django_db
 def test_create_release_request_with_supporting_files(bll):
@@ -360,6 +365,11 @@ def test_create_submitted_release_request(bll, caplog):
         "Release request submitted",
     }
 
+    # All auditable events in an automated release request are registered as automated actions
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    for log in audit_log:
+        assert log.extra["automated_action"] == "true"
+
 
 @pytest.mark.django_db
 def test_create_submitted_release_request_incomplete_context_controls(bll):
@@ -414,6 +424,12 @@ def test_create_submitted_release_request_already_submitted(bll, capsys):
     assert not result["completed"]
     assert result["request_id"] == request.id
     assert result["message"] == "Already submitted"
+
+    # No auditable events in this attempt to create an automated release request, so no
+    # events are logged as automated actions
+    audit_log = bll._dal.get_audit_log(request=request.id)
+    for log in audit_log:
+        assert "automated_action" not in log.extra
 
 
 @pytest.mark.django_db
