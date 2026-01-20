@@ -204,7 +204,16 @@ def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
 
 # get_output_metadata is imported from job-runner
 def get_output_metadata(
-    abspath, level, job_id, job_request, action, commit, repo, excluded, message=None
+    abspath,
+    level,
+    job_id,
+    job_request,
+    action,
+    commit,
+    repo,
+    excluded,
+    user,
+    message=None,
 ):
     stat = abspath.stat()
     with abspath.open("rb") as fp:
@@ -228,6 +237,7 @@ def get_output_metadata(
         "action": action,
         "repo": repo,
         "commit": commit,
+        "user": user,
         "size": stat.st_size,
         "timestamp": stat.st_mtime,
         "content_hash": content_hash,
@@ -238,7 +248,7 @@ def get_output_metadata(
     }
 
 
-def update_manifest(workspace: Workspace | str, files=None):
+def update_manifest(workspace: Workspace | str, files=None, user="author"):
     """Write a manifest based on the files currently in the directory.
 
     Make up action, job ids and commits.
@@ -290,6 +300,7 @@ def update_manifest(workspace: Workspace | str, files=None):
             commit=current.get("commit", commit),
             repo=repo,
             excluded=False,
+            user=user,
         )
 
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
@@ -312,13 +323,15 @@ def create_workspace(name: str, user=None) -> Workspace:
     return bll.get_workspace(name, user)
 
 
-def write_workspace_file(workspace: Workspace | str, path, contents="", manifest=True):
+def write_workspace_file(
+    workspace: Workspace | str, path, contents="", manifest=True, manifest_username=None
+):
     workspace = ensure_workspace(workspace)
     abspath = workspace.root() / path
     abspath.parent.mkdir(parents=True, exist_ok=True)
     abspath.write_text(contents)
     if manifest:
-        update_manifest(workspace, [path])
+        update_manifest(workspace, [path], user=manifest_username)
 
 
 def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeRepo:

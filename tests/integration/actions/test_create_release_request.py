@@ -1,4 +1,6 @@
 import logging
+import time
+from datetime import UTC, datetime
 
 import pytest
 
@@ -6,6 +8,7 @@ from airlock.actions import create_release_request
 from airlock.enums import RequestFileType, RequestStatus
 from airlock.exceptions import FileNotFound, RequestPermissionDenied
 from tests import factories
+from users.models import User
 
 
 @pytest.mark.django_db
@@ -471,3 +474,184 @@ def test_create_submitted_release_request_updated_file(bll, mock_old_api, capsys
     latest_release_request = bll.get_current_request(workspace.name, author)
     assert result["request_id"] == latest_release_request.id
     assert latest_release_request.status == RequestStatus.SUBMITTED
+
+
+@pytest.mark.django_db
+def test_create_release_requests_auth(freezer, bll, auth_api_stubber):
+    mock_now = datetime(2026, 1, 20, 10, 30, 0, tzinfo=UTC)
+    freezer.move_to(mock_now)
+    workspace = factories.create_workspace("new_workspace")
+    factories.write_workspace_file(workspace, "test-dir/file.txt")
+
+    # Create user with access to workspace and new_workspace, last refreshed 30s ago
+    mock_30s_ago = datetime(2026, 1, 20, 10, 29, 30, tzinfo=UTC)
+    author = factories.create_airlock_user(
+        username="testuser",
+        workspaces=["workspace", "new_workspace"],
+        last_refresh=mock_30s_ago.timestamp(),
+    )
+    # Mock response from auth endpoint with new workspace data; user no longer has access to workspace, but
+    # does have access to new_workspace
+    auth_responses = auth_api_stubber(
+        "authorise",
+        json={
+            "username": "testuser",
+            "output_checker": False,
+            "workspaces": {
+                "new_workspace": {
+                    "archived": False,
+                    "project_details": {"name": "project", "ongoing": True},
+                },
+            },
+        },
+    )
+
+    assert set(author.workspaces.keys()) == {"workspace", "new_workspace"}
+
+    # Create the release request: user was refreshed <60s ago, so auth api not called,
+    # and author's workspaces have not been updated
+    create_release_request(
+        "testuser",
+        "new_workspace",
+        dirs=["test-dir"],
+    )
+    author.refresh_from_db()
+    assert len(auth_responses.calls) == 0
+    assert set(author.workspaces.keys()) == {"workspace", "new_workspace"}
+
+    # Move time on by 31s and call the create_release_request again
+    # now the auth api is called and author's workspaces have been updated
+    mock_now = datetime(2026, 1, 20, 10, 30, 31, tzinfo=UTC)
+    freezer.move_to(mock_now)
+    create_release_request(
+        "testuser",
+        "new_workspace",
+        dirs=["test-dir"],
+    )
+    author.refresh_from_db()
+    assert len(auth_responses.calls) == 1
+    assert set(author.workspaces.keys()) == {"new_workspace"}
+
+
+@pytest.mark.django_db
+def test_create_release_request_with_user_from_manifest(bll, auth_api_stubber):
+    auth_api_stubber(
+        "authorise",
+        json={
+            "username": "manifest_user",
+            "output_checker": False,
+            "workspaces": {
+                "workspace": {
+                    "archived": False,
+                    "project_details": {"name": "project", "ongoing": True},
+                }
+            },
+        },
+    )
+
+    # Write multiple files, the release request is created with the user in the manifest for the output
+    # with the latest timestamp
+    workspace = factories.create_workspace("workspace")
+
+    factories.write_workspace_file(
+        workspace,
+        "test-dir/file1.txt",
+        contents="file1",
+        manifest_username="another_user",
+    )
+    factories.write_workspace_file(
+        workspace,
+        "test-dir/test-subdir/file2.txt",
+        contents="file2",
+        manifest_username="another_user",
+    )
+    factories.write_workspace_file(
+        workspace,
+        "test-dir/test-subdir/file3.txt",
+        contents="file3",
+        manifest_username="another_user",
+    )
+    factories.write_workspace_file(
+        workspace,
+        "test-dir1/file4.txt",
+        contents="file4",
+        manifest_username="another_user",
+    )
+    factories.write_workspace_file(
+        workspace,
+        "test-dir1/test-subdir/file5.txt",
+        contents="file5",
+        manifest_username="manifest_user",
+    )
+
+    create_release_request(
+        None,
+        "workspace",
+        dirs=["test-dir", "test-dir1/test-subdir"],
+    )
+
+    expected_author = User.from_api_data({"username": "manifest_user"})
+    release_requests = bll.get_requests_authored_by_user(expected_author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert set(release_request.filegroups) == {"test-dir", "test-dir1-test-subdir"}
+    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+        "test-dir/file1.txt",
+        "test-dir/test-subdir/file2.txt",
+        "test-dir/test-subdir/file3.txt",
+        "test-dir1/test-subdir/file5.txt",
+    }
+    assert release_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_create_release_requests_with_existing_author_from_manifest(
+    bll, auth_api_stubber
+):
+    # Create user with access to workspace
+    # We set the last_refresh time to ensure the auth api is called
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], last_refresh=time.time() - 120
+    )
+    # Mock response from auth endpoint with new workspace data; user no longer has access to workspace, but
+    # does have access to new_workspace
+    auth_api_stubber(
+        "authorise",
+        json={
+            "username": "author",
+            "output_checker": False,
+            "workspaces": {
+                "new_workspace": {
+                    "archived": False,
+                    "project_details": {"name": "project", "ongoing": True},
+                },
+            },
+        },
+    )
+    assert set(author.workspaces.keys()) == {"workspace"}
+    assert not bll.get_requests_authored_by_user(author)
+
+    new_workspace = factories.create_workspace("new_workspace")
+    factories.write_workspace_file(
+        new_workspace,
+        "test-dir/file1.txt",
+        contents="file1",
+        manifest_username="author",
+    )
+
+    create_release_request(
+        None,
+        "new_workspace",
+        dirs=["test-dir"],
+    )
+    author.refresh_from_db()
+    # author's workspaces have been updated
+    assert set(author.workspaces.keys()) == {"new_workspace"}
+    release_requests = bll.get_requests_authored_by_user(author)
+    assert len(release_requests) == 1
+    release_request = release_requests[0]
+    assert set(release_request.filegroups) == {"test-dir"}
+    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+        "test-dir/file1.txt"
+    }
+    assert release_request.status == RequestStatus.PENDING

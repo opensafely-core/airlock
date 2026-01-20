@@ -150,6 +150,7 @@ def auth_api_stubber(responses, settings):
             status=status,
             json=json,
         )
+        return responses
 
     return stub_api_path
 

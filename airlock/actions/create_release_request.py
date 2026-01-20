@@ -1,4 +1,5 @@
 import logging
+import time
 from dataclasses import dataclass, field
 
 from airlock import permissions, policies
@@ -6,6 +7,7 @@ from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
 from airlock.exceptions import FileNotFound
 from airlock.types import UrlPath
+from users import login_api
 from users.models import User
 
 
@@ -35,7 +37,53 @@ def create_release_request(
     submit=False,
     **kwargs,
 ):
-    user = User.objects.get(user_id=username)
+    if not username:
+        # look for the user who created the files to be released
+        # read the manifest file, look for the most recently created output file
+        # We need a user who has access to read the workspace in order to read the manifest
+        # file
+        # Note that this user is ephemeral, it does not get persisted to the db, and we do
+        # not use it to create the release request
+        workspace_api_data = {
+            "workspaces": {
+                workspace_name: {
+                    "archived": False,
+                    "project_details": {"ongoing": True},
+                }
+            }
+        }
+        system_user = User(
+            user_id="system", api_data={"username": "system", **workspace_api_data}
+        )
+        workspace = bll.get_workspace(workspace_name, system_user)
+        latest_output = max(
+            workspace.manifest["outputs"].values(), key=lambda w: w["timestamp"]
+        )
+        username = latest_output["user"]
+        logger.info("User retrieved from manifest: %s", username)
+
+    # In order to create the release request, we need a real user.
+    # If one doesn't already exist in the DB, they've never logged into Airlock. However, they
+    # must have permission to the workspace in job-server in order to have run the job, so we
+    # can retrieve their workspace permissions from job-server and create them.
+    # Note that we don't authenticate the user, so if they are not currently logged in, and they
+    # access Airlock in the browser, they'll still need to authenticate again
+    # Even in the event that a user does exist in the DB, this action is expected to be called
+    # automatically by a regular job. It's possible that a user's workspace permissions might have
+    # changed since they were last retreived by Airlock, so if the the user hasn't been refreshed in
+    # the past 60s, we retrieve them again.
+    try:
+        # First check if the user exists and skip auth if their last refresh was within the past
+        # 60s; this means that if there are multiple automated release requests to be created with
+        # the same user, we should only check their permissions for the first one.
+        user = User.objects.get(user_id=username)
+    except User.DoesNotExist:
+        user = None
+
+    if user is None or (time.time() - user.last_refresh > 60):
+        api_data = login_api.get_user_authz_prod(username)
+        user = User.from_api_data(api_data)
+
     request = bll.get_or_create_current_request(workspace_name, user)
     if request.is_under_review():
         logger.info(
