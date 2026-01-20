@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = settings.WORK_DIR / "regular_release_requests.json"
 
 CONFIG_TYPES = {
-    "username": str,
+    "username": str | None,
     "workspace_name": str,
     "dirs": list,
     "context": str,
