@@ -140,6 +140,55 @@ def test_create_regular_release_requests(bll, mock_config):
 
 
 @pytest.mark.django_db
+def test_create_regular_release_requests_with_author_from_manifest(
+    bll, auth_api_stubber, mock_config, tmp_path
+):
+    workspace_data = {
+        "archived": False,
+        "project_details": {"name": "project", "ongoing": True},
+    }
+    auth_responses = auth_api_stubber(
+        "authorise",
+        json={
+            "username": "manifest_user",
+            "output_checker": False,
+            "workspaces": {
+                "another_workspace1": workspace_data,
+                "another_workspace2": workspace_data,
+            },
+        },
+    )
+    # user = None in config file, manifest user doesn't exist yet
+    workspace1 = factories.create_workspace("another_workspace1")
+    factories.write_workspace_file(
+        workspace1,
+        "test-dir/file1.txt",
+        contents="file1",
+        manifest_username="manifest_user",
+    )
+    # user = "",  manifest user doesn't exist yet
+    workspace2 = factories.create_workspace("another_workspace2")
+    factories.write_workspace_file(
+        workspace2,
+        "test-dir/file2.txt",
+        contents="file2",
+        manifest_username="manifest_user",
+    )
+
+    with patch(
+        "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH",
+        FIXTURE_DIR / "regular_release_requests_no_user.json",
+    ):
+        call_command("runjob", "create_regular_release_requests")
+    expected_author = User.from_api_data({"username": "manifest_user"})
+    release_requests = bll.get_requests_authored_by_user(expected_author)
+    assert len(release_requests) == 2
+
+    # create_release_request is called twice, but the auth endpoint is only called once
+    assert len(auth_responses.calls) == 1
+
+
+@pytest.mark.django_db
 def test_daily_runjobs(bll, mock_config, caplog):
     caplog.set_level(logging.INFO)
     author = User.objects.get(user_id="author")
