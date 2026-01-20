@@ -1093,6 +1093,35 @@ def test_set_status(
             bll.set_status(release_request2, future, user=checker)
 
 
+def test_set_status_with_audit_extra(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.PENDING,
+        author=author,
+        files=[factories.request_file()],
+    )
+
+    audit_type = bll.STATUS_AUDIT_EVENT[RequestStatus.SUBMITTED]
+
+    bll.set_status(
+        release_request,
+        RequestStatus.SUBMITTED,
+        user=author,
+        audit_extra={"foo": "bar"},
+    )
+    assert release_request.status == RequestStatus.SUBMITTED
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[0].type == audit_type
+    assert audit_log[0].user == author
+    assert audit_log[0].request == release_request.id
+    assert audit_log[0].workspace == "workspace"
+    assert audit_log[0].extra["foo"] == "bar"
+
+
 @pytest.mark.parametrize(
     "current,future,user,notification_event_type",
     [

@@ -524,7 +524,11 @@ class BusinessLogicLayer:
                 )
 
     def set_status(
-        self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
+        self,
+        release_request: ReleaseRequest,
+        to_status: RequestStatus,
+        user: User,
+        audit_extra: dict[str, str] | None = None,
     ):
         """Set the status of the request.
 
@@ -542,10 +546,13 @@ class BusinessLogicLayer:
 
         # validate first
         self.check_status(release_request, to_status, user)
+        audit_extra = audit_extra or {}
         audit = AuditEvent.from_request(
             release_request,
             type=self.STATUS_AUDIT_EVENT[to_status],
             user=user,
+            path=None,
+            **audit_extra,
         )
         self._dal.set_status(release_request.id, to_status, audit)
         if (release_request.status, to_status) == (
