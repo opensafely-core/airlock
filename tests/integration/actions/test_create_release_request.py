@@ -1,12 +1,18 @@
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from django.conf import settings
 
 from airlock.actions import create_release_request
 from airlock.enums import RequestFileType, RequestStatus
-from airlock.exceptions import FileNotFound, ManifestFileError, RequestPermissionDenied
+from airlock.exceptions import (
+    APIException,
+    FileNotFound,
+    ManifestFileError,
+    RequestPermissionDenied,
+)
 from tests import factories
 from users.models import User
 
@@ -508,7 +514,7 @@ def test_create_release_requests_auth(freezer, bll, auth_api_stubber):
 
     assert set(author.workspaces.keys()) == {"workspace", "new_workspace"}
 
-    # Create the release request: user was refreshed <60s ago, so auth api not called,
+    # Create the release request: user was refreshed < settings.AIRLOCK_AUTHZ_TIMEOUT seconds ago, so auth api not called,
     # and author's workspaces have not been updated
     create_release_request(
         "testuser",
@@ -519,9 +525,9 @@ def test_create_release_requests_auth(freezer, bll, auth_api_stubber):
     assert len(auth_responses.calls) == 0
     assert set(author.workspaces.keys()) == {"workspace", "new_workspace"}
 
-    # Move time on by 31s and call the create_release_request again
+    # Move time on by settings.AIRLOCK_AUTHZ_TIMEOUT seconds and call the create_release_request again
     # now the auth api is called and author's workspaces have been updated
-    mock_now = datetime(2026, 1, 20, 10, 30, 31, tzinfo=UTC)
+    mock_now = mock_now + timedelta(seconds=settings.AIRLOCK_AUTHZ_TIMEOUT)
     freezer.move_to(mock_now)
     create_release_request(
         "testuser",
@@ -611,7 +617,9 @@ def test_create_release_requests_with_existing_author_from_manifest(
     # Create user with access to workspace
     # We set the last_refresh time to ensure the auth api is called
     author = factories.create_airlock_user(
-        username="author", workspaces=["workspace"], last_refresh=time.time() - 120
+        username="author",
+        workspaces=["workspace"],
+        last_refresh=time.time() - settings.AIRLOCK_AUTHZ_TIMEOUT,
     )
     # Mock response from auth endpoint with new workspace data; user no longer has access to workspace, but
     # does have access to new_workspace
@@ -665,6 +673,32 @@ def test_create_release_request_no_manifest_user(bll):
     )
 
     with pytest.raises(ManifestFileError):
+        create_release_request(
+            None,
+            "workspace",
+            dirs=["test-dir"],
+        )
+
+
+@pytest.mark.django_db
+def test_create_release_request_api_auth_error(bll, auth_api_stubber):
+    auth_api_stubber("authorise", status=400)
+
+    # Write multiple files, the release request is created with the user in the manifest for the output
+    # with the latest timestamp
+    workspace = factories.create_workspace("workspace")
+
+    factories.write_workspace_file(
+        workspace,
+        "test-dir/file1.txt",
+        contents="file1",
+        manifest_username="manifest_user",
+    )
+
+    with pytest.raises(
+        APIException,
+        match="Could not retrieve user information from API for user 'manifest_user'",
+    ):
         create_release_request(
             None,
             "workspace",

@@ -1,13 +1,12 @@
 import logging
-import time
 from dataclasses import dataclass, field
 
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import FileNotFound, ManifestFileError
+from airlock.exceptions import APIException, FileNotFound, ManifestFileError
 from airlock.types import UrlPath
-from users import login_api
+from users.auth import Level4AuthenticationBackend
 from users.models import User
 
 
@@ -77,17 +76,12 @@ def create_release_request(
     # automatically by a regular job. It's possible that a user's workspace permissions might have
     # changed since they were last retreived by Airlock, so if the the user hasn't been refreshed in
     # the past 60s, we retrieve them again.
-    try:
-        # First check if the user exists and skip auth if their last refresh was within the past
-        # 60s; this means that if there are multiple automated release requests to be created with
-        # the same user, we should only check their permissions for the first one.
-        user = User.objects.get(user_id=username)
-    except User.DoesNotExist:
-        user = None
 
-    if user is None or (time.time() - user.last_refresh > 60):
-        api_data = login_api.get_user_authz_prod(username)
-        user = User.from_api_data(api_data)
+    user = Level4AuthenticationBackend().create_or_update(username)
+    if user is None:
+        raise APIException(
+            f"Could not retrieve user information from API for user '{username}'"
+        )
 
     request = bll.get_or_create_current_request(workspace_name, user)
     if request.is_under_review():
