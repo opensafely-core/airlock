@@ -6,7 +6,7 @@ import pytest
 
 from airlock.actions import create_release_request
 from airlock.enums import RequestFileType, RequestStatus
-from airlock.exceptions import FileNotFound, RequestPermissionDenied
+from airlock.exceptions import FileNotFound, ManifestFileError, RequestPermissionDenied
 from tests import factories
 from users.models import User
 
@@ -655,3 +655,18 @@ def test_create_release_requests_with_existing_author_from_manifest(
         "test-dir/file1.txt"
     }
     assert release_request.status == RequestStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_create_release_request_no_manifest_user(bll):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(
+        workspace, "test-dir/file1.txt", contents="file1", manifest_username=None
+    )
+
+    with pytest.raises(ManifestFileError):
+        create_release_request(
+            None,
+            "workspace",
+            dirs=["test-dir"],
+        )

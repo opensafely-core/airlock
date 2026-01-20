@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import FileNotFound
+from airlock.exceptions import FileNotFound, ManifestFileError
 from airlock.types import UrlPath
 from users import login_api
 from users.models import User
@@ -59,7 +59,12 @@ def create_release_request(
         latest_output = max(
             workspace.manifest["outputs"].values(), key=lambda w: w["timestamp"]
         )
-        username = latest_output["user"]
+        # We expect that this job will be run with recent outputs, which should
+        # have a user associated. However, older manifests do not include a user
+        # key, so just in case, we check and raise an error for it
+        username = latest_output.get("user")
+        if username is None:
+            raise ManifestFileError("No output user found in manifest file")
         logger.info("User retrieved from manifest: %s", username)
 
     # In order to create the release request, we need a real user.

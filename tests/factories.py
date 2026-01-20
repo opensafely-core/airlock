@@ -230,14 +230,13 @@ def get_output_metadata(
             else:  # pragma: no cover
                 cols = rows = 0
 
-    return {
+    metadata = {
         "level": level,
         "job_id": job_id,
         "job_request": job_request,
         "action": action,
         "repo": repo,
         "commit": commit,
-        "user": user,
         "size": stat.st_size,
         "timestamp": stat.st_mtime,
         "content_hash": content_hash,
@@ -246,6 +245,10 @@ def get_output_metadata(
         "row_count": rows,
         "col_count": cols,
     }
+    # Allow mocking a manifest that predates the introduction of 'user'
+    if user is not None:
+        metadata["user"] = user
+    return metadata
 
 
 def update_manifest(workspace: Workspace | str, files=None, user="author"):
