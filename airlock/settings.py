@@ -260,6 +260,7 @@ SESSION_COOKIE_NAME = "airlock-sessionid"
 
 # login is painful, so reduce the frequency that users need to do it after inactivity.
 SESSION_COOKIE_AGE = 8 * 7 * 24 * 60 * 60  # 8 weeks
+SESSION_SAVE_EVERY_REQUEST = True  # 8 weeks of inactivity, not since login
 
 # time before we refresh users authorisation
 AIRLOCK_AUTHZ_TIMEOUT = 15 * 60  # 15 minutes
