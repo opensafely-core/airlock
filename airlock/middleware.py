@@ -1,9 +1,7 @@
 import logging
-import time
 from typing import cast
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.contrib import auth
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -36,8 +34,7 @@ class UserMiddleware:
         if request.user.is_authenticated:
             span.set_attribute("username", request.user.username)
             span.set_attribute("user_id", request.user.user_id)
-            time_since_authz = time.time() - request.user.last_refresh
-            if time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT:
+            if self.backend.needs_refresh(request.user):
                 span.set_attribute("auth_refresh", True)
                 user = self.backend.refresh(request)
                 if user:  # refresh may have failed for some reason

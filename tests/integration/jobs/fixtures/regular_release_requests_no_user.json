@@ -1,0 +1,17 @@
+[
+    {
+        "workspace_name": "another_workspace1",
+        "username": null,
+        "dirs": ["test-dir"]
+    },
+    {
+        "workspace_name": "another_workspace2",
+        "username": "",
+        "dirs": ["test-dir"]
+    },
+    {
+        "workspace_name": "another_workspace3",
+        "username": null,
+        "dirs": ["test-dir"]
+    }
+]

@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import FileNotFound
+from airlock.exceptions import APIException, FileNotFound, ManifestFileError
 from airlock.types import UrlPath
+from users.auth import Level4AuthenticationBackend
 from users.models import User
 
 
@@ -35,7 +36,53 @@ def create_release_request(
     submit=False,
     **kwargs,
 ):
-    user = User.objects.get(user_id=username)
+    if not username:
+        # look for the user who created the files to be released
+        # read the manifest file, look for the most recently created output file
+        # We need a user who has access to read the workspace in order to read the manifest
+        # file
+        # Note that this user is ephemeral, it does not get persisted to the db, and we do
+        # not use it to create the release request
+        workspace_api_data = {
+            "workspaces": {
+                workspace_name: {
+                    "archived": False,
+                    "project_details": {"ongoing": True},
+                }
+            }
+        }
+        system_user = User(
+            user_id="system", api_data={"username": "system", **workspace_api_data}
+        )
+        workspace = bll.get_workspace(workspace_name, system_user)
+        latest_output = max(
+            workspace.manifest["outputs"].values(), key=lambda w: w["timestamp"]
+        )
+        # We expect that this job will be run with recent outputs, which should
+        # have a user associated. However, older manifests do not include a user
+        # key, so just in case, we check and raise an error for it
+        username = latest_output.get("user")
+        if username is None:
+            raise ManifestFileError("No output user found in manifest file")
+        logger.info("User retrieved from manifest: %s", username)
+
+    # In order to create the release request, we need a real user.
+    # If one doesn't already exist in the DB, they've never logged into Airlock. However, they
+    # must have permission to the workspace in job-server in order to have run the job, so we
+    # can retrieve their workspace permissions from job-server and create them.
+    # Note that we don't authenticate the user, so if they are not currently logged in, and they
+    # access Airlock in the browser, they'll still need to authenticate again
+    # Even in the event that a user does exist in the DB, this action is expected to be called
+    # automatically by a regular job. It's possible that a user's workspace permissions might have
+    # changed since they were last retreived by Airlock, so if the the user hasn't been refreshed in
+    # the past 60s, we retrieve them again.
+
+    user = Level4AuthenticationBackend().create_or_update(username)
+    if user is None:
+        raise APIException(
+            f"Could not retrieve user information from API for user '{username}'"
+        )
+
     request = bll.get_or_create_current_request(workspace_name, user)
     if request.is_under_review():
         logger.info(

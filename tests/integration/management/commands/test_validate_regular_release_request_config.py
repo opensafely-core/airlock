@@ -25,7 +25,7 @@ def test_validate_config_with_error(tmp_path):
         "\n======foo======\n"
         "Config errors found:\n"
         "- keys missing in config: dirs\n"
-        "- Invalid config type for 'username': expected <class 'str'>, got <class 'list'>\n"
+        "- Invalid config type for 'username': expected str | None, got <class 'list'>\n"
     )
 
 
