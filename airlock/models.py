@@ -584,7 +584,11 @@ class FileGroup:
                 UrlPath(value["relpath"]): RequestFile.from_dict(value)
                 for value in attrs.get("files", ())
             },
-            comments=[Comment.from_dict(c) for c in attrs.get("comments", [])],
+            comments=sorted(
+                [Comment.from_dict(c) for c in attrs.get("comments", [])],
+                key=lambda c: c.created_at,
+                reverse=True,
+            ),
         )
 
     def has_public_comment_for_turn(self, review_turn):

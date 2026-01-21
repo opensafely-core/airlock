@@ -34,30 +34,31 @@
           </dd>
         </div>
       {% endif %}
-
-      {% if status_text %}
+      {% if status_text or custom_status %}
         <dt class="sr-only">Status:</dt>
         <dd class="ml-auto flex-shrink-0">
+          {% if status_text %}
 
-          {% if status_text == "APPROVED - FILES UPLOADING" or status_text == "RELEASED" %}
+            {% if status_text == "APPROVED - FILES UPLOADING" or status_text == "RELEASED" %}
+              {% pill variant="success" text=status_text %}
 
-            {% pill variant="success" text=status_text %}
+            {% elif status_text == "SUBMITTED" or status_text == "ONE REVIEW SUBMITTED" or status_text == "ALL REVIEWS SUBMITTED" %}
+              {% pill variant="primary" text=status_text %}
 
-          {% elif status_text == "SUBMITTED" or status_text == "ONE REVIEW SUBMITTED" or status_text == "ALL REVIEWS SUBMITTED" %}
-            {% pill variant="primary" text=status_text %}
+            {% elif status_text == "REJECTED" %}
+              {% pill variant="danger" text=status_text %}
 
-          {% elif status_text == "REJECTED" %}
-            {% pill variant="danger" text=status_text %}
+            {% elif status_text == "RETURNED" %}
+              {% pill variant="warning" text=status_text %}
 
-          {% elif status_text == "RETURNED" %}
-            {% pill variant="warning" text=status_text %}
+            {% elif status_text == "PENDING" %}
+              {% pill variant="info" text=status_text %}
 
-          {% elif status_text == "PENDING" %}
-            {% pill variant="info" text=status_text %}
-
-          {% elif status_text == "WITHDRAWN" %}
-            {% pill variant="danger-outline" text=status_text %}
-
+            {% elif status_text == "WITHDRAWN" %}
+              {% pill variant="danger-outline" text=status_text %}
+            {% endif %}
+          {% elif custom_status %}
+            {{ custom_status }}
           {% endif %}
 
         </dd>

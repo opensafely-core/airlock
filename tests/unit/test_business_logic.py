@@ -3417,12 +3417,13 @@ def test_group_comment_create_success(
         )
 
     comments = release_request.filegroups["group"].comments
-    assert comments[0].comment == "public"
-    assert comments[0].visibility == Visibility.PUBLIC
-    assert comments[0].author.username == "author"
-    assert comments[1].comment == "private"
-    assert comments[1].visibility == Visibility.PRIVATE
-    assert comments[1].author.username == "checker"
+    # Comments are sorted by created_at date, most recent first
+    assert comments[0].comment == "private"
+    assert comments[0].visibility == Visibility.PRIVATE
+    assert comments[0].author.username == "checker"
+    assert comments[1].comment == "public"
+    assert comments[1].visibility == Visibility.PUBLIC
+    assert comments[1].author.username == "author"
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
 
@@ -3542,8 +3543,9 @@ def test_group_comment_delete_success(bll):
 
     release_request = factories.refresh_release_request(release_request)
 
-    bad_comment = release_request.filegroups["group"].comments[0]
-    good_comment = release_request.filegroups["group"].comments[1]
+    # Comments are sorted by created_at date, most recent first
+    good_comment = release_request.filegroups["group"].comments[0]
+    bad_comment = release_request.filegroups["group"].comments[1]
 
     assert bad_comment.comment == "typo comment"
     assert bad_comment.author.username == "other"
@@ -3607,8 +3609,9 @@ def test_group_comment_visibility_public_success(bll):
 
     release_request = factories.refresh_release_request(release_request)
 
-    private_comment = release_request.filegroups["group"].comments[0]
-    public_comment = release_request.filegroups["group"].comments[1]
+    # Comments are sorted by created_at date, most recent first
+    public_comment = release_request.filegroups["group"].comments[0]
+    private_comment = release_request.filegroups["group"].comments[1]
 
     assert private_comment.comment == "private comment"
     assert private_comment.author.username == "checker"
@@ -3622,10 +3625,10 @@ def test_group_comment_visibility_public_success(bll):
     release_request = factories.refresh_release_request(release_request)
 
     current_comments = release_request.filegroups["group"].comments
-    assert current_comments[0].comment == "private comment"
-    assert current_comments[0].visibility == Visibility.PRIVATE
-    assert current_comments[1].comment == "to-be-public comment"
-    assert current_comments[1].visibility == Visibility.PUBLIC
+    assert current_comments[0].comment == "to-be-public comment"
+    assert current_comments[0].visibility == Visibility.PUBLIC
+    assert current_comments[1].comment == "private comment"
+    assert current_comments[1].visibility == Visibility.PRIVATE
 
     audit_log = bll._dal.get_audit_log(request=release_request.id)
     assert audit_log[2].request == release_request.id
@@ -3824,7 +3827,7 @@ def test_group_comment_delete_permissions(
         )
 
     release_request = factories.refresh_release_request(release_request)
-    test_comment, checker_comment = release_request.filegroups["group"].comments
+    checker_comment, test_comment = release_request.filegroups["group"].comments
 
     for user in not_permitted_to_delete_author:
         with pytest.raises(exceptions.RequestPermissionDenied):

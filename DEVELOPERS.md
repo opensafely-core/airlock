@@ -483,6 +483,17 @@ custom css from the main documentation repo (`docs/stylesheets/extra.css`).
 When the main OpenSAFELY documentation is built, it imports the airlock `docs/` directory
 and builds it within the main documentation site.
 
+### Screenshots
+
+Screenshots used in the documentation are generated automatically via playwright functional tests. Screenshots
+are not taken during tests by default, as they will typically create new images for almost every screenshot, due
+to dynamic content changes (such as release request ID and dates). If you make a change to code or documentation
+that requires new screenshots, generate them by running:
+
+```
+TAKE_SCREENSHOTS=1 just test tests/functional/test_docs_screenshots.py
+```
+
 ### Documentation redirects
 
 These are handled in the main [OpenSAFELY documentation repository](https://github.com/opensafely/documentation).

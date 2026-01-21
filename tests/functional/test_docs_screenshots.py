@@ -502,9 +502,11 @@ def test_screenshot_comments(page, context, live_server):
         comment_button.click()
 
         # get the parent li element for the last submitted comment
+        # Comments are displayed in reverse chronological order, so the last submitted comment is
+        # the first visible comment
         # we can't just use the comment_text, because it will be different in the rendered comment
         all_comments = page.locator("li.group.comment_public")
-        last_comment = all_comments.nth(len(all_comments.all()) - 1)
+        last_comment = all_comments.nth(0)
         last_comment.scroll_into_view_if_needed()
         # The rendered comment is a bit wide for displaying side by side with the pre-submitted
         # version, so crop it to 50% of its actual width

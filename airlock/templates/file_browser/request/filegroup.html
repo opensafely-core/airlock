@@ -93,8 +93,10 @@
                 {% /pill%}
               {% endif %}
               {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+              {% pill variant="info" text=comment.review_turn %}
             </span>
           {% endfragment %}
+
           {% fragment as author %}{% airlock_user user=comment.author %}{% endfragment %}
           {% #list_group_rich_item custom_status=comment_status class=comment_class title=author %}
             <div class="prose prose-code:before:hidden prose-code:after:hidden">{{ comment.comment|markdownify }}</div>
