@@ -78,13 +78,13 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
             let failures = [];
 
             // First we get the contents of the header row
-            const headerRow = document.querySelector('thead tr');
+            const headerRow = document.querySelector('#airlock-table thead tr');
             const headerRowCells = Array.from(headerRow.querySelectorAll('th'));
             // This assumes the first column are the row numbers so we ignore them
             const headerValues = headerRowCells.map(cell => cell.textContent.trim()).slice(1);
 
             // Next we get the table rows
-            const bodyRows = Array.from(document.querySelector('tbody').querySelectorAll('tr'));
+            const bodyRows = Array.from(document.querySelector('#airlock-table tbody').querySelectorAll('tr'));
             const rowValues = bodyRows.map((row) => {
                 return Array.from(row.querySelectorAll('td')).map(cell => cell.textContent).slice(1)
             });
@@ -152,9 +152,11 @@ def test_csv_sorting(live_server, browser, csv_file):
 
     column_sort_index = 2
 
+    table_locator = page.locator("#airlock-table")
+
     # We get a handle on the sort button for the n and (n+1)th column
-    sort_button_1 = page.get_by_role("button").nth(column_sort_index + 1)
-    sort_button_2 = page.get_by_role("button").nth(column_sort_index + 2)
+    sort_button_1 = table_locator.get_by_role("button").nth(column_sort_index + 1)
+    sort_button_2 = table_locator.get_by_role("button").nth(column_sort_index + 2)
 
     reader = csv.reader(StringIO(csv_file), delimiter=",")
     csv_list = list(reader)
@@ -181,14 +183,14 @@ def test_csv_sorting(live_server, browser, csv_file):
 
     # wait for sorting to finish
     expect(
-        page.locator(
+        table_locator.locator(
             f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
         )
     ).to_be_visible()
 
     # check first row is as expected
     for item in first_row_sorted_asc:
-        expect(page.locator("tbody tr:nth-child(1)").first).to_contain_text(
+        expect(table_locator.locator("tbody tr:nth-child(1)").first).to_contain_text(
             item, timeout=1
         )
 
@@ -197,7 +199,7 @@ def test_csv_sorting(live_server, browser, csv_file):
 
     # wait for sorting to finish
     expect(
-        page.locator(
+        table_locator.locator(
             f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
         )
     ).to_be_visible()
@@ -208,7 +210,7 @@ def test_csv_sorting(live_server, browser, csv_file):
     # unnecessary complexity to the test, we just check that the first value in
     # the sorted column is as expected
     expect(
-        page.locator("tbody tr:nth-child(1)").first.locator(
+        table_locator.locator("tbody tr:nth-child(1)").first.locator(
             f"td:nth-child({column_sort_index + 2})"
         )
     ).to_contain_text(last_row_sorted_column_value, timeout=1)
@@ -218,13 +220,13 @@ def test_csv_sorting(live_server, browser, csv_file):
 
     # wait for sorting to finish
     expect(
-        page.locator(
+        table_locator.locator(
             f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
         )
     ).to_be_visible()
 
     expect(
-        page.locator("tbody tr:nth-child(1)").first.locator(
+        table_locator.locator("tbody tr:nth-child(1)").first.locator(
             f"td:nth-child({column_sort_index + 3})"
         )
     ).to_contain_text(first_row_second_sort_column_value, timeout=1)
@@ -259,9 +261,10 @@ def test_csv_scroll(live_server, page, context):
         live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
     )
 
-    page.locator("tbody").hover()
+    table_locator = page.locator("#airlock-table")
+    table_locator.locator("tbody").hover()
     for i in range(num_rows):
-        row_locator = page.get_by_text(f"value{i}", exact=True)
+        row_locator = table_locator.get_by_text(f"value{i}", exact=True)
         if not row_locator.is_visible():  # pragma: no branch (if we ever revert to non-virtualized tables then this is never True)
             # We need to scroll the table sufficiently so the next row appears.
             # This scrolls 6000 pixels which seems to be about right. NB "visible"
