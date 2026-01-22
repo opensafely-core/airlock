@@ -4,9 +4,11 @@ import csv
 import hashlib
 import mimetypes
 import re
+from collections import Counter
 from dataclasses import dataclass
 from email.utils import formatdate
 from io import BytesIO, StringIO
+from itertools import zip_longest
 from pathlib import Path
 from typing import IO, Any, ClassVar, cast
 
@@ -132,6 +134,115 @@ class Renderer:
         }
 
 
+def _is_not_divisible_by(value, divider):
+    return value % divider != 0
+
+
+def _is_not_midpoint6_rounded(value):
+    return value != 0 and ((value - 3) % 6 != 0)
+
+
+def _summarize_column(column_name, column_data):
+    # Likely missing/null/redacted values removed for checking for type and for numeric summaries
+    missing_strings = ["", "null", "none"]
+    # redacted strings counted separately for numeric columns
+    redacted_strings = ["[redacted]", "redacted", "na", "n/a"]
+
+    # strip whitespace, lower, and count; ignore non-None, these only occur for
+    # CSVs with uneven columns
+    counter = Counter(i.strip().lower() for i in column_data if i is not None)
+    non_missing_counter = {
+        val: count
+        for val, count in counter.items()
+        if val not in missing_strings + redacted_strings
+    }
+
+    try:
+        numeric_data = {int(i): count for i, count in non_missing_counter.items()}
+        type_ = "integer"
+    except ValueError:
+        try:
+            numeric_data = {float(i): count for i, count in non_missing_counter.items()}
+            type_ = "float"
+        except ValueError:
+            type_ = "text"
+            numeric_data = None
+
+    column_summary = {
+        "column_name": column_name,
+        "total_rows": len(column_data),
+        "missing_values": sum(
+            count for val, count in counter.items() if val in missing_strings
+        ),
+        "type": type_,
+        # defaults for numeric calculations
+        "redacted": "-",
+        "min": "-",
+        "min_gt_0": "-",
+        "max": "-",
+        "sum": "-",
+        "divisible_by_5": "-",
+        "divisible_by_6": "-",
+        "midpoint6_rounded": "-",
+    }
+
+    if numeric_data is not None:
+        column_summary.update(
+            {
+                "redacted": sum(
+                    count for val, count in counter.items() if val in redacted_strings
+                ),
+                "min": min(numeric_data),
+                "min_gt_0": min(abs(i) for i in set(numeric_data) if i > 0),
+                "max": max(numeric_data),
+                "sum": sum(i * count for i, count in numeric_data.items()),
+                "divisible_by_5": not any(
+                    _is_not_divisible_by(i, 5) for i in numeric_data
+                ),
+                # https://docs.opensafely.org/outputs/sdc/#midpoint-6-rounding
+                # Divisible by 6 indicates midpoint 6 derived (0, 6, 12...)
+                # midpoint 6 takes values 0, 3, 9, 15...)
+                "divisible_by_6": not any(
+                    _is_not_divisible_by(i, 6) for i in numeric_data
+                ),
+                "midpoint6_rounded": not any(
+                    _is_not_midpoint6_rounded(i) for i in numeric_data
+                ),
+            }
+        )
+
+    return list(column_summary.values())
+
+
+def summarize(column_names, enumerated_rows):
+    if not enumerated_rows:
+        return
+    # Get just the row values, without the row number
+    row_values = list(zip(*enumerated_rows))[1]
+    # Get a list of values for each column, allowing for odd CSVs with rows that are shorter than the header row
+    column_values = list(zip_longest(*row_values))
+    return {
+        "headers": [
+            "Column Name",
+            "Total rows",
+            "Null / missing",
+            "Column type",
+            "Redacted",
+            "Min value",
+            "Min non-zero",
+            "Max value",
+            "Sum",
+            "Divisible by 5",
+            "Divisible by 6",
+            "Midpoint 6 rounded",
+        ],
+        "rows": [
+            _summarize_column(column_name, column_values[i])
+            for i, column_name in enumerate(column_names)
+        ],
+    }
+
+
 class CSVRenderer(Renderer):
     template = RendererTemplate("file_browser/file_content/csv.html")
     is_text: ClassVar[bool] = True
@@ -141,7 +252,15 @@ class CSVRenderer(Renderer):
         headers = next(reader, [])
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
-        ctx = {"headers": headers, "rows": rows, "use_clusterize_table": True}
+
+        summary = summarize(headers, rows)
+
+        ctx = {
+            "headers": headers,
+            "rows": rows,
+            "use_clusterize_table": True,
+            "summary": summary,
+        }
         if any(len(row) != header_col_count for _, row in rows):
             ctx["use_clusterize_table"] = False
         return ctx

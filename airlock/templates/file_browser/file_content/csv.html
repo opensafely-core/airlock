@@ -2,6 +2,13 @@
 {% load airlock %}
 {% block metatitle %}{{ filename }}{% endblock %}
 {% block content %}
+  {% if summary %}
+    <div class="py-2">
+      {% #modal id="csv-summary" button_text="View&nbsp;summary stats" button_small=True modal_class="min-w-full" %}
+        {% include "file_browser/file_content/_includes/csv_summary.html" %}
+      {% /modal %}
+    </div>
+  {% endif %}
   <div id="airlock-table">
     {% if use_clusterize_table %}
       {% fragment as header_row %}

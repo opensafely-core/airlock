@@ -1,0 +1,25 @@
+{% #card title=filename container=True %}
+  <div>
+    <table class="table-auto">
+      <thead>
+        <tr>
+          {% for header in summary.headers %}
+            <th class="border border-slate-400 p-1">{{ header }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in summary.rows %}
+          <tr class="border border-slate-400">
+            {% for cell in row %}
+              <td class="border border-slate-400 p-1">{{ cell }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% #card_footer %}
+    {% #button type="cancel" class="mt-4" %}Close{% /button %}
+  {% /card_footer %}
+{% /card %}
