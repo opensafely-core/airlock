@@ -47,7 +47,7 @@ def _is_not_midpoint6_rounded(value: int | float):
     return value != 0 and ((value - 3) % 6 != 0)
 
 
-def summarize_column(column_name: str, column_data: tuple[str]):
+def summarize_column(column_name: str, column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
     missing_strings = ["", "null", "none"]
     # redacted strings counted separately for numeric columns
@@ -65,7 +65,7 @@ def summarize_column(column_name: str, column_data: tuple[str]):
     # defaults when everything is missing and/or redacted, or we can't identify
     # it as numeric/mixed
     type_ = "text"
-    numeric_data = {}
+    numeric_data: dict[int | float, int] = {}
     if non_missing_counter:
         # We iterate over the non_missing_counter one item and convert the text values to
         # int or float if possible.
@@ -93,6 +93,7 @@ def summarize_column(column_name: str, column_data: tuple[str]):
             if has_non_numeric_values:
                 type_ = "mixed"
             else:
+                assert numeric_type is not None
                 type_ = numeric_type
 
     column_summary = {
@@ -147,7 +148,9 @@ def summarize_column(column_name: str, column_data: tuple[str]):
     return column_summary
 
 
-def summarize_csv(column_names: list[str], enumerated_rows: list[tuple[str]]):
+def summarize_csv(
+    column_names: list[str], enumerated_rows: list[tuple[int, list[str]]]
+):
     if not enumerated_rows:
         return
     # Get just the row values, without the row number

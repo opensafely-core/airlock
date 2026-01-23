@@ -12,9 +12,9 @@ def test_summarize_csv():
     headers = ["Col1", "Col2", "Col3", "Col4", "Col5"]
     rows = [
         # whitespace ignored, column type text, int, float, mixed with int, mixed with float
-        (1, ("foo", " 1 ", "3.0", "a", "2.3")),
-        (2, ("bar", "1", " 0.5", "b", "1")),
-        (3, ("foo", "2 ", "1.0 ", "1", "b")),
+        (1, ["foo", " 1 ", "3.0", "a", "2.3"]),
+        (2, ["bar", "1", " 0.5", "b", "1"]),
+        (3, ["foo", "2 ", "1.0 ", "1", "b"]),
     ]
     summary = summarize_csv(headers, rows)
     assert summary["headers"] == [
@@ -45,10 +45,10 @@ def test_summarize_csv_uneven_columns():
     headers = ["Col1", "Col2", "Col3"]
     rows = [
         # row 1 has values for first 2 cols only
-        (1, ("foo", "1")),
+        (1, ["foo", "1"]),
         # row 1 has values for an extra col with no matching header, ignored
-        (2, ("bar", "1", "0.5", "x")),
-        (3, ("foo", "2 ", "1.0")),
+        (2, ["bar", "1", "0.5", "x"]),
+        (3, ["foo", "2 ", "1.0"]),
     ]
     summary = summarize_csv(headers, rows)
 
@@ -109,14 +109,7 @@ def test_summarize_rounded_5(col_data, divisible_by_5):
 @pytest.mark.parametrize(
     "col_data,divisible_by_6",
     [
-        (
-            (
-                "0",
-                "6",
-                "24",
-            ),
-            True,
-        ),
+        (("0", "6", "24"), True),
         (("48", "-12", "0"), True),
         (("6", "12", "18", "[REDACTED]", ""), True),
         (("6.0", "12.0", "18.0"), True),
