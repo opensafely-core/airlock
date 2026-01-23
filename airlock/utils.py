@@ -63,26 +63,43 @@ def summarize_column(column_name: str, column_data: tuple[str]):
     }
 
     # defaults when everything is missing and/or redacted, or we can't identify
-    # it as numeric
+    # it as numeric/mixed
     type_ = "text"
-    numeric_data = None
+    numeric_data = {}
     if non_missing_counter:
-        try:
-            numeric_data = {int(i): count for i, count in non_missing_counter.items()}
-            type_ = "integer"
-        except ValueError:
+        # We iterate over the non_missing_counter one item and convert the text values to
+        # int or float if possible.
+        # This means that if we can't convert some values, we can report that the column has
+        # mixed types, the number of numeric values found in a mixed column, and we can do
+        # the numeric checks on the numeric values that were found (in a large column of the
+        # max 5000 rows, if the column contains a large number of numeric values, it's a good
+        # indication that it's one with some unhandled redacted or missing value, and it;s
+        # useful to be able to see the min/max/rounding etc checks for the values).
+        numeric_type = None
+        has_non_numeric_values = False
+        for i, count in non_missing_counter.items():
             try:
-                numeric_data = {
-                    float(i): count for i, count in non_missing_counter.items()
-                }
-                type_ = "float"
+                numeric_data[int(i)] = count
+                if numeric_type is None:
+                    numeric_type = "integer"
             except ValueError:
-                ...
+                try:
+                    numeric_data[float(i)] = count
+                    numeric_type = "float"
+                except ValueError:
+                    has_non_numeric_values = True
+
+        if numeric_data:
+            if has_non_numeric_values:
+                type_ = "mixed"
+            else:
+                type_ = numeric_type
 
     column_summary = {
         "Column name": column_name,
         "Column type": type_,
         "Total rows": len(column_data),
+        "Total numeric": sum(numeric_data.values()),
         "Null / missing": sum(
             count for val, count in counter.items() if val in missing_strings
         ),
