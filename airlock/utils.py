@@ -62,16 +62,22 @@ def summarize_column(column_name: str, column_data: tuple[str]):
         if val not in missing_strings + redacted_strings
     }
 
-    try:
-        numeric_data = {int(i): count for i, count in non_missing_counter.items()}
-        type_ = "integer"
-    except ValueError:
+    # defaults when everything is missing and/or redacted, or we can't identify
+    # it as numeric
+    type_ = "text"
+    numeric_data = None
+    if non_missing_counter:
         try:
-            numeric_data = {float(i): count for i, count in non_missing_counter.items()}
-            type_ = "float"
+            numeric_data = {int(i): count for i, count in non_missing_counter.items()}
+            type_ = "integer"
         except ValueError:
-            type_ = "text"
-            numeric_data = None
+            try:
+                numeric_data = {
+                    float(i): count for i, count in non_missing_counter.items()
+                }
+                type_ = "float"
+            except ValueError:
+                ...
 
     column_summary = {
         "column_name": column_name,
@@ -91,14 +97,19 @@ def summarize_column(column_name: str, column_data: tuple[str]):
         "midpoint6_rounded": "-",
     }
 
-    if numeric_data is not None:
+    if numeric_data:
+        # We can't calculate min > 0 if everything is 0
+        if set(numeric_data) != {0}:
+            column_summary["min_gt_0"] = min(
+                abs(i) for i in set(numeric_data) if abs(i) > 0
+            )
+
         column_summary.update(
             {
                 "redacted": sum(
                     count for val, count in counter.items() if val in redacted_strings
                 ),
                 "min": min(numeric_data),
-                "min_gt_0": min(abs(i) for i in set(numeric_data) if i > 0),
                 "max": max(numeric_data),
                 "sum": sum(i * count for i, count in numeric_data.items()),
                 "divisible_by_5": not any(

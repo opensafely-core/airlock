@@ -79,6 +79,7 @@ def test_summarize_column_missing_values(col_data):
         (("1.3", "2", "Redacted "), "float", 1),
         (("1", "2", "3"), "integer", 0),
         (("1", "2", "<4"), "text", "-"),
+        (("[REDACTED]", "[REDACTED]"), "text", "-"),
     ],
 )
 def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacted):
@@ -138,3 +139,11 @@ def test_summarize_rounded_6(col_data, divisible_by_6):
 def test_summarize_midpoint6_rounded(col_data, midpoint6_rounded):
     column_summary = summarize_column("col_name", col_data)
     assert column_summary["midpoint6_rounded"] is midpoint6_rounded
+
+
+def test_summarize_column_all_0():
+    column_summary = summarize_column("col_name", ("0", "0", "0"))
+    assert column_summary["type"] == "integer"
+    assert column_summary["min"] == 0
+    assert column_summary["max"] == 0
+    assert column_summary["min_gt_0"] == "-"
