@@ -80,48 +80,48 @@ def summarize_column(column_name: str, column_data: tuple[str]):
                 ...
 
     column_summary = {
-        "column_name": column_name,
-        "type": type_,
-        "total_rows": len(column_data),
-        "missing_values": sum(
+        "Column name": column_name,
+        "Column type": type_,
+        "Total rows": len(column_data),
+        "Null / missing": sum(
             count for val, count in counter.items() if val in missing_strings
         ),
         # defaults for numeric calculations
-        "redacted": "-",
-        "min": "-",
-        "min_gt_0": "-",
-        "max": "-",
-        "sum": "-",
-        "divisible_by_5": "-",
-        "divisible_by_6": "-",
-        "midpoint6_rounded": "-",
+        "Redacted": "-",
+        "Min value": "-",
+        "Min non-zero": "-",
+        "Max value": "-",
+        "Sum": "-",
+        "Divisible by 5": "-",
+        "Divisible by 6": "-",
+        "Midpoint 6 rounded": "-",
     }
 
     if numeric_data:
         # We can't calculate min > 0 if everything is 0
         if set(numeric_data) != {0}:
-            column_summary["min_gt_0"] = min(
+            column_summary["Min non-zero"] = min(
                 abs(i) for i in set(numeric_data) if abs(i) > 0
             )
 
         column_summary.update(
             {
-                "redacted": sum(
+                "Redacted": sum(
                     count for val, count in counter.items() if val in redacted_strings
                 ),
-                "min": min(numeric_data),
-                "max": max(numeric_data),
-                "sum": sum(i * count for i, count in numeric_data.items()),
-                "divisible_by_5": not any(
+                "Min value": min(numeric_data),
+                "Max value": max(numeric_data),
+                "Sum": sum(i * count for i, count in numeric_data.items()),
+                "Divisible by 5": not any(
                     _is_not_divisible_by(i, 5) for i in numeric_data
                 ),
                 # https://docs.opensafely.org/outputs/sdc/#midpoint-6-rounding
                 # Divisible by 6 indicates midpoint 6 derived (0, 6, 12...)
                 # midpoint 6 takes values 0, 3, 9, 15...)
-                "divisible_by_6": not any(
+                "Divisible by 6": not any(
                     _is_not_divisible_by(i, 6) for i in numeric_data
                 ),
-                "midpoint6_rounded": not any(
+                "Midpoint 6 rounded": not any(
                     _is_not_midpoint6_rounded(i) for i in numeric_data
                 ),
             }
@@ -137,23 +137,15 @@ def summarize_csv(column_names: list[str], enumerated_rows: list[tuple[str]]):
     row_values = list(zip(*enumerated_rows))[1]
     # Get a list of values for each column, allowing for odd CSVs with rows that are shorter than the header row
     column_values = list(zip_longest(*row_values))
+    first_column = summarize_column(column_names[0], column_values[0])
+
     return {
-        "headers": [
-            "Column name",
-            "Column type",
-            "Total rows",
-            "Null / missing",
-            "Redacted",
-            "Min value",
-            "Min non-zero",
-            "Max value",
-            "Sum",
-            "Divisible by 5",
-            "Divisible by 6",
-            "Midpoint 6 rounded",
-        ],
+        "headers": list(first_column.keys()),
         "rows": [
-            list(summarize_column(column_name, column_values[i]).values())
-            for i, column_name in enumerate(column_names)
+            list(first_column.values()),
+            *[
+                list(summarize_column(column_name, column_values[i]).values())
+                for i, column_name in enumerate(column_names[1:], start=1)
+            ],
         ],
     }

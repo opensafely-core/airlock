@@ -68,8 +68,8 @@ def test_summarize_csv_uneven_columns():
 )
 def test_summarize_column_missing_values(col_data):
     column_summary = summarize_column("col_name", col_data)
-    assert column_summary["missing_values"] == 1
-    assert column_summary["type"] == "integer"
+    assert column_summary["Null / missing"] == 1
+    assert column_summary["Column type"] == "integer"
 
 
 @pytest.mark.parametrize(
@@ -84,9 +84,9 @@ def test_summarize_column_missing_values(col_data):
 )
 def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacted):
     column_summary = summarize_column("col_name", col_data)
-    assert column_summary["missing_values"] == 0
-    assert column_summary["type"] == expected_type
-    assert column_summary["redacted"] == expected_redacted
+    assert column_summary["Null / missing"] == 0
+    assert column_summary["Column type"] == expected_type
+    assert column_summary["Redacted"] == expected_redacted
 
 
 @pytest.mark.parametrize(
@@ -101,7 +101,7 @@ def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacte
 )
 def test_summarize_rounded_5(col_data, divisible_by_5):
     column_summary = summarize_column("col_name", col_data)
-    assert column_summary["divisible_by_5"] is divisible_by_5
+    assert column_summary["Divisible by 5"] is divisible_by_5
 
 
 @pytest.mark.parametrize(
@@ -123,7 +123,7 @@ def test_summarize_rounded_5(col_data, divisible_by_5):
 )
 def test_summarize_rounded_6(col_data, divisible_by_6):
     column_summary = summarize_column("col_name", col_data)
-    assert column_summary["divisible_by_6"] is divisible_by_6
+    assert column_summary["Divisible by 6"] is divisible_by_6
 
 
 @pytest.mark.parametrize(
@@ -138,12 +138,12 @@ def test_summarize_rounded_6(col_data, divisible_by_6):
 )
 def test_summarize_midpoint6_rounded(col_data, midpoint6_rounded):
     column_summary = summarize_column("col_name", col_data)
-    assert column_summary["midpoint6_rounded"] is midpoint6_rounded
+    assert column_summary["Midpoint 6 rounded"] is midpoint6_rounded
 
 
 def test_summarize_column_all_0():
     column_summary = summarize_column("col_name", ("0", "0", "0"))
-    assert column_summary["type"] == "integer"
-    assert column_summary["min"] == 0
-    assert column_summary["max"] == 0
-    assert column_summary["min_gt_0"] == "-"
+    assert column_summary["Column type"] == "integer"
+    assert column_summary["Min value"] == 0
+    assert column_summary["Max value"] == 0
+    assert column_summary["Min non-zero"] == "-"
