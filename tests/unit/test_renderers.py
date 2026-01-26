@@ -161,7 +161,7 @@ def test_csv_renderer_summarize(tmp_path):
     response = renderer.get_response()
     response.render()
     assert response.status_code == 200
-    assert list(response.context_data["summary"].keys()) == ["headers", "rows"]
+    assert list(response.context_data["summary"].keys()) == ["headers", "rows", "notes"]
 
 
 def test_plaintext_renderer_handles_invalid_utf8(tmp_path):

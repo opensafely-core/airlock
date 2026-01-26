@@ -3,6 +3,7 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import IO
 
+from django.utils.safestring import mark_safe
 from opentelemetry import trace
 from pipeline.constants import LEVEL4_FILE_TYPES
 
@@ -168,4 +169,13 @@ def summarize_csv(
                 for i, column_name in enumerate(column_names[1:], start=1)
             ],
         ],
+        "notes": mark_safe(
+            "<ul>"
+            '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
+            '<li>Redacted values: The strings "redacted", "[redacted]", "na" and "n/a" (case insenstive) are considered to represent redacted values</li>'
+            "<li>All other values are interpreted as numeric or text.</li>"
+            "<li>A value `x` is calculated as midpoint 6 rounded if `(x - 3) % 6 == 0` or `x == 0`.</li>"
+            "<li>A value `x` is calculated as divisible by N if `x % N == 0`.</li>"
+            "</ul>"
+        ),
     }
