@@ -274,3 +274,37 @@ def test_csv_scroll(live_server, page, context):
             # the virtualized html table generates the next batch of rows.
             page.mouse.wheel(0, 6000)
             expect(row_locator).to_be_visible()
+
+
+def test_csv_summarize(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+    num_rows = 10
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "\r\n".join([f"value,{i}" for i in range(num_rows)]),
+    )
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    modal_button = page.locator("button[data-modal=csv-summary]")
+    expect(modal_button).to_be_visible()
+
+    summary_table = page.locator("#csv-summary-table")
+    expect(summary_table).not_to_be_visible()
+
+    modal_button.click()
+    expect(summary_table).to_be_visible()
