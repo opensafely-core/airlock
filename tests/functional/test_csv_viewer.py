@@ -297,7 +297,9 @@ def test_csv_summarize(live_server, page, context):
     )
 
     page.goto(
-        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+        live_server.url
+        + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+        + "&summarize_csv"
     )
 
     modal_button = page.locator("button[data-modal=csv-summary]")

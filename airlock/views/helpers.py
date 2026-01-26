@@ -90,6 +90,9 @@ def serve_file(request, renderer):
     if request.headers.get("If-None-Match") == renderer.etag:
         response = HttpResponseNotModified(headers=renderer.headers())
     else:
+        # Temporary feature flag for summarizing column data in csv renderer
+        if "summarize_csv" in request.GET:
+            renderer.summarize = True
         response = renderer.get_response()
 
     return response

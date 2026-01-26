@@ -11,7 +11,7 @@
     height="100"
     id="content-iframe"
     sandbox="{{ path_item.iframe_sandbox }} allow-same-origin"
-    src="{{ path_item.contents_url }}"
+    src="{{ path_item.contents_url }}{% if 'summarize_csv' in request.GET %}&summarize_csv{% endif %}"
     title="{{ path_item.relpath }}"
   ></iframe>
 {% /card %}
