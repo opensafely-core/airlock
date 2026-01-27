@@ -244,14 +244,16 @@ class Workspace:
         return paths
 
     @staticmethod
-    def get_workspace_child_map(workspace_file_paths: set[str]) -> set[UrlPath]:
+    def get_workspace_child_map(
+        workspace_file_paths: set[str],
+    ) -> dict[UrlPath, set[UrlPath]]:
         """
         Return a map of every valid path in the workspace and its children
         This includes output paths from the manifest file and any files in the
         metadata directory (i.e. the manifest itself and log files)
         """
         # every path is a child of at least the root path
-        workspace_child_map = {
+        workspace_child_map: dict[UrlPath, set[UrlPath]] = {
             UrlPath(workspace_file_path): set()
             for workspace_file_path in workspace_file_paths
         }
@@ -393,6 +395,17 @@ class Workspace:
 
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
+
+    def is_valid_tree_path(self, relpath: UrlPath) -> bool:
+        """
+        A relpath can be displayed in the workspace tree if it is:
+         - a valid output path defined in the manifest.json or
+         - a parent of a valid output path or
+         - in the metadata directory (i.e. the manifest file itself and log files).
+        Outputs from previous jobs which are not part of the current manifest may still
+        exist on disk but are not displayed in the tree.
+        """
+        return relpath in self.workspace_child_map
 
 
 @dataclass(frozen=True)
