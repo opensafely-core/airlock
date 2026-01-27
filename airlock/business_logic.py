@@ -697,8 +697,9 @@ class BusinessLogicLayer:
         """
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
+        request_file = release_request.get_request_file_from_output_path(relpath)
         permissions.check_user_can_change_request_file_properties(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, relpath, request_file.filetype
         )
         return self.replace_file_in_request(
             release_request, relpath, user, group_name, filetype
@@ -796,11 +797,13 @@ class BusinessLogicLayer:
         user: User,
     ):
         relpath = UrlPath(*group_path.parts[1:])
+        request_file = release_request.get_request_file_from_urlpath(group_path)
         permissions.check_user_can_withdraw_file_from_request(
             user,
             release_request,
             self.get_workspace(release_request.workspace, user),
             relpath,
+            request_file.filetype,
         )
         group_name = group_path.parts[0]
         audit = AuditEvent.from_request(

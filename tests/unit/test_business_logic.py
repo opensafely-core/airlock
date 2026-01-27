@@ -1698,6 +1698,33 @@ def test_update_file_in_request_invalid_file_type(bll):
         bll.update_file_in_request(release_request, relpath, author)
 
 
+def test_update_file_in_request_invalid_workspace_file(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        files=[factories.request_file(path=relpath)],
+        status=RequestStatus.PENDING,
+    )
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        exceptions.RequestPermissionDenied,
+        match="File is not a valid output file in the workspace",
+    ):
+        bll.update_file_in_request(release_request, relpath, author)
+
+
 def test_update_file_in_request_not_updated(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
@@ -1950,6 +1977,53 @@ def test_withdraw_file_from_request_pending(bll):
     )
 
     assert release_request.filegroups["group"].files.keys() == set()
+
+
+def test_withdraw_file_from_request_invalid_workspace_file(bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    workspace = factories.create_workspace("workspace")
+
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file1.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    bll.withdraw_file_from_request(release_request, "group" / path, user=author)
+    release_request = factories.refresh_release_request(release_request)
+
+    assert [f.filetype for f in release_request.filegroups["group"].files.values()] == [
+        RequestFileType.WITHDRAWN,
+    ]
+
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert audit_log[0] == AuditEvent.from_request(
+        release_request,
+        AuditEventType.REQUEST_FILE_WITHDRAW,
+        user=author,
+        path=path,
+        group="group",
+    )
+
+    workspace = bll.get_workspace("workspace", author)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.INVALID
 
 
 def test_withdraw_file_from_request_returned(bll):
@@ -2253,6 +2327,46 @@ def test_change_file_properties_withdrawn_file(bll):
     with pytest.raises(
         exceptions.RequestPermissionDenied,
         match="Cannot change file group or type for a withdrawn file",
+    ):
+        bll.change_file_properties_in_request(
+            release_request,
+            path,
+            group_name="new-group",
+            user=author,
+            filetype=RequestFileType.SUPPORTING,
+        )
+
+
+def test_change_file_properties_invalid_workspace_file(bll):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    workspace = factories.create_workspace("workspace")
+
+    path = UrlPath("path/file1.txt")
+    release_request = factories.create_request_at_status(
+        workspace,
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                group="group",
+                path=path,
+                contents="1",
+                user=author,
+                approved=True,
+                filetype=RequestFileType.OUTPUT,
+            ),
+        ],
+    )
+
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file1.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        exceptions.RequestPermissionDenied,
+        match="File is not a valid output file in the workspace",
     ):
         bll.change_file_properties_in_request(
             release_request,
