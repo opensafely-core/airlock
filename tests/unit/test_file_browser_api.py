@@ -11,6 +11,7 @@ from airlock.enums import (
     WorkspaceFileStatus,
 )
 from airlock.file_browser_api import (
+    PathItem,
     get_code_tree,
     get_request_tree,
     get_workspace_tree,
@@ -23,6 +24,11 @@ from tests.conftest import get_trace
 @pytest.fixture
 def workspace():
     w = factories.create_workspace("workspace")
+    # Create an empty dir which will not be displayed in the tree
+    # The tree only shows paths that are valid output file paths, or
+    # parents of an output file, according to the manifest file. It is
+    # not possible to write an empty directory from an action, so empty
+    # dirs should never be valid current output paths
     (w.root() / "empty_dir").mkdir()
     factories.write_workspace_file(w, "some_dir/file_a.txt", "file_a")
     factories.write_workspace_file(w, "some_dir/file_b.txt", "file_b")
@@ -53,6 +59,13 @@ def test_get_workspace_tree_general(release_request):
     # modified file in request
     factories.write_workspace_file(workspace, "some_dir/file_c.txt", "changed")
 
+    # Write an additional metadata file in a subdir (for testing the dir path)
+    factories.write_workspace_file(
+        workspace, "metadata/metadata_subdir/file.log", manifest=False
+    )
+    # refresh workspace
+    workspace = factories.create_workspace("workspace")
+
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
@@ -61,8 +74,9 @@ def test_get_workspace_tree_general(release_request):
         """
         workspace*
           metadata
+            metadata_subdir
+              file.log
             manifest.json
-          empty_dir
           some_dir*
             .file.txt
             file_a.foo
@@ -77,8 +91,6 @@ def test_get_workspace_tree_general(release_request):
 
     # types
     assert tree.type == PathType.WORKSPACE
-    assert tree.get_path("empty_dir").type == PathType.DIR
-    assert tree.get_path("empty_dir").children == []
     assert tree.get_path("some_dir").type == PathType.DIR
     assert tree.get_path("some_dir/file_a.txt").type == PathType.FILE
     assert tree.get_path("some_dir/file_b.txt").type == PathType.FILE
@@ -268,7 +280,6 @@ def test_get_workspace_tree_selected_only_root(workspace):
         """
         workspace***
           metadata
-          empty_dir
           some_dir
         """
     )
@@ -276,45 +287,12 @@ def test_get_workspace_tree_selected_only_root(workspace):
     assert str(tree).strip() == expected.strip()
 
 
-def test_get_workspace_tree_selected_has_empty_dir(workspace):
-    selected_path = UrlPath("some_dir")
-    # needed for coverage of is_file() branch
-    (workspace.root() / "some_dir/subdir").mkdir()
-    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
-
-    # only the selected path should be in the tree
-    expected = textwrap.dedent(
-        """
-        workspace*
-          some_dir***
-            subdir
-            .file.txt
-            file_a.foo
-            file_a.txt
-            file_b.txt
-            file_c.txt
-        """
-    )
-
-    assert str(tree).strip() == expected.strip()
-
-
-def test_get_workspace_tree_selected_is_empty_dir(workspace):
-    selected_path = UrlPath("some_dir/subdir")
+def test_get_workspace_tree_selected_only_is_invalid_output_path(workspace):
+    # Create a file that is not in the manifest
+    selected_path = UrlPath("some_dir/bad_output.txt")
     (workspace.root() / selected_path).mkdir()
-    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
-
-    # only the selected path should be in the tree
-    expected = textwrap.dedent(
-        """
-        workspace*
-          some_dir*
-            subdir***
-        """
-    )
-
-    assert str(tree).strip() == expected.strip()
-    assert tree.get_path(selected_path).type == PathType.DIR
+    with pytest.raises(PathItem.PathNotFound, match="not current output"):
+        get_workspace_tree(workspace, selected_path, selected_only=True)
 
 
 @pytest.mark.django_db
@@ -560,7 +538,6 @@ def test_workspace_tree_siblings(workspace):
     assert tree.siblings() == []
     assert {s.name() for s in tree.get_path("some_dir").siblings()} == {
         "metadata",
-        "empty_dir",
         "some_dir",
     }
     assert {s.name() for s in tree.get_path("some_dir/file_a.txt").siblings()} == {

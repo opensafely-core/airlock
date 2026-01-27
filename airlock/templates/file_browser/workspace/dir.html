@@ -26,105 +26,101 @@
 
 
 {% #card title=path_item.name container=False custom_button=buttons %}
-  {% if not path_item.children %}
-    This directory is empty
-  {% else %}
-    <form id="multiselect_form"
-          method="POST"
-          hx-post="{{ content_buttons.multiselect_add.url }}"
-          hx-target="#multiselect_modal"
-          hx-swap="outerHtml"
-    >
+  <form id="multiselect_form"
+        method="POST"
+        hx-post="{{ content_buttons.multiselect_add.url }}"
+        hx-target="#multiselect_modal"
+        hx-swap="outerHtml"
+  >
 
-      {% csrf_token %}
-      <input type=hidden name="next_url" value="{{ request.path }}"/>
+    {% csrf_token %}
+    <input type=hidden name="next_url" value="{{ request.path }}"/>
 
-      {% fragment as header_row %}
+    {% fragment as header_row %}
+      <tr>
+        <th class="sort-ascending">
+          <button class="clusterize-table-sorter p-2 relative text-left w-full">
+            <div class="flex flex-row gap-2 items-center">
+              File
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </button>
+        </th>
+        <th>
+          <button class="clusterize-table-sorter p-2 relative text-left w-full">
+            <div class="flex flex-row gap-2 items-center">
+              Review State
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </button>
+        </th>
+        <th>
+          <button class="clusterize-table-sorter p-2 relative text-left w-full">
+            <div class="flex flex-row gap-2 items-center">
+              Size
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </button>
+        </th>
+        <th>
+          <button class="clusterize-table-sorter p-2 relative text-left w-full">
+            <div class="flex flex-row gap-2 items-center">
+              Modified
+              <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                {% datatable_sort_icon %}
+              </span>
+            </div>
+          </button>
+        </th>
+        {% if not content_buttons.multiselect_add.disabled %}
+          <th class="clusterize-fixed-width">
+            {% comment %}
+            Currently if we have more than 200 rows then the select all becomes
+            problematic because not all the checkboxes are rendered. We suspect
+            no-one will want to add more than 200 files to a request at any
+            point and so disable the checkbox here if there are more than 200
+            rows. Discussion here:
+            https://bennettoxford.slack.com/archives/C069YDR4NCA/p1743677871496259
+            If we want to support this, then we would:
+            - give the select all a "name" attribute (e.g. selected_directory) so it is passed in the form POST
+            - the "value" attribute would be {{ path_item.relpath }}
+            - change the following methods so that if a "selected_directory" attribute is POSTED
+              then the list of selected files is all the immediate children of that directory
+              rather than the list of selected files in the POST request:
+                - airlock.views.request_multiselect
+                - airlock.views.workspace_multiselect
+            {% endcomment %}
+            {% if path_item.children|length < 200 %}
+              <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
+            {% endif %}
+          </th>
+        {% endif %}
+      </tr>
+    {% endfragment %}
+    {% #clusterize_table header_row=header_row %}
+      {% for path in path_item.children %}
         <tr>
-          <th class="sort-ascending">
-            <button class="clusterize-table-sorter p-2 relative text-left w-full">
-              <div class="flex flex-row gap-2 items-center">
-                File
-                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                  {% datatable_sort_icon %}
-                </span>
-              </div>
-            </button>
-          </th>
-          <th>
-            <button class="clusterize-table-sorter p-2 relative text-left w-full">
-              <div class="flex flex-row gap-2 items-center">
-                Review State
-                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                  {% datatable_sort_icon %}
-                </span>
-              </div>
-            </button>
-          </th>
-          <th>
-            <button class="clusterize-table-sorter p-2 relative text-left w-full">
-              <div class="flex flex-row gap-2 items-center">
-                Size
-                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                  {% datatable_sort_icon %}
-                </span>
-              </div>
-            </button>
-          </th>
-          <th>
-            <button class="clusterize-table-sorter p-2 relative text-left w-full">
-              <div class="flex flex-row gap-2 items-center">
-                Modified
-                <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                  {% datatable_sort_icon %}
-                </span>
-              </div>
-            </button>
-          </th>
+          <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
+          <td>{{ path.display_status }}</td>
+          <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
+          <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
           {% if not content_buttons.multiselect_add.disabled %}
-            <th class="clusterize-fixed-width">
-              {% comment %}
-              Currently if we have more than 200 rows then the select all becomes
-              problematic because not all the checkboxes are rendered. We suspect
-              no-one will want to add more than 200 files to a request at any
-              point and so disable the checkbox here if there are more than 200
-              rows. Discussion here:
-              https://bennettoxford.slack.com/archives/C069YDR4NCA/p1743677871496259
-              If we want to support this, then we would:
-              - give the select all a "name" attribute (e.g. selected_directory) so it is passed in the form POST
-              - the "value" attribute would be {{ path_item.relpath }}
-              - change the following methods so that if a "selected_directory" attribute is POSTED
-                then the list of selected files is all the immediate children of that directory
-                rather than the list of selected files in the POST request:
-                  - airlock.views.request_multiselect
-                  - airlock.views.workspace_multiselect
-              {% endcomment %}
-              {% if path_item.children|length < 200 %}
-                <input class="selectall ml-3" type="checkbox" onchange="toggleSelectAll(this)" />
+            <td>
+              {% if not path.is_directory %}
+                {% form_checkbox name="selected" value=path.relpath custom_field=True %}
               {% endif %}
-            </th>
+            </td>
           {% endif %}
         </tr>
-      {% endfragment %}
-      {% #clusterize_table header_row=header_row %}
-        {% for path in path_item.children %}
-          <tr>
-            <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
-            <td>{{ path.display_status }}</td>
-            <td data-order="{{ path.size }}">{{ path.size_mb }}</td>
-            <td>{{ path.modified_at|date:"Y-m-d H:i" }}</td>
-            {% if not content_buttons.multiselect_add.disabled %}
-              <td>
-                {% if not path.is_directory %}
-                  {% form_checkbox name="selected" value=path.relpath custom_field=True %}
-                {% endif %}
-              </td>
-            {% endif %}
-          </tr>
-        {% endfor %}
-      {% /clusterize_table %}
-    </form>
-  {% endif %}
+      {% endfor %}
+    {% /clusterize_table %}
+  </form>
 {% /card %}
 
 {% vite_hmr_client %}

@@ -109,10 +109,7 @@ def test_get_file_metadata():
         workspace.get_file_metadata(UrlPath("directory")) is None
 
     # small log file
-    factories.write_workspace_file(
-        workspace, "metadata/foo.log", contents="foo", manifest=False
-    )
-
+    factories.write_workspace_file(workspace, "metadata/foo.log", contents="foo")
     from_file = workspace.get_file_metadata(UrlPath("metadata/foo.log"))
     assert isinstance(from_file, FileMetadata)
     assert from_file.size == 3

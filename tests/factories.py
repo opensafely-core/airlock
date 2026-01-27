@@ -311,6 +311,12 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
 
     if isinstance(workspace, Workspace):
         workspace.manifest = manifest
+        workspace_file_paths = set(manifest["outputs"]) | set(
+            workspace.scan_metadata_dir(workspace.name)
+        )
+        workspace.workspace_child_map = workspace.get_workspace_child_map(
+            workspace_file_paths
+        )
 
 
 def create_workspace(name: str, user=None) -> Workspace:
