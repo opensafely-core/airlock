@@ -712,6 +712,8 @@ def test_workspace_multiselect_update_files(
     workspace = factories.create_workspace("test1")
     path1 = UrlPath("test/path1.txt")
     path2 = UrlPath("test/path2.txt")
+    factories.write_workspace_file(workspace, path1)
+    factories.write_workspace_file(workspace, path2)
 
     factories.create_request_at_status(
         "test1",

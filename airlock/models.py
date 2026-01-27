@@ -374,7 +374,12 @@ class Workspace:
         except exceptions.ManifestFileError:
             pass
 
-        # not in manifest, e.g. log file. Check disk
+        # Only return metadata from path on disk for valid workspace files.
+        # If we couldn't retrieve it from the manifest, it can only be a file
+        # in the metadata dir, e.g. a log file
+        if not self.is_valid_tree_path(relpath):
+            # treat an invalid path as if it doesn't exist
+            raise exceptions.FileNotFound(relpath)
         return FileMetadata.from_path(self.abspath(relpath))
 
     def abspath(self, relpath):

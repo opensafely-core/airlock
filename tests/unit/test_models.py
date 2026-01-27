@@ -104,9 +104,8 @@ def test_get_file_metadata():
         workspace.get_file_metadata(UrlPath("metadata/foo.log"))
 
     # directory
-    (workspace.root() / "directory").mkdir()
     with pytest.raises(AssertionError):
-        workspace.get_file_metadata(UrlPath("directory")) is None
+        workspace.get_file_metadata(UrlPath("metadata")) is None
 
     # small log file
     factories.write_workspace_file(workspace, "metadata/foo.log", contents="foo")
@@ -130,6 +129,13 @@ def test_get_file_metadata():
         from_metadata.content_hash
         == hashlib.sha256(contents.encode("utf8")).hexdigest()
     )
+
+    # invalid output file
+    factories.write_workspace_file(
+        workspace, "output/foo.txt", contents="foo", manifest=False
+    )
+    with pytest.raises(exceptions.FileNotFound):
+        workspace.get_file_metadata(UrlPath("output/foo.txt"))
 
 
 def test_workspace_get_workspace_archived_ongoing(bll):
