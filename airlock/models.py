@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -162,6 +163,7 @@ class Workspace:
     name: str
     manifest: dict[str, Any]
     metadata: dict[str, Any]
+    workspace_child_map: dict[UrlPath, set[UrlPath]]
     current_request: ReleaseRequest | None
     released_files: set[str]
 
@@ -191,16 +193,78 @@ class Workspace:
         if metadata is None:  # pragma: no cover
             metadata = {}
 
+        # build a map of all valid workspace UrlPaths and their children from the
+        # manifest file
+        workspace_child_map = cls.get_workspace_child_map(
+            set(manifest["outputs"]) | cls.scan_metadata_dir(name)
+        )
+
         return cls(
             name,
             manifest=manifest,
             metadata=metadata,
+            workspace_child_map=workspace_child_map,
             current_request=current_request,
             released_files=released_files or set(),
         )
 
     def __str__(self):
         return self.get_id()
+
+    @staticmethod
+    def scan_metadata_dir(name):
+        """Use os.scandir to quickly walk the metadata directory file tree.
+
+        Basically, its faster because it effectively just opens every directory,
+        not every file. And its in C code.  But that gives us whether the entry is
+        a file or a directory, which is all we need.
+
+        We are only really interested in file paths - those include any parent
+        directories we need for the tree for free.
+        """
+        root = settings.WORKSPACE_DIR / name
+        paths = set()
+
+        def scan(current: str) -> int:
+            children = 0
+
+            for entry in os.scandir(current):
+                children += 1
+                path = UrlPath(entry.path).relative_to(root)
+
+                if entry.is_dir():
+                    scan(entry.path)
+                else:
+                    paths.add(path)
+
+            return children
+
+        scan(str(root / "metadata"))
+
+        return paths
+
+    @staticmethod
+    def get_workspace_child_map(workspace_file_paths: set[str]) -> set[UrlPath]:
+        """
+        Return a map of every valid path in the workspace and its children
+        This includes output paths from the manifest file and any files in the
+        metadata directory (i.e. the manifest itself and log files)
+        """
+        # every path is a child of at least the root path
+        workspace_child_map = {
+            UrlPath(workspace_file_path): set()
+            for workspace_file_path in workspace_file_paths
+        }
+        for child in list(workspace_child_map):
+            parent = child.parent
+            while parent != ROOT_PATH:
+                workspace_child_map.setdefault(parent, set()).add(child)
+                child = parent
+                parent = child.parent
+            # Add the child to the root path
+            assert parent == ROOT_PATH
+            workspace_child_map.setdefault(parent, set()).add(child)
+        return workspace_child_map
 
     def project(self) -> Project:
         details = self.metadata.get("project_details", {})
