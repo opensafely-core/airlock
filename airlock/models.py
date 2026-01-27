@@ -304,6 +304,10 @@ class Workspace:
         return reverse("workspace_view", kwargs=kwargs)
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
+        relpath = UrlPath(relpath)
+        if not self.is_valid_tree_path(relpath):
+            return WorkspaceFileStatus.INVALID
+
         # get_file_metadata will throw FileNotFound if we have a bad file path
         metadata = self.get_file_metadata(relpath)
 

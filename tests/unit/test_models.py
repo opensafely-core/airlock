@@ -190,8 +190,7 @@ def test_workspace_get_workspace_file_status(bll):
     workspace = factories.create_workspace("workspace")
     user = factories.create_airlock_user(workspaces=["workspace"])
 
-    with pytest.raises(exceptions.FileNotFound):
-        workspace.get_workspace_file_status(path)
+    assert workspace.get_workspace_file_status(path) is WorkspaceFileStatus.INVALID
 
     factories.write_workspace_file(workspace, path, contents="foo")
     assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
