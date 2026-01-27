@@ -151,6 +151,29 @@ def test_csv_renderer_uses_faster_csv_renderer(tmp_path):
     assert response.context_data["use_clusterize_table"] is True
 
 
+@pytest.mark.parametrize("summarize_feature_flag", [False, True])
+def test_csv_renderer_summarize(tmp_path, summarize_feature_flag):
+    good_csv = tmp_path / "good.csv"
+    good_csv.write_text("Col1,Col2\n1,2")
+    relpath = good_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(good_csv, relpath)
+
+    # assert instance type to keep mypy happy when we assign the summarize attribute
+    assert isinstance(renderer, renderers.CSVRenderer)
+    renderer.summarize = summarize_feature_flag
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+    assert bool(response.context_data["summary"]) == summarize_feature_flag
+    if summarize_feature_flag:
+        assert list(response.context_data["summary"].keys()) == [
+            "headers",
+            "rows",
+            "notes",
+        ]
+
+
 def test_plaintext_renderer_handles_invalid_utf8(tmp_path):
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_bytes(b"invalid \xf0\xa4\xad continuation byte")

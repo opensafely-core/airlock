@@ -18,7 +18,7 @@ from django.template.response import SimpleTemplateResponse
 from django.utils.safestring import mark_safe
 
 from airlock.types import UrlPath
-from airlock.utils import is_valid_file_type, truncate_log_stream
+from airlock.utils import is_valid_file_type, summarize_csv, truncate_log_stream
 
 
 @dataclass
@@ -136,12 +136,28 @@ class CSVRenderer(Renderer):
     template = RendererTemplate("file_browser/file_content/csv.html")
     is_text: ClassVar[bool] = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Temporary feature flag
+        self.summarize = False
+
     def context(self):
         reader = csv.reader(self.stream)
         headers = next(reader, [])
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
-        ctx = {"headers": headers, "rows": rows, "use_clusterize_table": True}
+
+        if self.summarize:
+            summary = summarize_csv(headers, rows)
+        else:
+            summary = {}
+
+        ctx = {
+            "headers": headers,
+            "rows": rows,
+            "use_clusterize_table": True,
+            "summary": summary,
+        }
         if any(len(row) != header_col_count for _, row in rows):
             ctx["use_clusterize_table"] = False
         return ctx
