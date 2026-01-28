@@ -35,6 +35,11 @@ def test_create_release_request(bll):
     factories.write_workspace_file(
         workspace, "test-dir1/test-subdir/file5.txt", contents="file5"
     )
+    # invalid output file (not in manifest); this file is in one of the specified
+    # dirs but is ignored
+    factories.write_workspace_file(
+        workspace, "test-dir/invalid.txt", contents="invalid", manifest=False
+    )
 
     create_release_request(
         "author",

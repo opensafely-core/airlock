@@ -10,6 +10,7 @@ class WorkspaceFileStatus(Enum):
     RELEASED = "RELEASED"
     CONTENT_UPDATED = "UPDATED"
     WITHDRAWN = "WITHDRAWN"
+    INVALID = "INVALID"
 
     def formatted(self):
         return self.value.title().replace("_", " ")

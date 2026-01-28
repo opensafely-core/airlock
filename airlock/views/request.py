@@ -229,14 +229,14 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         req_id, "request_multiselect"
     )
     if permissions.user_can_withdraw_file_from_request(
-        user, release_request, workspace, relpath
+        user, release_request, workspace, relpath, path_item.request_filetype
     ):
         withdraw_btn.show = True
         withdraw_btn.disabled = False
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
     if permissions.user_can_change_request_file_properties(
-        user, release_request, workspace, relpath
+        user, release_request, workspace, relpath, path_item.request_filetype
     ):
         change_file_properties_button.show = True
         change_file_properties_button.disabled = False
@@ -762,7 +762,11 @@ def multiselect_update_files(request, multiform, release_request):
         assert request_file.group == filegroup
 
         if permissions.user_can_change_request_file_properties(
-            request.user, release_request, workspace, request_file.relpath
+            request.user,
+            release_request,
+            workspace,
+            request_file.relpath,
+            request_file.filetype,
         ):
             files_to_add[f] = request_file.filetype.name
         else:

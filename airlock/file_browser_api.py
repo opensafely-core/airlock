@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -307,44 +306,6 @@ class PathItem:
         return "\n".join(build_string(self, ""))
 
 
-def scantree(root: Path) -> tuple[list[UrlPath], set[UrlPath]]:
-    """Use os.scandir to quickly walk a file tree.
-
-    Basically, its faster because it effectively just opens every directory,
-    not every file. And its in C code.  But that gives us whether the entry is
-    a file or a directory, which is all we need.
-
-    We are only really interested in file paths - those include any parent
-    directories we need for the tree for free.  However, we do need to manually
-    track empty directories, or else they will be excluded.
-    """
-
-    paths = []
-    leaf_directories = set()
-
-    def scan(current: str) -> int:
-        children = 0
-
-        for entry in os.scandir(current):
-            children += 1
-            path = UrlPath(entry.path).relative_to(root)
-
-            if entry.is_dir():
-                dir_children = scan(entry.path)
-                if dir_children == 0:
-                    # add empty dir to pathlist, or else it will not be shown
-                    paths.append(path)
-                    leaf_directories.add(path)
-            else:
-                paths.append(path)
-
-        return children
-
-    scan(str(root))
-
-    return paths, leaf_directories
-
-
 @instrument(func_attributes={"workspace": "workspace"})
 def get_workspace_tree(
     workspace: Workspace,
@@ -360,35 +321,27 @@ def get_workspace_tree(
     immediate children, if it has any. We include children so that if
     selected_path is a directory, its contents can be partially rendered.
     """
-
     selected_path = UrlPath(selected_path)
-    root = workspace.root()
+    leaf_directories = set()
 
     if selected_only:
         pathlist = []
-        leaf_directories = set()
 
         # root path is implicit
         if selected_path != ROOT_PATH:
             pathlist.append(selected_path)
 
-        # if directory, we also need to also load our children to display in
-        # the content area. We don't mind using stat() on the children here, as
-        # we are only loading a single directory, not an entire tree
-        abspath = workspace.abspath(selected_path)
-        if abspath.is_dir():
-            children = list(abspath.iterdir())
-            if children:
-                for child in children:
-                    path = child.relative_to(root)
-                    pathlist.append(path)
-                    if child.is_dir():
-                        leaf_directories.add(path)
-            else:
-                leaf_directories.add(selected_path)
+        if not workspace.is_valid_tree_path(selected_path):
+            raise PathItem.PathNotFound(f"not current output {selected_path}")
 
+        for child in workspace.workspace_child_map[selected_path]:
+            pathlist.append(child)
+            if workspace.workspace_child_map[
+                child
+            ]:  # has children, therefore is directory
+                leaf_directories.add(child)
     else:
-        pathlist, leaf_directories = scantree(root)
+        pathlist = list(set(workspace.workspace_child_map) - {ROOT_PATH})
 
     root_node = PathItem(
         container=workspace,

@@ -118,6 +118,11 @@ def check_can_replace_file_in_request(
             f"Cannot add file of type {relpath.suffix} to request"
         )
 
+    if not workspace.is_valid_tree_path(UrlPath(relpath)):
+        raise exceptions.RequestPermissionDenied(
+            "File is not a valid output file in the workspace; it can be withdrawn but not modifed"
+        )
+
     status = workspace.get_workspace_file_status(relpath)
 
     # The file hasn't already been released
@@ -163,6 +168,10 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
     if not is_valid_file_type(Path(relpath)):
         raise exceptions.RequestPermissionDenied(
             f"Cannot update file of type {relpath.suffix} in request"
+        )
+    if not workspace.is_valid_tree_path(UrlPath(relpath)):
+        raise exceptions.RequestPermissionDenied(
+            "File is not a valid output file in the workspace; it can be withdrawn but not modifed"
         )
 
     status = workspace.get_workspace_file_status(relpath)

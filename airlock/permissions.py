@@ -9,7 +9,6 @@ from airlock.enums import (
     RequestFileType,
     RequestStatus,
     RequestStatusOwner,
-    WorkspaceFileStatus,
 )
 from airlock.types import UrlPath
 from users.models import User
@@ -243,7 +242,11 @@ def user_can_update_file_on_request(
 
 
 def check_user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    request_filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
 
@@ -255,35 +258,50 @@ def check_user_can_withdraw_file_from_request(
     # If the user has permission to withdraw, check that the file
     # is withdrawable; i.e. it has not already been withdrawn
     # Note this is dependent on the user's current request
-    status = workspace.get_workspace_file_status(relpath)
-    if status == WorkspaceFileStatus.WITHDRAWN:
+    if request_filetype == RequestFileType.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "File has already been withdrawn from request"
         )
 
 
 def user_can_withdraw_file_from_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    request_filetype: RequestFileType,
 ):
     try:
-        check_user_can_withdraw_file_from_request(user, request, workspace, relpath)
+        check_user_can_withdraw_file_from_request(
+            user, request, workspace, relpath, request_filetype
+        )
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    request_filetype: RequestFileType,
 ):
     try:
-        check_user_can_change_request_file_properties(user, request, workspace, relpath)
+        check_user_can_change_request_file_properties(
+            user, request, workspace, relpath, request_filetype
+        )
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
 def check_user_can_change_request_file_properties(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    request_filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
 
@@ -295,8 +313,7 @@ def check_user_can_change_request_file_properties(
     # If the user has permission to edit the request, check that the file
     # is not withdrawn
     # Note this is dependent on the user's current request
-    status = workspace.get_workspace_file_status(relpath)
-    if status == WorkspaceFileStatus.WITHDRAWN:
+    if request_filetype == RequestFileType.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "Cannot change file group or type for a withdrawn file"
         )

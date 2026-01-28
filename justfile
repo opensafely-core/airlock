@@ -311,6 +311,7 @@ load-example-data: _checkenv load-dev-users && manifests
     for i in {1..9}; do
       workspace_dir="${workspace_dir}/another_sub_dir"
       mkdir -p "${workspace_dir}"
+      echo "i am deep file $i" > "$workspace_dir/file_deep$i.txt"
     done
 
     mkdir -p "$workspace/sub_dir_empty"
