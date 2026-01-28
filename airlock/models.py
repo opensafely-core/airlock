@@ -164,6 +164,7 @@ class Workspace:
     manifest: dict[str, Any]
     metadata: dict[str, Any]
     workspace_child_map: dict[UrlPath, set[UrlPath]]
+    workspace_files: set[UrlPath]
     current_request: ReleaseRequest | None
     released_files: set[str]
 
@@ -194,8 +195,8 @@ class Workspace:
             metadata = {}
 
         # build a map of all valid workspace UrlPaths and their children from the
-        # manifest file
-        workspace_child_map = cls.get_workspace_child_map(
+        # manifest file, plus a set of all paths for just the files
+        workspace_child_map, workspace_files = cls.get_workspace_child_map(
             set(manifest["outputs"]) | cls.scan_metadata_dir(name)
         )
 
@@ -204,6 +205,7 @@ class Workspace:
             manifest=manifest,
             metadata=metadata,
             workspace_child_map=workspace_child_map,
+            workspace_files=workspace_files,
             current_request=current_request,
             released_files=released_files or set(),
         )
@@ -246,7 +248,7 @@ class Workspace:
     @staticmethod
     def get_workspace_child_map(
         workspace_file_paths: set[str],
-    ) -> dict[UrlPath, set[UrlPath]]:
+    ) -> tuple[dict[UrlPath, set[UrlPath]], set[UrlPath]]:
         """
         Return a map of every valid path in the workspace and its children
         This includes output paths from the manifest file and any files in the
@@ -257,6 +259,7 @@ class Workspace:
             UrlPath(workspace_file_path): set()
             for workspace_file_path in workspace_file_paths
         }
+        workspace_files = set(workspace_child_map)
         for child in list(workspace_child_map):
             parent = child.parent
             while parent != ROOT_PATH:
@@ -266,7 +269,7 @@ class Workspace:
             # Add the child to the root path
             assert parent == ROOT_PATH
             workspace_child_map.setdefault(parent, set()).add(child)
-        return workspace_child_map
+        return workspace_child_map, workspace_files
 
     def project(self) -> Project:
         details = self.metadata.get("project_details", {})
@@ -378,34 +381,41 @@ class Workspace:
         except exceptions.ManifestFileError:
             pass
 
-        # Only return metadata from path on disk for valid workspace files.
-        # If we couldn't retrieve it from the manifest, it can only be a file
-        # in the metadata dir, e.g. a log file
-        if not self.is_valid_tree_path(relpath):
-            # treat an invalid path as if it doesn't exist
-            raise exceptions.FileNotFound(relpath)
+        # We only return metadata from the path on disk for files in the
+        # metadata directory
+        # If we couldn't retrieve a file from the manifest, the only valid
+        # workspace file that it can be is a file in the metadata dir, e.g. a log file
+        # abspath will raise FileNotFound for any invalid workspace path
         return FileMetadata.from_path(self.abspath(relpath))
 
     def abspath(self, relpath):
         """Get absolute path for file
 
-        Protects against traversal, and ensures the path exists."""
+        Protects against traversal, and ensures the path is a valid workspace path."""
         root = self.root()
+
+        # validate relpath according to current manifest and state of the metadata directory
+        if not self.is_valid_tree_path(relpath):
+            raise exceptions.FileNotFound(relpath)
+
         path = root / relpath
 
         # protect against traversal
         path.resolve().relative_to(root)
-
-        # validate path exists
-        if not path.exists():
-            raise exceptions.FileNotFound(path)
 
         return path
 
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
 
-    def is_valid_tree_path(self, relpath: UrlPath) -> bool:
+    def is_workspace_file(self, relpath: UrlPath | str) -> bool:
+        """
+        Is this path a valid workspace file (i.e. an output file from the manifest, or a
+        file in the metadata directory)?
+        """
+        return UrlPath(relpath) in self.workspace_files
+
+    def is_valid_tree_path(self, relpath: UrlPath | str) -> bool:
         """
         A relpath can be displayed in the workspace tree if it is:
          - a valid output path defined in the manifest.json or
@@ -414,7 +424,7 @@ class Workspace:
         Outputs from previous jobs which are not part of the current manifest may still
         exist on disk but are not displayed in the tree.
         """
-        return relpath in self.workspace_child_map
+        return UrlPath(relpath) in self.workspace_child_map
 
 
 @dataclass(frozen=True)

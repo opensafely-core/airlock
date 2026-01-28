@@ -268,13 +268,13 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-
     try:
-        abspath = workspace.abspath(path)
+        workspace.abspath(path)
     except exceptions.FileNotFound:
         raise Http404()
 
-    if not abspath.is_file():
+    # Is it a file?
+    if not workspace.is_workspace_file(path):
         return HttpResponseBadRequest()
 
     bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)

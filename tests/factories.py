@@ -314,9 +314,11 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         workspace_file_paths = set(manifest["outputs"]) | set(
             workspace.scan_metadata_dir(workspace.name)
         )
-        workspace.workspace_child_map = workspace.get_workspace_child_map(
+        workspace_child_map, workspace_files = workspace.get_workspace_child_map(
             workspace_file_paths
         )
+        workspace.workspace_child_map = workspace_child_map
+        workspace.workspace_files = workspace_files
 
 
 def create_workspace(name: str, user=None) -> Workspace:
