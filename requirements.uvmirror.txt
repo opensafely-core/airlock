@@ -58,7 +58,7 @@ django==6.0.1 ; python_full_version >= '3.12'
     #   django-vite
     #   slippers
 django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip
-django-debug-toolbar==6.1.0
+django-debug-toolbar==6.2.0
     # via django-debug-toolbar-template-profiler
 django-debug-toolbar-template-profiler==2.1.0
 django-extensions==4.1
@@ -67,8 +67,8 @@ django-htmx==1.27.0
     # via airlock
 django-markdownify==0.9.6
     # via airlock
-django-stubs==5.2.8
-django-stubs-ext==5.2.8
+django-stubs==5.2.9
+django-stubs-ext==5.2.9
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -102,7 +102,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.7.7 ; platform_python_implementation != 'PyPy'
+librt==0.7.8 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10
     # via
@@ -132,7 +132,7 @@ mypy==1.19.1
     # via django-stubs
 mypy-extensions==1.1.0
     # via mypy
-opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2025.03.06.161237.zip
+opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.01.26.163426.zip
     # via airlock
 opentelemetry-api==1.39.1
     # via
@@ -249,7 +249,7 @@ requests==2.32.5
     #   pytest-base-url
     #   responses
 responses==0.25.8
-ruff==0.14.11
+ruff==0.14.13
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==80.9.0

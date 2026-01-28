@@ -8,12 +8,16 @@ from dataclasses import dataclass
 from email.utils import formatdate
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import IO, Any, ClassVar, cast
+from typing import IO, TYPE_CHECKING, Any, ClassVar
+
+
+if TYPE_CHECKING:
+    from django.template.backends.base import _EngineTemplate
 
 from ansi2html import Ansi2HTMLConverter
 from django.conf import settings
 from django.http import FileResponse, HttpResponseBase
-from django.template import Template, loader
+from django.template import loader
 from django.template.response import SimpleTemplateResponse
 from django.utils.safestring import mark_safe
 
@@ -26,9 +30,9 @@ class RendererTemplate:
     name: str
 
     @property
-    def template(self) -> Template:
+    def template(self) -> _EngineTemplate:
         # This is cached by django, so is fast
-        t = cast(Template, loader.get_template(self.name))
+        t = loader.get_template(self.name)
 
         # Calculate content hash if not already done, an attach it to the
         # django template instance. This is a little hacky, but its convenient
