@@ -7,6 +7,14 @@
     color: rgb(186 189 197);
   }
 
+  /* Clusterize needs rows to be of the same/approximately the same height
+  Wrapping can break the cluster updating - this issue seems related and the
+  suggested fix is to prevent wrapping
+  /* https://github.com/NeXTs/Clusterize.js/issues/62 */
+  .clusterize-table-wrapper td {
+    white-space: nowrap;
+  }
+
   /* Make the header stick to the top */
   .clusterize-table-wrapper thead tr {
     position: sticky;
