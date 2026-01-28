@@ -852,3 +852,22 @@ def create_audit_event(
     )
     bll._dal.audit_event(event)
     return event
+
+
+def non_metadata_workspace_filepaths(workspace):
+    metadata_path = workspace.root() / "metadata"
+    for fp in workspace.root().rglob("*"):
+        if fp != metadata_path and metadata_path not in fp.parents:
+            yield fp
+
+
+def delete_workspace_files(workspace):
+    # delete all files on disk other than the metadata files
+    for filepath in non_metadata_workspace_filepaths(workspace):
+        if filepath.is_file():
+            filepath.unlink()
+    # delete all (now empty) non-metadata directories
+    for filepath in non_metadata_workspace_filepaths(workspace):
+        filepath.rmdir()
+
+    assert not list(non_metadata_workspace_filepaths(workspace))

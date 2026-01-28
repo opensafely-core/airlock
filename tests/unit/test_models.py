@@ -211,6 +211,35 @@ def test_workspace_get_workspace_file_status(bll):
     )
 
 
+def test_workspace_get_workspace_file_status_does_not_require_files_on_disk(bll):
+    # Workspace status is read entirely from the manifest.json, so we can delete all
+    # the actual files on disk and still retrieve it
+    path = UrlPath("foo/bar.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.delete_workspace_files(workspace)
+    user = factories.create_airlock_user(workspaces=["workspace"])
+
+    assert workspace.get_workspace_file_status(path) is WorkspaceFileStatus.INVALID
+
+    factories.write_workspace_file(workspace, path, contents="foo")
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
+
+    release_request = factories.create_release_request(workspace, user=user)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNRELEASED
+
+    factories.add_request_file(release_request, "group", path)
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", user)
+    assert workspace.get_workspace_file_status(path) == WorkspaceFileStatus.UNDER_REVIEW
+
+    factories.write_workspace_file(workspace, path, contents="changed")
+    assert (
+        workspace.get_workspace_file_status(path) == WorkspaceFileStatus.CONTENT_UPDATED
+    )
+
+
 def test_workspace_get_released_files(bll, mock_old_api):
     path = UrlPath("foo/bar.txt")
     path1 = UrlPath("foo/supporting_bar.txt")
