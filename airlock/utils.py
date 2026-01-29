@@ -8,6 +8,7 @@ from opentelemetry import trace
 from pipeline.constants import LEVEL4_FILE_TYPES
 
 from airlock.types import UrlPath
+from services.tracing import instrument
 
 
 def is_valid_file_type(path: Path | UrlPath):
@@ -149,6 +150,7 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
     return column_summary
 
 
+@instrument
 def summarize_csv(
     column_names: list[str], enumerated_rows: list[tuple[int, list[str]]]
 ):
