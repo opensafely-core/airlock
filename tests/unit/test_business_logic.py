@@ -1720,7 +1720,7 @@ def test_update_file_in_request_invalid_workspace_file(bll):
 
     with pytest.raises(
         exceptions.RequestPermissionDenied,
-        match="File is not a valid output file in the workspace",
+        match="File is no longer a valid output file in the workspace",
     ):
         bll.update_file_in_request(release_request, relpath, author)
 
@@ -2366,7 +2366,7 @@ def test_change_file_properties_invalid_workspace_file(bll):
 
     with pytest.raises(
         exceptions.RequestPermissionDenied,
-        match="File is not a valid output file in the workspace",
+        match="File is no longer a valid output file in the workspace",
     ):
         bll.change_file_properties_in_request(
             release_request,

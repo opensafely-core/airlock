@@ -120,7 +120,7 @@ def check_can_replace_file_in_request(
 
     if not workspace.is_valid_tree_path(UrlPath(relpath)):
         raise exceptions.RequestPermissionDenied(
-            "File is not a valid output file in the workspace; it can be withdrawn but not modifed"
+            "File is no longer a valid output file in the workspace; it can be withdrawn but not modifed"
         )
 
     status = workspace.get_workspace_file_status(relpath)
@@ -171,7 +171,7 @@ def check_can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):
         )
     if not workspace.is_valid_tree_path(UrlPath(relpath)):
         raise exceptions.RequestPermissionDenied(
-            "File is not a valid output file in the workspace; it can be withdrawn but not modifed"
+            "File is no longer a valid output file in the workspace; it can be withdrawn but not modified"
         )
 
     status = workspace.get_workspace_file_status(relpath)
