@@ -121,9 +121,14 @@ def create_release_request(
         # add all files anywhere under this directory
         for filepath in directory.rglob("*"):
             if filepath.is_file():
-                group_data.total_files += 1
                 file_sub_path = str(filepath).split(f"{dir_path}/")[-1]
                 relpath = UrlPath(dir_relpath / file_sub_path)
+
+                # ignore any files in this directory which are not current outputs
+                if not workspace.is_valid_tree_path(relpath):
+                    continue
+
+                group_data.total_files += 1
                 state = workspace.get_workspace_file_status(relpath)
 
                 if policies.can_add_file_to_request(workspace, relpath):

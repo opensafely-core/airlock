@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.contrib import messages
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -191,6 +192,28 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     if request.htmx:
         template = "file_browser/contents.html"
         selected_only = True
+        urlpath = UrlPath(path)
+        # The selected path may be an invalid output path if the manifest has changed
+        # since the full tree was generated, and the path no longer exists. Fall back
+        # to the closest valid parent.
+        if not workspace.is_valid_tree_path(urlpath):
+            # Find the closest parent to redirect to
+            redirect_url = next(
+                (
+                    workspace.get_url(parent)
+                    for parent in urlpath.parents
+                    if workspace.is_valid_tree_path(parent)
+                ),
+                workspace.get_url(),
+            )
+            messages.error(
+                request,
+                "Selected path is not a valid output path. A recent job may have updated its outputs.",
+            )
+            # tell HTMX to redirect us
+            response = HttpResponse("", status=302)
+            response.headers["HX-Redirect"] = redirect_url
+            return response
 
     tree = get_workspace_tree(workspace, path, selected_only)
 
@@ -245,13 +268,13 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 @require_http_methods(["GET"])
 def workspace_contents(request, workspace_name: str, path: str):
     workspace = get_workspace_or_raise(request.user, workspace_name)
-
     try:
-        abspath = workspace.abspath(path)
+        workspace.abspath(path)
     except exceptions.FileNotFound:
         raise Http404()
 
-    if not abspath.is_file():
+    # Is it a file?
+    if not workspace.is_workspace_file(path):
         return HttpResponseBadRequest()
 
     bll.audit_workspace_file_access(workspace, UrlPath(path), request.user)

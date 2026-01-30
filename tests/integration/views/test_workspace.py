@@ -78,7 +78,10 @@ def test_workspace_view_with_directory(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "some_dir/file.txt")
-    (workspace.root() / "some_dir/subdir").mkdir()  # adds coverage of dir rendering
+    factories.write_workspace_file(  # adds coverage of dir rendering
+        workspace, "some_dir/subdir/file1.txt"
+    )
+
     response = airlock_client.get("/workspaces/view/workspace/some_dir/")
     assert response.status_code == 200
     assert "file.txt" in response.rendered_content
@@ -136,15 +139,6 @@ def test_workspace_directory_and_request_can_multiselect_add(
     response = airlock_client.get("/workspaces/view/workspace/test/")
     button_enabled = not response.context["content_buttons"]["multiselect_add"].disabled
     assert button_enabled == can_multiselect_add
-
-
-def test_workspace_view_with_empty_directory(airlock_client):
-    airlock_client.login(output_checker=True)
-    workspace = factories.create_workspace("workspace")
-    (workspace.root() / "some_dir").mkdir()
-    response = airlock_client.get("/workspaces/view/workspace/some_dir/")
-    assert response.status_code == 200
-    assert "This directory is empty" in response.rendered_content
 
 
 def test_workspace_view_with_file(airlock_client):
@@ -210,6 +204,30 @@ def test_workspace_view_with_file_htmx(airlock_client):
     assert response.template_name == "file_browser/contents.html"
     assert '<ul id="tree"' not in response.rendered_content
     assert "HX-Request" in response.headers["Vary"]
+
+
+def test_workspace_view_invalid_output_path_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # File in subdir exists, but is invalid output path (no manifest entry)
+    factories.write_workspace_file(
+        workspace, "some_dir/some_sub_dir/file1.txt", manifest=False
+    )
+    response = airlock_client.get(
+        "/workspaces/view/workspace/some_dir/some_sub_dir/file1.txt",
+        headers={"HX-Request": "true"},
+    )
+    # redirects to nearest valid parent with a message to the user
+    assert response.status_code == 302
+    assert "HX-Redirect" in response.headers
+    assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/some_dir"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "Selected path is not a valid output path" in message.message
 
 
 def test_workspace_view_with_html_file(airlock_client):
@@ -283,7 +301,7 @@ def test_workspace_view_with_404(airlock_client):
 def test_workspace_view_redirects_to_directory(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
-    (workspace.root() / "some_dir").mkdir(parents=True)
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
     response = airlock_client.get("/workspaces/view/workspace/some_dir")
     assert response.status_code == 302
     assert response.headers["Location"] == "/workspaces/view/workspace/some_dir/"
@@ -304,6 +322,17 @@ def test_workspace_view_redirects_to_file(airlock_client):
     response = airlock_client.get("/workspaces/view/workspace/file.txt/")
     assert response.status_code == 302
     assert response.headers["Location"] == "/workspaces/view/workspace/file.txt"
+
+
+def test_workspace_view_invalid_output_path(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # Existing file in same directory, but invalid output path (no manifest entry)
+    factories.write_workspace_file(workspace, "some_dir/file1.txt", manifest=False)
+    response = airlock_client.get("/workspaces/view/workspace/some_dir/file1.txt")
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize(
@@ -712,6 +741,8 @@ def test_workspace_multiselect_update_files(
     workspace = factories.create_workspace("test1")
     path1 = UrlPath("test/path1.txt")
     path2 = UrlPath("test/path2.txt")
+    factories.write_workspace_file(workspace, path1)
+    factories.write_workspace_file(workspace, path2)
 
     factories.create_request_at_status(
         "test1",
