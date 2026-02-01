@@ -102,7 +102,7 @@ the author in order for files to be updated.
 
 Updating a file will reset any reviews associated with that file.
 
-## Retrictions for authors
+## Restrictions for authors
 Airlock does not permit users to approve or request changes to files that are part of release requests they created themselves.
 
 ## Downloading restrictions
