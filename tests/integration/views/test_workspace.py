@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.contrib import messages
 from django.contrib.messages.api import get_messages
@@ -230,6 +232,28 @@ def test_workspace_view_invalid_output_path_htmx(airlock_client):
     assert "Selected path is not a valid output path" in message.message
 
 
+def test_workspace_view_non_l4_output_path_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # Existing file, but invalid output path (manifest entry for highly sensitive file)
+    assert "output/highly_sensitive.txt" in workspace.manifest["outputs"]
+    response = airlock_client.get(
+        "/workspaces/view/workspace/output/highly_sensitive.txt",
+        headers={"HX-Request": "true"},
+    )
+    # redirects to nearest valid parent with a message to the user
+    assert response.status_code == 302
+    assert "HX-Redirect" in response.headers
+    assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "Selected path is not a valid output path" in message.message
+
+
 def test_workspace_view_with_html_file(airlock_client):
     airlock_client.login(output_checker=True)
     factories.write_workspace_file(
@@ -333,6 +357,56 @@ def test_workspace_view_invalid_output_path(airlock_client):
     factories.write_workspace_file(workspace, "some_dir/file1.txt", manifest=False)
     response = airlock_client.get("/workspaces/view/workspace/some_dir/file1.txt")
     assert response.status_code == 404
+
+
+def test_workspace_view_non_l4_output_path(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # Existing file, but invalid output path (manifest entry for highly_sensitive file)
+    assert "output/highly_sensitive.txt" in workspace.manifest["outputs"]
+    response = airlock_client.get(
+        "/workspaces/view/workspace/output/highly_sensitive.txt"
+    )
+    assert response.status_code == 404
+
+
+def test_workspace_view_excluded_l4_output_path(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Write a workspace file for an excluded L4 file
+    # These are replaced by the RAP agent with a message file that contains the reason for the exclusion
+    # The replacement file should appear in the tree, with the original filename plus an extra
+    # .txt extension
+    # https://github.com/opensafely-core/job-runner/blob/da2cd57c56ffdce1469f0e959cc87caab4218903/agent/executors/local.py#L675
+    factories.write_workspace_file(
+        workspace, "some_dir/excluded.csv.txt", "Not allowed on L4", manifest=False
+    )
+    # The manifest entry still refers to the file by its real filename
+    manifest = workspace.manifest
+    output_metadata = factories.get_output_metadata(
+        workspace.root() / "some_dir/excluded.csv.txt",
+        level="moderately_sensitive",
+        excluded=True,
+        job_id="job",
+        job_request="job-request",
+        action="action",
+        repo="http://example.com/org/repo",
+        commit="abcdefgh",
+        user="user",
+    )
+    manifest["outputs"]["some_dir/excluded.csv"] = output_metadata
+    (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
+
+    # refresh workspace without rewriting the manifest from files on disk
+    workspace = factories.refresh_workspace("workspace")
+    assert "some_dir/excluded.csv" in workspace.manifest["outputs"]
+    assert "some_dir/excluded.csv.txt" not in workspace.manifest["outputs"]
+    response = airlock_client.get(
+        "/workspaces/view/workspace/some_dir/excluded.csv.txt"
+    )
+    assert response.status_code == 200
 
 
 @pytest.mark.parametrize(

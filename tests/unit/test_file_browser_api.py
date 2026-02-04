@@ -1,3 +1,4 @@
+import json
 import textwrap
 
 import pytest
@@ -63,8 +64,36 @@ def test_get_workspace_tree_general(release_request):
     factories.write_workspace_file(
         workspace, "metadata/metadata_subdir/file.log", manifest=False
     )
-    # refresh workspace
-    workspace = factories.create_workspace("workspace")
+
+    # Write a workspace file for an excluded L4 file
+    # These are replaced by the RAP agent with a message file that contains the reason for the exclusion
+    # The replacement file should appear in the tree, with the original filename plus an extra
+    # .txt extension
+    # https://github.com/opensafely-core/job-runner/blob/da2cd57c56ffdce1469f0e959cc87caab4218903/agent/executors/local.py#L675
+    factories.write_workspace_file(
+        workspace, "some_dir/excluded.csv.txt", "Not allowed on L4", manifest=False
+    )
+    # The manifest entry still refers to the file by its real filename
+    manifest = workspace.manifest
+    output_metadata = factories.get_output_metadata(
+        workspace.root() / "some_dir/excluded.csv.txt",
+        level="moderately_sensitive",
+        excluded=True,
+        job_id="job",
+        job_request="job-request",
+        action="action",
+        repo="http://example.com/org/repo",
+        commit="abcdefgh",
+        user="user",
+    )
+    manifest["outputs"]["some_dir/excluded.csv"] = output_metadata
+    (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
+
+    # refresh workspace without rewriting the manifest from files on disk
+    workspace = factories.refresh_workspace("workspace")
+    # Manifest contains highly sensitive and excluded outputs
+    assert "some_dir/excluded.csv" in workspace.manifest["outputs"]
+    assert "some_dir/excluded.csv.txt" not in workspace.manifest["outputs"]
 
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
@@ -79,6 +108,7 @@ def test_get_workspace_tree_general(release_request):
             manifest.json
           some_dir*
             .file.txt
+            excluded.csv.txt
             file_a.foo
             file_a.txt**
             file_b.txt
@@ -128,14 +158,19 @@ def test_get_workspace_tree_general(release_request):
     # valid
     assert tree.get_path("some_dir/file_a.txt").is_valid()
     assert tree.get_path("some_dir/file_b.txt").is_valid()
+    assert tree.get_path("some_dir/excluded.csv.txt").is_valid()
     assert not tree.get_path("some_dir/file_a.foo").is_valid()
     assert not tree.get_path("some_dir/.file.txt").is_valid()
 
     # errors
-    with pytest.raises(tree.PathNotFound):
-        tree.get_path("some_dir/notexist.txt")
-    with pytest.raises(tree.PathNotFound):
-        tree.get_path("no_dir")
+    for bad_file in [
+        "some_dir/notexist.txt",
+        "no_dir",
+        "output/highly_sensitive.txt",
+        "output/excluded.txt",
+    ]:
+        with pytest.raises(tree.PathNotFound):
+            tree.get_path(bad_file)
 
     # check that the tree works with the recursive template
     render_to_string("file_browser/tree.html", {"path": tree})
@@ -370,7 +405,6 @@ def test_get_workspace_tree_selected_only_file(workspace):
 
 def test_get_workspace_tree_selected_only_root(workspace):
     tree = get_workspace_tree(workspace, UrlPath(), selected_only=True)
-
     # only the selected path should be in the tree
     expected = textwrap.dedent(
         """
