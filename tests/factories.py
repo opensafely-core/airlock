@@ -273,9 +273,9 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         manifest["workspace"] = name
-        ws_outputs = Workspace.get_valid_filepaths_from_manifest_outputs(
-            manifest["outputs"]
-        )
+        ws_outputs = set(
+            Workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
+        ) & set(manifest["outputs"])
         if ws_outputs:
             first_output = manifest["outputs"][list(ws_outputs)[0]]
             repo = first_output["repo"]
@@ -309,29 +309,24 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
             user=user,
         )
 
-    # Include a highly_sensitive and L4 excluded file in all manifests;
-    # these should never be valid workspace files or appear in the
-    # file tree
-    for name, level, excluded in [
-        ("output/highly_sensitive.txt", "highly_sensitive", False),
-        ("output/excluded.txt", "moderately_sensitive", True),
-    ]:
-        if name not in manifest["outputs"]:
-            manifest["outputs"][name] = {
-                "level": level,
-                "excluded": excluded,
-                "size": 1,
-                "timestamp": 1,
-                "content_hash": "content",
-            }
+    # Include a highly_sensitive in all manifests;
+    # these should never be valid workspace files or appear in the file tree
+    if "output/highly_sensitive.txt" not in manifest["outputs"]:
+        manifest["outputs"]["output/highly_sensitive.txt"] = {
+            "level": "highly_sensitive",
+            "excluded": False,
+            "size": 1,
+            "timestamp": 1,
+            "content_hash": "content",
+        }
 
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     if isinstance(workspace, Workspace):
         workspace.manifest = manifest
-        workspace_file_paths = workspace.get_valid_filepaths_from_manifest_outputs(
-            manifest["outputs"]
+        workspace_file_paths = set(
+            workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
         ) | set(workspace.scan_metadata_dir(workspace.name))
         workspace_child_map, workspace_files = workspace.get_workspace_child_map(
             workspace_file_paths
@@ -350,6 +345,13 @@ def create_workspace(name: str, user=None) -> Workspace:
         workspace_dir.mkdir(exist_ok=True, parents=True)
 
     update_manifest(name)
+    return bll.get_workspace(name, user)
+
+
+def refresh_workspace(name: str, user=None) -> Workspace:
+    # Fetch the workspace without rewriting the manifest file on disk
+    if user is None:  # pragma: nocover
+        user = get_or_create_airlock_user(username="author", workspaces=[name])
     return bll.get_workspace(name, user)
 
 
@@ -412,7 +414,11 @@ def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeR
 
     commit = response.stdout.strip()
     update_manifest(workspace)
-    if not workspace.manifest["outputs"]:
+    if not set(
+        workspace.get_valid_filepaths_from_manifest_outputs(
+            workspace.manifest["outputs"]
+        )
+    ):
         write_workspace_file(workspace, "foo.txt")
 
     workspace.manifest["repo"] = None  # match job-runner output
