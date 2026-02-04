@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -167,6 +168,7 @@ class Workspace:
     workspace_files: set[UrlPath]
     current_request: ReleaseRequest | None
     released_files: set[str]
+    manifest_hash: str
 
     @classmethod
     def from_directory(
@@ -191,6 +193,12 @@ class Workspace:
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
 
+        # Store the manifest hash so get_url() can include it as a query parameter
+        # and views can use it to check if the manifest has changed
+        manifest_hash = hashlib.file_digest(
+            manifest_path.open("rb"), "sha256"
+        ).hexdigest()
+
         if metadata is None:  # pragma: no cover
             metadata = {}
 
@@ -209,6 +217,7 @@ class Workspace:
             workspace_files=workspace_files,
             current_request=current_request,
             released_files=released_files or set(),
+            manifest_hash=manifest_hash,
         )
 
     def __str__(self):
