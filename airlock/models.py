@@ -325,6 +325,9 @@ class Workspace:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
 
+    def get_manifest_hash(self) -> str | None:
+        return self.manifest_hash
+
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         relpath = UrlPath(relpath)
         if not self.is_valid_tree_path(relpath):
@@ -498,6 +501,9 @@ class CodeRepo:
             "code_view",
             kwargs=kwargs,
         )
+
+    def get_manifest_hash(self) -> str | None:
+        return None
 
     def get_file_state(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get state of path."""
@@ -791,6 +797,9 @@ class ReleaseRequest:
 
     def get_short_id(self):
         return f"{self.id[:3]}...{self.id[-6:]}"
+
+    def get_manifest_hash(self) -> str | None:
+        return None
 
     def get_url(self, relpath=""):
         return reverse(
