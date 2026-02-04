@@ -69,6 +69,11 @@ def test_get_workspace_tree_general(release_request):
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
+    # Manifest contains highly sensitive and excluded outputs which do not
+    # appear in the workspace tree
+    assert "output/highly_sensitive.txt" in workspace.manifest["outputs"]
+    assert "output/excluded.txt" in workspace.manifest["outputs"]
+
     # simple way to express the entire tree structure, including selected
     expected = textwrap.dedent(
         """
@@ -132,10 +137,14 @@ def test_get_workspace_tree_general(release_request):
     assert not tree.get_path("some_dir/.file.txt").is_valid()
 
     # errors
-    with pytest.raises(tree.PathNotFound):
-        tree.get_path("some_dir/notexist.txt")
-    with pytest.raises(tree.PathNotFound):
-        tree.get_path("no_dir")
+    for bad_file in [
+        "some_dir/notexist.txt",
+        "no_dir",
+        "output/highly_sensitive.txt",
+        "output/excluded.txt",
+    ]:
+        with pytest.raises(tree.PathNotFound):
+            tree.get_path(bad_file)
 
     # check that the tree works with the recursive template
     render_to_string("file_browser/tree.html", {"path": tree})
@@ -370,7 +379,6 @@ def test_get_workspace_tree_selected_only_file(workspace):
 
 def test_get_workspace_tree_selected_only_root(workspace):
     tree = get_workspace_tree(workspace, UrlPath(), selected_only=True)
-
     # only the selected path should be in the tree
     expected = textwrap.dedent(
         """

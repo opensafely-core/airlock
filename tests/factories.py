@@ -273,8 +273,11 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         manifest["workspace"] = name
-        if manifest["outputs"]:
-            first_output = list(manifest["outputs"].values())[0]
+        ws_outputs = Workspace.get_valid_filepaths_from_manifest_outputs(
+            manifest["outputs"]
+        )
+        if ws_outputs:
+            first_output = manifest["outputs"][list(ws_outputs)[0]]
             repo = first_output["repo"]
             if repo.startswith("https://github.com"):  # pragma: no cover
                 commit = first_output["commit"]
@@ -296,7 +299,7 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         current = manifest.get("outputs", {}).get(name, {})
         manifest["outputs"][name] = get_output_metadata(
             root / f,
-            level="moderately_senstive",
+            level="moderately_sensitive",
             job_id=f"job_{i}",
             job_request=f"job_request_{i}",
             action=f"action_{i}",
@@ -306,14 +309,30 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
             user=user,
         )
 
+    # Include a highly_sensitive and L4 excluded file in all manifests;
+    # these should never be valid workspace files or appear in the
+    # file tree
+    for name, level, excluded in [
+        ("output/highly_sensitive.txt", "highly_sensitive", False),
+        ("output/excluded.txt", "moderately_sensitive", True),
+    ]:
+        if name not in manifest["outputs"]:
+            manifest["outputs"][name] = {
+                "level": level,
+                "excluded": excluded,
+                "size": 1,
+                "timestamp": 1,
+                "content_hash": "content",
+            }
+
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     if isinstance(workspace, Workspace):
         workspace.manifest = manifest
-        workspace_file_paths = set(manifest["outputs"]) | set(
-            workspace.scan_metadata_dir(workspace.name)
-        )
+        workspace_file_paths = workspace.get_valid_filepaths_from_manifest_outputs(
+            manifest["outputs"]
+        ) | set(workspace.scan_metadata_dir(workspace.name))
         workspace_child_map, workspace_files = workspace.get_workspace_child_map(
             workspace_file_paths
         )

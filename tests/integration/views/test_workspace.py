@@ -230,6 +230,28 @@ def test_workspace_view_invalid_output_path_htmx(airlock_client):
     assert "Selected path is not a valid output path" in message.message
 
 
+def test_workspace_view_excluded_output_path_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # Existing file, but invalid output path (manifest entry for excluded file)
+    assert "output/highly_sensitive.txt" in workspace.manifest["outputs"]
+    response = airlock_client.get(
+        "/workspaces/view/workspace/output/highly_sensitive.txt",
+        headers={"HX-Request": "true"},
+    )
+    # redirects to nearest valid parent with a message to the user
+    assert response.status_code == 302
+    assert "HX-Redirect" in response.headers
+    assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert "Selected path is not a valid output path" in message.message
+
+
 def test_workspace_view_with_html_file(airlock_client):
     airlock_client.login(output_checker=True)
     factories.write_workspace_file(
@@ -332,6 +354,17 @@ def test_workspace_view_invalid_output_path(airlock_client):
     # Existing file in same directory, but invalid output path (no manifest entry)
     factories.write_workspace_file(workspace, "some_dir/file1.txt", manifest=False)
     response = airlock_client.get("/workspaces/view/workspace/some_dir/file1.txt")
+    assert response.status_code == 404
+
+
+def test_workspace_view_excluded_output_path(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    # Valid output path
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    # Existing file, but invalid output path (manifest entry for excluded file)
+    assert "output/excluded.txt" in workspace.manifest["outputs"]
+    response = airlock_client.get("/workspaces/view/workspace/output/excluded.txt")
     assert response.status_code == 404
 
 

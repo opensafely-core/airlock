@@ -197,7 +197,8 @@ class Workspace:
         # build a map of all valid workspace UrlPaths and their children from the
         # manifest file, plus a set of all paths for just the files
         workspace_child_map, workspace_files = cls.get_workspace_child_map(
-            set(manifest["outputs"]) | cls.scan_metadata_dir(name)
+            cls.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
+            | cls.scan_metadata_dir(name)
         )
 
         return cls(
@@ -244,6 +245,14 @@ class Workspace:
         scan(str(root / "metadata"))
 
         return paths
+
+    @staticmethod
+    def get_valid_filepaths_from_manifest_outputs(outputs):
+        return {
+            filename
+            for filename, output in outputs.items()
+            if output["level"] == "moderately_sensitive" and not output["excluded"]
+        }
 
     @staticmethod
     def get_workspace_child_map(
