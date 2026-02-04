@@ -229,6 +229,9 @@ class PathItem:
 
         if self.workspace_status:
             classes.append(f"workspace_{self.workspace_status.value.lower()}")
+            metadata = self.metadata()
+            if metadata and metadata.out_of_date_action:
+                classes.append("out-of-date-action")
         elif self.is_output() and self.request_status:
             classes.append(f"request_{self.request_status.decision.value.lower()}")
 

@@ -65,6 +65,11 @@ def test_get_workspace_tree_general(release_request):
         workspace, "metadata/metadata_subdir/file.log", manifest=False
     )
 
+    # Write a file produced by an out of date action
+    factories.write_workspace_file(workspace, "some_dir/out_of_date.txt", "out_of_date")
+    manifest = workspace.manifest
+    manifest["outputs"]["some_dir/out_of_date.txt"]["out_of_date_action"] = True
+
     # Write a workspace file for an excluded L4 file
     # These are replaced by the RAP agent with a message file that contains the reason for the exclusion
     # The replacement file should appear in the tree, with the original filename plus an extra
@@ -74,7 +79,6 @@ def test_get_workspace_tree_general(release_request):
         workspace, "some_dir/excluded.csv.txt", "Not allowed on L4", manifest=False
     )
     # The manifest entry still refers to the file by its real filename
-    manifest = workspace.manifest
     output_metadata = factories.get_output_metadata(
         workspace.root() / "some_dir/excluded.csv.txt",
         level="moderately_sensitive",
@@ -114,6 +118,7 @@ def test_get_workspace_tree_general(release_request):
             file_b.txt
             file_c.txt
             file_d.txt
+            out_of_date.txt
         """
     )
 
@@ -149,6 +154,9 @@ def test_get_workspace_tree_general(release_request):
     )
     assert "workspace_updated" in tree.get_path("some_dir/file_c.txt").html_classes()
     assert "workspace_unreleased" in tree.get_path("some_dir/file_d.txt").html_classes()
+    assert (
+        "out-of-date-action" in tree.get_path("some_dir/out_of_date.txt").html_classes()
+    )
 
     assert tree.get_path("some_dir/file_a.txt").request_status is None
 
