@@ -310,3 +310,53 @@ def test_csv_summarize(live_server, page, context):
 
     modal_button.click()
     expect(summary_table).to_be_visible()
+
+
+def test_csv_with_wrapping(live_server, page, context):
+    # This is a regression test for some odd behaviour seen with CSV row values that wrapped.
+    # With some (not easy to determine) combination of additional columns, clusterize seems to
+    # calculate the expected height of a cluster incorrectly.
+    # Visually, the table would appear unwrapped. When scrolled past the 200 row cluster, the
+    # table content would disappear and we see a big vertical gap.
+    # Possibly clusterize gets the height and then the table re-renders wrapped/unwrapped so
+    # the calculations are now wrong.
+    # The fix was to prevent wrapping in the table altogether. This test fails consistently
+    # before the fix and passes consistently afterwards. Note that in headed mode, it also
+    # fails, but if given a long enough slowmo (100ms at the time of writing) it passes.
+    # https://github.com/opensafely-core/airlock/pull/1076
+    # https://bennettoxford.slack.com/archives/C069YDR4NCA/p1769440482315959
+    workspace = factories.create_workspace("my-workspace")
+    num_rows = 1000
+    clusterize_increment = 40
+
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "H1,H2,WideHeader,WideHeader,Header,WideHeader,Header,MuchWiderHeader,AFinalWideHeader\r\n"
+        + "\r\n".join(
+            [
+                f"count,A very long column value that could wrap,1,1,1,1,1,1,value{i}"
+                for i in range(num_rows)
+            ]
+        ),
+    )
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    page.locator("tbody").hover()
+    for i in range(num_rows // clusterize_increment):
+        row_locator = page.get_by_text(f"value{i * clusterize_increment}", exact=True)
+        row_locator.scroll_into_view_if_needed(timeout=1000)
