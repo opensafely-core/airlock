@@ -5,6 +5,7 @@ from io import BytesIO
 
 import pytest
 from django.conf import settings
+from opentelemetry import trace
 
 from airlock import exceptions, permissions
 from airlock.enums import (
@@ -21,6 +22,7 @@ from airlock.models import (
 )
 from airlock.types import FileMetadata, UrlPath
 from tests import factories
+from tests.conftest import get_trace
 
 
 pytestmark = pytest.mark.django_db
@@ -64,6 +66,26 @@ def test_workspace_from_directory_errors():
     manifest_path.write_text(":")
     with pytest.raises(exceptions.ManifestFileError):
         Workspace.from_directory("workspace")
+
+
+def test_workspace_from_directory_no_outputs_in_manifest():
+    workspace = factories.create_workspace("workspace")
+    workspace.manifest_path().write_text(json.dumps({}))
+    tracer = trace.get_tracer("test")
+    with tracer.start_as_current_span("test-span"):
+        workspace = factories.refresh_workspace("workspace")
+    assert workspace.workspace_files == {UrlPath("metadata/manifest.json")}
+    traces = get_trace()
+    last_trace_event = traces[-1].events[0]
+    assert last_trace_event.name == "exception"
+    assert (
+        last_trace_event.attributes["exception.type"]
+        == "airlock.exceptions.ManifestFileError"
+    )
+    assert (
+        last_trace_event.attributes["exception.message"]
+        == "Workspace workspace has no outputs in manifest"
+    )
 
 
 def test_workspace_request_filetype(bll):

@@ -11,6 +11,7 @@ from typing import Any, Self
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from opentelemetry import trace
 
 from airlock import exceptions, permissions, renderers
 from airlock.enums import (
@@ -193,6 +194,17 @@ class Workspace:
 
         if metadata is None:  # pragma: no cover
             metadata = {}
+
+        if "outputs" not in manifest:
+            # A manifest file should always have an outputs entry, but it's possible some
+            # old workspaces may not; add a default and record the exception
+            manifest["outputs"] = {}
+            span = trace.get_current_span()
+            span.record_exception(
+                exceptions.ManifestFileError(
+                    f"Workspace {name} has no outputs in manifest"
+                )
+            )
 
         # build a map of all valid workspace UrlPaths and their children from the
         # manifest file, plus a set of all paths for just the files
