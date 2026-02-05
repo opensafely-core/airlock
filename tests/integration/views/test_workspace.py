@@ -525,6 +525,23 @@ def test_workspace_view_file_add_to_current_request(
     assert button_enabled == can_see_form
 
 
+def test_workspace_view_out_of_date_file(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    # refresh workspace and manifest
+    workspace = factories.create_workspace("workspace")
+    manifest = workspace.manifest
+    manifest["outputs"]["file.txt"]["out_of_date_action"] = True
+    (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
+
+    workspace = factories.refresh_workspace("workspace")
+    response = airlock_client.get("/workspaces/view/workspace/file.txt")
+    assert response.status_code == 200
+    assert (
+        b"file was produced by an action that is no longer present" in response.content
+    )
+
+
 def test_workspace_view_index_no_user(airlock_client):
     workspace = factories.create_workspace("workspace")
     (workspace.root() / "some_dir").mkdir(parents=True)

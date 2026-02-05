@@ -149,6 +149,13 @@
   --icon-url: url("/static/icons/released.svg");
 }
 
+.tree__file.out-of-date-action {
+  --file-name: var(--color-neutral-500) !important;
+  --icon-filter: filter: brightness(0) saturate(100%) invert(49%) sepia(4%) saturate(20%) hue-rotate(335deg)
+  brightness(90%) contrast(95%) !important;
+  --icon-url: url("/static/icons/exclamation-triangle-outline.svg") !important;
+}
+
 .tree__file.withdrawn {
   --file-bg: var(--color-orange-50) !important;
   --file-border: var(--color-orange-50) !important;

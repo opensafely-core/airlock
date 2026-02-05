@@ -34,6 +34,7 @@ class FileMetadata:
     timestamp: int
     _content_hash: str | None = None
     path: Path | None = None
+    out_of_date_action: bool = False
 
     @classmethod
     def from_manifest(cls, metadata: dict[str, Any]) -> FileMetadata:
@@ -41,6 +42,7 @@ class FileMetadata:
             size=int(metadata["size"]),
             timestamp=int(metadata["timestamp"]),
             _content_hash=str(metadata["content_hash"]),
+            out_of_date_action=metadata.get("out_of_date_action", False),
         )
 
     @classmethod

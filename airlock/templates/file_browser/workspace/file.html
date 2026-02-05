@@ -40,4 +40,11 @@
   </div>
 {% endfragment %}
 
+{% if path_item.metadata.out_of_date_action %}
+  <div>{% #alert variant="warning" title="Out of date action" class="my-2 p-2" dismissible=False %}
+    This file was produced by an action that is no longer present in the workspace's project.yaml
+  {% /alert %}
+  </div>
+{% endif %}
+
 {% include "file_browser/_includes/file_content.html" %}
