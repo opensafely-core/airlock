@@ -29,7 +29,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.13.1
+coverage==7.13.2
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -79,16 +79,16 @@ ghp-import==2.1.0
     # via mkdocs
 googleapis-common-protos==1.72.0
     # via opentelemetry-exporter-otlp-proto-http
-greenlet==3.3.0
+greenlet==3.3.1
     # via playwright
-gunicorn==23.0.0
+gunicorn==24.1.1
     # via airlock
 h11==0.16.0
     # via httpcore
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.150.2
+hypothesis==6.151.2
 idna==3.11
     # via
     #   anyio
@@ -104,7 +104,7 @@ jinja2==3.1.6
     #   mkdocs-material
 librt==0.7.8 ; platform_python_implementation != 'PyPy'
     # via mypy
-markdown==3.10
+markdown==3.10.1
     # via
     #   django-markdownify
     #   mkdocs
@@ -178,7 +178,7 @@ opentelemetry-util-http==0.60b1
     #   opentelemetry-instrumentation-django
     #   opentelemetry-instrumentation-requests
     #   opentelemetry-instrumentation-wsgi
-packaging==25.0
+packaging==26.0
     # via
     #   gunicorn
     #   mkdocs
@@ -186,7 +186,7 @@ packaging==25.0
     #   pytest
 paginate==0.5.7
     # via mkdocs-material
-pathspec==1.0.3
+pathspec==1.0.4
     # via
     #   mkdocs
     #   mypy
@@ -210,7 +210,7 @@ pygments==2.19.2
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==10.20
+pymdown-extensions==10.20.1
     # via mkdocs-material
 pytest==9.0.2
     # via
@@ -249,10 +249,10 @@ requests==2.32.5
     #   pytest-base-url
     #   responses
 responses==0.25.8
-ruff==0.14.13
+ruff==0.14.14
 ruyaml==0.91.0
     # via opensafely-pipeline
-setuptools==80.9.0
+setuptools==80.10.2
     # via ruyaml
 six==1.17.0
     # via python-dateutil
