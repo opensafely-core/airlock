@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from playwright.sync_api import expect
 
@@ -672,3 +674,82 @@ def test_select_all(live_server, page, context):
     # uncheck 1 checkbox, now select all should be unchecked again
     page.uncheck(f"input[type=checkbox][value='{file_1}']")
     expect(page.locator("input.selectall")).not_to_be_checked()
+
+
+def test_manifest_file_changes(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+    file_1 = "outputs/file1.txt"
+    factories.write_workspace_file(workspace, file_1, "I am the file_1 content")
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # go to directory view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    tree_locator = page.locator("#tree")
+
+    # Click on the file
+    click_and_htmx(page, tree_locator.get_by_role("link", name="file1.txt"))
+    iframe_locator = page.locator("#content-iframe")
+    expect(iframe_locator).to_be_visible()
+    expect(
+        iframe_locator.content_frame.get_by_text("I am the file_1 content")
+    ).to_be_visible()
+
+    # Write 2 new files in a new subdir
+    file_2 = "outputs/subdir/file2.txt"
+    file_3 = "outputs/subdir/file3.txt"
+    factories.write_workspace_file(workspace, file_2)
+    factories.write_workspace_file(workspace, file_3)
+
+    # file2 is not currently in the tree
+    subdir_locator = tree_locator.get_by_role("link", name="subdir")
+    expect(subdir_locator).not_to_be_visible()
+    # click on the same file
+    click_and_htmx(page, tree_locator.get_by_role("link", name="file1.txt"))
+    # page has redirected and tree has been refreshed so subdir now appears
+    expect(subdir_locator).to_be_visible()
+    # we're on the same page still
+    expect(page).to_have_url(
+        f"{live_server.url}/workspaces/view/my-workspace/outputs/file1.txt"
+    )
+    content_locator = page.locator("#content")
+    # No alerts
+    content_alert = content_locator.get_by_role("alert")
+    expect(content_alert).not_to_be_visible()
+
+    # go to file 2
+    page.goto(live_server.url + workspace.get_url(UrlPath(file_2)))
+    expect(page.locator("#selected-contents")).to_contain_text("file2.txt")
+    # The tree is expanded and file2 and file3 are visible
+    expect(tree_locator.get_by_role("link", name="file2.txt")).to_be_visible()
+    expect(tree_locator.get_by_role("link", name="file3.txt")).to_be_visible()
+
+    # remove file2 from the manifest.json on disk
+    # refresh workspace
+    workspace = factories.refresh_workspace("my-workspace")
+    del workspace.manifest["outputs"][file_2]
+    workspace.manifest_path().write_text(json.dumps(workspace.manifest))
+
+    # click on the same file again
+    click_and_htmx(page, tree_locator.get_by_role("link", name="file2.txt"))
+    # page has redirected and tree has been refreshed so file2 has disappeared
+    expect(tree_locator.get_by_role("link", name="file2.txt")).not_to_be_visible()
+    # we've been redirected to the nearest valid parent (subdir)
+    expect(page).to_have_url(
+        f"{live_server.url}/workspaces/view/my-workspace/outputs/subdir/"
+    )
+    # alert shown
+    expect(content_alert).to_be_visible()
+    expect(content_alert).to_contain_text("Selected path is not a valid output path")
