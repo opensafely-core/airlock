@@ -3,5 +3,10 @@
     {% #description_item title="Project" %}
       {{ project.display_name }}
     {% /description_item %}
+    {% #description_item title="Organisations" %}
+      {% for org in project.orgs %}
+        {{ org }}{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    {% /description_item %}
   {% /description_list %}
 {% /card %}
