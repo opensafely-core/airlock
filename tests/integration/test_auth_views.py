@@ -36,7 +36,7 @@ def test_login(client, auth_api_stubber):
     assert user.output_checker is False
     assert user.workspaces == {
         "workspace": {
-            "project_details": {"name": "project", "ongoing": True},
+            "project_details": {"name": "project", "ongoing": True, "orgs": []},
             "archived": False,
         },
     }

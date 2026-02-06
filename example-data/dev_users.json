@@ -8,19 +8,19 @@
       "staff": true,
       "workspaces": {
         "example-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_1": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_2": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 2", "ongoing": true, "orgs": []},
           "archived": true
         },
         "large-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 3", "ongoing": true, "orgs": ["Org 1", "Org 2"]},
           "archived": false
         }
       }
@@ -35,19 +35,19 @@
       "staff": true,
       "workspaces": {
         "example-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_1": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_2": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 2", "ongoing": true, "orgs": []},
           "archived": true
         },
         "large-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 3", "ongoing": true, "orgs": ["Org 1", "Org 2"]},
           "archived": false
         }
       }
@@ -62,19 +62,19 @@
       "staff": false,
       "workspaces": {
         "example-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_1": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_2": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 2", "ongoing": true, "orgs": []},
           "archived": true
         },
         "large-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 3", "ongoing": true, "orgs": ["Org 1", "Org 2"]},
           "archived": false
         }
       }
@@ -90,19 +90,19 @@
       "workspaces": {},
       "copiloted_workspaces": {
         "example-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_1": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 1", "ongoing": true, "orgs": ["Org 1"]},
           "archived": false
         },
         "example-workspace_2": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 2", "ongoing": true, "orgs": []},
           "archived": true
         },
         "large-workspace": {
-          "project_details": {"name": "Project 1", "ongoing": true},
+          "project_details": {"name": "Project 3", "ongoing": true, "orgs": ["Org 1", "Org 2"]},
           "archived": false
         }
       }

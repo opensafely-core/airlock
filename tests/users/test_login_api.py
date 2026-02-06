@@ -33,13 +33,13 @@ def test_get_user_data_with_dev_users(settings, tmp_path):
     assert dev_data["output_checker"] is True
     assert dev_data["workspaces"] == {
         "test1": {
-            "project_details": {"name": "project1", "ongoing": True},
+            "project_details": {"name": "project1", "ongoing": True, "orgs": []},
             "archived": False,
         },
     }
     assert dev_data["copiloted_workspaces"] == {
         "test2": {
-            "project_details": {"name": "project2", "ongoing": True},
+            "project_details": {"name": "project2", "ongoing": True, "orgs": []},
             "archived": False,
         },
     }
