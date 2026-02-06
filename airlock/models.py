@@ -145,6 +145,7 @@ class AuditEvent:
 class Project:
     name: str
     is_ongoing: bool
+    orgs: tuple[str, ...]
 
     def display_name(self):
         # helper for templates
@@ -298,6 +299,7 @@ class Workspace:
         return Project(
             name=details.get("name", "Unknown project"),
             is_ongoing=details.get("ongoing", True),
+            orgs=tuple(details.get("orgs", ())),
         )
 
     def is_archived(self):
