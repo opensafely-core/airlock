@@ -180,31 +180,31 @@ def test_workspace_get_workspace_archived_ongoing(bll):
 
     active_workspace = bll.get_workspace("normal_workspace", user)
     archived_workspace = bll.get_workspace("archived_workspace", user)
-    inactive_project = bll.get_workspace("not_ongoing", user)
+    inactive_project_workspace = bll.get_workspace("not_ongoing", user)
     assert not active_workspace.is_archived()
-    assert active_workspace.project().is_ongoing
+    assert active_workspace.project.is_ongoing
     assert active_workspace.is_active()
     assert active_workspace.display_name() == "normal_workspace"
-    assert active_workspace.project().display_name() == "project-1"
+    assert active_workspace.project.display_name() == "project-1"
 
     assert archived_workspace.is_archived()
-    assert archived_workspace.project().is_ongoing
+    assert archived_workspace.project.is_ongoing
     assert not archived_workspace.is_active()
     assert archived_workspace.display_name() == "archived_workspace (ARCHIVED)"
-    assert archived_workspace.project().display_name() == "project-1"
+    assert archived_workspace.project.display_name() == "project-1"
 
-    assert not inactive_project.is_archived()
-    assert not inactive_project.project().is_ongoing
-    assert not inactive_project.is_active()
-    assert inactive_project.display_name() == "not_ongoing"
-    assert inactive_project.project().display_name() == "project-2 (INACTIVE)"
+    assert not inactive_project_workspace.is_archived()
+    assert not inactive_project_workspace.project.is_ongoing
+    assert not inactive_project_workspace.is_active()
+    assert inactive_project_workspace.display_name() == "not_ongoing"
+    assert inactive_project_workspace.project.display_name() == "project-2 (INACTIVE)"
 
     for workspace_name in ["normal_workspace", "archived_workspace", "not_ongoing"]:
         workspace = bll.get_workspace(workspace_name, checker)
         assert workspace.is_archived() is None
-        assert bll.get_workspace(workspace_name, checker).project().is_ongoing
+        assert bll.get_workspace(workspace_name, checker).project.is_ongoing
         assert workspace.display_name() == workspace_name
-        assert "INACTIVE" not in workspace.project().display_name()
+        assert "INACTIVE" not in workspace.project.display_name()
 
 
 def test_workspace_get_workspace_file_status(bll):

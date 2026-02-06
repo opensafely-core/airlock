@@ -39,7 +39,7 @@ tracer = trace.get_tracer_provider().get_tracer("airlock")
 def grouped_workspaces(workspaces):
     workspaces_by_project = defaultdict(list)
     for workspace in workspaces:
-        workspaces_by_project[workspace.project()].append(workspace)
+        workspaces_by_project[workspace.project].append(workspace)
     # sort projects by ongoing status, then name
     for project, workspaces in sorted(
         workspaces_by_project.items(), key=lambda x: (not x[0].is_ongoing, x[0].name)
@@ -225,7 +225,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     content_buttons = get_button_context(path_item, request.user, workspace)
 
-    project = workspace.project()
+    project = workspace.project
 
     if path_item.is_directory() or path not in workspace.manifest["outputs"]:
         code_url = None

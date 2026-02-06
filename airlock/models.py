@@ -294,6 +294,7 @@ class Workspace:
             workspace_child_map.setdefault(parent, set()).add(child)
         return workspace_child_map, workspace_files
 
+    @property
     def project(self) -> Project:
         details = self.metadata.get("project_details", {})
         return Project(
@@ -307,7 +308,7 @@ class Workspace:
 
     # helpers for templates
     def is_active(self):
-        return self.project().is_ongoing and not self.is_archived()
+        return self.project.is_ongoing and not self.is_archived()
 
     def display_name(self):
         # helper for templates
