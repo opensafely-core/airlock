@@ -87,6 +87,9 @@ class RequestMetadata(models.Model):
     )
 
     workspace = models.TextField()
+    project = models.TextField(default="")
+    # comma-separated list of organisations
+    organisations = models.TextField(default="")
     status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
     author = models.TextField()  # just user id, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
@@ -107,6 +110,8 @@ class RequestMetadata(models.Model):
         return dict(
             id=self.id,
             workspace=self.workspace,
+            project=self.project or "",
+            organisations=self.organisations.split(",") if self.organisations else [],
             status=self.status,
             author=self.author,
             created_at=self.created_at,
