@@ -29,17 +29,17 @@ from airlock.types import UrlPath
 from users.models import User
 
 
-def create_api_project(project="project", ongoing=True):
+def create_api_project(project="project", ongoing=True, orgs=("organisation",)):
     """Test factory for project details"""
-    return dict(name=project, ongoing=ongoing)
+    return dict(name=project, ongoing=ongoing, orgs=list(orgs))
 
 
 def create_api_workspace(
-    project_details=None, archived=False, project="project", ongoing=True
+    project_details=None, archived=False, project="project", ongoing=True, orgs=None
 ):
     """Test factory for workspace details"""
     if project_details is None:
-        project_details = create_api_project(project, ongoing)
+        project_details = create_api_project(project, ongoing, orgs=orgs or [])
     return dict(
         project_details=project_details,
         archived=archived,
