@@ -815,6 +815,8 @@ def test_provider_get_or_create_current_request_for_user(bll):
     # reach around an simulate 2 active requests for same user
     bll._dal.create_release_request(
         workspace="workspace",
+        project="project",
+        organisations="org",
         author=user,
         status=RequestStatus.PENDING,
         audit=AuditEvent(

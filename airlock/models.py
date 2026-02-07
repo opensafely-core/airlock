@@ -762,6 +762,8 @@ class ReleaseRequest:
 
     id: str
     workspace: str
+    project: str
+    organisations: list[str]
     author: User
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
