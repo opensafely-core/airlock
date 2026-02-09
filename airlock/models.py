@@ -153,6 +153,10 @@ class Project:
             return f"{self.name} (INACTIVE)"
         return self.name
 
+    def display_organisations(self):
+        # helper for templates
+        return ", ".join(self.orgs)
+
 
 @dataclass(order=True)
 class Workspace:
@@ -1165,3 +1169,7 @@ class ReleaseRequest:
 
     def is_editing(self):
         return self.status_owner() == RequestStatusOwner.AUTHOR
+
+    def display_organisations(self):
+        # helper for templates
+        return ", ".join(self.organisations)
