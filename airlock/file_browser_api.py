@@ -49,6 +49,9 @@ class AirlockContainer(Protocol):
     def get_file_metadata(self, relpath: UrlPath) -> FileMetadata | None:
         """Get the file metadata"""
 
+    def get_manifest_hash(self) -> str | None:
+        """Return the hash of the manifest file content"""
+
 
 @dataclass
 class PathItem:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -173,6 +174,7 @@ class Workspace:
     workspace_files: set[UrlPath]
     current_request: ReleaseRequest | None
     released_files: set[str]
+    manifest_hash: str
 
     @classmethod
     def from_directory(
@@ -196,6 +198,12 @@ class Workspace:
             raise exceptions.ManifestFileError(
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
+
+        # Store the manifest hash so get_url() can include it as a query parameter
+        # and views can use it to check if the manifest has changed
+        manifest_hash = hashlib.file_digest(
+            manifest_path.open("rb"), "sha256"
+        ).hexdigest()
 
         if metadata is None:  # pragma: no cover
             metadata = {}
@@ -226,6 +234,7 @@ class Workspace:
             workspace_files=workspace_files,
             current_request=current_request,
             released_files=released_files or set(),
+            manifest_hash=manifest_hash,
         )
 
     def __str__(self):
@@ -334,6 +343,9 @@ class Workspace:
         if relpath != ROOT_PATH:
             kwargs["path"] = str(relpath)
         return reverse("workspace_view", kwargs=kwargs)
+
+    def get_manifest_hash(self) -> str | None:
+        return self.manifest_hash
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         relpath = UrlPath(relpath)
@@ -508,6 +520,9 @@ class CodeRepo:
             "code_view",
             kwargs=kwargs,
         )
+
+    def get_manifest_hash(self) -> str | None:
+        return None
 
     def get_file_state(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         """Get state of path."""
@@ -803,6 +818,9 @@ class ReleaseRequest:
 
     def get_short_id(self):
         return f"{self.id[:3]}...{self.id[-6:]}"
+
+    def get_manifest_hash(self) -> str | None:
+        return None
 
     def get_url(self, relpath=""):
         return reverse(

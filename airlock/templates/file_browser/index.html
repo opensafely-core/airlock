@@ -14,6 +14,7 @@
 {% block content %}{% endblock content %}
 
 {% block full_width_content %}
+  <input type="hidden" value="{{ path_item.container.get_manifest_hash }}" name="manifest_hash">
   <span class="loading-indicator"></span>
   <div id="file-browser-panel" class="grid grid-cols-4 gap-x-4 flex-1">
     <div class="border-r border-t bg-white overflow-auto min-w-full hover:z-10 hover:w-fit hover:shadow-2xl" id="tree-container">
@@ -26,6 +27,7 @@
         hx-swap="outerHTML show:window:none"
         hx-target="#selected-contents"
         hx-indicator=".loading-indicator"
+        hx-include="[name='manifest_hash']"
         id="tree"
       >
         {% include "file_browser/tree.html" with path=root.fake_parent %}

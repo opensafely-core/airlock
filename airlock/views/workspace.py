@@ -193,23 +193,29 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         template = "file_browser/contents.html"
         selected_only = True
         urlpath = UrlPath(path)
-        # The selected path may be an invalid output path if the manifest has changed
-        # since the full tree was generated, and the path no longer exists. Fall back
-        # to the closest valid parent.
-        if not workspace.is_valid_tree_path(urlpath):
-            # Find the closest parent to redirect to
-            redirect_url = next(
-                (
-                    workspace.get_url(parent)
-                    for parent in urlpath.parents
-                    if workspace.is_valid_tree_path(parent)
-                ),
-                workspace.get_url(),
-            )
-            messages.error(
-                request,
-                "Selected path is not a valid output path. A recent job may have updated its outputs.",
-            )
+        # If the manifest has changed, we redirect so that we reload the page and refresh
+        # the tree. This ensures that the tree stays consistent with the files and metadata
+        # displayed in the right-hand content panel even if a new job runs and updates the
+        # manifest file before the page is reloaded again.
+        manifest_from_request = request.GET.get("manifest_hash")
+        if manifest_from_request != workspace.manifest_hash:
+            # The selected path may still be an valid output path. If so, we redirect back to
+            # it. Otherwise, we fall back to the closest valid parent and redirect there.
+            if workspace.is_valid_tree_path(urlpath):
+                redirect_url = workspace.get_url(urlpath)
+            else:
+                redirect_url = next(
+                    (
+                        workspace.get_url(parent)
+                        for parent in urlpath.parents
+                        if workspace.is_valid_tree_path(parent)
+                    ),
+                    workspace.get_url(),
+                )
+                messages.error(
+                    request,
+                    "Selected path is not a valid output path. A recent job may have updated its outputs.",
+                )
             # tell HTMX to redirect us
             response = HttpResponse("", status=302)
             response.headers["HX-Redirect"] = redirect_url
