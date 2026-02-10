@@ -25,6 +25,12 @@
                 </dd>
               </div>
             </div>
+            <div class="flex flex-col gap-1 text-xs text-oxford-600 sm:flex-row">
+              <dt>Organisation:</dt>
+              <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                <span>{{ release_request.display_organisations }}</span>
+              </dd>
+            </div>
           {% /airlock_list_group_rich_item %}
         {% empty %}
           {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
@@ -44,6 +50,12 @@
                   <span class="truncate">{{ release_request.workspace }}</span>
                 </dd>
               </div>
+            </div>
+            <div class="flex flex-col gap-1 text-xs text-oxford-600 sm:flex-row">
+              <dt>Organisation:</dt>
+              <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                <span>{{ release_request.display_organisations }}</span>
+              </dd>
             </div>
           {% /airlock_list_group_rich_item %}
         {% empty %}
@@ -65,6 +77,12 @@
                     <span class="truncate">{{ release_request.workspace }}</span>
                   </dd>
                 </div>
+              </div>
+              <div class="flex flex-col gap-1 text-xs text-oxford-600 sm:flex-row">
+                <dt>Organisation:</dt>
+                <dd class="flex flex-row items-start overflow-hidden sm:max-w-[50%]">
+                  <span>{{ release_request.display_organisations }}</span>
+                </dd>
               </div>
             {% /airlock_list_group_rich_item %}
           {% endfor %}

@@ -68,6 +68,8 @@ class DataAccessLayerProtocol(Protocol):
     def create_release_request(
         self,
         workspace: str,
+        project: str,
+        organisations: str,
         author: User,
         status: RequestStatus,
         audit: AuditEvent,
@@ -368,9 +370,12 @@ class BusinessLogicLayer:
             # for this specific audit, the DAL will set request id once its
             # created, as we do not know it yet
         )
+        project = user.get_project_for_workspace(workspace)
         return ReleaseRequest.from_dict(
             self._dal.create_release_request(
                 workspace=workspace,
+                project=project["name"],
+                organisations=",".join(project["orgs"]),
                 author=user,
                 status=RequestStatus.PENDING,
                 audit=audit,

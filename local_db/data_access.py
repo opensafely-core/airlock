@@ -32,6 +32,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
     def create_release_request(
         self,
         workspace: str,
+        project: str,
+        organisations: str,
         author: User,
         status: RequestStatus,
         audit: AuditEvent,
@@ -40,6 +42,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         with transaction.atomic():
             metadata = RequestMetadata.objects.create(
                 workspace=workspace,
+                project=project,
+                organisations=organisations,
                 author=author.user_id,
                 status=status,
             )

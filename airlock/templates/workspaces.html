@@ -12,7 +12,13 @@
           <summary class="list-none" id="projects">
             {% fragment as custom_button %}<span class="opacity-75 ml-auto"><img height="30" width="30" class="inline-block group-open:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
               <img height="30" width="30" class="hidden group-open:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
-            {% card title=project.display_name custom_button=custom_button %}
+            {% fragment as project_title %}
+              {{ project.display_name }}
+              {% for org in project.orgs %}
+                {% pill variant="info" text=org %}
+              {% endfor %}
+            {% endfragment %}
+            {% card title=project_title custom_button=custom_button %}
               </summary>
               {% if workspace_type == "workspaces" %}
                 {% for workspace in workspaces %}

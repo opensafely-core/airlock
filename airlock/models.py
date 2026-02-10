@@ -145,12 +145,17 @@ class AuditEvent:
 class Project:
     name: str
     is_ongoing: bool
+    orgs: tuple[str, ...]
 
     def display_name(self):
         # helper for templates
         if not self.is_ongoing:
             return f"{self.name} (INACTIVE)"
         return self.name
+
+    def display_organisations(self):
+        # helper for templates
+        return ", ".join(self.orgs)
 
 
 @dataclass(order=True)
@@ -293,11 +298,13 @@ class Workspace:
             workspace_child_map.setdefault(parent, set()).add(child)
         return workspace_child_map, workspace_files
 
+    @property
     def project(self) -> Project:
         details = self.metadata.get("project_details", {})
         return Project(
             name=details.get("name", "Unknown project"),
             is_ongoing=details.get("ongoing", True),
+            orgs=tuple(details.get("orgs", ())),
         )
 
     def is_archived(self):
@@ -305,7 +312,7 @@ class Workspace:
 
     # helpers for templates
     def is_active(self):
-        return self.project().is_ongoing and not self.is_archived()
+        return self.project.is_ongoing and not self.is_archived()
 
     def display_name(self):
         # helper for templates
@@ -760,6 +767,8 @@ class ReleaseRequest:
 
     id: str
     workspace: str
+    project: str
+    organisations: list[str]
     author: User
     created_at: datetime
     status: RequestStatus = RequestStatus.PENDING
@@ -1160,3 +1169,7 @@ class ReleaseRequest:
 
     def is_editing(self):
         return self.status_owner() == RequestStatusOwner.AUTHOR
+
+    def display_organisations(self):
+        # helper for templates
+        return ", ".join(self.organisations)

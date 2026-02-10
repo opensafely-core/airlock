@@ -603,10 +603,14 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
         username="testuser",
         workspaces={
             "test1a": factories.create_api_workspace(
-                project="Project 1", archived=True
+                project="Project 1", archived=True, orgs=("Org 1",)
             ),
-            "test1b": factories.create_api_workspace(project="Project 1"),
-            "test1c": factories.create_api_workspace(project="Project 1"),
+            "test1b": factories.create_api_workspace(
+                project="Project 1", orgs=("Org 1",)
+            ),
+            "test1c": factories.create_api_workspace(
+                project="Project 1", orgs=("Org 1",)
+            ),
             "test2b": factories.create_api_workspace(
                 project="Project 2", ongoing=False
             ),
@@ -628,9 +632,9 @@ def test_workspaces_index_user_permitted_workspaces(airlock_client):
     response = airlock_client.get("/workspaces/")
 
     projects = response.context["projects"]
-    ongoing_project1 = Project(name="Project 1", is_ongoing=True)
-    inactive_project1 = Project(name="Project 2", is_ongoing=False)
-    ongoing_project2 = Project(name="Project 3", is_ongoing=True)
+    ongoing_project1 = Project(name="Project 1", is_ongoing=True, orgs=("Org 1",))
+    inactive_project1 = Project(name="Project 2", is_ongoing=False, orgs=())
+    ongoing_project2 = Project(name="Project 3", is_ongoing=True, orgs=())
 
     # projects are ordered by ongoing first, then by name
     assert list(projects.keys()) == [
@@ -661,10 +665,10 @@ def test_copiloted_workspaces_index(airlock_client):
         },
         copiloted_workspaces={
             "test2b": factories.create_api_workspace(
-                project="Project 2", ongoing=False
+                project="Project 2", ongoing=False, orgs=["Org 1"]
             ),
             "test2a": factories.create_api_workspace(
-                project="Project 2", ongoing=False
+                project="Project 2", ongoing=False, orgs=("Org 1",)
             ),
             "test3": factories.create_api_workspace(project="Project 3"),
         },
@@ -680,8 +684,8 @@ def test_copiloted_workspaces_index(airlock_client):
     response = airlock_client.get("/copiloted-workspaces/")
 
     projects = response.context["projects"]
-    inactive_project1 = Project(name="Project 2", is_ongoing=False)
-    ongoing_project2 = Project(name="Project 3", is_ongoing=True)
+    inactive_project1 = Project(name="Project 2", is_ongoing=False, orgs=("Org 1",))
+    ongoing_project2 = Project(name="Project 3", is_ongoing=True, orgs=())
 
     # Only copiloted workspaces are shown
     # projects are ordered by ongoing first, then by name

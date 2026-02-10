@@ -24,7 +24,16 @@ def hide_nav_item_switch_user(monkeypatch):
 
 def get_user_data():
     author_username = "researcher"
-    author_workspaces = ["my-workspace"]
+    author_workspaces = {
+        "my-workspace": {
+            "project_details": {
+                "name": "My Project",
+                "ongoing": True,
+                "orgs": ["My Organisation"],
+            },
+            "archived": False,
+        }
+    }
     user_dicts = {
         "author": factories.create_api_user(
             fullname="Author",
@@ -397,9 +406,11 @@ def test_screenshot_from_creation_to_release(
     wait_for_table_load(page)
     take_screenshot(page, "file_update.png")
     page.locator("button[value=update_files]").click()
+    modal_button = page.get_by_role("form").locator("#update-file-button")
+    expect(modal_button).to_be_visible()
     take_screenshot(page, "file_update_modal.png")
     # Click the button to update the file in the release request
-    page.get_by_role("form").locator("#update-file-button").click()
+    modal_button.click()
 
     # Add comment to group
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))

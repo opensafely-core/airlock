@@ -40,6 +40,12 @@ class User(AbstractBaseUser):
     def workspaces(self):
         return self.api_data.get("workspaces", {})
 
+    def get_project_for_workspace(self, workspace_name):
+        project = self.workspaces[workspace_name]["project_details"]
+        if "orgs" not in project:
+            project["orgs"] = []
+        return project
+
     @property
     def copiloted_workspaces(self):
         return self.api_data.get("copiloted_workspaces", {})
