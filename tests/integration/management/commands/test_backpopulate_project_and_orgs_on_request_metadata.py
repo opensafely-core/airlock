@@ -129,6 +129,43 @@ def test_command_no_user_in_db(bll, auth_api_stubber):
 
 
 @pytest.mark.django_db
+def test_command_no_workspace_information_from_API(bll, auth_api_stubber):
+    author = factories.create_airlock_user(
+        username="testuser",
+        workspaces={
+            "workspace": {
+                "project_details": {"name": "Project 1", "ongoing": True},
+                "archived": False,
+            }
+        },
+    )
+    # Mock response from auth endpoint for a user who no longer has access to
+    # the workspace
+    auth_api_stubber(
+        "authorise",
+        json={
+            "username": "testuser",
+            "output_checker": False,
+            "workspaces": {},
+        },
+    )
+
+    release_request = factories.create_release_request("workspace", user=author)
+
+    # Set release request project/orgs to "" to replicate state after initial migration
+    request_from_db = RequestMetadata.objects.get(id=release_request.id)
+    request_from_db.project = ""
+    request_from_db.organisations = ""
+    request_from_db.save()
+
+    call_command("backpopulate_project_and_orgs_on_request_metadata")
+
+    release_request = factories.refresh_release_request(release_request)
+    assert release_request.project == ""
+    assert release_request.organisations == []
+
+
+@pytest.mark.django_db
 def test_create_release_request_api_auth_error(bll, auth_api_stubber, capsys):
     auth_api_stubber("authorise", status=400)
 

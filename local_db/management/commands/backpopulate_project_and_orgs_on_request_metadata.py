@@ -23,9 +23,9 @@ class Command(BaseCommand):
             user = retrieved_users.get(request.author)
             if user is None:
                 user = auth_backend.create_or_update(request.author, force_refresh=True)
-                if user is None:
+                if user is None or request.workspace not in user.workspaces:
                     self.stdout.write(
-                        f"Error updating request {request.id}: Could not retrieve user information from API for user '{request.author}'"
+                        f"Error updating request {request.id}: Could not retrieve information for workspace from API for user '{request.author}'"
                     )
                     continue
                 retrieved_users[user.user_id] = user
