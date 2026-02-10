@@ -43,7 +43,7 @@ class Level4AuthenticationBackend(BaseBackend):
         time_since_authz = time.time() - user.last_refresh
         return time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT
 
-    def create_or_update(self, username: str) -> User | None:
+    def create_or_update(self, username: str, force_refresh=False) -> User | None:
         """
         Create a user and/or update their data via the API.
         Note: does not authenticate the user.
@@ -56,7 +56,7 @@ class Level4AuthenticationBackend(BaseBackend):
             user = User.from_api_data({"username": username}, last_refresh=0)
 
         # Only update the user if last refresh was longer ago than the allowed web timeout
-        if self.needs_refresh(user):
+        if self.needs_refresh(user) or force_refresh:
             return self.update(user)
 
         return user

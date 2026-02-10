@@ -22,7 +22,7 @@ class Command(BaseCommand):
         ):
             user = retrieved_users.get(request.author)
             if user is None:
-                user = auth_backend.update(auth_backend.get_user(request.author))
+                user = auth_backend.create_or_update(request.author, force_refresh=True)
                 if user is None:
                     self.stdout.write(
                         f"Error updating request {request.id}: Could not retrieve user information from API for user '{request.author}'"
