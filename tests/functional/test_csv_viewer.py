@@ -163,8 +163,8 @@ def test_csv_sorting(live_server, browser, csv_file):
 
     # We don't want the first row as that is treated as a header
     rows = csv_list[1:]
-    rows_sorted_1 = sorted(rows, key=lambda x: (x[column_sort_index]))
-    rows_sorted_2 = sorted(rows, key=lambda x: (x[column_sort_index + 1]))
+    rows_sorted_1 = sorted(rows, key=lambda x: x[column_sort_index])
+    rows_sorted_2 = sorted(rows, key=lambda x: x[column_sort_index + 1])
 
     first_row_sorted_asc = rows_sorted_1[0]
     last_row_sorted_column_value = rows_sorted_1[-1][column_sort_index]
