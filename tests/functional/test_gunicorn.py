@@ -199,7 +199,7 @@ def test_gunicorn_connection_timeout():
         # connect but do not send a request, and wait for timeout
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(process.socket)
-        time.sleep(1)
+        time.sleep(2)
 
     stdout, stderr = process.communicate()
     print(stdout)
