@@ -9,9 +9,6 @@ resolution-markers = [
 [options]
 exclude-newer = "2026-02-04T00:00:00Z"
 
-[options.exclude-newer-package]
-protobuf = "2026-01-30T00:00:00Z"
-
 [[package]]
 name = "airlock"
 version = "0.1.0"

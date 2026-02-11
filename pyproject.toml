@@ -130,7 +130,7 @@ django_settings_module = "airlock.settings"
 [tool.uv]
 required-version = ">=0.9"
 exclude-newer = "2026-02-04T00:00:00Z"
-exclude-newer-package = {"protobuf"="2026-01-30T00:00:00Z"}
+exclude-newer-package = {}
 
 [dependency-groups]
 dev = [
