@@ -5,40 +5,70 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
 import pytest
 
 
+class GunicornProcess(subprocess.Popen[str]):
+    client: httpx.Client
+    socket: str
+    output: str
+    _output_path: Path | None
+
+    def read_output(self) -> str:
+        """Read combined stdout/stderr output.
+
+        Falls back to cached output if the temp file has already been removed.
+        """
+        if self._output_path and self._output_path.exists():
+            self.output = self._output_path.read_text(encoding="utf-8")
+        return self.output
+
+
 @contextlib.contextmanager
-def run_gunicorn(args, timeout, check_url="/", env=None):
+def run_gunicorn(args, timeout, check_url="/", env=None) -> Iterator[GunicornProcess]:
     """Run a gunicorn server on a unix socket.
 
     Waits and checks for it to come up properly, and fails if it does not.
-    Returns a tuple of the unix socket and the running process.
+    Returns the running process.
 
     The unix socket will be unique to every test, and we know it ahead of time.
     This avoids a whole bunch of complexity around clashing TCP ports, and
     using and communicating random TCP ports.
+
+    The returned process has extra attributes:
+    - ``process.client``: httpx client connected to the unix socket
+    - ``process.socket``: unix socket path
+    - ``process.output``: cached combined stdout/stderr output text
+    - ``process.read_output()``: helper that returns output text
     """
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        socket = str(Path(tmpdir) / "gunicorn.sock")
+        socket_path = str(Path(tmpdir) / "gunicorn.sock")
+        output_path = Path(tmpdir) / "gunicorn.output.log"
         # use -m to use python import system to find gunicorn, rather than
         # requiring it be on the PATH, which gets messy with venv.
-        cmd = [sys.executable, "-m", "gunicorn", "--bind", f"unix:{socket}"] + args
+        cmd = [sys.executable, "-m", "gunicorn", "--bind", f"unix:{socket_path}"] + args
 
         # redirect stderr to stdout, so we can see the order in which things
         # happened when debugging.
-        process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env
-        )
-        # store the socket on the process for easy access
-        process.socket = socket  # type: ignore
-
+        with output_path.open("w+", encoding="utf-8") as output_handle:
+            process = GunicornProcess(
+                cmd,
+                stdout=output_handle,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=env,
+            )
+        # store the socket and outputs on the process for easy access
+        process.socket = socket_path
+        process._output_path = output_path
+        process.output = ""
         # we use httpx as it supports unix sockets
-        client = httpx.Client(transport=httpx.HTTPTransport(uds=socket))
+        process.client = httpx.Client(transport=httpx.HTTPTransport(uds=socket_path))
 
         def kill():
             if process.poll() is None:  # pragma: no branch
@@ -47,7 +77,7 @@ def run_gunicorn(args, timeout, check_url="/", env=None):
                 try:
                     process.wait(timeout=timeout)
                 except subprocess.TimeoutExpired:
-                    print("force killing gunicorn process {process.pid}")
+                    print(f"force killing gunicorn process {process.pid}")
                     process.kill()
                     process.wait()
 
@@ -56,13 +86,14 @@ def run_gunicorn(args, timeout, check_url="/", env=None):
         while time.time() - start_time < timeout:
             # check if process died
             if process.poll() is not None:
-                stdout, _ = process.communicate()
-                print(stdout)
+                print(process.read_output())
                 raise AssertionError("gunicorn failed to start correctly")
 
             # check it is up
             try:
-                response = client.get(f"http://localhost/{check_url.lstrip('/')}")
+                response = process.client.get(
+                    f"http://localhost/{check_url.lstrip('/')}"
+                )
                 assert response.status_code < 500
                 break
             except Exception:
@@ -71,27 +102,26 @@ def run_gunicorn(args, timeout, check_url="/", env=None):
             time.sleep(0.5)
         else:
             kill()
-            stdout, _ = process.communicate()
-            print(stdout)
+            print(process.read_output())
             raise AssertionError(f"gunicorn failed to start within {timeout}s")
 
-        yield (client, process)
+        yield process
 
-        client.close()
+        process.client.close()
         kill()
+        # ensure all output is read before closing the output file
+        process.read_output()
+        process._output_path = None
 
 
 def test_run_gunicorn_failure():
     with pytest.raises(AssertionError) as exc:
         # we use preload to force an early error and avoid race conditions
-        with run_gunicorn(["doesnotexist", "-w", "1", "--preload"], timeout=5) as (
-            _,
-            process,
-        ):
+        with run_gunicorn(
+            ["doesnotexist", "-w", "1", "--preload"], timeout=5
+        ) as process:
             # should not get here, so if we do, print some debugging info
-            stdout, stderr = process.communicate()  # pragma: nocover
-            print(stdout)  # pragma: nocover
-            print(stderr)  # pragma: nocover
+            print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start correctly" in str(exc)
 
@@ -100,11 +130,9 @@ def test_run_gunicorn_timeout():
     with pytest.raises(AssertionError) as exc:
         with run_gunicorn(
             ["airlock.wsgi:application"], check_url="/login", timeout=0
-        ) as (_, process):
+        ) as process:
             # should not get here, so if we do, print some debugging info
-            stdout, stderr = process.communicate()  # pragma: nocover
-            print(stdout)  # pragma: nocover
-            print(stderr)  # pragma: nocover
+            print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start within" in str(exc)
 
@@ -165,14 +193,13 @@ def test_gunicorn_view_timeout():
     # this will export otel spans to stdout
     env["OTEL_EXPORTER_CONSOLE"] = "true"
 
-    with run_gunicorn(cmd, timeout=5, env=env) as (client, process):
-        response = client.get("http://localhost/test-timeout/", timeout=5)
+    with run_gunicorn(cmd, timeout=5, env=env) as process:
+        response = process.client.get("http://localhost/test-timeout/", timeout=5)
         # leave some for gunicorn to clean up
         time.sleep(1)
 
-    stdout, stderr = process.communicate()
+    stdout = process.read_output()
     print(stdout)
-    print(stderr)  # should be empty
 
     assert "GET /test-timeout/" in stdout
     assert "airlock.exceptions.RequestTimeout" in stdout
@@ -195,15 +222,14 @@ def test_gunicorn_connection_timeout():
         "airlock.wsgi:application",
     ]
 
-    with run_gunicorn(cmd, timeout=5) as (client, process):
+    with run_gunicorn(cmd, timeout=5) as process:
         # connect but do not send a request, and wait for timeout
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(process.socket)
         time.sleep(2)
 
-    stdout, stderr = process.communicate()
+    stdout = process.read_output()
     print(stdout)
-    print(stderr)  # should be empty
 
     assert "airlock.exceptions.RequestTimeout" not in stdout
     assert "No request sent timeout, exiting" in stdout
