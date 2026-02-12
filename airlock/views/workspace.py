@@ -197,7 +197,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         # the tree. This ensures that the tree stays consistent with the files and metadata
         # displayed in the right-hand content panel even if a new job runs and updates the
         # manifest file before the page is reloaded again.
-        manifest_from_request = request.GET.get("manifest_hash")
+        manifest_from_request = request.headers.get("manifest-hash")
         if manifest_from_request != workspace.manifest_hash:
             # The selected path may still be an valid output path. If so, we redirect back to
             # it. Otherwise, we fall back to the closest valid parent and redirect there.
