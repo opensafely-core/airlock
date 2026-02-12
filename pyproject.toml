@@ -149,7 +149,7 @@ dev = [
     "responses",
     # Currently using our fork of django_coverage_plugin, pending
     # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
-    "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip",
+    "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip",
     # Type-checking and type stubs
     "mypy",
     "django-stubs[compatible-mypy]",

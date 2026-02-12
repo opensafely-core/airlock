@@ -82,7 +82,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "django-coverage-plugin", url = "https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip" },
+    { name = "django-coverage-plugin", url = "https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip" },
     { name = "django-debug-toolbar" },
     { name = "django-debug-toolbar-template-profiler" },
     { name = "django-stubs", extras = ["compatible-mypy"] },
@@ -412,15 +412,20 @@ wheels = [
 
 [[package]]
 name = "django-coverage-plugin"
-version = "3.1.0"
-source = { url = "https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip" }
+version = "3.2.0"
+source = { url = "https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip" }
 dependencies = [
     { name = "coverage" },
+    { name = "django", version = "5.2.11", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "django", version = "6.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { hash = "sha256:db70db8737dd269c346f7af6e0c735a3d6462b944302f6bc0178c7bac9a4c7ee" }
+sdist = { hash = "sha256:3f03ec72e772b57f34ca6d66d91f5ba4266d811f59e1592e9b041501e1ade66d" }
 
 [package.metadata]
-requires-dist = [{ name = "coverage" }]
+requires-dist = [
+    { name = "coverage" },
+    { name = "django" },
+]
 
 [[package]]
 name = "django-debug-toolbar"
