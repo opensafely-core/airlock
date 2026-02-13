@@ -181,7 +181,7 @@ def get_button_context(path_item, user, workspace):
 
 
 # we return different content if it is a HTMX request.
-@vary_on_headers("HX-Request")
+@vary_on_headers("HX-Request", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
