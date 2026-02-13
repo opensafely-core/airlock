@@ -38,6 +38,7 @@ distro==1.9.0
 django==5.2.11 ; python_full_version < '3.12'
     # via
     #   airlock
+    #   django-coverage-plugin
     #   django-debug-toolbar
     #   django-extensions
     #   django-htmx
@@ -49,6 +50,7 @@ django==5.2.11 ; python_full_version < '3.12'
 django==6.0.2 ; python_full_version >= '3.12'
     # via
     #   airlock
+    #   django-coverage-plugin
     #   django-debug-toolbar
     #   django-extensions
     #   django-htmx
@@ -57,7 +59,7 @@ django==6.0.2 ; python_full_version >= '3.12'
     #   django-stubs-ext
     #   django-vite
     #   slippers
-django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/153a0ca6c02f7f01831568a546c848c4a3f082cd.zip
+django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip
 django-debug-toolbar==6.2.0
     # via django-debug-toolbar-template-profiler
 django-debug-toolbar-template-profiler==2.1.0
