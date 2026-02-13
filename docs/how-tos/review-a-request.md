@@ -77,9 +77,12 @@ the file. You can also [download](../reference/downloading-files.md) it if requi
 
 ### View file group context, statistical disclosure controls and comments
 The context, controls and comments related to this file's file group can be
-viewed from the file page by clicking on the Context button.
+viewed from the file page by clicking on the "View Context & Comments" button.
 
 ![Context, controls and comments modal](../screenshots/context_modal.png)
+
+[Comments can be added](#add-comments) from the [file](#commenting-on-individual-files) view and
+will be annotated with a link to the file.
 
 ### Vote on a file
 
@@ -136,6 +139,30 @@ message will indicate if there are filegroups missing comments.
 To add a comment, navigate to the file group by clicking on it in
 the file browser. Enter your comment text and click Save. You can [write your comments in markdown](../reference/formatting-comments.md) for additional formatting.
 
+![Adding a comment to a group](../screenshots/group_comment_add.png)
+
+
+#### Commenting on individual files
+
+Comments are made at the file group level, however, when you add a comment
+from a file view, it will be annotated with a link to the file as a reference.
+
+To add a comment for a file, navigate to the relevant file, and click the
+"View Context & Comments" button.
+
+![View context & comments button](../screenshots/view_context_and_comments_button.png)
+
+Scroll down to the comment form, add a comment and click the "Comment" button.
+
+![Adding a comment from a file view](../screenshots/comment_from_file_form.png)
+
+The newly added comment includes a reference and link to the file.
+
+![Comment with file link](../screenshots/comment_with_file_link.png)
+
+
+#### Comment visibility
+
 You can choose to make a comment public and visible to everyone, or
 private, visible only to other output checkers. In either case, comments are
 hidden from the researcher until the request is returned (or approved/released).
@@ -150,6 +177,8 @@ Comments that are created as private can be updated to public at a later stage.
 This can be useful during the [review consolidation](#review-consolidation) stage,
 if output checkers agree that the comment contains a question to the researcher that
 they would like to ask without revision.
+
+
 
 ### Submit your independent review
 
