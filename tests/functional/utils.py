@@ -37,10 +37,9 @@ def screenshot_element_with_padding(
     extra = extra or {}
     for key, extra_padding in extra.items():
         clip[key] += extra_padding
-
     crop = crop or {}
-    for key, crop in crop.items():
-        clip[key] *= crop
+    for key, extra_crop in crop.items():
+        clip[key] *= extra_crop
 
     if os.getenv("TAKE_SCREENSHOTS") is not None:  # pragma: nocover
         page.screenshot(
