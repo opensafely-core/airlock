@@ -3,14 +3,12 @@ import json
 import pytest
 from django.contrib import messages
 from django.contrib.messages.api import get_messages
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.urls import reverse
 
 from airlock import policies
 from airlock.enums import RequestFileType, RequestStatus, WorkspaceFileStatus
 from airlock.models import Project
 from airlock.types import UrlPath
-from airlock.views.workspace import workspace_view
 from tests import factories
 from tests.conftest import get_trace
 
@@ -196,22 +194,16 @@ def test_workspace_view_with_updated_file(bll, airlock_client, request_status):
     assert "HX-Request" in response.headers["Vary"]
 
 
-def test_workspace_view_with_file_htmx(rf):
+def test_workspace_view_with_file_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "file.txt", "foobar")
     workspace = factories.create_workspace("workspace")
 
-    # Note: Using RequestFactory here instead of the test client as
-    # the client doesn't allow for sending GET parameters in the request
-    # body (as they would be received via hx-include), only as a query
-    # parameter on the url, so we'd have to call
-    # airlock_client.get("/workspaces/view/workspace/file.txt?manifest_hash=..."
-    # which is not the actual URL we use
-    request = rf.get("/", {"manifest_hash": workspace.manifest_hash})
-    request.user = factories.create_airlock_user(workspaces=["workspace"])
-    request.htmx = True
-
-    response = workspace_view(request, "workspace", "file.txt")
+    response = airlock_client.get(
+        "/workspaces/view/workspace/file.txt",
+        headers={"HX-Request": "true", "manifest-hash": workspace.manifest_hash},
+    )
     assert response.status_code == 200
     assert workspace.get_contents_url(UrlPath("file.txt")) in response.rendered_content
     assert response.template_name == "file_browser/contents.html"
@@ -219,7 +211,8 @@ def test_workspace_view_with_file_htmx(rf):
     assert "HX-Request" in response.headers["Vary"]
 
 
-def test_workspace_view_invalid_output_path_htmx(rf):
+def test_workspace_view_invalid_output_path_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     # Valid output path
     factories.write_workspace_file(workspace, "some_dir/file.txt")
@@ -227,39 +220,33 @@ def test_workspace_view_invalid_output_path_htmx(rf):
     factories.write_workspace_file(
         workspace, "some_dir/some_sub_dir/file1.txt", manifest=False
     )
+    response = airlock_client.get(
+        "/workspaces/view/workspace/some_dir/some_sub_dir/file1.txt",
+        headers={"HX-Request": "true", "manifest-hash": workspace.manifest_hash},
+    )
 
-    request = rf.get("/", {"manifest_hash": workspace.manifest_hash})
-    request.user = factories.create_airlock_user(workspaces=["workspace"])
-    request.htmx = True
-    # Set session and _messages on the request so that we can inspect messages
-    request.session = {}
-    request._messages = FallbackStorage(request)
-
-    response = workspace_view(request, "workspace", "some_dir/some_sub_dir/file1.txt")
     # redirects to nearest valid parent with a message to the user
     assert response.status_code == 302
     assert "HX-Redirect" in response.headers
     assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/some_dir"
 
-    all_messages = list(get_messages(request._messages.request))
+    all_messages = list(get_messages(response.wsgi_request))
     assert len(all_messages) == 1
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "Selected path is not a valid output path" in message.message
 
 
-def test_workspace_view_changed_manifest_htmx(rf):
+def test_workspace_view_changed_manifest_htmx(airlock_client):
+    airlock_client.login(output_checker=True)
     # Valid output path
     factories.write_workspace_file("workspace", "some_dir/file.txt")
     # Fetch workspace with updated manifest
     workspace = factories.create_workspace("workspace")
     assert UrlPath("some_dir/file.txt") in workspace.workspace_files
 
-    # Set up the request using the current manifest_hash
+    # Store current manifest_hash
     current_manifest_hash = workspace.manifest_hash
-    request = rf.get("/", {"manifest_hash": current_manifest_hash})
-    request.user = factories.create_airlock_user(workspaces=["workspace"])
-    request.htmx = True
 
     # Write a new workspace file
     factories.write_workspace_file("workspace", "some_dir/new_file.txt")
@@ -267,7 +254,11 @@ def test_workspace_view_changed_manifest_htmx(rf):
     workspace = factories.refresh_workspace("workspace")
     assert workspace.get_manifest_hash() != current_manifest_hash
 
-    response = workspace_view(request, "workspace", "some_dir/file.txt")
+    response = airlock_client.get(
+        "/workspaces/view/workspace/some_dir/file.txt",
+        headers={"HX-Request": "true", "manifest-hash": current_manifest_hash},
+    )
+
     # The file is valid but the manifest is out of date; redirects to same file
     assert response.status_code == 302
     assert "HX-Redirect" in response.headers

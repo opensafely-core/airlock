@@ -181,7 +181,7 @@ def get_button_context(path_item, user, workspace):
 
 
 # we return different content if it is a HTMX request.
-@vary_on_headers("HX-Request")
+@vary_on_headers("HX-Request", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
     workspace = get_workspace_or_raise(request.user, workspace_name)
@@ -197,7 +197,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         # the tree. This ensures that the tree stays consistent with the files and metadata
         # displayed in the right-hand content panel even if a new job runs and updates the
         # manifest file before the page is reloaded again.
-        manifest_from_request = request.GET.get("manifest_hash")
+        manifest_from_request = request.headers.get("manifest-hash")
         if manifest_from_request != workspace.manifest_hash:
             # The selected path may still be an valid output path. If so, we redirect back to
             # it. Otherwise, we fall back to the closest valid parent and redirect there.
