@@ -183,6 +183,7 @@ class GroupCommentForm(forms.Form):
             attrs={"class": "filetype-radio flex items-center gap-2"}
         ),
     )
+    file_relpath = forms.CharField(required=False)
 
     def __init__(self, visibilities, *args, **kwargs):
         super().__init__(*args, **kwargs)

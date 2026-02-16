@@ -88,7 +88,7 @@ def test_request_file_update_properties(live_server, context, page, bll):
     )
 
 
-def test_request_file_group_context_modal(live_server, context, page):
+def test_request_file_group_context_and_comments_modal(live_server, context, page):
     author = login_as_user(
         live_server,
         context,
@@ -118,6 +118,35 @@ def test_request_file_group_context_modal(live_server, context, page):
     # context and controls instruction help text is not shown in the modal
     expect(page.get_by_test_id("c3")).not_to_contain_text("Please describe")
 
+    # comment form is visible
+    group_comment_locator = page.locator("#selected-contents").get_by_role(
+        "form", name="group-comment-form"
+    )
+    expect(group_comment_locator).to_be_visible()
+
+    comment_button = group_comment_locator.get_by_role("button", name="Comment")
+
+    expect(comment_button).to_be_visible()
+    comment_locator = group_comment_locator.get_by_role("textbox", name="comment")
+    comment_locator.fill("A Test Comment")
+    comment_button = group_comment_locator.get_by_role("button", name="Comment")
+    comment_button.click()
+
+    # We stay on the file page
+    expect(page).to_have_url(
+        live_server.url + release_request.get_url("group/file1.txt")
+    )
+
+    # open the modal again to view the comment
+    modal_button.click()
+    expect(dialog).to_be_visible()
+
+    # Comment has been added with file link
+    comments_locator = page.get_by_test_id("c3").locator(".comments")
+    expect(comments_locator).to_contain_text("File: group/file1.txt")
+    expect(comments_locator).to_contain_text("A Test Comment")
+
+    # Close the modal
     dialog.locator("button[type=cancel]").click()
     expect(dialog).not_to_be_visible()
 

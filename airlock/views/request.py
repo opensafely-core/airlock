@@ -1053,12 +1053,21 @@ def group_comment_create(request, request_id, group):
     )
     form = GroupCommentForm(visibilities, request.POST)
 
+    file_url = None
+    if file_relpath := form.data.get("file_relpath"):
+        file_url = release_request.get_url(UrlPath(file_relpath))
+    redirect_url = file_url or release_request.get_url(group)
+
     if form.is_valid():
+        comment = form.cleaned_data["comment"]
+        if file_url is not None:
+            # If the comment is being added from a file, prepend a link to the file
+            comment = f"File: [{file_relpath}]({file_url})\n" + comment
         try:
             bll.group_comment_create(
                 release_request,
                 group=group,
-                comment=form.cleaned_data["comment"],
+                comment=comment,
                 visibility=Visibility[form.cleaned_data["visibility"]],
                 user=request.user,
             )
@@ -1074,7 +1083,7 @@ def group_comment_create(request, request_id, group):
     else:
         display_form_errors(request, form.errors)
 
-    return redirect(release_request.get_url(group))
+    return redirect(redirect_url)
 
 
 @instrument(func_attributes={"release_request": "request_id", "group": "group"})

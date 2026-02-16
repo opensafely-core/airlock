@@ -99,7 +99,7 @@
 
           {% fragment as author %}{% airlock_user user=comment.author %}{% endfragment %}
           {% #list_group_rich_item custom_status=comment_status class=comment_class title=author %}
-            <div class="prose prose-code:before:hidden prose-code:after:hidden">{{ comment.comment|markdownify }}</div>
+            <div class="prose prose-code:before:hidden prose-code:after:hidden">{{ comment.comment|markdownify|linebreaks }}</div>
             {% if request.user == comment.author %}
               {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
                 <div>
@@ -122,7 +122,7 @@
             {% endif %}
           {% /list_group_rich_item %}
         {% endfor %}
-        {% if group.user_can_comment and not group.inline %}
+        {% if group.user_can_comment %}
           {% #list_group_item %}
             <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
               {% csrf_token %}
@@ -132,6 +132,10 @@
                   Comments are initially only visible to you. Once you submit the request,
                   comments will be visible to other users.
                 {% /alert %}
+              {% endif %}
+
+              {% if group.inline %}
+                <input type="hidden" name="file_relpath" value="{{ path_item.relpath }}">
               {% endif %}
 
               {% form_textarea field=group.comment_form.comment placeholder="Use Markdown to format your comment" label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
@@ -146,6 +150,7 @@
                 {% endif %}
                 {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
               {% endif %}
+              {% if group.inline %}<div class="c2-help text-slate-400">Comments will be annotated with a link to this file</div>{% endif %}
               <div class="mt-2">
                 {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
               </div>

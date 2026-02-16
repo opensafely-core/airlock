@@ -6,7 +6,7 @@ from django.core.management import call_command
 from playwright.sync_api import expect
 
 from airlock.business_logic import bll
-from airlock.enums import RequestFileType, RequestStatus
+from airlock.enums import RequestFileType, RequestStatus, Visibility
 from airlock.types import UrlPath
 from tests import factories
 
@@ -166,16 +166,14 @@ def test_screenshot_from_creation_to_release(
     add_file_button = page.locator("button[value=add_files]")
     take_screenshot(content, "add_file_button.png")
     screenshot_element_with_padding(
-        page, content, "add_file_button.png", crop={"height": 0.25}
+        page, content, "add_file_button.png", crop={"height": 0.5}
     )
 
     # Click to add file and fill in the form with a new group name
     add_file_button.click()
     page.locator("#id_new_filegroup").fill("my-group")
     form_element = page.get_by_role("form")
-    screenshot_element_with_padding(
-        page, form_element, "add_file_modal.png", crop={"height": 0.5}
-    )
+    screenshot_element_with_padding(page, form_element, "add_file_modal.png")
 
     # create the release request outside of the browser so we can use its methods
     # and avoid clicking through all the files to add them
@@ -216,6 +214,15 @@ def test_screenshot_from_creation_to_release(
     # Save
     page.locator("#edit-group-button").click()
 
+    # Add a comment for the later screeenshots
+    bll.group_comment_create(
+        release_request,
+        group="my-group",
+        comment="Please review my release request",
+        visibility=Visibility.PUBLIC,
+        user=author,
+    )
+
     # Submit request
     page.goto(live_server.url + release_request.get_url())
     page.locator("button[data-modal=submitRequest]").click()
@@ -252,9 +259,14 @@ def test_screenshot_from_creation_to_release(
             page.keyboard.press("Escape")
             more_locator.blur()
 
+            # screenshot the modal button
+            modal_button = page.locator("button[data-modal=group-context]")
+            take_screenshot(modal_button, "view_context_and_comments_button.png")
+
             # Click to open the context modal
-            page.locator("button[data-modal=group-context]").click()
+            modal_button.click()
             take_screenshot(page, "context_modal.png")
+
             page.get_by_role("button", name="Close").click()
 
         if screenshot:
@@ -275,19 +287,50 @@ def test_screenshot_from_creation_to_release(
         )
         page.locator("#file-request-changes-button").click()
 
-        # we need a comment on this group before we can submit the review
         if screenshot:
             # take a screenshot of the action required alert
             move_mouse_from(page)
             take_screenshot(page, "comments_required_before_submitting_review.png")
 
+            # Make a comment on the file
+            page.locator("button[data-modal=group-context]").click()
+            group_comment_locator = page.locator("#selected-contents").get_by_role(
+                "form", name="group-comment-form"
+            )
+            comment_locator = group_comment_locator.get_by_role(
+                "textbox", name="comment"
+            )
+            comment_locator.fill("Please update with more descriptive variable names")
+            comment_button = group_comment_locator.get_by_role("button", name="Comment")
+            comment_button.scroll_into_view_if_needed()
+
+            # screenshot with extra space below, to capture the help text
+            screenshot_element_with_padding(
+                page,
+                comment_locator,
+                "comment_from_file_form.png",
+                extra={"y": -30, "height": 230},
+            )
+            comment_button.click()
+
+            # Take screenshot of group comments with the file comment
+            page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
+            # Find the comment by text, and locate its parent listitem element
+            comment_text = page.get_by_text("File: my-group")
+            comment_item = page.get_by_role("listitem").filter(has=comment_text)
+            take_screenshot(comment_item, "comment_with_file_link.png")
+
+        # we need a comment on this group before we can submit the review
         # Add private comment
         page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
         comment_button = page.get_by_role("button", name=re.compile(r"^Comment"))
         comment_input = page.locator("#id_comment")
-        comment_input.fill(
-            "Please update file2.csv with more descriptive variable names"
-        )
+        comment_input.fill("Please confirm if rounding has been applied to these data.")
+        if screenshot:
+            group_comment_locator = page.locator("#selected-contents").get_by_role(
+                "form", name="group-comment-form"
+            )
+            take_screenshot(group_comment_locator, "group_comment_add.png")
         comment_button.click()
 
         # return to request homepage
@@ -347,9 +390,15 @@ def test_screenshot_from_creation_to_release(
     public_visibility_radio.check()
     comment_input.fill("Is summmary.txt required for output?")
     comment_button.click()
-    comments = page.locator("#comments")
+    page.reload()
 
-    take_screenshot(comments, "reviewed_request_comments.png")
+    # dismiss the action required alert
+    content_alert = page.locator("#content").get_by_role("alert")
+    content_alert.get_by_role("button").click()
+    comments = page.locator("#comments")
+    comments.scroll_into_view_if_needed()
+    page.mouse.wheel(0, -20)
+    screenshot_element_with_padding(page, comments, "reviewed_request_comments.png")
 
     # Return to researcher
     page.goto(live_server.url + release_request.get_url())
@@ -364,7 +413,12 @@ def test_screenshot_from_creation_to_release(
 
     # View comments
     page.goto(live_server.url + release_request.get_url(UrlPath("my-group")))
-    take_screenshot(comments, "returned_request_comments.png")
+
+    # dismiss the action required alert
+    content_alert.get_by_role("button").click()
+    comments.scroll_into_view_if_needed()
+    page.mouse.wheel(0, -20)
+    screenshot_element_with_padding(page, comments, "returned_request_comments.png")
 
     page.goto(
         live_server.url

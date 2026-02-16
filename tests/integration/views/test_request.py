@@ -2652,6 +2652,75 @@ def test_group_comment_create_success(
     else:
         assert "visibility: Select a valid choice" in messages[0].message
 
+    assert len(response.redirect_chain) == 2
+    assert response.redirect_chain[0][0] == release_request.get_url("group")
+    assert response.redirect_chain[1][0] == release_request.get_url("group") + "/"
+
+
+def test_group_comment_create_success_from_file(
+    airlock_client,
+):
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "file.txt")],
+    )
+
+    user = factories.create_airlock_user(output_checker=True, workspaces=["workspace"])
+    airlock_client.login_with_user(user)
+
+    response = airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={
+            "comment": "opinion",
+            "visibility": Visibility.PUBLIC.name,
+            "file_relpath": "group/file.txt",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert len(response.redirect_chain) == 1
+    assert response.redirect_chain[0][0] == release_request.get_url("group/file.txt")
+    messages = list(response.context.get("messages", []))
+    assert "Comment added" in messages[0].message
+
+    release_request = factories.refresh_release_request(release_request)
+    assert (
+        release_request.filegroups["group"]
+        .comments[0]
+        .comment.startswith("File: [group/file.txt]")
+    )
+
+
+def test_group_comment_create_success_from_file_with_error(
+    airlock_client,
+):
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file("group", "file.txt")],
+    )
+
+    user = factories.create_airlock_user(output_checker=True, workspaces=["workspace"])
+    airlock_client.login_with_user(user)
+
+    response = airlock_client.post(
+        f"/requests/comment/create/{release_request.id}/group",
+        data={
+            "comment": "",
+            "visibility": Visibility.PUBLIC.name,
+            "file_relpath": "group/file.txt",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert len(response.redirect_chain) == 1
+    assert response.redirect_chain[0][0] == release_request.get_url("group/file.txt")
+    messages = list(response.context.get("messages", []))
+    assert "comment: This field is required" in messages[0].message
+
 
 def test_group_comment_create_bad_user(airlock_client):
     author = factories.create_airlock_user(
