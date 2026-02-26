@@ -275,7 +275,9 @@ class Workspace:
     @staticmethod
     def get_valid_filepaths_from_manifest_outputs(outputs):
         for filename, output in outputs.items():
-            if output["level"] == "moderately_sensitive":
+            if output["level"] == "moderately_sensitive" and not output.get(
+                "out_of_date_output", False
+            ):
                 if not output["excluded"]:
                     yield filename
                 else:

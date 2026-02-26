@@ -65,10 +65,16 @@ def test_get_workspace_tree_general(release_request):
         workspace, "metadata/metadata_subdir/file.log", manifest=False
     )
 
-    # Write a file produced by an out of date action
+    # Write out of date files
+    # 1) produced by an out of date action
     factories.write_workspace_file(workspace, "some_dir/out_of_date.txt", "out_of_date")
+    # 2) an out of date output. This exists inthe manifest but does NOT get included in the tree.
+    factories.write_workspace_file(
+        workspace, "some_dir/out_of_date_output.txt", "out_of_date_output"
+    )
     manifest = workspace.manifest
     manifest["outputs"]["some_dir/out_of_date.txt"]["out_of_date_action"] = True
+    manifest["outputs"]["some_dir/out_of_date_output.txt"]["out_of_date_output"] = True
 
     # Write a workspace file for an excluded L4 file
     # These are replaced by the RAP agent with a message file that contains the reason for the exclusion
@@ -176,6 +182,7 @@ def test_get_workspace_tree_general(release_request):
         "no_dir",
         "output/highly_sensitive.txt",
         "output/excluded.txt",
+        "output/out_of_date_output.txt",
     ]:
         with pytest.raises(tree.PathNotFound):
             tree.get_path(bad_file)
