@@ -59,10 +59,12 @@ def test_copiloted_workspaces_index_as_copilot(live_server, page, copilot_user):
 @pytest.mark.parametrize(
     "archived,ongoing,login_as,request_status,is_visible,is_enabled,tooltip",
     [
-        # archived workspace, button not shown
+        # archived workspace and project not ongoing, button not shown
         (True, False, "researcher", None, False, False, ""),
-        # inactive project, button not shown
+        # archived workspace in ongoing project, button not shown
         (True, True, "researcher", None, False, False, ""),
+        # not archived but project not ongoing, button not shown
+        (False, False, "researcher", None, False, False, ""),
         # active project, checker with no role, shown disabled
         (
             False,
