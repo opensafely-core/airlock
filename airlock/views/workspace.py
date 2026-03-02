@@ -89,13 +89,17 @@ def _get_dir_button_context(user, workspace):
     )
     context = {"multiselect_add": multiselect_add_btn}
 
-    # We always show the button unless the workspace is inactive (but it may be disabled)
-    if not workspace.is_active():
-        return context
-
+    # We always show the button to avoid confusion (but it may be disabled)
     multiselect_add_btn.show = True
 
-    if permissions.user_can_action_request_for_workspace(user, workspace.name):
+    if not workspace.is_active():
+        tooltip_lines = []
+        if not workspace.project.is_ongoing:
+            tooltip_lines.append("the project is not ongoing")
+        if workspace.is_archived():
+            tooltip_lines.append("this workspace is archived")
+        multiselect_add_btn.tooltip = " and ".join(tooltip_lines).capitalize() + "."
+    elif permissions.user_can_action_request_for_workspace(user, workspace.name):
         if workspace.current_request is None or workspace.current_request.is_editing():
             multiselect_add_btn.disabled = False
         else:
@@ -127,10 +131,7 @@ def _get_file_button_context(user, workspace, path_item):
         "update_file": update_file,
         "add_file_button": add_file_btn,
     }
-    # We always show the button unless the workspace is inactive (but it may be disabled)
-    if not workspace.is_active():
-        return context
-
+    # We always show the button to avoid confusion (but it may be disabled)
     add_file_btn.show = True
     # Enable the add file form button if the user has permission to add a
     # file and/or create a request

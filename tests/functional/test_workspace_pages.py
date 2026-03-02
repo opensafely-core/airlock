@@ -57,33 +57,40 @@ def test_copiloted_workspaces_index_as_copilot(live_server, page, copilot_user):
 
 
 @pytest.mark.parametrize(
-    "archived,ongoing,login_as,request_status,is_visible,is_enabled,tooltip",
+    "archived,ongoing,login_as,request_status,is_enabled,tooltip",
     [
-        # archived workspace, button not shown
-        (True, False, "researcher", None, False, False, ""),
-        # inactive project, button not shown
-        (True, True, "researcher", None, False, False, ""),
-        # active project, checker with no role, shown disabled
+        # archived workspace and project not ongoing, disabled
+        (
+            True,
+            False,
+            "researcher",
+            None,
+            False,
+            "The project is not ongoing and this workspace is archived.",
+        ),
+        # archived workspace in ongoing project, disabled
+        (True, True, "researcher", None, False, "This workspace is archived."),
+        # not archived but project not ongoing, disabled
+        (False, False, "researcher", None, False, "The project is not ongoing."),
+        # active project, checker with no role, disabled
         (
             False,
             True,
             "checker",
             None,
-            True,
             False,
             "You do not have permission to add files to a request.",
         ),
-        # active project, user with role, shown enabled
-        (False, True, "researcher", None, True, True, ""),
-        # active project, current request editable, shown enabled
-        (False, True, "researcher", RequestStatus.PENDING, True, True, ""),
-        # active project, current request under review, shown disabled
+        # active project, user with role, enabled
+        (False, True, "researcher", None, True, ""),
+        # active project, current request editable, enabled
+        (False, True, "researcher", RequestStatus.PENDING, True, ""),
+        # active project, current request under review, disabled
         (
             False,
             True,
             "researcher",
             RequestStatus.SUBMITTED,
-            True,
             False,
             (
                 "There is currently a request under review for this workspace and you "
@@ -100,7 +107,6 @@ def test_content_buttons(
     ongoing,
     login_as,
     request_status,
-    is_visible,
     is_enabled,
     tooltip,
 ):
@@ -139,7 +145,7 @@ def test_content_buttons(
     update_is_visible = is_enabled
     assert_button_status(
         page,
-        add_is_visible=is_visible,
+        add_is_visible=True,
         add_is_enabled=is_enabled,
         update_is_visible=update_is_visible,
         update_is_enabled=is_enabled,
@@ -149,7 +155,7 @@ def test_content_buttons(
     page.goto(live_server.url + workspace.get_url(UrlPath("subdir/file.txt")))
     assert_button_status(
         page,
-        add_is_visible=is_visible,
+        add_is_visible=True,
         add_is_enabled=is_enabled,
         update_is_visible=False,
         update_is_enabled=False,
