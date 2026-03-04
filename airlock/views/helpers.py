@@ -133,3 +133,10 @@ def get_next_url_from_form(container, form):
 
     # default redirect in case of error
     return container.get_url()
+
+
+def validate_url(url):
+    "Ensure a user-provided next or return url is an internal absolute url path"
+    if url is not None and url[0] != "/":
+        return
+    return url

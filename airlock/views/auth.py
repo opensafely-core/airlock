@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from airlock.forms import TokenLoginForm
 
-from .helpers import login_exempt
+from .helpers import login_exempt, validate_url
 
 
 @login_exempt
@@ -14,12 +14,12 @@ def login(request):
     default_next_url = reverse("workspace_index")
 
     if request.method != "POST":
-        next_url = request.GET.get("next", default_next_url)
+        next_url = validate_url(request.GET.get("next", default_next_url))
         if request.user.is_authenticated:
             return redirect(next_url)
         token_login_form = TokenLoginForm()
     else:
-        next_url = request.POST.get("next", default_next_url)
+        next_url = validate_url(request.POST.get("next", default_next_url))
         token_login_form = TokenLoginForm(request.POST)
         user = get_user_or_set_form_errors(request, token_login_form)
         # If `user` is None then the form object will have the relevant errors
