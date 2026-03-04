@@ -15,6 +15,7 @@ from airlock.views.helpers import (
     get_path_item_from_tree_or_404,
     get_workspace_or_raise,
     serve_file,
+    validate_url,
 )
 from services.tracing import instrument
 
@@ -26,18 +27,11 @@ def get_repo_or_raise(workspace: Workspace, commit: str):
         raise Http404()
 
 
-def validate_return_url(url):
-    "Ensure a user-provided return url is an internal absolute url path"
-    if url is not None and url[0] != "/":
-        return
-    return url
-
-
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request")
 @instrument(func_attributes={"workspace": "workspace_name", "commit": "commit"})
 def view(request, workspace_name: str, commit: str, path: str = ""):
-    return_url = validate_return_url(request.GET.get("return_url"))
+    return_url = validate_url(request.GET.get("return_url"))
     workspace = get_workspace_or_raise(request.user, workspace_name)
 
     try:
