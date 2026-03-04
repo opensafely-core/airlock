@@ -6,6 +6,9 @@ on:
     # every day at 2:37am
     - cron: "37 2 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   test-local-job-server:
     runs-on: ubuntu-22.04
