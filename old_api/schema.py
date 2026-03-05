@@ -7,21 +7,16 @@
 # file into your project.
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, field_serializer
 
 
-class UrlFileName(str):
-    """str file name that normalises path separators."""
+def sanitize_url(value: str) -> str:
+    return str(value).replace("\\", "/")
 
-    @classmethod
-    def __get_validators__(cls):
-        """Tell pydantic how to validate me."""
-        yield cls.validate
 
-    @classmethod
-    def validate(cls, value):
-        return str(value).replace("\\", "/")
+UrlFileName = Annotated[str, BeforeValidator(sanitize_url)]
 
 
 class ReviewStatus(Enum):
@@ -44,6 +39,10 @@ class FileMetadata(BaseModel):
     date: datetime  # last modified in ISO date format
     metadata: dict[str, str] | None = None  # user supplied metadata about this file
     review: FileReview | None = None  # any review metadata for this file
+
+    @field_serializer("date", mode="plain")
+    def ser_date(self, value: datetime) -> str:
+        return value.isoformat()
 
 
 class FileList(BaseModel):
