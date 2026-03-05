@@ -113,41 +113,16 @@ upgrade-package package: && uvmirror devenv
 upgrade-all: && uvmirror devenv
     uv lock --upgrade
 
-# update the uv mirror requirements file
-uvmirror file="requirements.uvmirror.txt":
+# update the companion requirements formatted file
+uvmirror file="requirements.uvmirror":
     rm -f {{ file }}
     uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras > {{ file }}
-
-# Move the cutoff date in pyproject.toml to N days ago (default: 7) at midnight UTC
-bump-uv-cutoff days="7":
-    #!/usr/bin/env -S uvx --with tomlkit python3
-
-    import datetime
-    import tomlkit
-
-    with open("pyproject.toml", "rb") as f:
-        content = tomlkit.load(f)
-
-    new_datetime = (
-        datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=int("{{ days }}"))
-    ).replace(hour=0, minute=0, second=0, microsecond=0)
-    new_timestamp = new_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if existing_timestamp := content["tool"]["uv"].get("exclude-newer"):
-        if new_datetime < datetime.datetime.fromisoformat(existing_timestamp):
-            print(
-                f"Existing cutoff {existing_timestamp} is more recent than {new_timestamp}, not updating."
-            )
-            exit(0)
-    content["tool"]["uv"]["exclude-newer"] = new_timestamp
-
-    with open("pyproject.toml", "w") as f:
-        tomlkit.dump(content, f)
 
 # This is the default input command to update-dependencies action
 # https://github.com/bennettoxford/update-dependencies-action
 
 # Bump the timestamp cutoff to midnight UTC 7 days ago and upgrade all dependencies
-update-dependencies: bump-uv-cutoff upgrade-all
+update-dependencies: upgrade-all
 
 format *args:
     uv run ruff format --diff --quiet {{ args }} .
