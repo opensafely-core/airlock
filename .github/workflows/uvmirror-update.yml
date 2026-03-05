@@ -1,0 +1,74 @@
+---
+name: Update uvmirror file
+
+env:
+ BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check_uvmirror:
+
+    runs-on: ubuntu-22.04
+    outputs:
+      changed: ${{ steps.check_for_changes.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: opensafely-core/setup-action@v1
+        with:
+          install-just: true
+          install-uv: true
+          cache: uv
+
+      - name: Ensure requirements.uvmirror is consistent with uv.lock
+        run: just uvmirror
+
+      - id: check_for_changes
+        run: echo "changed=$(git diff -s --exit-code requirements.uvmirror || echo 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if changes (dependabot only)
+        if: ${{ (github.actor == 'dependabot[bot]') && (steps.check_for_changes.outputs.changed) }}
+        run: |
+          echo "uvmirror file is out of date; run again manually (using the workflow_dispatch trigger for this branch) to update it."
+          echo "https://github.com/opensafely-core/airlock/actions/workflows/uvmirror-update.yml"
+          exit 1
+
+  update_uvmirror:
+
+    needs: check_uvmirror
+    if: ${{ (github.actor != 'dependabot[bot]') && (needs.check_uvmirror.outputs.changed ) }}
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: generate-token
+        with:
+          app-id: ${{ vars.CREATE_PR_APP_ID }}
+          private-key: ${{ secrets.CREATE_PR_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.BRANCH_NAME }}
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - uses: opensafely-core/setup-action@v1
+        with:
+          install-just: true
+          install-uv: true
+          cache: uv
+
+      - name: Ensure requirements.uvmirror is consistent with uv.lock
+        run: just uvmirror
+
+      - name: Commit uvmirror changes
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          git add requirements.uvmirror
+          git -c user.name="opensafely-github-bot" -c user.email=opensafely-github-bot@users.noreply.github.com commit -m "Update uvmirror file"
+          git push origin ${{ env.BRANCH_NAME }}
