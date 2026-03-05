@@ -126,7 +126,7 @@ jobs:
           docker save airlock | gzip > /tmp/airlock.tar.gz
 
       - name: Upload docker image
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
             name: airlock-image
             path: /tmp/airlock.tar.gz
