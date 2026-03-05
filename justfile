@@ -121,7 +121,7 @@ uvmirror file="requirements.uvmirror":
 # This is the default input command to update-dependencies action
 # https://github.com/bennettoxford/update-dependencies-action
 
-# Bump the timestamp cutoff to midnight UTC 7 days ago and upgrade all dependencies
+# Upgrade all dependencies
 update-dependencies: upgrade-all
 
 format *args:
