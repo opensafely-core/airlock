@@ -6,9 +6,6 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 
-[options]
-exclude-newer = "2026-02-25T00:00:00Z"
-
 [[package]]
 name = "airlock"
 version = "0.1.0"
