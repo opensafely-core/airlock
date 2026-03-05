@@ -16,7 +16,7 @@
     "gunicorn",
     "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.01.26.163426.zip",
     "requests",
-    "pydantic<2",
+    "pydantic<3",
     "ulid",
     "opentelemetry-exporter-otlp-proto-http",
     "opentelemetry-instrumentation-django",
