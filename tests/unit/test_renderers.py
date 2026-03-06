@@ -213,15 +213,30 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
 @pytest.mark.parametrize(
     "log,limit,expected,truncated",
     [
-        ("LINE1\nLINE2\nLINE3\n", 12, "LINE3\n", True),  # line 2 striped
+        # no trailer marker
+        ("LINE1\nLINE2\nLINE3\n", 12, "LINE3\n", True),  # line 2 stripped
         ("LINE1\nLINE2\nLINE3\n", 13, "LINE2\nLINE3\n", True),  # line 2 not stripped
         ("LINE1LINE3\n", 6, "LINE3\n", True),  # single line
         ("LINE2\nLINE3\n", 30, "LINE2\nLINE3\n", False),  # under limit
+        # with trailer marker
+        ("LINE1\nLINE2\nLINE3\n===trailer\n", 12, "LINE3\n", True),  # line 2 stripped
+        (
+            "LINE1\nLINE2\nLINE3\n===trailer\n",
+            13,
+            "LINE2\nLINE3\n",
+            True,
+        ),  # line 2 not stripped
+        ("LINE1LINE3\n===trailer\n", 6, "LINE3\n", True),  # single line
+        ("LINE2\nLINE3\n===trailer\n", 30, "LINE2\nLINE3\n", False),  # under limit
+        # with multiple markers; the last marker is identified as the trailer marker
+        # stripped before line2
+        ("LINE1\n===foo\nLINE2\nLINE3\n===trailer\n", 13, "LINE2\nLINE3\n", True),
     ],
 )
 def test_log_renderer_handles_truncation(
-    tmp_path, settings, log, limit, expected, truncated
+    tmp_path, settings, log, limit, expected, truncated, monkeypatch
 ):
+    monkeypatch.setattr("airlock.renderers.JOB_LOG_MARKER", "===")
     tracer = trace.get_tracer("tests")
     settings.MAX_LOG_BYTES = limit
     log_file = tmp_path / "test.log"
@@ -238,9 +253,13 @@ def test_log_renderer_handles_truncation(
     assert expected in response.rendered_content
     assert "LINE1" not in response.rendered_content
     assert span.attributes["job.log_truncated"] == truncated  # type: ignore
-    assert span.attributes["job.log_size"] == len(log)  # type: ignore
+    log_minus_trailer = log.replace("===trailer\n", "")
+    assert span.attributes["job.log_size"] == len(log_minus_trailer)  # type: ignore
 
     if truncated:
         assert "Log truncated" in response.rendered_content
     else:
         assert "Log truncated" not in response.rendered_content
+
+    if log.endswith("===trailer\n"):
+        assert "===trailer\n" in response.rendered_content
