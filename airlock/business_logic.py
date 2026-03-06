@@ -865,7 +865,7 @@ class BusinessLogicLayer:
         old_api.get_or_create_release(
             release_request.workspace,
             release_request.id,
-            filelist.json(),
+            filelist.model_dump_json(),
             user.username,
         )
 

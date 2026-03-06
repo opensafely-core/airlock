@@ -227,7 +227,10 @@ def test_provider_request_release_files(mock_old_api, mock_notifications, bll, f
     }
 
     old_api.get_or_create_release.assert_called_once_with(  # type: ignore
-        "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
+        "workspace",
+        release_request.id,
+        json.dumps(expected_json, separators=(",", ":")),
+        checkers[0].username,
     )
     # upload file is not called on release; it will be called by the file uploader
     # asynchronously
@@ -439,7 +442,10 @@ def test_provider_register_file_upload(mock_old_api, bll, freezer):
     }
 
     old_api.get_or_create_release.assert_called_once_with(  # type: ignore
-        "workspace", release_request.id, json.dumps(expected_json), checkers[0].username
+        "workspace",
+        release_request.id,
+        json.dumps(expected_json, separators=(",", ":")),
+        checkers[0].username,
     )
     # in the real workflow, upload_file is called asynchronously and triggers
     # register_file_upload, so it isn't called in this test
