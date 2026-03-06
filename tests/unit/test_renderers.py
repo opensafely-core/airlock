@@ -214,12 +214,12 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
     "log,limit,expected,truncated",
     [
         # no trailer marker
-        ("LINE1\nLINE2\nLINE3\n", 12, "LINE3\n", True),  # line 2 striped
+        ("LINE1\nLINE2\nLINE3\n", 12, "LINE3\n", True),  # line 2 stripped
         ("LINE1\nLINE2\nLINE3\n", 13, "LINE2\nLINE3\n", True),  # line 2 not stripped
         ("LINE1LINE3\n", 6, "LINE3\n", True),  # single line
         ("LINE2\nLINE3\n", 30, "LINE2\nLINE3\n", False),  # under limit
         # with trailer marker
-        ("LINE1\nLINE2\nLINE3\n===trailer\n", 12, "LINE3\n", True),  # line 2 striped
+        ("LINE1\nLINE2\nLINE3\n===trailer\n", 12, "LINE3\n", True),  # line 2 stripped
         (
             "LINE1\nLINE2\nLINE3\n===trailer\n",
             13,
@@ -228,6 +228,9 @@ def test_log_renderer_handles_ansi_colors(tmp_path):
         ),  # line 2 not stripped
         ("LINE1LINE3\n===trailer\n", 6, "LINE3\n", True),  # single line
         ("LINE2\nLINE3\n===trailer\n", 30, "LINE2\nLINE3\n", False),  # under limit
+        # with multiple markers; the last marker is identified as the trailer marker
+        # stripped before line2
+        ("LINE1\n===foo\nLINE2\nLINE3\n===trailer\n", 13, "LINE2\nLINE3\n", True),
     ],
 )
 def test_log_renderer_handles_truncation(

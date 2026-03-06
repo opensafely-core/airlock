@@ -29,7 +29,7 @@ def truncate_log_stream(stream: IO[str], n: int, marker: str):
 
     # Remove the log trailer before calculating log size and truncating
     trailer = ""
-    trailer_pos = log.find(marker)
+    trailer_pos = log.rfind(marker)
     if trailer_pos >= 0:
         trailer = log[trailer_pos:]
         log = log[:trailer_pos]
