@@ -15,14 +15,24 @@ def is_valid_file_type(path: Path | UrlPath):
     return not path.name.startswith(".") and path.suffix in LEVEL4_FILE_TYPES
 
 
-def truncate_log_stream(stream: IO[str], n: int):
+def truncate_log_stream(stream: IO[str], n: int, marker: str):
     """Efficiently read the last n bytes from a log file.
 
     If it has been truncated, remove any partial lines.
+
+    If a marker is present in the logs, indicating the presence of a non-sensitive log trailer,
+    only truncate above the marker.
     """
     span = trace.get_current_span()
     truncated = False
     log = stream.read()
+
+    # Remove the log trailer before calculating log size and truncating
+    trailer = ""
+    trailer_pos = log.find(marker)
+    if trailer_pos >= 0:
+        trailer = log[trailer_pos:]
+        log = log[:trailer_pos]
     size = len(log)
     span.set_attribute("job.log_size", size)
 
@@ -35,6 +45,9 @@ def truncate_log_stream(stream: IO[str], n: int):
             truncated_log = truncated_log[newline_pos + 1 :]
         log = truncated_log
         truncated = True
+
+    # Re-append the trailer
+    log += trailer
 
     span.set_attribute("job.log_truncated", truncated)
 

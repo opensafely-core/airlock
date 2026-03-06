@@ -25,6 +25,10 @@ from airlock.types import UrlPath
 from airlock.utils import is_valid_file_type, summarize_csv, truncate_log_stream
 
 
+# Marker for start of job summary written to the end of the job log files
+JOB_LOG_MARKER = "=============JOB SUMMARY============="
+
+
 @dataclass
 class RendererTemplate:
     name: str
@@ -199,7 +203,9 @@ class LogRenderer(TextRenderer):
         conv = Ansi2HTMLConverter()
 
         # truncate the logs if needed
-        log, truncated = truncate_log_stream(self.stream, settings.MAX_LOG_BYTES)
+        log, truncated = truncate_log_stream(
+            self.stream, settings.MAX_LOG_BYTES, JOB_LOG_MARKER
+        )
         text = conv.convert(log)
         match = re.match(
             r".*(?P<style_tag><style.*</style>).*(?P<pre_tag><pre.*</pre>).*",
