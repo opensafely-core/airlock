@@ -181,6 +181,17 @@ def get_button_context(path_item, user, workspace):
             return {}
 
 
+def get_nearest_parent_url(workspace, urlpath):
+    return next(
+        (
+            workspace.get_url(parent)
+            for parent in urlpath.parents
+            if workspace.is_valid_tree_path(parent)
+        ),
+        workspace.get_url(),
+    )
+
+
 # we return different content if it is a HTMX request.
 @vary_on_headers("HX-Request", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -205,14 +216,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             if workspace.is_valid_tree_path(urlpath):
                 redirect_url = workspace.get_url(urlpath)
             else:
-                redirect_url = next(
-                    (
-                        workspace.get_url(parent)
-                        for parent in urlpath.parents
-                        if workspace.is_valid_tree_path(parent)
-                    ),
-                    workspace.get_url(),
-                )
+                redirect_url = get_nearest_parent_url(workspace, urlpath)
                 messages.error(
                     request,
                     "Selected path is not a valid output path. A recent job may have updated its outputs.",
@@ -224,7 +228,21 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     tree = get_workspace_tree(workspace, path, selected_only)
 
-    path_item = get_path_item_from_tree_or_404(tree, path)
+    try:
+        path_item = get_path_item_from_tree_or_404(tree, path)
+    except Http404:
+        # If we get a 404 on this path, it can't be the root (otherwise it would have
+        # already raised an error fetching the workspace), so it will always be possible
+        # to find a valid parent to this path.
+        redirect_url = get_nearest_parent_url(workspace, UrlPath(path))
+        # Unlike the htmx request above, this error did not necessarily occur because the
+        # manifest.json changed - it could be a user manually (mis)typing a URL, hence
+        # the different error message.
+        messages.error(
+            request,
+            f"Path '{path}' is not a valid file or directory path in this workspace.",
+        )
+        return redirect(redirect_url)
 
     is_directory_url = path.endswith("/") or path == ""
     if path_item.is_directory() != is_directory_url:

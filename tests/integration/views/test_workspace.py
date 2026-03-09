@@ -351,11 +351,31 @@ def test_workspace_view_with_csv_file(airlock_client):
     assert workspace.get_contents_url(UrlPath("file.csv")) in response.rendered_content
 
 
-def test_workspace_view_with_404(airlock_client):
+def test_workspace_root_with_404(airlock_client):
     airlock_client.login(output_checker=True)
     factories.create_workspace("workspace")
-    response = airlock_client.get("/workspaces/view/workspace/no_such_file.txt")
+    response = airlock_client.get("/workspaces/view/workspac/")
     assert response.status_code == 404
+
+
+def test_workspace_view_with_404(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(
+        workspace, "subdir/file.csv", "header1,header2\nFoo,Bar"
+    )
+    response = airlock_client.get("/workspaces/view/workspace/subdir/no_such_file.txt")
+    # Redirects to closest valid parent path
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/workspaces/view/workspace/subdir"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert (
+        "Path 'subdir/no_such_file.txt' is not a valid file or directory path"
+        in message.message
+    )
 
 
 def test_workspace_view_redirects_to_directory(airlock_client):
@@ -392,7 +412,17 @@ def test_workspace_view_invalid_output_path(airlock_client):
     # Existing file in same directory, but invalid output path (no manifest entry)
     factories.write_workspace_file(workspace, "some_dir/file1.txt", manifest=False)
     response = airlock_client.get("/workspaces/view/workspace/some_dir/file1.txt")
-    assert response.status_code == 404
+    # Redirects to closest valid parent path
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/workspaces/view/workspace/some_dir"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert (
+        "Path 'some_dir/file1.txt' is not a valid file or directory path"
+        in message.message
+    )
 
 
 def test_workspace_view_non_l4_output_path(airlock_client):
@@ -405,7 +435,17 @@ def test_workspace_view_non_l4_output_path(airlock_client):
     response = airlock_client.get(
         "/workspaces/view/workspace/output/highly_sensitive.txt"
     )
-    assert response.status_code == 404
+    # Redirects to closest valid parent path
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/workspaces/view/workspace/"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert (
+        "Path 'output/highly_sensitive.txt' is not a valid file or directory path"
+        in message.message
+    )
 
 
 def test_workspace_view_excluded_l4_output_path(airlock_client):
