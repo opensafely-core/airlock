@@ -24,12 +24,22 @@
         {% endif %}
       </dd>
 
-      {% if date %}
+      {% if created_date %}
         <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row justify-center items-center">
           <dt>Created:</dt>
           <dd>
-            <time datetime="{{ date|date:"Y-m-d H:i:sO" }}">
-              {{ date|date:"d M Y" }} at {{ date|date:"H:i" }}
+            <time datetime="{{ created_date|date:"Y-m-d H:i:sO" }}">
+              {{ created_date|date:"d M Y" }} at {{ created_date|date:"H:i" }}
+            </time>
+          </dd>
+        </div>
+      {% endif %}
+      {% if last_submitted_date %}
+        <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row justify-center items-center">
+          <dt>Last submitted:</dt>
+          <dd>
+            <time datetime="{{ last_submitted_date|date:"Y-m-d H:i:sO" }}">
+              {{ last_submitted_date|date:"d M Y" }} at {{ last_submitted_date|date:"H:i" }}
             </time>
           </dd>
         </div>
