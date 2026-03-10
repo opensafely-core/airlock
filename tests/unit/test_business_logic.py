@@ -1390,9 +1390,6 @@ def test_submit_request_with_audit_extra(bll, mock_notifications):
         status=RequestStatus.PENDING,
         files=[factories.request_file()],
     )
-    # factories.add_request_file(release_request, "group", "test/file.txt")
-    # bll.group_edit(release_request, "group", "foo", "bar", author)
-    # release_request = bll.get_release_request(release_request.id, author)
     bll.submit_request(release_request, author, audit_extra={"foo": "bar"})
     assert release_request.status == RequestStatus.SUBMITTED
     audit_log = bll._dal.get_audit_log(request=release_request.id)
