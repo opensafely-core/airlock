@@ -1376,8 +1376,15 @@ def test_submit_request(bll, mock_notifications):
     bll.group_edit(release_request, "group", "foo", "bar", author)
     release_request = bll.get_release_request(release_request.id, author)
     bll.submit_request(release_request, author)
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+
     assert release_request.status == RequestStatus.SUBMITTED
+    assert release_request.last_submitted_at == audit_log[0].created_at
     assert_last_notification(mock_notifications, "request_submitted")
+
+    persisted_request = factories.refresh_release_request(release_request)
+    assert persisted_request.status == RequestStatus.SUBMITTED
+    assert persisted_request.last_submitted_at == audit_log[0].created_at
 
 
 def test_submit_request_with_audit_extra(bll, mock_notifications):
@@ -1416,6 +1423,7 @@ def test_resubmit_request(bll, mock_notifications):
             ),
         ],
     )
+    previous_submitted_at = release_request.last_submitted_at
     # returning a request starts a new turn, so there are no submitted reviews
     assert release_request.submitted_reviews_count() == 0
 
@@ -1433,6 +1441,9 @@ def test_resubmit_request(bll, mock_notifications):
     release_request = factories.refresh_release_request(release_request)
 
     assert release_request.status == RequestStatus.SUBMITTED
+    audit_log = bll._dal.get_audit_log(request=release_request.id)
+    assert release_request.last_submitted_at != previous_submitted_at
+    assert release_request.last_submitted_at == audit_log[0].created_at
     assert_last_notification(mock_notifications, "request_resubmitted")
     for i in range(2):
         user = factories.create_airlock_user(

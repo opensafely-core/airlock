@@ -93,6 +93,7 @@ class RequestMetadata(models.Model):
     status = EnumField(default=RequestStatus.PENDING, enum=RequestStatus)
     author = models.TextField()  # just user id, as we have no User model
     created_at = models.DateTimeField(default=timezone.now)
+    last_submitted_at = models.DateTimeField(null=True)
     submitted_reviews = models.JSONField(default=dict)
     review_turn = models.IntegerField(default=0)
     # comma-separated list of submitted reviewers' user ids
@@ -115,6 +116,7 @@ class RequestMetadata(models.Model):
             status=self.status,
             author=self.author,
             created_at=self.created_at,
+            last_submitted_at=self.last_submitted_at,
             filegroups=self.get_filegroups_to_dict(),
             submitted_reviews=self.submitted_reviews,
             review_turn=self.review_turn,
