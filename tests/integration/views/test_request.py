@@ -959,6 +959,34 @@ def test_review_user_output_checker(airlock_client, mock_old_api):
     assert approved_ids == {r3.id}
 
 
+def test_reviews_displays_dates(airlock_client):
+    airlock_client.login(workspaces=["test_workspace"], output_checker=True)
+    other = factories.create_airlock_user(
+        username="other",
+        workspaces=["other_workspace", "other_other_workspace"],
+    )
+    outstanding_request = factories.create_request_at_status(
+        "other_workspace",
+        author=other,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
+    )
+    factories.create_request_at_status(
+        "other_other_workspace",
+        author=other,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(changes_requested=True)],
+    )
+    response = airlock_client.get("/requests/output_checker")
+    content = response.rendered_content
+
+    assert content.count("Last submitted:") == 1
+    assert outstanding_request.last_submitted_at is not None
+    assert (
+        outstanding_request.last_submitted_at.strftime("%d %b %Y at %H:%M") in content
+    )
+
+
 # To confirm that the request page displays for an output checker
 def test_request_index_user_output_checker(airlock_client):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
