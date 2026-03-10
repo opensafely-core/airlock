@@ -358,7 +358,7 @@ def test_workspace_root_with_404(airlock_client):
     assert response.status_code == 404
 
 
-def test_workspace_view_with_404(airlock_client):
+def test_workspace_view_with_invalid_path_redirects_to_nearest_parent(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(
