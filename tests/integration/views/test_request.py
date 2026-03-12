@@ -918,6 +918,32 @@ def test_request_index_user_permitted_requests(airlock_client):
     assert authored_ids == {release_request.id}
 
 
+def test_request_index_displays_dates(airlock_client):
+    airlock_client.login(workspaces=["test1", "test2"])
+    pending_request = factories.create_release_request(
+        "test1", user=airlock_client.user, status=RequestStatus.PENDING
+    )
+    submitted_request = factories.create_request_at_status(
+        "test2",
+        author=airlock_client.user,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
+    )
+
+    response = airlock_client.get("/workspaces/")
+    response.render()
+    content = response.rendered_content
+
+    assert response.status_code == 200
+
+    assert content.count("Created:") == 2
+    assert pending_request.created_at.strftime("%d %b %Y at %H:%M") in content
+    assert submitted_request.created_at.strftime("%d %b %Y at %H:%M") in content
+    assert content.count("Last submitted:") == 1
+    assert submitted_request.last_submitted_at is not None
+    assert submitted_request.last_submitted_at.strftime("%d %b %Y at %H:%M") in content
+
+
 # reviews page
 def test_review_user_output_checker(airlock_client, mock_old_api):
     airlock_client.login(workspaces=["test_workspace"], output_checker=True)
@@ -957,6 +983,34 @@ def test_review_user_output_checker(airlock_client, mock_old_api):
     assert outstanding_ids == {r1.id}
     assert returned_ids == {r2.id}
     assert approved_ids == {r3.id}
+
+
+def test_reviews_displays_dates(airlock_client):
+    airlock_client.login(workspaces=["test_workspace"], output_checker=True)
+    other = factories.create_airlock_user(
+        username="other",
+        workspaces=["other_workspace", "other_other_workspace"],
+    )
+    outstanding_request = factories.create_request_at_status(
+        "other_workspace",
+        author=other,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
+    )
+    factories.create_request_at_status(
+        "other_other_workspace",
+        author=other,
+        status=RequestStatus.RETURNED,
+        files=[factories.request_file(changes_requested=True)],
+    )
+    response = airlock_client.get("/requests/output_checker")
+    content = response.rendered_content
+
+    assert content.count("Last submitted:") == 1
+    assert outstanding_request.last_submitted_at is not None
+    assert (
+        outstanding_request.last_submitted_at.strftime("%d %b %Y at %H:%M") in content
+    )
 
 
 # To confirm that the request page displays for an output checker
@@ -1417,6 +1471,38 @@ def test_requests_for_workspace_filter(airlock_client, mock_old_api):
     assert "All requests in workspace test1" in response.rendered_content
     assert filtered_request == ["APPROVED"]
     assert author2.username in response.rendered_content
+
+
+def test_requests_for_workspace_displays_dates(airlock_client):
+    airlock_client.login(workspaces=["test1"])
+    author1 = factories.create_airlock_user(
+        username="author1", workspaces=["test1"], output_checker=False
+    )
+    author2 = factories.create_airlock_user(
+        username="author2", workspaces=["test1"], output_checker=False
+    )
+    pending_request = factories.create_release_request(
+        "test1", user=author1, status=RequestStatus.PENDING
+    )
+    submitted_request = factories.create_request_at_status(
+        "test1",
+        author=author2,
+        status=RequestStatus.SUBMITTED,
+        files=[factories.request_file()],
+    )
+
+    response = airlock_client.get("/requests/workspace/test1")
+    response.render()
+    content = response.rendered_content
+
+    assert response.status_code == 200
+
+    assert content.count("Created:") == 2
+    assert pending_request.created_at.strftime("%d %b %Y at %H:%M") in content
+    assert submitted_request.created_at.strftime("%d %b %Y at %H:%M") in content
+    assert content.count("Last submitted:") == 1
+    assert submitted_request.last_submitted_at is not None
+    assert submitted_request.last_submitted_at.strftime("%d %b %Y at %H:%M") in content
 
 
 @pytest.mark.parametrize("review", [("approve"), ("request_changes"), ("reset_review")])

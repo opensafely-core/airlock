@@ -120,6 +120,8 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             # persist state change
             metadata = self._find_metadata(request_id)
             metadata.status = status
+            if status == RequestStatus.SUBMITTED:
+                metadata.last_submitted_at = audit.created_at
             metadata.save()
             self._create_audit_log(audit)
 

@@ -788,6 +788,7 @@ class ReleaseRequest:
     organisations: list[str]
     author: User
     created_at: datetime
+    last_submitted_at: datetime | None = None
     status: RequestStatus = RequestStatus.PENDING
     filegroups: dict[str, FileGroup] = field(default_factory=dict)
     submitted_reviews: dict[str, str] = field(default_factory=dict)

@@ -32,7 +32,7 @@
         {% fragment as title %}{{ request.get_short_id }} by {% airlock_user user=request.author %}{% endfragment %}
         {% #airlock_list_group_rich_item title=title url=request.get_url status_text=request.status.description %}
           <div class="group-hover:pointer-events-none ml-auto sm:flex-row -mt-4 -mb-6 -mr-5">
-            {% airlock_list_group_rich_item date=request.created_at %}
+            {% airlock_list_group_rich_item created_date=request.created_at last_submitted_date=request.last_submitted_at %}
               </div>
             {% /airlock_list_group_rich_item %}
 

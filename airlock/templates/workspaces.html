@@ -42,7 +42,7 @@
                         {% for release_request in authored_requests|dictsortreversed:"created_at" %}
                           {% if workspace.display_name == release_request.workspace %}
                             <div class="transition-colors px-6 hover:bg-oxford-50 focus:bg-oxford-50">
-                              {% airlock_list_group_rich_item type="Request" date=release_request.created_at title=release_request.get_short_id url=release_request.get_url status_text=release_request.status.description %}
+                              {% airlock_list_group_rich_item type="Request" created_date=release_request.created_at last_submitted_date=release_request.last_submitted_at title=release_request.get_short_id url=release_request.get_url status_text=release_request.status.description %}
                             </div>
                           {% endif %}
                         {% empty %}

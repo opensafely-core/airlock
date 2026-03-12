@@ -582,6 +582,8 @@ class BusinessLogicLayer:
             ]
 
         release_request.status = to_status
+        if to_status == RequestStatus.SUBMITTED:
+            release_request.last_submitted_at = audit.created_at
         self.send_notification(
             release_request, notification_event, user, updates=updates
         )
