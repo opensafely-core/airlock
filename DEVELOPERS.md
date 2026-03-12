@@ -36,6 +36,14 @@ Follow installation instructions from the [uv documentation](https://docs.astral
 You'll need an appropriate version of Python on your PATH. Check the
 `.python-version` file for the required version.
 
+### Node and npm
+
+You'll need:
+- **Node.js v20.x**
+- **npm v9.x**
+
+[fnm](https://github.com/Schniz/fnm#installation) is recommended for managing node versions.
+
 ### Docker
 
 Possibly something API compatible with Docker would also work, but we
