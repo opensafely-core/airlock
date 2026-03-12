@@ -30,14 +30,19 @@ _checkenv:
         exit 1
     fi
 
-# build docs if required; doesn't rebuild. Receipes that need to ensure docs are up-to-date should use docs-build.
+# build docs and assets if required; doesn't rebuild. Receipes that need to ensure docs are up-to-date should use docs-build.
 _checksetup:
     #!/usr/bin/env bash
     set -euo pipefail
 
     if [ -z "$(find mkdocs_build -mindepth 1)" ]; then
-        echo "Docs have not been build; running 'just docs-build' to generate them."
+        echo "Docs have not been built; running 'just docs-build' to generate them."
         just docs-build
+    fi
+
+    if [ -z "$(find assets/out -mindepth 1)" ]; then
+        echo "Assets have not been built; running 'just assets' to generate them."
+        just assets
     fi
 
 # Clean up temporary files
@@ -212,7 +217,7 @@ fix: && state-diagram
     just --fmt --unstable --justfile docker/justfile
 
 # run airlock with django dev server
-run *ARGS: docs-build
+run *ARGS: docs-build _checksetup
     uv run python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
@@ -234,7 +239,7 @@ test *ARGS: _checkenv _checksetup get-chromium
     uv run python -m pytest "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: _checkenv docs-build get-chromium
+@test-all: _checkenv assets docs-build get-chromium
     #!/usr/bin/env bash
     set -euo pipefail
 
