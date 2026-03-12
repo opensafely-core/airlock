@@ -30,6 +30,16 @@ _checkenv:
         exit 1
     fi
 
+# build docs if required; doesn't rebuild. Receipes that need to ensure docs are up-to-date should use docs-build.
+_checksetup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -z "$(find mkdocs_build -mindepth 1)" ]; then
+        echo "Docs have not been build; running 'just docs-build' to generate them."
+        just docs-build
+    fi
+
 # Clean up temporary files
 clean:
     rm -rf .venv
@@ -206,7 +216,7 @@ run *ARGS: docs-build
     uv run python manage.py runserver "$@"
 
 # run airlock with gunicorn, like in production
-run-gunicorn *args: _checkenv
+run-gunicorn *args: _checkenv _checksetup
     uv run gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
 run-uploader:
@@ -220,7 +230,7 @@ manage *ARGS: _checkenv
     uv run python manage.py "$@"
 
 # run tests
-test *ARGS: _checkenv get-chromium
+test *ARGS: _checkenv _checksetup get-chromium
     uv run python -m pytest "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
