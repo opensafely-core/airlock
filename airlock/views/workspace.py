@@ -157,7 +157,7 @@ def _get_file_button_context(user, workspace, path_item):
                 add_file_btn.tooltip = "This file has already been released"
             else:
                 # if it's a valid file, and it's not already released,
-                # but the uer can's add or update it, it must already
+                # but the user can's add or update it, it must already
                 # be on the request
                 assert file_status == WorkspaceFileStatus.UNDER_REVIEW
                 add_file_btn.tooltip = (
