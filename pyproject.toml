@@ -14,7 +14,7 @@
     "django-markdownify",
     "whitenoise",
     "gunicorn",
-    "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.01.26.163426.zip",
+    "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.03.12.140752.zip",
     "requests",
     "pydantic<3",
     "ulid",
