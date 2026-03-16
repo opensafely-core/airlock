@@ -2380,17 +2380,18 @@ def test_change_file_properties_invalid_workspace_file(bll):
     del manifest["outputs"]["path/file1.txt"]
     manifest_path.write_text(json.dumps(manifest))
 
-    with pytest.raises(
-        exceptions.RequestPermissionDenied,
-        match="File is no longer a valid output file in the workspace",
-    ):
-        bll.change_file_properties_in_request(
-            release_request,
-            path,
-            group_name="new-group",
-            user=author,
-            filetype=RequestFileType.SUPPORTING,
-        )
+    # We CAN change file properties on an invalid workspace file
+    bll.change_file_properties_in_request(
+        release_request,
+        path,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.SUPPORTING,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "new-group"
+    assert request_file.filetype == RequestFileType.SUPPORTING
 
 
 def test_change_file_properties_in_request_not_allowed_request_status(bll):
