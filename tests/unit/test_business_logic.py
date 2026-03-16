@@ -1949,6 +1949,39 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
         )
 
 
+def test_cannot_replace_file_in_request_invalid_workspace_file(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        files=[
+            factories.request_file(
+                path=relpath, group="my-group", filetype=RequestFileType.OUTPUT
+            )
+        ],
+        status=RequestStatus.PENDING,
+    )
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        exceptions.RequestPermissionDenied,
+        match="File is no longer a valid output file in the workspace",
+    ):
+        bll.replace_file_in_request(
+            release_request, relpath, author, "my-group", RequestFileType.OUTPUT
+        )
+
+
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path1 = UrlPath("path/file1.txt")
