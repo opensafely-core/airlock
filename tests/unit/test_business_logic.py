@@ -2426,6 +2426,61 @@ def test_change_file_properties_in_request_not_allowed_request_status(bll):
         )
 
 
+def test_change_file_properties_for_file_with_updated_content(bll):
+    # Changing file properties only gives user the option to change filetype or
+    # group; updating the file (content) is another button. If we change filetype
+    # or group on a file, we expect that we do not also update its content in the request.
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+
+    # change file content in workspace
+    factories.write_workspace_file(workspace, relpath, contents="changed")
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    assert (
+        workspace.get_workspace_file_status(relpath)
+        == WorkspaceFileStatus.CONTENT_UPDATED
+    )
+
+    # change file properties to new group
+    bll.change_file_properties_in_request(
+        release_request,
+        relpath,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.OUTPUT,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    # Group has been changed
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.group == "new-group"
+
+    # Refresh workspace; request file should still have the old content
+    workspace = bll.get_workspace("workspace", author)
+    assert (
+        workspace.get_workspace_file_status(relpath)
+        == WorkspaceFileStatus.CONTENT_UPDATED
+    )
+
+
 @pytest.mark.parametrize(
     "status",
     [
