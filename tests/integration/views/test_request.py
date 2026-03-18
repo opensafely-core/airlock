@@ -1860,6 +1860,7 @@ def test_file_change_file_properties(airlock_client, new_group, new_filetype):
             "form-INITIAL_FORMS": "1",
             "form-0-file": f"group/{test_relpath}",
             "form-0-filetype": new_filetype,
+            "form-0-allow_output_filetype": "True",
             "next_url": release_request.get_url(f"group/{test_relpath}"),
             "filegroup": "group",
             # new filegroup overrides a selected existing one (or the default)
@@ -1973,8 +1974,10 @@ def test_file_change_file_properties_multiple_files(airlock_client):
             "form-INITIAL_FORMS": "2",
             "form-0-file": f"group/{test_relpath}",
             "form-0-filetype": "OUTPUT",
+            "form-0-allow_output_filetype": "True",
             "form-1-file": f"group/{test_relpath1}",
             "form-1-filetype": "OUTPUT",
+            "form-1-allow_output_filetype": "True",
             "next_url": release_request.get_url("group/path"),
             "filegroup": "group",
             # new filegroup overrides a selected existing one (or the default)
@@ -2182,6 +2185,8 @@ def test_change_file_properties_released_file_change_from_supporting_to_output_e
             "form-INITIAL_FORMS": "1",
             "form-0-file": f"group/{test_relpath}",
             "form-0-filetype": "OUTPUT",
+            # we're testing business logic handling, so bypass form-level validation here
+            "form-0-allow_output_filetype": "True",
             "next_url": release_request.get_url(f"group/{test_relpath}"),
             "filegroup": "group",
         },
