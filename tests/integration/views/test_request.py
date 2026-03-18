@@ -2374,7 +2374,7 @@ def test_workspace_multiselect_change_file_properties_released_file(
 
     assert response.status_code == 200
     assert "test/path1.txt" in response.rendered_content
-    assert response.rendered_content.count('value="OUTPUT"') == 1
+    assert response.rendered_content.count('value="OUTPUT"') == 0
     assert response.rendered_content.count('value="SUPPORTING"') == 1
 
 

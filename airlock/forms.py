@@ -101,6 +101,13 @@ class FileTypeForm(forms.Form):
         ),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.initial.get("allow_output_filetype", True):
+            assert isinstance(self.fields["filetype"], forms.ChoiceField)
+            self.fields["filetype"].choices = [self.FILETYPE_CHOICES[1]]
+            self.fields["filetype"].initial = RequestFileType.SUPPORTING.name
+
 
 class RequiredOneBaseFormSet(BaseFormSet):  # type: ignore
     def clean(self):

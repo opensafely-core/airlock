@@ -358,15 +358,18 @@ def multiselect_add_files(request, multiform, workspace):
 
         relpath = UrlPath(f)
         state = workspace.get_workspace_file_status(relpath)
+        file_data = {"file": f}
         if policies.can_add_file_to_request(workspace, relpath, RequestFileType.OUTPUT):
-            files_to_add.append(f)
+            file_data["allow_output_filetype"] = True
+            files_to_add.append(file_data)
         elif policies.can_add_file_to_request(
             workspace, relpath, RequestFileType.SUPPORTING
         ):
-            files_to_add.append(f)
             # We will add a note on the form in a later commit to explain
             # that this is a released file. Only assert for now.
             assert state == WorkspaceFileStatus.RELEASED
+            file_data["allow_output_filetype"] = False
+            files_to_add.append(file_data)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
             files_ignored[f] = f"already in group {rfile.group}"
@@ -376,9 +379,7 @@ def multiselect_add_files(request, multiform, workspace):
         initial={"next_url": multiform.cleaned_data["next_url"]},
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[{"file": f} for f in files_to_add],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
 
     return TemplateResponse(
         request,

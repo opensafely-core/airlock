@@ -240,14 +240,14 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         release_request,
         workspace,
         relpath,
-        RequestFileType.OUTPUT,
+        RequestFileType.SUPPORTING,
         path_item.request_filetype,
     ) or permissions.user_can_change_request_file_properties(
         user,
         release_request,
         workspace,
         relpath,
-        RequestFileType.SUPPORTING,
+        RequestFileType.OUTPUT,
         path_item.request_filetype,
     ):
         change_file_properties_button.show = True
@@ -761,7 +761,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
 
 
 def multiselect_update_files(request, multiform, release_request):
-    files_to_add = {}
+    files_to_add = []
     files_ignored = {}
     filegroup = None
     # validate which files can be added
@@ -780,7 +780,15 @@ def multiselect_update_files(request, multiform, release_request):
             request_file.relpath,
             RequestFileType.OUTPUT,
             request_file.filetype,
-        ) or permissions.user_can_change_request_file_properties(
+        ):
+            files_to_add.append(
+                {
+                    "file": f,
+                    "filetype": request_file.filetype.name,
+                    "allow_output_filetype": True,
+                }
+            )
+        elif permissions.user_can_change_request_file_properties(
             request.user,
             release_request,
             workspace,
@@ -788,7 +796,13 @@ def multiselect_update_files(request, multiform, release_request):
             RequestFileType.SUPPORTING,
             request_file.filetype,
         ):
-            files_to_add[f] = request_file.filetype.name
+            files_to_add.append(
+                {
+                    "file": f,
+                    "filetype": request_file.filetype.name,
+                    "allow_output_filetype": False,
+                }
+            )
         else:
             files_ignored[f] = "cannot change file group or type"
 
@@ -800,11 +814,7 @@ def multiselect_update_files(request, multiform, release_request):
         },
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[
-            {"file": f, "filetype": filetype} for f, filetype in files_to_add.items()
-        ],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
     return TemplateResponse(
         request,
         template="add_or_change_files.html",
