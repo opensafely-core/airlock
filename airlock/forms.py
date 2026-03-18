@@ -92,6 +92,11 @@ class FileTypeForm(forms.Form):
         required=True,
         widget=forms.HiddenInput(),
     )
+    allow_output_filetype = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.HiddenInput(),
+    )
     filetype = forms.ChoiceField(
         choices=FILETYPE_CHOICES,
         required=True,
@@ -100,6 +105,23 @@ class FileTypeForm(forms.Form):
             attrs={"class": "filetype-radio flex items-center gap-2"}
         ),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self._output_filetype_allowed():
+            assert isinstance(self.fields["filetype"], forms.ChoiceField)
+            self.fields["filetype"].choices = [
+                (
+                    RequestFileType.SUPPORTING.name,
+                    RequestFileType.SUPPORTING.name.title(),
+                ),
+            ]
+            self.initial["filetype"] = RequestFileType.SUPPORTING.name
+
+    def _output_filetype_allowed(self):
+        if self.is_bound:
+            return self.data.get(self.add_prefix("allow_output_filetype")) == "True"
+        return self.initial.get("allow_output_filetype", True)
 
 
 class RequiredOneBaseFormSet(BaseFormSet):  # type: ignore
