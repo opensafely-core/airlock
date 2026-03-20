@@ -1949,6 +1949,39 @@ def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
         )
 
 
+def test_cannot_replace_file_in_request_invalid_workspace_file(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        files=[
+            factories.request_file(
+                path=relpath, group="my-group", filetype=RequestFileType.OUTPUT
+            )
+        ],
+        status=RequestStatus.PENDING,
+    )
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        exceptions.RequestPermissionDenied,
+        match="File is no longer a valid output file in the workspace",
+    ):
+        bll.replace_file_in_request(
+            release_request, relpath, author, "my-group", RequestFileType.OUTPUT
+        )
+
+
 def test_withdraw_file_from_request_pending(bll):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     path1 = UrlPath("path/file1.txt")
@@ -2380,17 +2413,18 @@ def test_change_file_properties_invalid_workspace_file(bll):
     del manifest["outputs"]["path/file1.txt"]
     manifest_path.write_text(json.dumps(manifest))
 
-    with pytest.raises(
-        exceptions.RequestPermissionDenied,
-        match="File is no longer a valid output file in the workspace",
-    ):
-        bll.change_file_properties_in_request(
-            release_request,
-            path,
-            group_name="new-group",
-            user=author,
-            filetype=RequestFileType.SUPPORTING,
-        )
+    # We CAN change file properties on an invalid workspace file
+    bll.change_file_properties_in_request(
+        release_request,
+        path,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.SUPPORTING,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "new-group"
+    assert request_file.filetype == RequestFileType.SUPPORTING
 
 
 def test_change_file_properties_in_request_not_allowed_request_status(bll):
@@ -2424,6 +2458,61 @@ def test_change_file_properties_in_request_not_allowed_request_status(bll):
             user=author,
             filetype=RequestFileType.OUTPUT,
         )
+
+
+def test_change_file_properties_for_file_with_updated_content(bll):
+    # Changing file properties only gives user the option to change filetype or
+    # group; updating the file (content) is another button. If we change filetype
+    # or group on a file, we expect that we do not also update its content in the request.
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+
+    # change file content in workspace
+    factories.write_workspace_file(workspace, relpath, contents="changed")
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    assert (
+        workspace.get_workspace_file_status(relpath)
+        == WorkspaceFileStatus.CONTENT_UPDATED
+    )
+
+    # change file properties to new group
+    bll.change_file_properties_in_request(
+        release_request,
+        relpath,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.OUTPUT,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    # Group has been changed
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.group == "new-group"
+
+    # Refresh workspace; request file should still have the old content
+    workspace = bll.get_workspace("workspace", author)
+    assert (
+        workspace.get_workspace_file_status(relpath)
+        == WorkspaceFileStatus.CONTENT_UPDATED
+    )
 
 
 @pytest.mark.parametrize(

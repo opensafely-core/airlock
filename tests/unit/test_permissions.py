@@ -1,7 +1,10 @@
+import json
+
 import pytest
 
 from airlock import exceptions, permissions
-from airlock.enums import RequestStatus
+from airlock.enums import RequestFileType, RequestStatus, WorkspaceFileStatus
+from airlock.types import UrlPath
 from tests import factories
 
 
@@ -153,3 +156,74 @@ def test_user_can_review_request(output_checker, author, workspaces, can_review)
     if not can_review:
         with pytest.raises(exceptions.RequestPermissionDenied):
             permissions.check_user_can_review_request(user, release_request)
+
+
+def test_user_can_change_request_file_properties(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    # File properties can be changed
+    assert permissions.user_can_change_request_file_properties(
+        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+    )
+    # File cannot be updated because its content hasn't changed
+    assert not permissions.user_can_update_file_on_request(
+        author, release_request, workspace, relpath
+    )
+
+    # change file content in workspace
+    factories.write_workspace_file(workspace, relpath, contents="changed")
+    assert (
+        workspace.get_workspace_file_status(relpath)
+        == WorkspaceFileStatus.CONTENT_UPDATED
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    # File properties can be changed
+    assert permissions.user_can_change_request_file_properties(
+        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+    )
+    # File can be updated because its content has changed
+    assert permissions.user_can_update_file_on_request(
+        author, release_request, workspace, relpath
+    )
+
+    # Make file an invalid workspace file by removing it from manifest.json
+    manifest_path = workspace.manifest_path()
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["outputs"]["path/file.txt"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    # File properties can be changed
+    assert permissions.user_can_change_request_file_properties(
+        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+    )
+    # File cannot be updated because there is no valid workspace file
+    assert not permissions.user_can_update_file_on_request(
+        author, release_request, workspace, relpath
+    )

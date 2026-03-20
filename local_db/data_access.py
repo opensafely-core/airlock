@@ -253,6 +253,31 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         metadata = self._find_metadata(request_id)
         return metadata.get_filegroups_to_dict()
 
+    def update_request_file_properties(
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        group_name: str,
+        filetype: RequestFileType,
+        audit: AuditEvent,
+    ):
+        with transaction.atomic():
+            # Get/create the FileGroupMetadata if it doesn't already exist
+            filegroupmetadata = self._get_or_create_filegroupmetadata(
+                request_id, group_name
+            )
+            request_file = RequestFileMetadata.objects.get(
+                request_id=request_id, relpath=relpath
+            )
+            request_file.filegroup = filegroupmetadata
+            request_file.filetype = filetype
+            request_file.save()
+
+            self._create_audit_log(audit)
+        # Return updated FileGroups data
+        metadata = self._find_metadata(request_id)
+        return metadata.get_filegroups_to_dict()
+
     def release_file(
         self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):

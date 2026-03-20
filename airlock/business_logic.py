@@ -126,6 +126,16 @@ class DataAccessLayerProtocol(Protocol):
     ):
         raise NotImplementedError()
 
+    def update_request_file_properties(
+        self,
+        request_id: str,
+        relpath: UrlPath,
+        group_name: str,
+        filetype: RequestFileType,
+        audit: AuditEvent,
+    ):
+        raise NotImplementedError()
+
     def release_file(
         self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
     ):
@@ -708,9 +718,55 @@ class BusinessLogicLayer:
         permissions.check_user_can_change_request_file_properties(
             user, release_request, workspace, relpath, request_file.filetype
         )
-        return self.replace_file_in_request(
-            release_request, relpath, user, group_name, filetype
+
+        request_file = release_request.get_request_file_from_output_path(relpath)
+        old_group = request_file.group
+        old_filetype = request_file.filetype
+
+        # Ensure we're actually changing something
+        if old_group == group_name and old_filetype == filetype:
+            raise exceptions.RequestPermissionDenied("No changes to make")
+
+        # reset file reviews
+        # The file content hasn't changed, however moving a file to a different group
+        # means that the associated context and controls may be different, so we require
+        # re-review.
+        for reviewer_user_id in request_file.reviews:
+            reviewer = User.objects.get(pk=reviewer_user_id)
+            audit = AuditEvent.from_request(
+                request=release_request,
+                type=AuditEventType.REQUEST_FILE_RESET_REVIEW,
+                user=user,
+                path=relpath,
+                group=old_group,
+                filetype=old_filetype.name,
+                reviewer=reviewer.user_id,
+            )
+            self._dal.reset_review_file(
+                request_id=release_request.id,
+                relpath=relpath,
+                audit=audit,
+                user=reviewer,
+            )
+
+        # update file properties
+        audit = AuditEvent.from_request(
+            request=release_request,
+            type=AuditEventType.REQUEST_FILE_UPDATE,
+            user=user,
+            path=relpath,
+            group=group_name,
+            filetype=filetype.name,
         )
+        filegroup_data = self._dal.update_request_file_properties(
+            request_id=release_request.id,
+            relpath=relpath,
+            group_name=group_name,
+            filetype=filetype,
+            audit=audit,
+        )
+        release_request.set_filegroups_from_dict(filegroup_data)
+        return release_request
 
     def replace_file_in_request(
         self,
