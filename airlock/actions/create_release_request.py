@@ -131,8 +131,15 @@ def create_release_request(
                 group_data.total_files += 1
                 state = workspace.get_workspace_file_status(relpath)
 
-                if policies.can_add_file_to_request(workspace, relpath):
-                    if str(relpath) in supporting_files:
+                filetype = (
+                    RequestFileType.SUPPORTING
+                    if str(relpath) in supporting_files
+                    else RequestFileType.OUTPUT
+                )
+                if policies.can_add_file_to_request(
+                    workspace, relpath
+                ) and policies.filetype_is_allowed(workspace, relpath, filetype):
+                    if filetype == RequestFileType.SUPPORTING:
                         group_data.supporting_files_to_add.append(relpath)
                     else:
                         group_data.files_to_add.append(relpath)

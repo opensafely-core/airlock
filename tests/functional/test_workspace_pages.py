@@ -168,8 +168,8 @@ def test_content_buttons(
     [
         # no current request, button enabled
         (None, False, False, None, "txt", True, ""),
-        # no current request, previously released file, button disabled
-        (None, True, False, None, "txt", False, "This file has already been released"),
+        # no current request, previously released file, button enabled
+        (None, True, False, None, "txt", True, ""),
         # no current request, invalid file type, button disabled
         (
             None,
@@ -192,16 +192,8 @@ def test_content_buttons(
             False,
             "This file type cannot be added to a request",
         ),
-        # current request, file not currently added, previously released, button disabled
-        (
-            RequestStatus.PENDING,
-            True,
-            False,
-            None,
-            "txt",
-            False,
-            "This file has already been released",
-        ),
+        # current request, file not currently added, previously released, button enabled
+        (RequestStatus.PENDING, True, False, None, "txt", True, ""),
         # current request, file already added, button disabled
         (
             RequestStatus.PENDING,
