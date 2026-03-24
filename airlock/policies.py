@@ -50,6 +50,27 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
+def filetype_is_allowed(
+    workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType
+):
+    try:
+        check_filetype_is_allowed(workspace, relpath, filetype)
+    except exceptions.RequestPermissionDenied:
+        return False
+    return True
+
+
+def check_filetype_is_allowed(
+    workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType
+):
+    if filetype == RequestFileType.OUTPUT and (
+        workspace.get_workspace_file_status(relpath) == WorkspaceFileStatus.RELEASED
+    ):
+        raise exceptions.RequestPermissionDenied(
+            "Released files cannot be added as output files"
+        )
+
+
 def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
     try:
         check_can_add_file_to_request(workspace, relpath)
@@ -70,12 +91,8 @@ def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
         )
 
     status = workspace.get_workspace_file_status(relpath)
-
-    # The file hasn't already been released
-    if status == WorkspaceFileStatus.RELEASED:
-        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
-
     if status not in [
+        WorkspaceFileStatus.RELEASED,
         WorkspaceFileStatus.UNRELEASED,
         WorkspaceFileStatus.WITHDRAWN,
     ]:
@@ -124,11 +141,6 @@ def check_can_replace_file_in_request(
         )
 
     status = workspace.get_workspace_file_status(relpath)
-
-    # The file hasn't already been released
-    if status == WorkspaceFileStatus.RELEASED:
-        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
-
     if status not in [
         WorkspaceFileStatus.WITHDRAWN,
         WorkspaceFileStatus.CONTENT_UPDATED,

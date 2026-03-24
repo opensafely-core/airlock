@@ -153,8 +153,6 @@ def _get_file_button_context(user, workspace, path_item):
             # disabled due to specific file state; update the tooltips to say why
             if not path_item.is_valid():
                 add_file_btn.tooltip = "This file type cannot be added to a request"
-            elif file_status == WorkspaceFileStatus.RELEASED:
-                add_file_btn.tooltip = "This file has already been released"
             else:
                 # if it's a valid file, and it's not already released,
                 # but the user can's add or update it, it must already
@@ -353,11 +351,8 @@ def multiselect_add_files(request, multiform, workspace):
         workspace.abspath(f)  # validate path
 
         relpath = UrlPath(f)
-        state = workspace.get_workspace_file_status(relpath)
         if policies.can_add_file_to_request(workspace, relpath):
             files_to_add.append(f)
-        elif state == WorkspaceFileStatus.RELEASED:
-            files_ignored[f] = "already released"
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
             files_ignored[f] = f"already in group {rfile.group}"

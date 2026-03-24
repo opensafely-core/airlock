@@ -560,19 +560,19 @@ def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):
         (RequestStatus.APPROVED, False, [], True),
         (
             # In Approved status, files are released but may not be uploaded yet;
-            # Released files cannot be added to a new request as an output file
+            # Released files can be added to a new request as supporting files
             RequestStatus.APPROVED,
             False,
             [factories.request_file(path="file.txt", approved=True)],
-            False,
+            True,
         ),
         (RequestStatus.RELEASED, False, [], True),
         (
-            # Released files cannot be added to a new request as an output file
+            # Released files can be added to a new request as supporting files
             RequestStatus.RELEASED,
             False,
             [factories.request_file(path="file.txt", approved=True)],
-            False,
+            True,
         ),
     ],
 )
@@ -958,9 +958,7 @@ def test_workspace_multiselect_update_files(
     assert response.rendered_content.count("file cannot be updated") == ignored_count
 
 
-def test_workspace_multiselect_add_released_file_not_valid(
-    airlock_client, bll, mock_old_api
-):
+def test_workspace_multiselect_add_released_file(airlock_client, bll, mock_old_api):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")
     factories.write_workspace_file(workspace, "test/path1.txt", "foo")
@@ -994,8 +992,8 @@ def test_workspace_multiselect_add_released_file_not_valid(
     assert response.status_code == 200
     assert "test/path1.txt" in response.rendered_content
     assert "test/path2.txt" in response.rendered_content
-    assert response.rendered_content.count("already released") == 1
-    assert response.rendered_content.count('value="OUTPUT"') == 1
+    assert response.rendered_content.count('value="OUTPUT"') == 2
+    assert response.rendered_content.count('value="SUPPORTING"') == 2
 
 
 def test_workspace_multiselect_bad_action(airlock_client, bll):
@@ -1283,6 +1281,50 @@ def test_workspace_request_file_invalid_formset(airlock_client, bll):
     message = all_messages[0]
     assert message.level == messages.ERROR
     assert "At least one form must be completed" in message.message
+
+
+@pytest.mark.parametrize(
+    "form_filetype,expected_level,expected_message",
+    [
+        ("SUPPORTING", messages.SUCCESS, "Supporting file has been added"),
+        ("OUTPUT", messages.ERROR, "Released files cannot be added as output files"),
+    ],
+)
+def test_workspace_request_file_add_released_file(
+    form_filetype, expected_level, expected_message, airlock_client, mock_old_api
+):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path.txt", "test")
+    # create previously released request
+    factories.create_request_at_status(
+        workspace,
+        RequestStatus.RELEASED,
+        author=airlock_client.user,
+        files=[
+            factories.request_file(path="test/path.txt", contents="test", approved=True)
+        ],
+    )
+    factories.create_release_request(workspace, airlock_client.user)
+
+    response = airlock_client.post(
+        "/workspaces/add-file-to-request/test1",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": "test/path.txt",
+            "form-0-filetype": form_filetype,
+            "filegroup": "default",
+            "next_url": workspace.get_url(UrlPath("test/path.txt")),
+        },
+        follow=True,
+    )
+
+    all_messages = [msg for msg in response.context["messages"]]
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == expected_level
+    assert expected_message in message.message
 
 
 def test_workspace_request_update_file_invalid_status(airlock_client, bll):
