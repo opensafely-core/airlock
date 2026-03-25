@@ -772,19 +772,10 @@ def test_add_previously_released_txt_file_to_pending_request(
 
     # Click the add file button to open the modal
     add_file_modal_button.click()
-    expect(page.get_by_role("radio", name="Output")).to_be_checked()
-    expect(page.get_by_role("radio", name="Supporting")).to_be_visible()
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
+    expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
 
-    # Trying to submit the form with "Output" selected fails
-    page.get_by_role("form").locator("#add-or-change-file-button").click()
-    expect(page.get_by_role("alert")).to_be_visible()
-    assert "Released files cannot be added as output files" in "".join(
-        page.get_by_role("alert").all_inner_texts()
-    )
-
-    # Open the modal again and select Supporting; fill in a new group name
-    add_file_modal_button.click()
-    click_and_htmx(page, page.get_by_role("radio", name="Supporting"))
+    # Fill in a new group name
     page.locator("#id_new_filegroup").fill("new-group")
 
     # Click the button to add the file to the release request
@@ -799,7 +790,7 @@ def test_add_previously_released_txt_file_to_pending_request(
 
     # Click the "Update file properties" button
     click_and_htmx(page, page.locator("#update-file-modal-button"))
-    expect(page.get_by_role("radio", name="Output")).to_be_visible()
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
     expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
 
     # Change the file group
@@ -807,13 +798,4 @@ def test_add_previously_released_txt_file_to_pending_request(
     click_and_htmx(page, page.get_by_role("form").locator("#add-or-change-file-button"))
     expect(page.locator("body")).to_contain_text(
         "has been moved to new group another-group"
-    )
-
-    # Try to change the file type to Output fails
-    click_and_htmx(page, page.locator("#update-file-modal-button"))
-    click_and_htmx(page, page.get_by_role("radio", name="Output"))
-    page.get_by_role("form").locator("#add-or-change-file-button").click()
-    expect(page.get_by_role("alert")).to_be_visible()
-    assert "Released files cannot be added as output files" in "".join(
-        page.get_by_role("alert").all_inner_texts()
     )
