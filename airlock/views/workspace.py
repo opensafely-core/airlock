@@ -352,7 +352,14 @@ def multiselect_add_files(request, multiform, workspace):
 
         relpath = UrlPath(f)
         if policies.can_add_file_to_request(workspace, relpath):
-            files_to_add.append(f)
+            files_to_add.append(
+                {
+                    "file": f,
+                    "allow_output_filetype": policies.filetype_is_allowed(
+                        workspace, relpath, RequestFileType.OUTPUT
+                    ),
+                }
+            )
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
             files_ignored[f] = f"already in group {rfile.group}"
@@ -362,9 +369,7 @@ def multiselect_add_files(request, multiform, workspace):
         initial={"next_url": multiform.cleaned_data["next_url"]},
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[{"file": f} for f in files_to_add],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
 
     return TemplateResponse(
         request,

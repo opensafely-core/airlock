@@ -1000,7 +1000,7 @@ def test_workspace_multiselect_add_released_file(airlock_client, bll, mock_old_a
     assert response.status_code == 200
     assert "test/path1.txt" in response.rendered_content
     assert "test/path2.txt" in response.rendered_content
-    assert response.rendered_content.count('value="OUTPUT"') == 2
+    assert response.rendered_content.count('value="OUTPUT"') == 1
     assert response.rendered_content.count('value="SUPPORTING"') == 2
 
 

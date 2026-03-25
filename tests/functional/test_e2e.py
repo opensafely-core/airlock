@@ -772,11 +772,10 @@ def test_add_previously_released_txt_file_to_pending_request(
 
     # Click the add file button to open the modal
     add_file_modal_button.click()
-    expect(page.get_by_role("radio", name="Output")).to_be_checked()
-    expect(page.get_by_role("radio", name="Supporting")).to_be_visible()
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
+    expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
 
-    # Select Supporting; fill in a new group name
-    click_and_htmx(page, page.get_by_role("radio", name="Supporting"))
+    # Fill in a new group name
     page.locator("#id_new_filegroup").fill("new-group")
 
     # Click the button to add the file to the release request
@@ -791,7 +790,7 @@ def test_add_previously_released_txt_file_to_pending_request(
 
     # Click the "Update file properties" button
     click_and_htmx(page, page.locator("#update-file-modal-button"))
-    expect(page.get_by_role("radio", name="Output")).to_be_visible()
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
     expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
 
     # Change the file group

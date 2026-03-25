@@ -12,7 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 from opentelemetry import trace
 
-from airlock import exceptions, permissions
+from airlock import exceptions, permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import (
     PathType,
@@ -749,7 +749,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
 
 
 def multiselect_update_files(request, multiform, release_request):
-    files_to_add = {}
+    files_to_add = []
     files_ignored = {}
     filegroup = None
     # validate which files can be added
@@ -768,7 +768,15 @@ def multiselect_update_files(request, multiform, release_request):
             request_file.relpath,
             request_file.filetype,
         ):
-            files_to_add[f] = request_file.filetype.name
+            files_to_add.append(
+                {
+                    "file": f,
+                    "filetype": request_file.filetype.name,
+                    "allow_output_filetype": policies.filetype_is_allowed(
+                        workspace, request_file.relpath, RequestFileType.OUTPUT
+                    ),
+                }
+            )
         else:
             files_ignored[f] = "cannot change file group or type"
 
@@ -780,11 +788,7 @@ def multiselect_update_files(request, multiform, release_request):
         },
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[
-            {"file": f, "filetype": filetype} for f, filetype in files_to_add.items()
-        ],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
     return TemplateResponse(
         request,
         template="add_or_change_files.html",
