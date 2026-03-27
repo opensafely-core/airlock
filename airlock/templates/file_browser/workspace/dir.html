@@ -105,7 +105,7 @@
     {% endfragment %}
     {% #clusterize_table header_row=header_row %}
       {% for path in path_item.children %}
-        <tr>
+        <tr {% if path.workspace_status and path.workspace_status.value == "RELEASED" %}data-released="true"{% endif %}>
           <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
           <td>{{ path.display_status }}</td>
           <td data-order="{{ path.size }}">{{ path.size_mb }}</td>

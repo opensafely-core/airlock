@@ -70,11 +70,19 @@ function saveCheckboxSessionState() {
 // implement select all checkbox
 function toggleSelectAll(elem) {
   const checkboxes = getVisibleCheckboxes();
+  let hasSkippedReleased = false;
 
   checkboxes.forEach((checkbox) => {
+    // Skip checkboxes for released files that are currently unchecked
+    if (checkbox.closest('tr')?.dataset.released === 'true' && !checkbox.checked) {
+      // Track that we skipped this checkbox - the select all should be in intermediate state at the end
+      hasSkippedReleased = true;
+      return;
+    }
     checkbox.checked = elem.checked;
   });
-
+  // Set indeterminate state if we skipped any released files while trying to check all
+  elem.indeterminate = hasSkippedReleased && elem.checked;
   saveCheckboxSessionState();
 }
 

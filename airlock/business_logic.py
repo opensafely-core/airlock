@@ -627,6 +627,7 @@ class BusinessLogicLayer:
         permissions.check_user_can_add_file_to_request(
             user, release_request, workspace, relpath
         )
+        policies.check_filetype_is_allowed(workspace, relpath, filetype)
 
         src = workspace.abspath(relpath)
         file_id = store_file(release_request, src)
@@ -718,6 +719,7 @@ class BusinessLogicLayer:
         permissions.check_user_can_change_request_file_properties(
             user, release_request, workspace, relpath, request_file.filetype
         )
+        policies.check_filetype_is_allowed(workspace, relpath, filetype)
 
         request_file = release_request.get_request_file_from_output_path(relpath)
         old_group = request_file.group
