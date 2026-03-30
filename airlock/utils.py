@@ -185,12 +185,12 @@ def summarize_csv(
             ],
         ],
         "notes": mark_safe(
-            "<ul>"
+            "<ul id='notes-list'>"
             '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
             '<li>Redacted values: The strings "redacted", "[redacted]", "na" and "n/a" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
-            "<li>A value `x` is calculated as midpoint 6 rounded if `(x - 3) % 6 == 0` or `x == 0`.</li>"
-            "<li>A value `x` is calculated as divisible by N if `x % N == 0`.</li>"
+            "<li>A value <code>x</code> is calculated as midpoint 6 rounded if <code>(x - 3) % 6 == 0</code> or <code>x == 0</code>.</li>"
+            "<li>A value <code>x</code> is calculated as divisible by N if <code>x % N == 0</code>.</li>"
             "</ul>"
         ),
     }
