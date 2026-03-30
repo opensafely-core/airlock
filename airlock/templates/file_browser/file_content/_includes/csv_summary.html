@@ -1,5 +1,5 @@
-{% #card title=filename container=True %}
-  <div>
+{% #card container=True %}
+  <div class="text-sm">
     <table class="table-auto" id="csv-summary-table">
       <thead>
         <tr>
@@ -12,16 +12,17 @@
         {% for row in summary.rows %}
           <tr class="border border-slate-400">
             {% for cell in row %}
-              <td class="border border-slate-400 p-1">{{ cell }}</td>
+              <td class="border border-slate-400 p-1 {% if not forloop.first %}text-center{% endif %}">{{ cell }}</td>
             {% endfor %}
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  {% #card_footer %}
-    <h2 class="font-bold">Notes:</h2>
+
+  <details class="text-sm text-slate-800 pt-2">
+    <summary class="font-bold">Notes</summary>
     {{ summary.notes }}
-    {% #button type="cancel" class="mt-4" %}Close{% /button %}
-  {% /card_footer %}
+  </details>
+
 {% /card %}
