@@ -81,7 +81,9 @@ def test_summarize_column_missing_values(col_data):
         (("1.3", "2", "Redacted "), "float", 1),
         (("1", "2", "3"), "integer", 0),
         (("1", "2", "<4"), "mixed", 0),
+        (("[REDACTED]", "[ REDACTED ]"), "text", 2),
         (("[REDACTED]", "[REDACTED]", "foo"), "text", 2),
+        (("1", "2", "3", "<=7", "<= 7 "), "integer", 2),
     ],
 )
 def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacted):

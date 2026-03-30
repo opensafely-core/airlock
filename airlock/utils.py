@@ -65,12 +65,12 @@ def _is_not_midpoint6_rounded(value: int | float):
 def summarize_column(column_name: str, column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
     missing_strings = ["", "null", "none"]
-    # redacted strings counted separately for numeric columns
-    redacted_strings = ["[redacted]", "redacted", "na", "n/a"]
+    # redacted strings are counted separately
+    redacted_strings = ["[redacted]", "redacted", "na", "n/a", "<=7"]
 
-    # strip whitespace, lower, and count; ignore non-None, these only occur for
+    # remove whitespace, lower, and count; ignore None, these only occur for
     # CSVs with uneven columns
-    counter = Counter(i.strip().lower() for i in column_data if i is not None)
+    counter = Counter(i.replace(" ", "").lower() for i in column_data if i is not None)
     non_missing_counter = {
         val: count
         for val, count in counter.items()
@@ -187,7 +187,7 @@ def summarize_csv(
         "notes": mark_safe(
             "<ul id='notes-list'>"
             '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
-            '<li>Redacted values: The strings "redacted", "[redacted]", "na" and "n/a" (case insenstive) are considered to represent redacted values</li>'
+            '<li>Redacted values: The strings "redacted", "[redacted]", "na", "n/a" and "<=7" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
             "<li>Mixed column types: both numeric and text values were detected (excluding missing/redacted).</li>"
             "<li>A value <code>x</code> is calculated as midpoint 6 rounded if <code>(x - 3) % 6 == 0</code> or <code>x == 0</code>.</li>"
