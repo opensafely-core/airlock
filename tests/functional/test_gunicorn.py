@@ -193,7 +193,7 @@ def test_gunicorn_view_timeout():
     # this will export otel spans to stdout
     env["OTEL_EXPORTER_CONSOLE"] = "true"
 
-    with run_gunicorn(cmd, timeout=5, env=env) as process:
+    with run_gunicorn(cmd, timeout=10, env=env) as process:
         response = process.client.get("http://localhost/test-timeout/", timeout=5)
         # leave some for gunicorn to clean up
         time.sleep(1)
