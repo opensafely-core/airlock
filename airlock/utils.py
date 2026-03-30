@@ -119,8 +119,10 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
         "Null / missing": sum(
             count for val, count in counter.items() if val in missing_strings
         ),
+        "Redacted": sum(
+            count for val, count in counter.items() if val in redacted_strings
+        ),
         # defaults for numeric calculations
-        "Redacted": "-",
         "Min value": "-",
         "Min non-zero": "-",
         "Max value": "-",
@@ -130,7 +132,8 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
         "Midpoint 6 rounded": "-",
     }
 
-    if numeric_data:
+    if numeric_data and not has_non_numeric_values:
+        # Include automated checks for columns that we detect as fully numeric
         # We can't calculate min > 0 if everything is 0
         if set(numeric_data) != {0}:
             column_summary["Min non-zero"] = min(
@@ -139,9 +142,6 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
 
         column_summary.update(
             {
-                "Redacted": sum(
-                    count for val, count in counter.items() if val in redacted_strings
-                ),
                 "Min value": min(numeric_data),
                 "Max value": max(numeric_data),
                 "Sum": sum(i * count for i, count in numeric_data.items()),
@@ -189,6 +189,7 @@ def summarize_csv(
             '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
             '<li>Redacted values: The strings "redacted", "[redacted]", "na" and "n/a" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
+            "<li>Mixed column types: both numeric and text values were detected (excluding missing/redacted).</li>"
             "<li>A value <code>x</code> is calculated as midpoint 6 rounded if <code>(x - 3) % 6 == 0</code> or <code>x == 0</code>.</li>"
             "<li>A value <code>x</code> is calculated as divisible by N if <code>x % N == 0</code>.</li>"
             "</ul>"
