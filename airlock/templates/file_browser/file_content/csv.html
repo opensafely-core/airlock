@@ -4,7 +4,7 @@
 {% block content %}
   {% if summary %}
     <div class="py-2">
-      <details>
+      <details data-testid="csv-summary">
         <summary class="text-sm text-oxford-600">View&nbsp;summary stats</summary>
         {% include "file_browser/file_content/_includes/csv_summary.html" %}
       </details>
