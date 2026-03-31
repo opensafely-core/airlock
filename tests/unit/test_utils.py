@@ -34,8 +34,8 @@ def test_summarize_csv():
     ]
     assert summary["rows"] == [
         ["Col1", "text", 3, 0, 0, 0, "-", "-", "-", "-", "-", "-", "-"],
-        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, False, False, False],
-        ["Col3", "float", 3, 3, 0, 0, 0.5, 0.5, 3.0, 4.5, False, False, False],
+        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, "No", "No", "No"],
+        ["Col3", "float", 3, 3, 0, 0, 0.5, 0.5, 3.0, 4.5, "No", "No", "No"],
         ["Col4", "mixed", 3, 1, 0, 0, "-", "-", "-", "-", "-", "-", "-"],
         ["Col5", "mixed", 3, 2, 0, 0, "-", "-", "-", "-", "-", "-", "-"],
     ]
@@ -54,8 +54,8 @@ def test_summarize_csv_uneven_columns():
 
     assert summary["rows"] == [
         ["Col1", "text", 3, 0, 0, 0, "-", "-", "-", "-", "-", "-", "-"],
-        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, False, False, False],
-        ["Col3", "float", 3, 2, 0, 0, 0.5, 0.5, 1.0, 1.5, False, False, False],
+        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, "No", "No", "No"],
+        ["Col3", "float", 3, 2, 0, 0, 0.5, 0.5, 1.0, 1.5, "No", "No", "No"],
     ]
 
 
@@ -96,11 +96,11 @@ def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacte
 @pytest.mark.parametrize(
     "col_data,divisible_by_5",
     [
-        (("5", "10", "15", "0", "500", "35"), True),
-        (("50", "10", "0", "-10", "-20"), True),
-        (("5", "10", "15", "[REDACTED]", ""), True),
-        (("5.0", "10.0", "15.0"), True),
-        (("5", "10", "15", "16"), False),
+        (("5", "10", "15", "0", "500", "35"), "Yes"),
+        (("50", "10", "0", "-10", "-20"), "Yes"),
+        (("5", "10", "15", "[REDACTED]", ""), "Yes"),
+        (("5.0", "10.0", "15.0"), "Yes"),
+        (("5", "10", "15", "16"), "No"),
     ],
 )
 def test_summarize_rounded_5(col_data, divisible_by_5):
@@ -111,11 +111,11 @@ def test_summarize_rounded_5(col_data, divisible_by_5):
 @pytest.mark.parametrize(
     "col_data,divisible_by_6",
     [
-        (("0", "6", "24"), True),
-        (("48", "-12", "0"), True),
-        (("6", "12", "18", "[REDACTED]", ""), True),
-        (("6.0", "12.0", "18.0"), True),
-        (("6", "12", "13"), False),
+        (("0", "6", "24"), "Yes"),
+        (("48", "-12", "0"), "Yes"),
+        (("6", "12", "18", "[REDACTED]", ""), "Yes"),
+        (("6.0", "12.0", "18.0"), "Yes"),
+        (("6", "12", "13"), "No"),
     ],
 )
 def test_summarize_rounded_6(col_data, divisible_by_6):
@@ -126,11 +126,11 @@ def test_summarize_rounded_6(col_data, divisible_by_6):
 @pytest.mark.parametrize(
     "col_data,midpoint6_rounded",
     [
-        (("0", "3", "9", "15", "21"), True),
-        (("9", "27", "-3"), True),
-        (("3", "9", "15", "[REDACTED]", ""), True),
-        (("3.0", "9.0", "0.0"), True),
-        (("9", "15", "18"), False),
+        (("0", "3", "9", "15", "21"), "Yes"),
+        (("9", "27", "-3"), "Yes"),
+        (("3", "9", "15", "[REDACTED]", ""), "Yes"),
+        (("3.0", "9.0", "0.0"), "Yes"),
+        (("9", "15", "18"), "No"),
     ],
 )
 def test_summarize_midpoint6_rounded(col_data, midpoint6_rounded):

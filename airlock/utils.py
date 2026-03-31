@@ -62,6 +62,10 @@ def _is_not_midpoint6_rounded(value: int | float):
     return value != 0 and ((value - 3) % 6 != 0)
 
 
+def _format_negative_bool(result):
+    return "No" if result else "Yes"
+
+
 def summarize_column(column_name: str, column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
     missing_strings = ["", "null", "none"]
@@ -145,17 +149,17 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
                 "Min value": min(numeric_data),
                 "Max value": max(numeric_data),
                 "Sum": sum(i * count for i, count in numeric_data.items()),
-                "Divisible by 5": not any(
-                    _is_not_divisible_by(i, 5) for i in numeric_data
+                "Divisible by 5": _format_negative_bool(
+                    any(_is_not_divisible_by(i, 5) for i in numeric_data)
                 ),
                 # https://docs.opensafely.org/outputs/sdc/#midpoint-6-rounding
                 # Divisible by 6 indicates midpoint 6 derived (0, 6, 12...)
                 # midpoint 6 takes values 0, 3, 9, 15...)
-                "Divisible by 6": not any(
-                    _is_not_divisible_by(i, 6) for i in numeric_data
+                "Divisible by 6": _format_negative_bool(
+                    any(_is_not_divisible_by(i, 6) for i in numeric_data)
                 ),
-                "Midpoint 6 rounded": not any(
-                    _is_not_midpoint6_rounded(i) for i in numeric_data
+                "Midpoint 6 rounded": _format_negative_bool(
+                    any(_is_not_midpoint6_rounded(i) for i in numeric_data),
                 ),
             }
         )
