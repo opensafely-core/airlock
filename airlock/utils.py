@@ -66,7 +66,7 @@ def _format_negative_bool(result):
     return "No" if result else "Yes"
 
 
-def summarize_column(column_name: str, column_data: tuple[str, ...]):
+def summarize_column(column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
     missing_strings = ["", "null", "none"]
     # redacted strings are counted separately
@@ -116,7 +116,6 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
                 type_ = numeric_type
 
     column_summary = {
-        "Column name": column_name,
         "Column type": type_,
         "Total rows": len(column_data),
         "Total numeric": sum(numeric_data.values()),
@@ -177,17 +176,20 @@ def summarize_csv(
     row_values = list(zip(*enumerated_rows))[1]
     # Get a list of values for each column, allowing for odd CSVs with rows that are shorter than the header row
     column_values = list(zip_longest(*row_values))
-    first_column = summarize_column(column_names[0], column_values[0])
-
-    return {
-        "headers": list(first_column.keys()),
-        "rows": [
-            list(first_column.values()),
-            *[
-                list(summarize_column(column_name, column_values[i]).values())
-                for i, column_name in enumerate(column_names[1:], start=1)
-            ],
+    # Calculate the first data column so we can get the keys to use as the first column in the summary table
+    first_column = summarize_column(column_values[0])
+    rows = [
+        first_column.keys(),  # Names of the calculated stats
+        first_column.values(),
+        *[
+            list(summarize_column(column_values[i]).values())
+            for i, _ in enumerate(column_names[1:], start=1)
         ],
+    ]
+    rows = list(zip(*rows))
+    return {
+        "headers": ["", *column_names],
+        "rows": rows,
         "notes": mark_safe(
             "<ul id='notes-list'>"
             '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
