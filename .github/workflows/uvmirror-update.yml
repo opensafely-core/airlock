@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         id: generate-token
         with:
           app-id: ${{ vars.CREATE_PR_APP_ID }}
