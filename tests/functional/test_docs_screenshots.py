@@ -172,7 +172,7 @@ def test_screenshot_from_creation_to_release(
     # Screenshot notes with some extra vcontent above to show it's expanded under the table
     screenshot_element_with_padding(
         page,
-        csv_summary_container.get_by_test_id("notes"),
+        csv_summary_container.get_by_test_id("csv-summary-notes"),
         "csv_summary_notes.png",
         extra={"y": -50, "height": 50},
     )
