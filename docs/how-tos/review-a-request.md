@@ -70,6 +70,8 @@ content in the browser.
 
 ![Request file page](../screenshots/file_review.png)
 
+For CSV files, some [summary statistics](../reference/csv-summary.md) can be viewed by clicking on the "View summary stats" toggle.
+
 The `More` dropdown also allows you to [view the file in alternative ways](../reference/view-files-alt.md), or to [view the source code](../reference/view-source-code.md) underlying
 the file. You can also [download](../reference/downloading-files.md) it if required.
 

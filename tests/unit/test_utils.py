@@ -17,27 +17,21 @@ def test_summarize_csv():
         (3, ["foo", "2 ", "1.0 ", "1", "b"]),
     ]
     summary = summarize_csv(headers, rows)
-    assert summary["headers"] == [
-        "Column name",
-        "Column type",
-        "Total rows",
-        "Total numeric",
-        "Null / missing",
-        "Redacted",
-        "Min value",
-        "Min non-zero",
-        "Max value",
-        "Sum",
-        "Divisible by 5",
-        "Divisible by 6",
-        "Midpoint 6 rounded",
-    ]
+    assert summary["headers"] == ["", *headers]
+
     assert summary["rows"] == [
-        ["Col1", "text", 3, 0, 0, "-", "-", "-", "-", "-", "-", "-", "-"],
-        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, False, False, False],
-        ["Col3", "float", 3, 3, 0, 0, 0.5, 0.5, 3.0, 4.5, False, False, False],
-        ["Col4", "mixed", 3, 1, 0, 0, 1, 1, 1, 1, False, False, False],
-        ["Col5", "mixed", 3, 2, 0, 0, 1.0, 1.0, 2.3, 3.3, False, False, False],
+        ("Column type", "text", "integer", "float", "mixed", "mixed"),
+        ("Total rows", 3, 3, 3, 3, 3),
+        ("Total numeric", 0, 3, 3, 1, 2),
+        ("Null / missing", 0, 0, 0, 0, 0),
+        ("Redacted", 0, 0, 0, 0, 0),
+        ("Min value", "-", 1, 0.5, "-", "-"),
+        ("Min non-zero", "-", 1, 0.5, "-", "-"),
+        ("Max value", "-", 2, 3.0, "-", "-"),
+        ("Sum", "-", 4, 4.5, "-", "-"),
+        ("Divisible by 5", "-", "No", "No", "-", "-"),
+        ("Divisible by 6", "-", "No", "No", "-", "-"),
+        ("Midpoint 6 rounded", "-", "No", "No", "-", "-"),
     ]
 
 
@@ -53,9 +47,18 @@ def test_summarize_csv_uneven_columns():
     summary = summarize_csv(headers, rows)
 
     assert summary["rows"] == [
-        ["Col1", "text", 3, 0, 0, "-", "-", "-", "-", "-", "-", "-", "-"],
-        ["Col2", "integer", 3, 3, 0, 0, 1, 1, 2, 4, False, False, False],
-        ["Col3", "float", 3, 2, 0, 0, 0.5, 0.5, 1.0, 1.5, False, False, False],
+        ("Column type", "text", "integer", "float"),
+        ("Total rows", 3, 3, 3),
+        ("Total numeric", 0, 3, 2),
+        ("Null / missing", 0, 0, 0),
+        ("Redacted", 0, 0, 0),
+        ("Min value", "-", 1, 0.5),
+        ("Min non-zero", "-", 1, 0.5),
+        ("Max value", "-", 2, 1.0),
+        ("Sum", "-", 4, 1.5),
+        ("Divisible by 5", "-", "No", "No"),
+        ("Divisible by 6", "-", "No", "No"),
+        ("Midpoint 6 rounded", "-", "No", "No"),
     ]
 
 
@@ -69,7 +72,7 @@ def test_summarize_csv_uneven_columns():
     ],
 )
 def test_summarize_column_missing_values(col_data):
-    column_summary = summarize_column("col_name", col_data)
+    column_summary = summarize_column(col_data)
     assert column_summary["Null / missing"] == 1
     assert column_summary["Column type"] == "integer"
 
@@ -81,11 +84,13 @@ def test_summarize_column_missing_values(col_data):
         (("1.3", "2", "Redacted "), "float", 1),
         (("1", "2", "3"), "integer", 0),
         (("1", "2", "<4"), "mixed", 0),
-        (("[REDACTED]", "[REDACTED]"), "text", "-"),
+        (("[REDACTED]", "[ REDACTED ]"), "text", 2),
+        (("[REDACTED]", "[REDACTED]", "foo"), "text", 2),
+        (("1", "2", "3", "<=7", "<= 7 "), "integer", 2),
     ],
 )
 def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacted):
-    column_summary = summarize_column("col_name", col_data)
+    column_summary = summarize_column(col_data)
     assert column_summary["Null / missing"] == 0
     assert column_summary["Column type"] == expected_type
     assert column_summary["Redacted"] == expected_redacted
@@ -94,50 +99,50 @@ def test_summarize_csv_redacted_values(col_data, expected_type, expected_redacte
 @pytest.mark.parametrize(
     "col_data,divisible_by_5",
     [
-        (("5", "10", "15", "0", "500", "35"), True),
-        (("50", "10", "0", "-10", "-20"), True),
-        (("5", "10", "15", "[REDACTED]", ""), True),
-        (("5.0", "10.0", "15.0"), True),
-        (("5", "10", "15", "16"), False),
+        (("5", "10", "15", "0", "500", "35"), "Yes"),
+        (("50", "10", "0", "-10", "-20"), "Yes"),
+        (("5", "10", "15", "[REDACTED]", ""), "Yes"),
+        (("5.0", "10.0", "15.0"), "Yes"),
+        (("5", "10", "15", "16"), "No"),
     ],
 )
 def test_summarize_rounded_5(col_data, divisible_by_5):
-    column_summary = summarize_column("col_name", col_data)
+    column_summary = summarize_column(col_data)
     assert column_summary["Divisible by 5"] is divisible_by_5
 
 
 @pytest.mark.parametrize(
     "col_data,divisible_by_6",
     [
-        (("0", "6", "24"), True),
-        (("48", "-12", "0"), True),
-        (("6", "12", "18", "[REDACTED]", ""), True),
-        (("6.0", "12.0", "18.0"), True),
-        (("6", "12", "13"), False),
+        (("0", "6", "24"), "Yes"),
+        (("48", "-12", "0"), "Yes"),
+        (("6", "12", "18", "[REDACTED]", ""), "Yes"),
+        (("6.0", "12.0", "18.0"), "Yes"),
+        (("6", "12", "13"), "No"),
     ],
 )
 def test_summarize_rounded_6(col_data, divisible_by_6):
-    column_summary = summarize_column("col_name", col_data)
+    column_summary = summarize_column(col_data)
     assert column_summary["Divisible by 6"] is divisible_by_6
 
 
 @pytest.mark.parametrize(
     "col_data,midpoint6_rounded",
     [
-        (("0", "3", "9", "15", "21"), True),
-        (("9", "27", "-3"), True),
-        (("3", "9", "15", "[REDACTED]", ""), True),
-        (("3.0", "9.0", "0.0"), True),
-        (("9", "15", "18"), False),
+        (("0", "3", "9", "15", "21"), "Yes"),
+        (("9", "27", "-3"), "Yes"),
+        (("3", "9", "15", "[REDACTED]", ""), "Yes"),
+        (("3.0", "9.0", "0.0"), "Yes"),
+        (("9", "15", "18"), "No"),
     ],
 )
 def test_summarize_midpoint6_rounded(col_data, midpoint6_rounded):
-    column_summary = summarize_column("col_name", col_data)
+    column_summary = summarize_column(col_data)
     assert column_summary["Midpoint 6 rounded"] is midpoint6_rounded
 
 
 def test_summarize_column_all_0():
-    column_summary = summarize_column("col_name", ("0", "0", "0"))
+    column_summary = summarize_column(("0", "0", "0"))
     assert column_summary["Column type"] == "integer"
     assert column_summary["Min value"] == 0
     assert column_summary["Max value"] == 0

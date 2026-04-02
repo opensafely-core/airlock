@@ -146,6 +146,39 @@ def test_screenshot_from_creation_to_release(
     wait_for_table_load(page)
     take_screenshot(page, "workspace_file_view.png")
 
+    # CSV summary
+    iframe_content = page.locator("#content-iframe").content_frame
+    csv_summary_container = iframe_content.get_by_test_id("csv-summary")
+    csv_summary_toggle = csv_summary_container.get_by_text("View summary stats")
+
+    page.wait_for_timeout(3000)
+    screenshot_element_with_padding(
+        page,
+        csv_summary_toggle,
+        "csv_summary_toggle.png",
+        extra={"y": -60, "height": 130, "x": -50, "width": -100},
+    )
+
+    # Open CSV summary and screenshot
+    csv_summary_toggle.click()
+    take_screenshot(csv_summary_container, "csv_summary_open.png")
+    # Open Notes and screenshot
+    notes_btn = csv_summary_container.get_by_text("Notes")
+    notes_btn.click()
+    # find last note and scroll into view
+    csv_summary_container.get_by_text(
+        "calculated as divisible by N if"
+    ).scroll_into_view_if_needed()
+    # Screenshot notes with some extra vcontent above to show it's expanded under the table
+    screenshot_element_with_padding(
+        page,
+        csv_summary_container.get_by_test_id("csv-summary-notes"),
+        "csv_summary_notes.png",
+        extra={"y": -50, "height": 50},
+    )
+    # Close csv summary
+    csv_summary_toggle.click()
+
     # More dropdown
     more_locator = page.locator("#file-button-more")
     more_locator.click()

@@ -30,6 +30,8 @@ of the file will be displayed.
 
 ![Workspace file view](../screenshots/workspace_file_view.png)
 
+For CSV files, some [summary statistics](../reference/csv-summary.md) can be viewed by clicking on the "View summary stats" toggle.
+
 From the file view, the `More` dropdown also allows you to [view the file in alternative ways](../reference/view-files-alt.md), or to [view the source code](../reference/view-source-code.md) underlying
 the file.
 

@@ -42,6 +42,7 @@ nav:
     - Downloading files: reference/downloading-files.md
     - Request state diagram: reference/request-states.md
     - Formatting comments with markdown: reference/formatting-comments.md
+    - Summary statistics for CSV files: reference/csv-summary.md
 
 watch:
   - docs

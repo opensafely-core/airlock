@@ -4,9 +4,10 @@
 {% block content %}
   {% if summary %}
     <div class="py-2">
-      {% #modal id="csv-summary" button_text="View&nbsp;summary stats" button_small=True modal_class="min-w-full" %}
+      <details data-testid="csv-summary">
+        <summary class="text-sm text-oxford-600">View&nbsp;summary stats</summary>
         {% include "file_browser/file_content/_includes/csv_summary.html" %}
-      {% /modal %}
+      </details>
     </div>
   {% endif %}
   <div id="airlock-table">

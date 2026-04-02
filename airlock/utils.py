@@ -62,15 +62,19 @@ def _is_not_midpoint6_rounded(value: int | float):
     return value != 0 and ((value - 3) % 6 != 0)
 
 
-def summarize_column(column_name: str, column_data: tuple[str, ...]):
+def _format_negative_bool(result):
+    return "No" if result else "Yes"
+
+
+def summarize_column(column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
     missing_strings = ["", "null", "none"]
-    # redacted strings counted separately for numeric columns
-    redacted_strings = ["[redacted]", "redacted", "na", "n/a"]
+    # redacted strings are counted separately
+    redacted_strings = ["[redacted]", "redacted", "na", "n/a", "<=7"]
 
-    # strip whitespace, lower, and count; ignore non-None, these only occur for
+    # remove whitespace, lower, and count; ignore None, these only occur for
     # CSVs with uneven columns
-    counter = Counter(i.strip().lower() for i in column_data if i is not None)
+    counter = Counter(i.replace(" ", "").lower() for i in column_data if i is not None)
     non_missing_counter = {
         val: count
         for val, count in counter.items()
@@ -112,15 +116,16 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
                 type_ = numeric_type
 
     column_summary = {
-        "Column name": column_name,
         "Column type": type_,
         "Total rows": len(column_data),
         "Total numeric": sum(numeric_data.values()),
         "Null / missing": sum(
             count for val, count in counter.items() if val in missing_strings
         ),
+        "Redacted": sum(
+            count for val, count in counter.items() if val in redacted_strings
+        ),
         # defaults for numeric calculations
-        "Redacted": "-",
         "Min value": "-",
         "Min non-zero": "-",
         "Max value": "-",
@@ -130,7 +135,8 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
         "Midpoint 6 rounded": "-",
     }
 
-    if numeric_data:
+    if numeric_data and not has_non_numeric_values:
+        # Include automated checks for columns that we detect as fully numeric
         # We can't calculate min > 0 if everything is 0
         if set(numeric_data) != {0}:
             column_summary["Min non-zero"] = min(
@@ -139,23 +145,20 @@ def summarize_column(column_name: str, column_data: tuple[str, ...]):
 
         column_summary.update(
             {
-                "Redacted": sum(
-                    count for val, count in counter.items() if val in redacted_strings
-                ),
                 "Min value": min(numeric_data),
                 "Max value": max(numeric_data),
                 "Sum": sum(i * count for i, count in numeric_data.items()),
-                "Divisible by 5": not any(
-                    _is_not_divisible_by(i, 5) for i in numeric_data
+                "Divisible by 5": _format_negative_bool(
+                    any(_is_not_divisible_by(i, 5) for i in numeric_data)
                 ),
                 # https://docs.opensafely.org/outputs/sdc/#midpoint-6-rounding
                 # Divisible by 6 indicates midpoint 6 derived (0, 6, 12...)
                 # midpoint 6 takes values 0, 3, 9, 15...)
-                "Divisible by 6": not any(
-                    _is_not_divisible_by(i, 6) for i in numeric_data
+                "Divisible by 6": _format_negative_bool(
+                    any(_is_not_divisible_by(i, 6) for i in numeric_data)
                 ),
-                "Midpoint 6 rounded": not any(
-                    _is_not_midpoint6_rounded(i) for i in numeric_data
+                "Midpoint 6 rounded": _format_negative_bool(
+                    any(_is_not_midpoint6_rounded(i) for i in numeric_data),
                 ),
             }
         )
@@ -173,24 +176,28 @@ def summarize_csv(
     row_values = list(zip(*enumerated_rows))[1]
     # Get a list of values for each column, allowing for odd CSVs with rows that are shorter than the header row
     column_values = list(zip_longest(*row_values))
-    first_column = summarize_column(column_names[0], column_values[0])
-
-    return {
-        "headers": list(first_column.keys()),
-        "rows": [
-            list(first_column.values()),
-            *[
-                list(summarize_column(column_name, column_values[i]).values())
-                for i, column_name in enumerate(column_names[1:], start=1)
-            ],
+    # Calculate the first data column so we can get the keys to use as the first column in the summary table
+    first_column = summarize_column(column_values[0])
+    rows = [
+        first_column.keys(),  # Names of the calculated stats
+        first_column.values(),
+        *[
+            list(summarize_column(column_values[i]).values())
+            for i, _ in enumerate(column_names[1:], start=1)
         ],
+    ]
+    rows = list(zip(*rows))
+    return {
+        "headers": ["", *column_names],
+        "rows": rows,
         "notes": mark_safe(
-            "<ul>"
+            "<ul id='notes-list'>"
             '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
-            '<li>Redacted values: The strings "redacted", "[redacted]", "na" and "n/a" (case insenstive) are considered to represent redacted values</li>'
+            '<li>Redacted values: The strings "redacted", "[redacted]", "na", "n/a" and "<=7" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
-            "<li>A value `x` is calculated as midpoint 6 rounded if `(x - 3) % 6 == 0` or `x == 0`.</li>"
-            "<li>A value `x` is calculated as divisible by N if `x % N == 0`.</li>"
+            "<li>Mixed column types: both numeric and text values were detected (excluding missing/redacted).</li>"
+            "<li>A value <code>x</code> is calculated as midpoint 6 rounded if <code>(x - 3) % 6 == 0</code> or <code>x == 0</code>.</li>"
+            "<li>A value <code>x</code> is calculated as divisible by N if <code>x % N == 0</code>.</li>"
             "</ul>"
         ),
     }

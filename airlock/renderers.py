@@ -144,21 +144,13 @@ class CSVRenderer(Renderer):
     template = RendererTemplate("file_browser/file_content/csv.html")
     is_text: ClassVar[bool] = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Temporary feature flag
-        self.summarize = False
-
     def context(self):
         reader = csv.reader(self.stream)
         headers = next(reader, [])
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
 
-        if self.summarize:
-            summary = summarize_csv(headers, rows)
-        else:
-            summary = {}
+        summary = summarize_csv(headers, rows)
 
         ctx = {
             "headers": headers,

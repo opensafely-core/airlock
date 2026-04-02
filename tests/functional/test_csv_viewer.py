@@ -297,18 +297,14 @@ def test_csv_summarize(live_server, page, context):
     )
 
     page.goto(
-        live_server.url
-        + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
-        + "&summarize_csv"
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
     )
 
-    modal_button = page.locator("button[data-modal=csv-summary]")
-    expect(modal_button).to_be_visible()
-
+    summary_el = page.get_by_text("View summary stats")
     summary_table = page.locator("#csv-summary-table")
     expect(summary_table).not_to_be_visible()
 
-    modal_button.click()
+    summary_el.click()
     expect(summary_table).to_be_visible()
 
 
@@ -356,7 +352,7 @@ def test_csv_with_wrapping(live_server, page, context):
         live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
     )
 
-    page.locator("tbody").hover()
+    page.locator("#airlock-table").locator("tbody").hover()
     for i in range(num_rows // clusterize_increment):
         row_locator = page.get_by_text(f"value{i * clusterize_increment}", exact=True)
         row_locator.scroll_into_view_if_needed(timeout=1000)
