@@ -68,7 +68,7 @@ def _format_negative_bool(result):
 
 def summarize_column(column_data: tuple[str, ...]):
     # Likely missing/null/redacted values removed for checking for type and for numeric summaries
-    missing_strings = ["", "null", "none"]
+    missing_strings = ["", "null", "none", "nan"]
     # redacted strings are counted separately
     redacted_strings = ["[redacted]", "redacted", "na", "n/a", "<=7"]
 
@@ -192,7 +192,7 @@ def summarize_csv(
         "rows": rows,
         "notes": mark_safe(
             "<ul id='notes-list'>"
-            '<li>Missing values: The strings "null", "none", and "" (case insenstive) are considered to represent missing or null values</li>'
+            '<li>Missing values: The strings "null", "none", "NaN" and "" (case insenstive) are considered to represent missing or null values</li>'
             '<li>Redacted values: The strings "redacted", "[redacted]", "na", "n/a" and "<=7" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
             "<li>Mixed column types: both numeric and text values were detected (excluding missing/redacted).</li>"

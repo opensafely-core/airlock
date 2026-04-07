@@ -9,29 +9,29 @@ def test_summarize_csv_no_data(headers, rows):
 
 
 def test_summarize_csv():
-    headers = ["Col1", "Col2", "Col3", "Col4", "Col5"]
+    headers = ["Col1", "Col2", "Col3", "Col4", "Col5", "Col6"]
     rows = [
-        # whitespace ignored, column type text, int, float, mixed with int, mixed with float
-        (1, ["foo", " 1 ", "3.0", "a", "2.3"]),
-        (2, ["bar", "1", " 0.5", "b", "1"]),
-        (3, ["foo", "2 ", "1.0 ", "1", "b"]),
+        # whitespace ignored, column type text, int, float, mixed with int, mixed with float, includes inf
+        (1, ["foo", " 1 ", "3.0", "a", "2.3", "inf"]),
+        (2, ["bar", "1", " 0.5", "b", "1", "1"]),
+        (3, ["foo", "2 ", "1.0 ", "1", "b", "inf"]),
     ]
     summary = summarize_csv(headers, rows)
     assert summary["headers"] == ["", *headers]
 
     assert summary["rows"] == [
-        ("Column type", "text", "integer", "float", "mixed", "mixed"),
-        ("Total rows", 3, 3, 3, 3, 3),
-        ("Total numeric", 0, 3, 3, 1, 2),
-        ("Null / missing", 0, 0, 0, 0, 0),
-        ("Redacted", 0, 0, 0, 0, 0),
-        ("Min value", "-", 1, 0.5, "-", "-"),
-        ("Min non-zero", "-", 1, 0.5, "-", "-"),
-        ("Max value", "-", 2, 3.0, "-", "-"),
-        ("Sum", "-", 4, 4.5, "-", "-"),
-        ("Divisible by 5", "-", "No", "No", "-", "-"),
-        ("Divisible by 6", "-", "No", "No", "-", "-"),
-        ("Midpoint 6 rounded", "-", "No", "No", "-", "-"),
+        ("Column type", "text", "integer", "float", "mixed", "mixed", "float"),
+        ("Total rows", 3, 3, 3, 3, 3, 3),
+        ("Total numeric", 0, 3, 3, 1, 2, 3),
+        ("Null / missing", 0, 0, 0, 0, 0, 0),
+        ("Redacted", 0, 0, 0, 0, 0, 0),
+        ("Min value", "-", 1, 0.5, "-", "-", 1),
+        ("Min non-zero", "-", 1, 0.5, "-", "-", 1),
+        ("Max value", "-", 2, 3.0, "-", "-", float("inf")),
+        ("Sum", "-", 4, 4.5, "-", "-", float("inf")),
+        ("Divisible by 5", "-", "No", "No", "-", "-", "No"),
+        ("Divisible by 6", "-", "No", "No", "-", "-", "No"),
+        ("Midpoint 6 rounded", "-", "No", "No", "-", "-", "No"),
     ]
 
 
@@ -69,6 +69,7 @@ def test_summarize_csv_uneven_columns():
         ("1", "None", "2"),
         ("1", "null", "2"),
         ("1", "none", "2"),
+        ("1", "NaN", "2"),
     ],
 )
 def test_summarize_column_missing_values(col_data):
