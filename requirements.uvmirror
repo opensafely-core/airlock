@@ -235,7 +235,7 @@ pyyaml==6.0.3
     #   slippers
 pyyaml-env-tag==1.1
     # via mkdocs
-requests==2.32.5
+requests==2.33.0
     # via
     #   airlock
     #   mkdocs-material
