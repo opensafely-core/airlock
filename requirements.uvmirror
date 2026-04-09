@@ -59,12 +59,12 @@ django-htmx==1.27.0
     # via airlock
 django-markdownify==0.9.6
     # via airlock
-django-stubs==5.2.9
-django-stubs-ext==5.2.9
+django-stubs==6.0.2
+django-stubs-ext==6.0.2
     # via django-stubs
 django-vite==3.1.0
     # via airlock
-djhtml==3.0.10
+djhtml==3.0.11
 freezegun==1.5.5
     # via pytest-freezer
 ghp-import==2.1.0
@@ -80,7 +80,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.151.9
+hypothesis==6.151.10
 idna==3.11
     # via
     #   anyio
@@ -120,7 +120,7 @@ mkdocs-material==9.7.4
     # via airlock
 mkdocs-material-extensions==1.3.1
     # via mkdocs-material
-mypy==1.19.1
+mypy==1.20.0
     # via django-stubs
 mypy-extensions==1.1.0
     # via mypy
@@ -215,7 +215,7 @@ pytest==9.0.2
     #   pytest-playwright
 pytest-base-url==2.1.0
     # via pytest-playwright
-pytest-cov==7.0.0
+pytest-cov==7.1.0
 pytest-django==4.12.0
 pytest-freezer==0.4.9
 pytest-playwright==0.7.2
@@ -243,7 +243,7 @@ requests==2.32.5
     #   pytest-base-url
     #   responses
 responses==0.26.0
-ruff==0.15.4
+ruff==0.15.8
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==82.0.0
@@ -268,7 +268,7 @@ typeguard==2.13.3
     # via slippers
 types-pyyaml==6.0.12.20250915
     # via django-stubs
-types-requests==2.32.4.20260107
+types-requests==2.33.0.20260327
 typing-extensions==4.15.0
     # via
     #   anyio
