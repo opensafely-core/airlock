@@ -250,7 +250,7 @@ setuptools==82.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
-slippers==0.6.2
+slippers==0.6.3
     # via airlock
 sortedcontainers==2.4.0
     # via hypothesis
