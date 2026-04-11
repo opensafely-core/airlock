@@ -127,6 +127,9 @@ function initializeClusterize() {
   // We need to update all the cell widths whenever the window resizes. But
   // we use a debounce function so that the update is not called continuously
   window.addEventListener('resize', debounce(updateCellWidths, 150));
+  // When an alert is dismissed, the available vertical space increases.
+  // Re-run fitHeight so #scrollArea's max-height reflects the new layout.
+  document.body.addEventListener('alert-dismissed', fitHeight);
 }
 
 initializeClusterize();

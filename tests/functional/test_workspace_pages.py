@@ -759,3 +759,82 @@ def test_manifest_file_changes(live_server, page, context):
     # alert shown
     expect(content_alert).to_be_visible()
     expect(content_alert).to_contain_text("Selected path is not a valid output path")
+
+
+def get_element_height(page, selector):
+    """Return the rendered height of an element in pixels via getBoundingClientRect."""
+    return page.evaluate(
+        f"document.querySelector('{selector}').getBoundingClientRect().height"
+    )
+
+
+def test_alert_dismiss_resizes_content(page, context, live_server):
+    """
+    Test that dismissing an alert after adding files to a release request correctly
+    resizes both the file tree and the selected content area.
+
+    The alert is injected into the DOM by HTMX after the multiselect form is
+    submitted. Dismissing it frees up vertical space. We verify that both
+    #tree-container and #selected-contents grow to fill that space after dismissal.
+    """
+    # Set up a workspace with multiple files we can add to a request
+    workspace = factories.create_workspace("test-workspace")
+    for i in range(10):
+        factories.write_workspace_file(workspace, f"subdir/file{i}.txt")
+
+    # Log in as a researcher and navigate to the workspace subdirectory
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "researcher",
+            "workspaces": {
+                "test-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    page.goto(live_server.url + workspace.get_url())
+
+    # Expand the subdir in the tree
+    click_and_htmx(page, page.get_by_role("link", name="subdir"))
+
+    # Confirm we're viewing the directory listing in #selected-contents
+    expect(page.locator("#selected-contents")).to_contain_text("file1.txt")
+
+    # Use the select-all checkbox to select all files
+    page.check("input.selectall")
+    expect(page.locator("input.selectall")).to_be_checked()
+
+    # Submit via the multiselect form
+    click_and_htmx(page, page.locator("button[value=add_files]"))
+    click_and_htmx(page, page.get_by_role("form").locator("#add-or-change-file-button"))
+
+    # The alert should now be visible, confirming files were added
+    alert = page.locator('[role="alert"]')
+    expect(alert).to_be_visible()
+
+    # Record heights while the alert is present
+    tree_height_with_alert = get_element_height(page, "#tree-container")
+    content_height_with_alert = get_element_height(page, "#selected-contents")
+
+    # Dismiss the alert
+    alert.get_by_label("Close").click()
+
+    # Wait for the alert to be removed from the DOM
+    expect(alert).not_to_be_visible()
+
+    # Wait for the 300ms transition (from _alert.js in upstream jobserver -
+    # https://github.com/opensafely-core/job-server/blob/df4531db14f53f016f5919d12871ad457f9911f1/assets/src/scripts/_alert.js)
+    # + 100ms for resize to settle
+    page.wait_for_timeout(400)
+
+    # Both elements should have grown to fill the space freed by the alert
+    tree_height_after = get_element_height(page, "#tree-container")
+    content_height_after = get_element_height(page, "#selected-contents")
+
+    assert tree_height_after > tree_height_with_alert
+    assert content_height_after > content_height_with_alert
