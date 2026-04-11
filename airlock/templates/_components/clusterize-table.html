@@ -146,12 +146,14 @@
       <img height="16" width="16" class="icon animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
     </div>
   </div>
-  <span class="search-wrapper">
-    <input type="search" id="search-table" placeholder="Type to search table..."/>
-    <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
-  </span>
-  <span class="search-results">
-  </span>
+  <div class="flex flex-row gap-2 items-start">
+    <span class="search-wrapper">
+      <input type="search" id="search-table" placeholder="Type to search table..."/>
+      <img class="icon animate-spin" src="/static/icons/progress_activity.svg" alt="">
+    </span>
+    <span class="search-results"></span>
+    <span id="show-hidden-columns" class="hidden ml-2 inline-flex flex-wrap items-center gap-1"></span>
+  </div>
   <div id="scrollArea">
     <table class="divide-y divide-slate-300
                   [&_td]:text-slate-700 [&_td]:text-sm [&_td]:p-2

@@ -356,3 +356,93 @@ def test_csv_with_wrapping(live_server, page, context):
     for i in range(num_rows // clusterize_increment):
         row_locator = page.get_by_text(f"value{i * clusterize_increment}", exact=True)
         row_locator.scroll_into_view_if_needed(timeout=1000)
+
+
+def test_csv_column_hide(live_server, page, context):
+    """
+    Test that columns in the clusterize CSV viewer can be hidden and unhidden.
+
+    Specifically:
+    - Hiding a column removes its width from the table layout
+    - The hidden column's name appears as a button in the #show-hidden-columns container
+    - Clicking that button unhides only that column, not others
+    - Hiding all columns and unhiding them one at a time works correctly
+    - The #show-hidden-columns container is hidden when no columns are hidden
+    """
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "col_a,col_b,col_c\n1,2,3\n4,5,6\n",
+    )
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    table = page.locator("#airlock-table")
+    show_hidden = page.locator("#show-hidden-columns")
+
+    # Wait for the clusterize table to be ready
+    expect(table.locator(".clusterized")).to_be_visible()
+
+    # The show-hidden container should not be visible initially
+    expect(show_hidden).to_be_hidden()
+
+    # Measure the initial width of col_a's header cell (note nth-child is 1-indexed,
+    # and the first column is the row numbers)
+    col_a_th = table.locator("thead th:nth-child(2)").first
+    col_b_th = table.locator("thead th:nth-child(3)").first
+
+    # Hide col_a by clicking its hide button
+    col_a_th.locator(".clusterize-column-hide").click()
+
+    # The show-hidden container should now be visible with a button for col_a
+    expect(show_hidden).to_be_visible()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_visible()
+
+    # col_a's header cell should now have zero width
+    col_a_width_after = col_a_th.bounding_box()["width"]
+    assert col_a_width_after == 0
+
+    # col_b should still be visible and unaffected
+    expect(col_b_th).to_be_visible()
+    col_b_width = col_b_th.bounding_box()["width"]
+    assert col_b_width > 0
+
+    # Hide col_b as well
+    col_b_th.locator(".clusterize-column-hide").click()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_visible()
+    expect(show_hidden.get_by_role("button", name="col_b")).to_be_visible()
+
+    # Unhide col_a only — col_b should remain hidden
+    show_hidden.get_by_role("button", name="col_a").click()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_hidden()
+    expect(show_hidden.get_by_role("button", name="col_b")).to_be_visible()
+
+    # col_a should be visible again with its original width restored
+    col_a_width_restored = col_a_th.bounding_box()["width"]
+    assert col_a_width_restored > 0
+
+    # col_b should still be collapsed
+    col_b_width_hidden = col_b_th.bounding_box()["width"]
+    assert col_b_width_hidden == 0
+
+    # Unhide col_b — show-hidden container should now be hidden again
+    show_hidden.get_by_role("button", name="col_b").click()
+    expect(show_hidden).to_be_hidden()
+
+    # Both columns should be visible again
+    assert col_a_th.bounding_box()["width"] > 0
+    assert col_b_th.bounding_box()["width"] > 0
