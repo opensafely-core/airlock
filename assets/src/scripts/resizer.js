@@ -79,3 +79,33 @@ ro.observe(document.documentElement);
  * has been loaded.
  */
 document.body.addEventListener("htmx:afterSettle", () => setContentHeight());
+
+/**
+ * Alert behaviour is controlled by the _alert.js script which we pull in from upstream
+ * job-server: https://github.com/opensafely-core/job-server/blob/df4531db14f53f016f5919d12871ad457f9911f1/assets/src/scripts/_alert.js
+ * 
+ * Alerts may be injected into the DOM after initial page load (e.g. via HTMX),
+ * so we cannot attach listeners at startup. 
+ * Instead, watch for alert elements being removed from the DOM (which is how _alert.js
+ * dismisses them) and trigger a resize. The 300ms delay matches the CSS transition duration in
+ * _alert.js so that the layout has fully settled before we recalculate.
+ *
+ * We also dispatch a custom "alert-dismissed" event so that other scripts
+ * (e.g. clusterize-table.js) can react to the layout change.
+ */
+const alertObserver = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    for (const node of mutation.removedNodes) {
+      if (node instanceof Element && node.matches('[role="alert"]')) {
+        setTimeout(() => {
+          setContentHeight();
+          setTreeHeight();
+          document.body.dispatchEvent(new CustomEvent("alert-dismissed"));
+        }, 300);
+        return;
+      }
+    }
+  }
+});
+
+alertObserver.observe(document.body, { childList: true, subtree: true });
