@@ -155,14 +155,22 @@ def test_csv_sorting(live_server, browser, csv_file):
     table_locator = page.locator("#airlock-table")
 
     # We get a handle on the sort button for the n and (n+1)th column
-    sort_button_1 = table_locator.get_by_role("button").nth(column_sort_index + 1)
-    sort_button_2 = table_locator.get_by_role("button").nth(column_sort_index + 2)
+    # (Note first column in the rendered table is the extra row numbers)
+    sort_buttons = table_locator.locator("thead .clusterize-table-sorter")
+    sort_button_1 = sort_buttons.nth(column_sort_index + 1)
+    sort_button_2 = sort_buttons.nth(column_sort_index + 2)
 
     reader = csv.reader(StringIO(csv_file), delimiter=",")
     csv_list = list(reader)
 
     # We don't want the first row as that is treated as a header
     rows = csv_list[1:]
+
+    # Check if our sort columns contain uniform data (sorting behaves
+    # differently if there's nothing to sort)
+    col1_data_is_uniform = len({r[column_sort_index] for r in rows}) == 1
+    col2_data_is_uniform = len({r[column_sort_index + 1] for r in rows}) == 1
+
     rows_sorted_1 = sorted(rows, key=lambda x: x[column_sort_index])
     rows_sorted_2 = sorted(rows, key=lambda x: x[column_sort_index + 1])
 
@@ -178,15 +186,29 @@ def test_csv_sorting(live_server, browser, csv_file):
     if first_row_sorted_asc[column_sort_index] == rows[0][column_sort_index]:
         first_row_sorted_asc = rows[0]
 
+    # We start off sorted by the first (numbered rows) column (note nth-child is 1-based)
+    expect(
+        table_locator.locator("thead th:nth-child(1) .icon.datatable-icon--ascending")
+    ).to_be_visible()
     # sort ascending by nth column
     sort_button_1.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
-        )
-    ).to_be_visible()
+    # If all the data in the sorted column is the same, the clusterize's domUpdated callback may not fire
+    # because the sort produces no change in the rendered rows. The sort icon for the
+    # sorted column doesn't change, but we see the first (numbered rows) column's icon
+    # change to unsorted
+    if col1_data_is_uniform:
+        expect(
+            table_locator.locator("thead th:nth-child(1) .icon.datatable-icon--no-sort")
+        ).to_be_visible()
+    else:
+        # wait for sorting to finish; note we lookg for column_sort_index + 2 because nth-child is
+        # 1-based, and the first rendered column is the row numbers
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
+            )
+        ).to_be_visible()
 
     # check first row is as expected
     for item in first_row_sorted_asc:
@@ -197,12 +219,13 @@ def test_csv_sorting(live_server, browser, csv_file):
     # sort descending by nth column
     sort_button_1.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
-        )
-    ).to_be_visible()
+    # if there was data to sort, wait for sorting to finish
+    if not col1_data_is_uniform:
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
+            )
+        ).to_be_visible()
 
     # Check cell in sorted column first row is as expected.
     # The sort behaviour in python/javascript is sufficiently different that
@@ -218,12 +241,13 @@ def test_csv_sorting(live_server, browser, csv_file):
     # sort ascending by (n+1)th column
     sort_button_2.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
-        )
-    ).to_be_visible()
+    # if there was col2 data to sort, wait for sorting to finish
+    if not col2_data_is_uniform:
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
+            )
+        ).to_be_visible()
 
     expect(
         table_locator.locator("tbody tr:nth-child(1)").first.locator(
