@@ -285,11 +285,11 @@ def user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    request_filetype: RequestFileType,
+    old_filetype: RequestFileType,
 ):
     try:
         check_user_can_change_request_file_properties(
-            user, request, workspace, relpath, request_filetype
+            user, request, workspace, relpath, old_filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
@@ -301,7 +301,7 @@ def check_user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    request_filetype: RequestFileType,
+    old_filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
 
@@ -313,7 +313,7 @@ def check_user_can_change_request_file_properties(
     # If the user has permission to edit the request, check that the file
     # is not withdrawn
     # Note this is dependent on the user's current request
-    if request_filetype == RequestFileType.WITHDRAWN:
+    if old_filetype == RequestFileType.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "Cannot change file group or type for a withdrawn file"
         )
