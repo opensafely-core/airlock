@@ -26,6 +26,9 @@ let searchEl = document.getElementById("search-table");
 let searchResultsEl = document.querySelector(".search-results");
 let searchWrapper = document.querySelector(".search-wrapper");
 let headerCells = [...headerEl.querySelector('tr').children];
+let hiddenColumns = new Set();
+let hideStyleEl = null;
+let showHiddenBtn = null;
 
 // CONST strings
 const CLASS_SORTING = 'table-sorting';
@@ -74,6 +77,9 @@ function cleanUp() {
   isEmpty = false;
   searchResultsMessage = '';
   isInitialized = false;
+  hiddenColumns = new Set();
+  hideStyleEl = null;
+  showHiddenBtn = null;
 }
 
 /**
@@ -123,6 +129,7 @@ function initializeClusterize() {
 
   wireUpColumnHeaderSortButtons();
   wireUpSearchBox();
+  wireUpColumnHideButtons();
 
   // We need to update all the cell widths whenever the window resizes. But
   // we use a debounce function so that the update is not called continuously
@@ -536,4 +543,117 @@ function getHorizontalPadding(domElement) {
  */
 function getStyleValue(domElement, property, valueIfNull) {
   return window.getComputedStyle(domElement).getPropertyValue(property) || valueIfNull;
+}
+
+/**
+ * Injects or updates a <style> element with nth-child rules that hide
+ * specific columns, and rebuilds the <colgroup> so that
+ * `visibility: collapse` on <col> elements correctly removes the column
+ * width from the table layout.
+ *
+ * Using both <col> visibility and nth-child rules is necessary because:
+ * - `visibility: collapse` on a <col> collapses the column width, but only
+ *   if a <colgroup> is present in the DOM.
+ * - `visibility: collapse` on <th>/<td> hides the cell content but does not
+ *   remove the column width on its own.
+ * Both are needed to fully hide a column without leaving empty space.
+ *
+ * The <colgroup> is rebuilt on every call rather than patched in place,
+ * because clusterize and HTMX can replace the table DOM entirely.
+ */
+function syncHideStyles() {
+  if (!hideStyleEl) {
+    hideStyleEl = document.createElement("style");
+    document.head.appendChild(hideStyleEl);
+  }
+
+  const rules = [...hiddenColumns].map((i) => {
+    const n = i + 1; // CSS nth-child is 1-based
+    return `
+      #airlock-table colgroup col:nth-child(${n}) { visibility: collapse; }
+      #airlock-table th:nth-child(${n}),
+      #airlock-table td:nth-child(${n}) { visibility: collapse; }
+    `;
+  });
+
+  hideStyleEl.textContent = rules.join("\n");
+
+  // Rebuild the colgroup so the col visibility rules have elements to target.
+  // Without a colgroup, visibility:collapse on col has no effect and the
+  // hidden column still takes up space in the layout.
+  const table = containerEl.querySelector("table");
+  if (table) {
+    table.querySelector("colgroup")?.remove();
+    const colgroup = document.createElement("colgroup");
+    headerCells.forEach(() => colgroup.appendChild(document.createElement("col")));
+    table.prepend(colgroup);
+  }
+
+  if (showHiddenBtn) {
+    // Show the container only when at least one column is hidden
+    showHiddenBtn.classList.toggle("hidden", hiddenColumns.size === 0);
+
+    // Rebuild the container contents from scratch on every change.
+    // This is simpler than patching individual buttons and ensures the
+    // displayed list always matches hiddenColumns exactly.
+    showHiddenBtn.innerHTML = "";
+
+    // One button per hidden column, sorted left-to-right by original column
+    // position. Clicking a button unhides just that column.
+    [...hiddenColumns]
+      .sort((a, b) => a - b)
+      .forEach((i) => {
+        const header = headerCells[i]?.querySelector(".clusterize-column-hide")?.dataset.header ?? `Column ${i + 1}`;
+        const btn = document.createElement("button");
+        btn.className = "inline-flex items-center gap-1 px-1 py-0.5 text-xs rounded-lg bg-slate-100 border border-slate-300 text-slate-600 hover:bg-slate-200";
+        btn.title = `Show "${header}"`;
+
+        const label = document.createElement("span");
+        label.textContent = header;
+
+        const icon = document.createElement("img");
+        icon.src = "/static/icons/add_circle_outline.svg";
+        icon.className = "icon w-3 h-3 opacity-50";
+        icon.alt = "";
+
+        btn.appendChild(label);
+        btn.appendChild(icon);
+
+        btn.addEventListener("click", () => {
+          hiddenColumns.delete(i);
+          syncHideStyles();
+          updateCellWidths();
+        });
+        showHiddenBtn.appendChild(btn);
+      });
+  }
+}
+
+/**
+ * Wires up the hide button in each column header.
+ *
+ * Clicking a hide button adds that column's index to hiddenColumns and
+ * calls syncHideStyles to apply the CSS rules and rebuild the unhide buttons.
+ *
+ * The #show-hidden-columns container has no listener of its own — unhiding
+ * is handled entirely by the per-column buttons built in syncHideStyles.
+ * This avoids a previous bug where a click listener on the container was
+ * calling hiddenColumns.clear(), unhiding all columns instead of just one.
+ */
+function wireUpColumnHideButtons() {
+  showHiddenBtn = containerEl.querySelector("#show-hidden-columns");
+
+  headerCells.forEach((th, idx) => {
+    const btn = th.querySelector(".clusterize-column-hide");
+    if (!btn) return;
+
+    btn.addEventListener("click", (e) => {
+      // Prevent the sort button from also firing when the hide button is clicked
+      e.preventDefault();
+      e.stopPropagation();
+      hiddenColumns.add(idx);
+      syncHideStyles();
+      updateCellWidths();
+    });
+  });
 }

@@ -1,5 +1,6 @@
 {% extends "file_browser/file_content/content_base.html" %}
 {% load airlock %}
+{% load static %}
 {% block metatitle %}{{ filename }}{% endblock %}
 {% block content %}
   {% if summary %}
@@ -25,14 +26,23 @@
           </th>
           {% for header in headers %}
             <th>
-              <button class="clusterize-table-sorter p-2 relative text-left w-full">
-                <div class="flex flex-row gap-2 items-center">
-                  {{ header }}
-                  <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
-                    {% datatable_sort_icon %}
-                  </span>
-                </div>
-              </button>
+              <div class="flex flex-row items-center gap-1 px-2">
+                <button class="clusterize-table-sorter py-2 relative text-left">
+                  <div class="flex flex-row gap-2 items-center">
+                    {{ header }}
+                    <span class="sort-icon h-4 w-4 [&_img]:h-4 [&_img]:w-4">
+                      {% datatable_sort_icon %}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  class="clusterize-column-hide shrink-0 text-slate-400 hover:text-slate-700"
+                  title="Hide column"
+                  data-header="{{ header }}"
+                >
+                  <img class="icon w-3 h-3 opacity-75" src="{% static 'icons/remove_circle_outline.svg' %}" alt="">
+                </button>
+              </div>
             </th>
           {% endfor %}
         </tr>

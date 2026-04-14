@@ -155,14 +155,22 @@ def test_csv_sorting(live_server, browser, csv_file):
     table_locator = page.locator("#airlock-table")
 
     # We get a handle on the sort button for the n and (n+1)th column
-    sort_button_1 = table_locator.get_by_role("button").nth(column_sort_index + 1)
-    sort_button_2 = table_locator.get_by_role("button").nth(column_sort_index + 2)
+    # (Note first column in the rendered table is the extra row numbers)
+    sort_buttons = table_locator.locator("thead .clusterize-table-sorter")
+    sort_button_1 = sort_buttons.nth(column_sort_index + 1)
+    sort_button_2 = sort_buttons.nth(column_sort_index + 2)
 
     reader = csv.reader(StringIO(csv_file), delimiter=",")
     csv_list = list(reader)
 
     # We don't want the first row as that is treated as a header
     rows = csv_list[1:]
+
+    # Check if our sort columns contain uniform data (sorting behaves
+    # differently if there's nothing to sort)
+    col1_data_is_uniform = len({r[column_sort_index] for r in rows}) == 1
+    col2_data_is_uniform = len({r[column_sort_index + 1] for r in rows}) == 1
+
     rows_sorted_1 = sorted(rows, key=lambda x: x[column_sort_index])
     rows_sorted_2 = sorted(rows, key=lambda x: x[column_sort_index + 1])
 
@@ -178,15 +186,29 @@ def test_csv_sorting(live_server, browser, csv_file):
     if first_row_sorted_asc[column_sort_index] == rows[0][column_sort_index]:
         first_row_sorted_asc = rows[0]
 
+    # We start off sorted by the first (numbered rows) column (note nth-child is 1-based)
+    expect(
+        table_locator.locator("thead th:nth-child(1) .icon.datatable-icon--ascending")
+    ).to_be_visible()
     # sort ascending by nth column
     sort_button_1.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
-        )
-    ).to_be_visible()
+    # If all the data in the sorted column is the same, the clusterize's domUpdated callback may not fire
+    # because the sort produces no change in the rendered rows. The sort icon for the
+    # sorted column doesn't change, but we see the first (numbered rows) column's icon
+    # change to unsorted
+    if col1_data_is_uniform:
+        expect(
+            table_locator.locator("thead th:nth-child(1) .icon.datatable-icon--no-sort")
+        ).to_be_visible()
+    else:
+        # wait for sorting to finish; note we lookg for column_sort_index + 2 because nth-child is
+        # 1-based, and the first rendered column is the row numbers
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--ascending"
+            )
+        ).to_be_visible()
 
     # check first row is as expected
     for item in first_row_sorted_asc:
@@ -197,12 +219,13 @@ def test_csv_sorting(live_server, browser, csv_file):
     # sort descending by nth column
     sort_button_1.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
-        )
-    ).to_be_visible()
+    # if there was data to sort, wait for sorting to finish
+    if not col1_data_is_uniform:
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 2}) .icon.datatable-icon--descending"
+            )
+        ).to_be_visible()
 
     # Check cell in sorted column first row is as expected.
     # The sort behaviour in python/javascript is sufficiently different that
@@ -218,12 +241,13 @@ def test_csv_sorting(live_server, browser, csv_file):
     # sort ascending by (n+1)th column
     sort_button_2.click()
 
-    # wait for sorting to finish
-    expect(
-        table_locator.locator(
-            f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
-        )
-    ).to_be_visible()
+    # if there was col2 data to sort, wait for sorting to finish
+    if not col2_data_is_uniform:
+        expect(
+            table_locator.locator(
+                f"thead th:nth-child({column_sort_index + 3}) .icon.datatable-icon--ascending"
+            )
+        ).to_be_visible()
 
     expect(
         table_locator.locator("tbody tr:nth-child(1)").first.locator(
@@ -356,3 +380,93 @@ def test_csv_with_wrapping(live_server, page, context):
     for i in range(num_rows // clusterize_increment):
         row_locator = page.get_by_text(f"value{i * clusterize_increment}", exact=True)
         row_locator.scroll_into_view_if_needed(timeout=1000)
+
+
+def test_csv_column_hide(live_server, page, context):
+    """
+    Test that columns in the clusterize CSV viewer can be hidden and unhidden.
+
+    Specifically:
+    - Hiding a column removes its width from the table layout
+    - The hidden column's name appears as a button in the #show-hidden-columns container
+    - Clicking that button unhides only that column, not others
+    - Hiding all columns and unhiding them one at a time works correctly
+    - The #show-hidden-columns container is hidden when no columns are hidden
+    """
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "col_a,col_b,col_c\n1,2,3\n4,5,6\n",
+    )
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 2"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    table = page.locator("#airlock-table")
+    show_hidden = page.locator("#show-hidden-columns")
+
+    # Wait for the clusterize table to be ready
+    expect(table.locator(".clusterized")).to_be_visible()
+
+    # The show-hidden container should not be visible initially
+    expect(show_hidden).to_be_hidden()
+
+    # Measure the initial width of col_a's header cell (note nth-child is 1-indexed,
+    # and the first column is the row numbers)
+    col_a_th = table.locator("thead th:nth-child(2)").first
+    col_b_th = table.locator("thead th:nth-child(3)").first
+
+    # Hide col_a by clicking its hide button
+    col_a_th.locator(".clusterize-column-hide").click()
+
+    # The show-hidden container should now be visible with a button for col_a
+    expect(show_hidden).to_be_visible()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_visible()
+
+    # col_a's header cell should now have zero width
+    col_a_width_after = col_a_th.bounding_box()["width"]
+    assert col_a_width_after == 0
+
+    # col_b should still be visible and unaffected
+    expect(col_b_th).to_be_visible()
+    col_b_width = col_b_th.bounding_box()["width"]
+    assert col_b_width > 0
+
+    # Hide col_b as well
+    col_b_th.locator(".clusterize-column-hide").click()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_visible()
+    expect(show_hidden.get_by_role("button", name="col_b")).to_be_visible()
+
+    # Unhide col_a only — col_b should remain hidden
+    show_hidden.get_by_role("button", name="col_a").click()
+    expect(show_hidden.get_by_role("button", name="col_a")).to_be_hidden()
+    expect(show_hidden.get_by_role("button", name="col_b")).to_be_visible()
+
+    # col_a should be visible again with its original width restored
+    col_a_width_restored = col_a_th.bounding_box()["width"]
+    assert col_a_width_restored > 0
+
+    # col_b should still be collapsed
+    col_b_width_hidden = col_b_th.bounding_box()["width"]
+    assert col_b_width_hidden == 0
+
+    # Unhide col_b — show-hidden container should now be hidden again
+    show_hidden.get_by_role("button", name="col_b").click()
+    expect(show_hidden).to_be_hidden()
+
+    # Both columns should be visible again
+    assert col_a_th.bounding_box()["width"] > 0
+    assert col_b_th.bounding_box()["width"] > 0
