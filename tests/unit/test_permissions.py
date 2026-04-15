@@ -158,13 +158,34 @@ def test_user_can_review_request(output_checker, author, workspaces, can_review)
             permissions.check_user_can_review_request(user, release_request)
 
 
-def test_user_can_change_request_file_properties(bll):
+def test_user_can_change_request_file_properties(bll, mock_old_api):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
     relpath = UrlPath("path/file.txt")
+    released_relpath = UrlPath("path/released.txt")
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(
+        workspace, released_relpath, contents="released content"
+    )
+
+    # Create a previously released request containing released.txt as OUTPUT
+    factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                path=released_relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                contents="released content",
+                approved=True,
+            )
+        ],
+    )
+
     release_request = factories.create_request_at_status(
         "workspace",
         author=author,
@@ -175,7 +196,12 @@ def test_user_can_change_request_file_properties(bll):
                 group="group",
                 filetype=RequestFileType.OUTPUT,
                 approved=True,
-            )
+            ),
+            factories.request_file(
+                path=released_relpath,
+                group="group",
+                filetype=RequestFileType.SUPPORTING,
+            ),
         ],
     )
 
@@ -241,4 +267,37 @@ def test_user_can_change_request_file_properties(bll):
     # File cannot be updated because there is no valid workspace file
     assert not permissions.user_can_update_file_on_request(
         author, release_request, workspace, relpath
+    )
+
+    # Previously released files cannot be changed to OUTPUT type
+    assert not permissions.user_can_change_request_file_properties(
+        author,
+        release_request,
+        workspace,
+        released_relpath,
+        RequestFileType.OUTPUT,
+        RequestFileType.SUPPORTING,
+    )
+
+    # change released file content in workspace
+    factories.write_workspace_file(
+        workspace, released_relpath, contents="changed content"
+    )
+
+    # refresh workspace
+    workspace = bll.get_workspace("workspace", author)
+
+    # Released file can be updated because its content has changed
+    assert permissions.user_can_update_file_on_request(
+        author, release_request, workspace, released_relpath
+    )
+
+    # Can change from SUPPORTING to OUTPUT when content has changed
+    assert permissions.user_can_change_request_file_properties(
+        author,
+        release_request,
+        workspace,
+        released_relpath,
+        RequestFileType.OUTPUT,
+        RequestFileType.SUPPORTING,
     )

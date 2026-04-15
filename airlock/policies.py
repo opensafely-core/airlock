@@ -50,6 +50,15 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
+def check_file_can_be_requested_filetype(
+    status: WorkspaceFileStatus | None, filetype: RequestFileType
+):
+    if filetype == RequestFileType.OUTPUT and status == WorkspaceFileStatus.RELEASED:
+        raise exceptions.RequestPermissionDenied(
+            "Released files cannot be added as output files"
+        )
+
+
 def can_add_file_to_request(
     workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType
 ):
@@ -74,12 +83,9 @@ def check_can_add_file_to_request(
         )
 
     status = workspace.get_workspace_file_status(relpath)
-
-    # The file hasn't already been released
-    if status == WorkspaceFileStatus.RELEASED:
-        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
-
+    check_file_can_be_requested_filetype(status, filetype)
     if status not in [
+        WorkspaceFileStatus.RELEASED,
         WorkspaceFileStatus.UNRELEASED,
         WorkspaceFileStatus.WITHDRAWN,
     ]:
@@ -128,11 +134,6 @@ def check_can_replace_file_in_request(
         )
 
     status = workspace.get_workspace_file_status(relpath)
-
-    # The file hasn't already been released
-    if status == WorkspaceFileStatus.RELEASED:
-        raise exceptions.RequestPermissionDenied("Cannot add released file to request")
-
     if status not in [
         WorkspaceFileStatus.WITHDRAWN,
         WorkspaceFileStatus.CONTENT_UPDATED,
@@ -154,6 +155,10 @@ def check_can_replace_file_in_request(
                 "Cannot add or update file with same type and group in request "
                 f"if it is in status {status}"
             )
+
+        # Validate the new filetype if we're changing it
+        if filetype and request_file and filetype != request_file.filetype:
+            check_file_can_be_requested_filetype(status, filetype)
 
 
 def can_update_file_on_request(workspace: "Workspace", relpath: UrlPath):

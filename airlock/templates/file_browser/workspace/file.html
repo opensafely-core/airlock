@@ -19,11 +19,11 @@
           hx-swap="outerHtml"
         >
           {% if content_buttons.add_file %}
-            {% #button type="submit" name="action" value="add_files" variant="success" id="add-file-modal-button" %}
+            {% #button type="submit" name="action" value="add_files" variant="success" id="add-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}
               Add File to Request
             {% /button %}
           {% else %}
-            {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" %}
+            {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}
               Update File in Request
             {% /button %}
           {% endif %}

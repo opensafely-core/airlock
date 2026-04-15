@@ -320,6 +320,9 @@ def check_user_can_change_request_file_properties(
             f"Cannot change file group or type for request file {relpath}"
         )
 
+    status = workspace.get_workspace_file_status(relpath)
+    policies.check_file_can_be_requested_filetype(status, new_filetype)
+
     # If the user has permission to edit the request, check that the file
     # is not withdrawn
     # Note this is dependent on the user's current request
