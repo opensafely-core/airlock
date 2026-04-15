@@ -40,8 +40,8 @@
   //     ],
   //     "prBodyNotes": [":information_source: Before reviewing this PR, merge any prod/dev dependency PRs and rebase."]
   // },
-  // don't auto-update python-version, we want to manage python updates ourselves
-  "ignorePaths": [".python-version"],
+  // don't auto-update python-version or node-version, we want to manage these updates ourselves
+  "ignorePaths": [".python-version", ".node-version"],
   // Note package rules apply only to direct dependencies
   // group dependencies by dev/prod, cooldown 7 days, run early Wed mornings
   // rangeStrategy: widen expands the range when a new version is found and updates the lockfile (with respect to the cooldown).
