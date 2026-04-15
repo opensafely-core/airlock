@@ -145,7 +145,13 @@ def _get_file_button_context(user, workspace, path_item):
         add_file_btn.tooltip = dir_button.tooltip
     else:
         # Check we can add or update the specific file
-        if policies.can_add_file_to_request(workspace, path_item.relpath):
+        if policies.can_add_file_to_request(
+            workspace, path_item.relpath, RequestFileType.OUTPUT
+        ):
+            add_file_btn.disabled = False
+        elif policies.can_add_file_to_request(
+            workspace, path_item.relpath, RequestFileType.SUPPORTING
+        ):
             add_file_btn.disabled = False
         elif policies.can_replace_file_in_request(workspace, path_item.relpath):
             add_file_btn.disabled = False
@@ -354,7 +360,11 @@ def multiselect_add_files(request, multiform, workspace):
 
         relpath = UrlPath(f)
         state = workspace.get_workspace_file_status(relpath)
-        if policies.can_add_file_to_request(workspace, relpath):
+        if policies.can_add_file_to_request(
+            workspace, relpath, RequestFileType.OUTPUT
+        ) or policies.can_add_file_to_request(
+            workspace, relpath, RequestFileType.SUPPORTING
+        ):
             files_to_add.append(f)
         elif state == WorkspaceFileStatus.RELEASED:
             files_ignored[f] = "already released"

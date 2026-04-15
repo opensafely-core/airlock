@@ -176,18 +176,26 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_add_file_to_request(workspace, relpath)
+    policies.check_can_add_file_to_request(workspace, relpath, filetype)
 
 
 def user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filetype: RequestFileType,
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_add_file_to_request(user, request, workspace, relpath)
+        check_user_can_add_file_to_request(user, request, workspace, relpath, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -285,11 +293,12 @@ def user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
+    new_filetype: RequestFileType,
     old_filetype: RequestFileType,
 ):
     try:
         check_user_can_change_request_file_properties(
-            user, request, workspace, relpath, old_filetype
+            user, request, workspace, relpath, new_filetype, old_filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
@@ -301,6 +310,7 @@ def check_user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
+    new_filetype: RequestFileType,
     old_filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace

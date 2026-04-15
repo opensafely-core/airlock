@@ -50,15 +50,19 @@ def check_can_edit_request(request: "ReleaseRequest"):
         )
 
 
-def can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+def can_add_file_to_request(
+    workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType
+):
     try:
-        check_can_add_file_to_request(workspace, relpath)
+        check_can_add_file_to_request(workspace, relpath, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
 
 
-def check_can_add_file_to_request(workspace: "Workspace", relpath: UrlPath):
+def check_can_add_file_to_request(
+    workspace: "Workspace", relpath: UrlPath, filetype: RequestFileType
+):
     """
     This file can be added to the request.
     We expect that check_can_edit_request has already been called.

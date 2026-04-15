@@ -184,7 +184,12 @@ def test_user_can_change_request_file_properties(bll):
 
     # File properties can be changed
     assert permissions.user_can_change_request_file_properties(
-        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+        author,
+        release_request,
+        workspace,
+        relpath,
+        RequestFileType.OUTPUT,
+        RequestFileType.OUTPUT,
     )
     # File cannot be updated because its content hasn't changed
     assert not permissions.user_can_update_file_on_request(
@@ -203,7 +208,12 @@ def test_user_can_change_request_file_properties(bll):
 
     # File properties can be changed
     assert permissions.user_can_change_request_file_properties(
-        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+        author,
+        release_request,
+        workspace,
+        relpath,
+        RequestFileType.OUTPUT,
+        RequestFileType.OUTPUT,
     )
     # File can be updated because its content has changed
     assert permissions.user_can_update_file_on_request(
@@ -221,7 +231,12 @@ def test_user_can_change_request_file_properties(bll):
 
     # File properties can be changed
     assert permissions.user_can_change_request_file_properties(
-        author, release_request, workspace, relpath, RequestFileType.OUTPUT
+        author,
+        release_request,
+        workspace,
+        relpath,
+        RequestFileType.OUTPUT,
+        RequestFileType.OUTPUT,
     )
     # File cannot be updated because there is no valid workspace file
     assert not permissions.user_can_update_file_on_request(
