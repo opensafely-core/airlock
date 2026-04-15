@@ -124,20 +124,14 @@ get-chromium:
 upgrade-package package: && uvmirror devenv
     uv lock --upgrade-package {{ package }}
 
-# Upgrade all packages to the latest versions as of the cutoff in pyproject.toml
-upgrade-all: && uvmirror devenv
-    uv lock --upgrade
+# recipe is used for doing lockfileMaintenance via update-dependencies action, until min release age is respected fo uv
+upgrade-all cooldown="7 days ago": devenv && update-pipeline
+    uv lock --upgrade --exclude-newer "{{ cooldown }}"
 
 # update the companion requirements formatted file
 uvmirror file="requirements.uvmirror":
     rm -f {{ file }}
     uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras > {{ file }}
-
-# This is the default input command to update-dependencies action
-# https://github.com/bennettoxford/update-dependencies-action
-
-# Upgrade all dependencies
-update-dependencies: upgrade-all
 
 format *args:
     uv run ruff format --diff --quiet {{ args }} .
@@ -397,3 +391,13 @@ assets-run: assets-install
     fi
 
     npm run dev
+
+upgrade-npm-lockfile:
+    npx -y npm-check-updates \
+        --upgrade \
+        --cooldown "7d" \
+        --reject tailwindcss
+    npm update
+
+# Upgrade all python and JS dependencies, including os-pipeline
+update-dependencies: upgrade-npm-lockfile upgrade-all && uvmirror
