@@ -778,6 +778,10 @@ def test_add_previously_released_txt_file_to_pending_request(
     add_file_modal_button.click()
     expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
     expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
+    expect(page.locator("body")).to_contain_text(
+        "This file was previously released as an output. "
+        "It can be added, but only as a supporting file."
+    )
 
     # Fill in a new group name
     page.locator("#id_new_filegroup").fill("new-group")
@@ -796,6 +800,10 @@ def test_add_previously_released_txt_file_to_pending_request(
     click_and_htmx(page, page.locator("#update-file-modal-button"))
     expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
     expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
+    expect(page.locator("body")).to_contain_text(
+        "This file was previously released as an output. "
+        "It can only be a supporting file."
+    )
 
     # Change the file group
     page.locator("#id_new_filegroup").fill("another-group")

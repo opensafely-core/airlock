@@ -358,17 +358,20 @@ def multiselect_add_files(request, multiform, workspace):
 
         relpath = UrlPath(f)
         state = workspace.get_workspace_file_status(relpath)
-        file_data = {"file": f}
+        file_data = {"file": f, "filetype_help_text": ""}
         if policies.can_add_file_to_request(workspace, relpath, RequestFileType.OUTPUT):
             file_data["allow_output_filetype"] = True
             files_to_add.append(file_data)
         elif policies.can_add_file_to_request(
             workspace, relpath, RequestFileType.SUPPORTING
         ):
-            # We will add a note on the form in a later commit to explain
-            # that this is a released file. Only assert for now.
+            # Currently only released files are restricted to the SUPPORTING filetype
             assert state == WorkspaceFileStatus.RELEASED
             file_data["allow_output_filetype"] = False
+            file_data["filetype_help_text"] = (
+                "This file was previously released as an output. "
+                "It can be added, but only as a supporting file."
+            )
             files_to_add.append(file_data)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)

@@ -21,6 +21,7 @@ from airlock.enums import (
     RequestStatus,
     ReviewTurnPhase,
     Visibility,
+    WorkspaceFileStatus,
 )
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
@@ -786,6 +787,7 @@ def multiselect_update_files(request, multiform, release_request):
                     "file": f,
                     "filetype": request_file.filetype.name,
                     "allow_output_filetype": True,
+                    "filetype_help_text": "",
                 }
             )
         elif permissions.user_can_change_request_file_properties(
@@ -796,11 +798,18 @@ def multiselect_update_files(request, multiform, release_request):
             RequestFileType.SUPPORTING,
             request_file.filetype,
         ):
+            # Currently only released files are restricted to the SUPPORTING filetype
+            state = workspace.get_workspace_file_status(request_file.relpath)
+            assert state == WorkspaceFileStatus.RELEASED
             files_to_add.append(
                 {
                     "file": f,
                     "filetype": request_file.filetype.name,
                     "allow_output_filetype": False,
+                    "filetype_help_text": (
+                        "This file was previously released as an output. "
+                        "It can only be a supporting file."
+                    ),
                 }
             )
         else:
