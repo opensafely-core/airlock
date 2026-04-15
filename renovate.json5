@@ -77,6 +77,12 @@
       ],
       "rangeStrategy": "widen"
     },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchDepNames": ["tailwindcss"],
+      "allowedVersions": "<4"
+    },
     // pep621 covers pyproject.toml and uv.lock files
     // https://docs.renovatebot.com/modules/manager/pep621/
     {
