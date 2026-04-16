@@ -1922,7 +1922,37 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
     assert request_file.group == "new-group"
 
 
-def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
+def test_replace_unchanged_file_with_new_filetype(bll):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    relpath = UrlPath("path/file.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            )
+        ],
+    )
+
+    # No change to file content, same group
+    bll.replace_file_in_request(
+        release_request, relpath, author, "group", RequestFileType.SUPPORTING
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+
+def test_cannot_replace_unchanged_file_with_same_filegroup_and_filetype(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
