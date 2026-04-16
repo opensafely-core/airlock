@@ -758,7 +758,17 @@ def test_add_previously_released_txt_file_to_pending_request(
     if multiselect:
         page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
         expect(page.locator(".clusterized")).to_be_visible()
+
+        # Select all does not select the file
         page.locator("input.selectall").click()
+        expect(
+            page.locator(f'input[name="selected"][value="{filepath}"]')
+        ).not_to_be_checked()
+
+        # Click on the checkbox for the file
+        click_and_htmx(
+            page, page.locator(f'input[name="selected"][value="{filepath}"]')
+        )
     else:
         page.goto(live_server.url + workspace.get_url(UrlPath(filepath)))
 
