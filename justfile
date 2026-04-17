@@ -392,6 +392,10 @@ assets-run: assets-install
 
     npm run dev
 
+
+check-renovate-config:
+    npx --yes --package renovate -- renovate-config-validator
+
 upgrade-npm-lockfile:
     npx -y npm-check-updates \
         --upgrade \

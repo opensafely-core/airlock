@@ -1,0 +1,145 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    // Start with the Renovate recommended config
+    // https://docs.renovatebot.com/presets-config/#configrecommended
+    "config:recommended",
+    // ensure all GHA are pinned to digests
+    // https://docs.renovatebot.com/presets-helpers/#helperspingithubactiondigests
+    "helpers:pinGitHubActionDigests",
+    // report on abandoned pacakges
+    // https://docs.renovatebot.com/presets-abandonments/
+    "abandonments:recommended",
+    // 3 day cooldown for npm security updated
+    // https://docs.renovatebot.com/presets-security/#securityminimumreleaseagenpm
+    "security:minimumReleaseAgeNpm",
+    // We don't want automated docker/docker-compose/Dockerfile updates
+    "docker:disable",
+    // Add the nice badges to PRs
+    // https://docs.renovatebot.com/presets-mergeConfidence/#mergeconfidenceall-badges
+    "mergeConfidence:all-badges"
+  ],
+  // Label all Reonvate PRs with "dependencies"
+  "labels": ["dependencies"],
+  //
+  // NOTE: lockFileMaintenance is currently disabled as it doesn't respect the
+  // minimumReleaseAge for uv. An open PR for adding it has been put on hold for now.
+  // https://github.com/renovatebot/renovate/pull/41913#issuecomment-4231423178
+  // Instead, for now we use the update-dependencies-action to update the
+  // uv lockfile
+  "lockFileMaintenance": { "enabled": false},
+  // update transitive deps by updating the entire lockfile
+  // We run this on the same schedule; add a note for the reviewer to do the
+  // default dependencies first to reduce the amount needed for review in the
+  // full lockfile update
+  // "lockFileMaintenance": {
+  //     "enabled": true,
+  //     "minimumReleaseAge": "7 days",
+  //     "schedule": [
+  //       "* 0-3 * * WED"
+  //     ],
+  //     "prBodyNotes": [":information_source: Before reviewing this PR, merge any prod/dev dependency PRs and rebase."]
+  // },
+  //
+  // Note package rules apply only to direct dependencies
+  // group dependencies by dev/prod, cooldown 7 days, run early Wed mornings
+  // rangeStrategy: widen expands the range when a new version is found and updates the lockfile (with respect to the cooldown).
+  // Assumes that the repo has upper limits (<=) set on pyproject.toml dependencies
+  // Note that we can't (as of 2026-03-20 at least) use the "bump" strategy to always bump versions. This expands
+  // the pyproject.toml range with respect to the cooldown, but DOESN'T respect the cooldown when it updates the
+  // lockfile, which results in a conflict with MinimumReleaseAge.
+  "packageRules": [
+    // don't auto-update python-version or node-version, we want to manage these updates ourselves
+    {
+      "matchDatasources": ["python-version", "node-version"],
+      "enabled": false
+    },
+    // We handle github runners (ubuntu versions etc) manually
+    {
+      "matchDatasources": ["github-runners"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "addLabels": ["js"],
+      "groupName": "js dev dependencies",
+      "minimumReleaseAge": "7 days",
+      "schedule": [
+        "* 0-3 * * WED"
+      ],
+      "rangeStrategy": "widen"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "addLabels": ["js"],
+      "groupName": "js prod dependencies",
+      "minimumReleaseAge": "7 days",
+      "schedule": [
+        "* 0-3 * * WED"
+      ],
+      "rangeStrategy": "widen"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchDepNames": ["tailwindcss"],
+      "allowedVersions": "<4"
+    },
+    // pep621 covers pyproject.toml and uv.lock files
+    // https://docs.renovatebot.com/modules/manager/pep621/
+    {
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["dependency-groups", "tool.uv.dev-dependencies"],
+      "addLabels": ["python"],
+      "groupName": "python dev dependencies",
+      "rangeStrategy": "widen",
+      "minimumReleaseAge": "7 days",
+      "schedule": [
+        "* 0-3 * * WED"
+      ],
+    },
+    {
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["project.dependencies", "project.optional-dependencies", "tool.uv.sources"],
+      "addLabels": ["python"],
+      "groupName": "python prod dependencies",
+      "rangeStrategy": "widen",
+      "minimumReleaseAge": "7 days",
+      "schedule": [
+        "* 0-3 * * WED"
+      ],
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "addLabels": ["actions"],
+      "minimumReleaseAge": "7 days",
+      "schedule": [
+        "* 0-3 * * WED"
+      ]
+    },
+    // disable minimumReleaseAge for pinDigest to avoid the stability-days check showing as pending
+    // when Renovate opens a PR for pinning GHA dependencies to digests
+    {
+      "description": "Disable minimumReleaseAge for pinDigest update types",
+      "matchUpdateTypes": ["pinDigest"],
+      "minimumReleaseAge": null,
+    },
+    // EXAMPLE: If required, pin a specific dependency to an upper allowed version
+    // Otherwise renovate will use the general "widen" strategy to change the upper limit in pyproject.toml
+    // and will bump it anyway
+    // {
+    //   "matchManagers": ["pep621"],
+    //   "matchDepNames": ["Django"],
+    //   "allowedVersions": "<6.0"
+    // },
+  ],
+  // Include vulnerability alerts; this uses dependabot and requires that depenency graph and
+  // dependabot alerts are enabled in the repo
+  // https://docs.renovatebot.com/configuration-options/#vulnerabilityalerts
+  "vulnerabilityAlerts": {
+    "addLabels": ["security"]
+  }
+}

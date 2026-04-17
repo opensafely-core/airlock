@@ -31,6 +31,8 @@ jobs:
         run: just devenv
       - name: Check formatting and linting rules
         run: just check
+      - name: Check renovate config
+        run: just check-renovate-config
 
   test:
     runs-on: ubuntu-22.04
