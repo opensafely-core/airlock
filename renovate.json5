@@ -109,6 +109,7 @@
     },
     {
       "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
       "addLabels": ["actions"],
       "minimumReleaseAge": "7 days",
       "schedule": [
