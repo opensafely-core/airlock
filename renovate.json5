@@ -40,8 +40,7 @@
   //     ],
   //     "prBodyNotes": [":information_source: Before reviewing this PR, merge any prod/dev dependency PRs and rebase."]
   // },
-  // don't auto-update python-version or node-version, we want to manage these updates ourselves
-  "ignorePaths": [".python-version", ".node-version"],
+  //
   // Note package rules apply only to direct dependencies
   // group dependencies by dev/prod, cooldown 7 days, run early Wed mornings
   // rangeStrategy: widen expands the range when a new version is found and updates the lockfile (with respect to the cooldown).
@@ -50,6 +49,11 @@
   // the pyproject.toml range with respect to the cooldown, but DOESN'T respect the cooldown when it updates the
   // lockfile, which results in a conflict with MinimumReleaseAge.
   "packageRules": [
+    // don't auto-update python-version or node-version, we want to manage these updates ourselves
+    {
+      "matchDatasources": ["python-version", "node-version"],
+      "enabled": false
+    },
     // We handle github runners (ubuntu versions etc) manually
     {
       "matchDatasources": ["github-runners"],
