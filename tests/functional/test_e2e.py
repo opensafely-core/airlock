@@ -9,7 +9,7 @@ from airlock.enums import RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 
-from .conftest import click_and_htmx
+from .conftest import click_and_htmx, login_as_user
 
 
 def login_as(live_server, page, username):
@@ -722,3 +722,102 @@ def test_e2e_filter_submit(page, live_server, dev_users):
     # Confirm that the two created requests are visible again
     expect(page.locator("body")).to_contain_text("by Researcher")
     expect(page.locator("body")).to_contain_text("All Reviews Submitted")
+
+
+@pytest.mark.parametrize(
+    "multiselect",
+    [True, False],
+)
+def test_add_previously_released_txt_file_to_pending_request(
+    mock_old_api,
+    live_server,
+    page,
+    context,
+    multiselect,
+):
+    user_data = factories.create_api_user(
+        username="author",
+        workspaces={"workspace": factories.create_api_workspace(project="Project 1")},
+        output_checker=False,
+    )
+    user = login_as_user(live_server, context, user_data)
+    workspace = factories.create_workspace("workspace", user)
+    filepath = "subdir/file.txt"
+    factories.write_workspace_file("workspace", path=filepath, contents="test")
+
+    # Create a previous release for this file
+    factories.create_request_at_status(
+        "workspace",
+        files=[factories.request_file(path=filepath, contents="test", approved=True)],
+        status=RequestStatus.RELEASED,
+    )
+
+    # Create a current pending request
+    factories.create_release_request("workspace", user)
+
+    if multiselect:
+        page.goto(live_server.url + workspace.get_url(UrlPath("subdir/")))
+        expect(page.locator(".clusterized")).to_be_visible()
+
+        # Select all does not select the file
+        page.locator("input.selectall").click()
+        expect(
+            page.locator(f'input[name="selected"][value="{filepath}"]')
+        ).not_to_be_checked()
+
+        # Click on the checkbox for the file
+        click_and_htmx(
+            page, page.locator(f'input[name="selected"][value="{filepath}"]')
+        )
+    else:
+        page.goto(live_server.url + workspace.get_url(UrlPath(filepath)))
+
+    # Verify the add file button is visible and enabled
+    add_file_modal_button = page.locator("#add-file-modal-button")
+    expect(add_file_modal_button).to_be_visible()
+    expect(add_file_modal_button).to_be_enabled()
+
+    if not multiselect:
+        # An explanatory tooltip is shown on hover
+        add_file_modal_button.hover()
+        expect(add_file_modal_button).to_contain_text(
+            "This file can be added, but only as supporting"
+        )
+
+    # Click the add file button to open the modal
+    add_file_modal_button.click()
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
+    expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
+    expect(page.locator("body")).to_contain_text(
+        "This file was previously released as an output. "
+        "It can be added, but only as a supporting file."
+    )
+
+    # Fill in a new group name
+    page.locator("#id_new_filegroup").fill("new-group")
+
+    # Click the button to add the file to the release request
+    form_element = page.get_by_role("form")
+    click_and_htmx(page, form_element.locator("#add-or-change-file-button"))
+
+    # Go to the previously released file in the current request
+    click_and_htmx(page, page.locator("#current-request-button"))
+    current_request = bll.get_current_request("workspace", user)
+    assert current_request is not None
+    page.goto(live_server.url + current_request.get_url("new-group/subdir/file.txt"))
+
+    # Click the "Update file properties" button
+    click_and_htmx(page, page.locator("#update-file-modal-button"))
+    expect(page.get_by_role("radio", name="Output")).not_to_be_visible()
+    expect(page.get_by_role("radio", name="Supporting")).to_be_checked()
+    expect(page.locator("body")).to_contain_text(
+        "This file was previously released as an output. "
+        "It can only be a supporting file."
+    )
+
+    # Change the file group
+    page.locator("#id_new_filegroup").fill("another-group")
+    click_and_htmx(page, page.get_by_role("form").locator("#add-or-change-file-button"))
+    expect(page.locator("body")).to_contain_text(
+        "has been moved to new group another-group"
+    )

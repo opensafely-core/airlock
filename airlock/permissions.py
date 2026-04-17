@@ -176,18 +176,26 @@ def user_can_edit_request(user: User, request: "ReleaseRequest"):
 
 
 def check_user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
     check_user_can_edit_request(user, request)
-    policies.check_can_add_file_to_request(workspace, relpath)
+    policies.check_can_add_file_to_request(workspace, relpath, filetype)
 
 
 def user_can_add_file_to_request(
-    user: User, request: "ReleaseRequest", workspace: "Workspace", relpath: UrlPath
+    user: User,
+    request: "ReleaseRequest",
+    workspace: "Workspace",
+    relpath: UrlPath,
+    filetype: RequestFileType,
 ):  # pragma: no cover; not currently used
     try:
-        check_user_can_add_file_to_request(user, request, workspace, relpath)
+        check_user_can_add_file_to_request(user, request, workspace, relpath, filetype)
     except exceptions.RequestPermissionDenied:
         return False
     return True
@@ -285,11 +293,12 @@ def user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    request_filetype: RequestFileType,
+    new_filetype: RequestFileType,
+    old_filetype: RequestFileType,
 ):
     try:
         check_user_can_change_request_file_properties(
-            user, request, workspace, relpath, request_filetype
+            user, request, workspace, relpath, new_filetype, old_filetype
         )
     except exceptions.RequestPermissionDenied:
         return False
@@ -301,7 +310,8 @@ def check_user_can_change_request_file_properties(
     request: "ReleaseRequest",
     workspace: "Workspace",
     relpath: UrlPath,
-    request_filetype: RequestFileType,
+    new_filetype: RequestFileType,
+    old_filetype: RequestFileType,
 ):
     assert workspace.name == request.workspace
 
@@ -310,10 +320,13 @@ def check_user_can_change_request_file_properties(
             f"Cannot change file group or type for request file {relpath}"
         )
 
+    status = workspace.get_workspace_file_status(relpath)
+    policies.check_file_can_be_requested_filetype(status, new_filetype)
+
     # If the user has permission to edit the request, check that the file
     # is not withdrawn
     # Note this is dependent on the user's current request
-    if request_filetype == RequestFileType.WITHDRAWN:
+    if old_filetype == RequestFileType.WITHDRAWN:
         raise exceptions.RequestPermissionDenied(
             "Cannot change file group or type for a withdrawn file"
         )

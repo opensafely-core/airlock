@@ -1884,6 +1884,66 @@ def test_file_change_file_properties(airlock_client, new_group, new_filetype):
     assert request_file.filetype == RequestFileType[new_filetype]
 
 
+def test_file_change_file_properties_released_file_change_group(
+    airlock_client, mock_old_api
+):
+    airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
+    test_relpath = "path/test.txt"
+
+    # create a previously released request containing this file
+    factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                "group", test_relpath, contents="test", approved=True
+            ),
+        ],
+    )
+    release_request = factories.create_request_at_status(
+        "test1",
+        author=airlock_client.user,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                "group", test_relpath, filetype=RequestFileType.SUPPORTING
+            ),
+        ],
+    )
+
+    # ensure it does exist
+    release_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    with pytest.raises(exceptions.FileNotFound):
+        release_request.get_request_file_from_urlpath(f"new-group/{test_relpath}")
+
+    response = airlock_client.post(
+        f"/requests/change-properties/{release_request.id}",
+        data={
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "1",
+            "form-0-file": f"group/{test_relpath}",
+            "form-0-filetype": "SUPPORTING",
+            "next_url": release_request.get_url(f"group/{test_relpath}"),
+            "filegroup": "group",
+            # new filegroup overrides a selected existing one (or the default)
+            "new_filegroup": "new-group",
+        },
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == release_request.get_url(
+        f"new-group/{test_relpath}"
+    )
+
+    persisted_request = factories.refresh_release_request(release_request)
+    request_file = persisted_request.get_request_file_from_urlpath(
+        f"new-group/{test_relpath}"
+    )
+    with pytest.raises(exceptions.FileNotFound):
+        persisted_request.get_request_file_from_urlpath(f"group/{test_relpath}")
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+
 def test_file_change_file_properties_multiple_files(airlock_client):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
     test_relpath = "path/test.txt"
@@ -1936,9 +1996,27 @@ def test_file_change_file_properties_multiple_files(airlock_client):
     assert request_file1.filetype == RequestFileType.OUTPUT
 
 
-def test_file_change_file_properties_no_changes(airlock_client):
+@pytest.mark.parametrize(
+    "is_previously_released_output",
+    [True, False],
+)
+def test_file_change_file_properties_no_changes(
+    is_previously_released_output, airlock_client, mock_old_api
+):
     airlock_client.login(username="author", workspaces=["test1"], output_checker=False)
     test_relpath = "path/test.txt"
+
+    if is_previously_released_output:
+        factories.create_request_at_status(
+            "test1",
+            author=airlock_client.user,
+            status=RequestStatus.RELEASED,
+            files=[
+                factories.request_file(
+                    "group", test_relpath, contents="test", approved=True
+                ),
+            ],
+        )
 
     release_request = factories.create_request_at_status(
         "test1",
@@ -1946,7 +2024,7 @@ def test_file_change_file_properties_no_changes(airlock_client):
         status=RequestStatus.PENDING,
         files=[
             factories.request_file(
-                "group", test_relpath, filetype=RequestFileType.OUTPUT
+                "group", test_relpath, filetype=RequestFileType.SUPPORTING
             ),
         ],
     )
@@ -1965,7 +2043,7 @@ def test_file_change_file_properties_no_changes(airlock_client):
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "1",
             "form-0-file": f"group/{test_relpath}",
-            "form-0-filetype": "OUTPUT",
+            "form-0-filetype": "SUPPORTING",
             "next_url": release_request.get_url(f"group/{test_relpath}"),
             "filegroup": "group",
             "new_filegroup": "",
@@ -1981,7 +2059,7 @@ def test_file_change_file_properties_no_changes(airlock_client):
     request_file = persisted_request.get_request_file_from_urlpath(
         f"group/{test_relpath}"
     )
-    assert request_file.filetype == RequestFileType.OUTPUT
+    assert request_file.filetype == RequestFileType.SUPPORTING
     # Nothing to do, no new audit logs
     assert (
         len(bll.get_request_audit_log(airlock_client.user, persisted_request, "group"))
@@ -2252,6 +2330,52 @@ def test_request_multiselect_change_file_properties_not_permitted(airlock_client
         f'<form action="/requests/change-properties/{release_request.id}" method="POST"'
         in response.rendered_content
     )
+
+
+def test_workspace_multiselect_change_file_properties_released_file(
+    airlock_client, bll, mock_old_api
+):
+    airlock_client.login(workspaces=["test1"])
+    workspace = factories.create_workspace("test1")
+    factories.write_workspace_file(workspace, "test/path1.txt", "foo")
+
+    # create previously released request
+    factories.create_request_at_status(
+        workspace,
+        RequestStatus.RELEASED,
+        author=airlock_client.user,
+        files=[
+            factories.request_file(path="test/path1.txt", contents="foo", approved=True)
+        ],
+    )
+
+    # create current pending request with the file added as supporting
+    release_request = factories.create_request_at_status(
+        workspace,
+        RequestStatus.PENDING,
+        author=airlock_client.user,
+        files=[
+            factories.request_file(
+                path="test/path1.txt",
+                contents="foo",
+                filetype=RequestFileType.SUPPORTING,
+            )
+        ],
+    )
+
+    response = airlock_client.post(
+        f"/requests/multiselect/{release_request.id}",
+        data={
+            "action": "update_files",
+            "selected": ["group/test/path1.txt"],
+            "next_url": release_request.get_url("group"),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "test/path1.txt" in response.rendered_content
+    assert response.rendered_content.count('value="OUTPUT"') == 0
+    assert response.rendered_content.count('value="SUPPORTING"') == 1
 
 
 @pytest.mark.parametrize("action", ["withdraw_files", "update_files"])

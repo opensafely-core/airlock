@@ -145,20 +145,24 @@ def _get_file_button_context(user, workspace, path_item):
         add_file_btn.tooltip = dir_button.tooltip
     else:
         # Check we can add or update the specific file
-        if policies.can_add_file_to_request(workspace, path_item.relpath):
+        if policies.can_add_file_to_request(
+            workspace, path_item.relpath, RequestFileType.OUTPUT
+        ):
             add_file_btn.disabled = False
+        elif policies.can_add_file_to_request(
+            workspace, path_item.relpath, RequestFileType.SUPPORTING
+        ):
+            add_file_btn.disabled = False
+            add_file_btn.tooltip = "This file can be added, but only as supporting"
         elif policies.can_replace_file_in_request(workspace, path_item.relpath):
             add_file_btn.disabled = False
         else:
             # disabled due to specific file state; update the tooltips to say why
             if not path_item.is_valid():
                 add_file_btn.tooltip = "This file type cannot be added to a request"
-            elif file_status == WorkspaceFileStatus.RELEASED:
-                add_file_btn.tooltip = "This file has already been released"
             else:
-                # if it's a valid file, and it's not already released,
-                # but the uer can's add or update it, it must already
-                # be on the request
+                # if it's a valid file but the user can't add or update it,
+                # it must already be on the request
                 assert file_status == WorkspaceFileStatus.UNDER_REVIEW
                 add_file_btn.tooltip = (
                     "This file has already been added to the current request"
@@ -354,10 +358,21 @@ def multiselect_add_files(request, multiform, workspace):
 
         relpath = UrlPath(f)
         state = workspace.get_workspace_file_status(relpath)
-        if policies.can_add_file_to_request(workspace, relpath):
-            files_to_add.append(f)
-        elif state == WorkspaceFileStatus.RELEASED:
-            files_ignored[f] = "already released"
+        file_data = {"file": f, "filetype_help_text": ""}
+        if policies.can_add_file_to_request(workspace, relpath, RequestFileType.OUTPUT):
+            file_data["allow_output_filetype"] = True
+            files_to_add.append(file_data)
+        elif policies.can_add_file_to_request(
+            workspace, relpath, RequestFileType.SUPPORTING
+        ):
+            # Currently only released files are restricted to the SUPPORTING filetype
+            assert state == WorkspaceFileStatus.RELEASED
+            file_data["allow_output_filetype"] = False
+            file_data["filetype_help_text"] = (
+                "This file was previously released as an output. "
+                "It can be added, but only as a supporting file."
+            )
+            files_to_add.append(file_data)
         else:
             rfile = workspace.current_request.get_request_file_from_output_path(f)
             files_ignored[f] = f"already in group {rfile.group}"
@@ -367,9 +382,7 @@ def multiselect_add_files(request, multiform, workspace):
         initial={"next_url": multiform.cleaned_data["next_url"]},
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[{"file": f} for f in files_to_add],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
 
     return TemplateResponse(
         request,

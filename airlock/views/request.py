@@ -21,6 +21,7 @@ from airlock.enums import (
     RequestStatus,
     ReviewTurnPhase,
     Visibility,
+    WorkspaceFileStatus,
 )
 from airlock.file_browser_api import get_request_tree
 from airlock.forms import (
@@ -236,7 +237,19 @@ def _get_file_button_context(user, release_request, workspace, path_item):
         withdraw_btn.tooltip = "Withdraw this file from this request"
 
     if permissions.user_can_change_request_file_properties(
-        user, release_request, workspace, relpath, path_item.request_filetype
+        user,
+        release_request,
+        workspace,
+        relpath,
+        RequestFileType.SUPPORTING,
+        path_item.request_filetype,
+    ) or permissions.user_can_change_request_file_properties(
+        user,
+        release_request,
+        workspace,
+        relpath,
+        RequestFileType.OUTPUT,
+        path_item.request_filetype,
     ):
         change_file_properties_button.show = True
         change_file_properties_button.disabled = False
@@ -749,7 +762,7 @@ def multiselect_withdraw_files(request, multiform, release_request):
 
 
 def multiselect_update_files(request, multiform, release_request):
-    files_to_add = {}
+    files_to_add = []
     files_ignored = {}
     filegroup = None
     # validate which files can be added
@@ -766,9 +779,39 @@ def multiselect_update_files(request, multiform, release_request):
             release_request,
             workspace,
             request_file.relpath,
+            RequestFileType.OUTPUT,
             request_file.filetype,
         ):
-            files_to_add[f] = request_file.filetype.name
+            files_to_add.append(
+                {
+                    "file": f,
+                    "filetype": request_file.filetype.name,
+                    "allow_output_filetype": True,
+                    "filetype_help_text": "",
+                }
+            )
+        elif permissions.user_can_change_request_file_properties(
+            request.user,
+            release_request,
+            workspace,
+            request_file.relpath,
+            RequestFileType.SUPPORTING,
+            request_file.filetype,
+        ):
+            # Currently only released files are restricted to the SUPPORTING filetype
+            state = workspace.get_workspace_file_status(request_file.relpath)
+            assert state == WorkspaceFileStatus.RELEASED
+            files_to_add.append(
+                {
+                    "file": f,
+                    "filetype": request_file.filetype.name,
+                    "allow_output_filetype": False,
+                    "filetype_help_text": (
+                        "This file was previously released as an output. "
+                        "It can only be a supporting file."
+                    ),
+                }
+            )
         else:
             files_ignored[f] = "cannot change file group or type"
 
@@ -780,11 +823,7 @@ def multiselect_update_files(request, multiform, release_request):
         },
     )
 
-    filetype_formset = FileTypeFormSet(
-        initial=[
-            {"file": f, "filetype": filetype} for f, filetype in files_to_add.items()
-        ],
-    )
+    filetype_formset = FileTypeFormSet(initial=files_to_add)
     return TemplateResponse(
         request,
         template="add_or_change_files.html",

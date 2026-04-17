@@ -72,10 +72,14 @@ function toggleSelectAll(elem) {
   const checkboxes = getVisibleCheckboxes();
 
   checkboxes.forEach((checkbox) => {
+    // Skip checkboxes for released files that are currently unchecked
+    if (checkbox.closest('tr')?.dataset.released === 'true' && !checkbox.checked) {
+      return;
+    }
     checkbox.checked = elem.checked;
   });
-
   saveCheckboxSessionState();
+  updateSelectAllCheckbox();
 }
 
 // Update the state of the select all checkbox. Checked if

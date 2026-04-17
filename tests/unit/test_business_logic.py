@@ -1668,13 +1668,18 @@ def test_add_file_to_request_already_released(bll, mock_old_api):
     bll.add_file_to_request(
         release_request, "supporting.txt", user, filetype=RequestFileType.OUTPUT
     )
-    # Can't add the released file
+    # Can't add the released file as an output file
     with pytest.raises(
-        exceptions.RequestPermissionDenied, match=r"Cannot add released file"
+        exceptions.RequestPermissionDenied,
+        match=r"Released files cannot be added as output files",
     ):
         bll.add_file_to_request(
             release_request, "file.txt", user, filetype=RequestFileType.OUTPUT
         )
+    # but can add it as a supporting file
+    bll.add_file_to_request(
+        release_request, "file.txt", user, filetype=RequestFileType.SUPPORTING
+    )
 
 
 def test_add_file_to_request_with_audit_kwargs(bll):
@@ -1922,7 +1927,70 @@ def test_replace_unchanged_file_with_new_filegroup(bll):
     assert request_file.group == "new-group"
 
 
-def test_cannot_replace_unchanged_file_with_same_filegroup(bll):
+def test_replace_unchanged_file_with_new_filetype(bll, mock_old_api):
+    author = factories.create_airlock_user(
+        username="author", workspaces=["workspace"], output_checker=False
+    )
+    relpath = UrlPath("path/file.txt")
+    released_relpath = UrlPath("path/released.txt")
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, relpath)
+    factories.write_workspace_file(
+        workspace, released_relpath, contents="released content"
+    )
+
+    # Create a previously released request containing released.txt as OUTPUT
+    factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RELEASED,
+        files=[
+            factories.request_file(
+                path=released_relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                contents="released content",
+                approved=True,
+            )
+        ],
+    )
+
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.RETURNED,
+        files=[
+            factories.request_file(
+                path=relpath,
+                group="group",
+                filetype=RequestFileType.OUTPUT,
+                approved=True,
+            ),
+            factories.request_file(
+                path=released_relpath,
+                group="group",
+                filetype=RequestFileType.SUPPORTING,
+            ),
+        ],
+    )
+
+    # No change to file content, same group
+    bll.replace_file_in_request(
+        release_request, relpath, author, "group", RequestFileType.SUPPORTING
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(relpath)
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+    # No change to file content, same group
+    # But previously released files cannot be changed to OUTPUT type
+    with pytest.raises(exceptions.RequestPermissionDenied):
+        bll.replace_file_in_request(
+            release_request, released_relpath, author, "group", RequestFileType.OUTPUT
+        )
+
+
+def test_cannot_replace_unchanged_file_with_same_filegroup_and_filetype(bll):
     author = factories.create_airlock_user(
         username="author", workspaces=["workspace"], output_checker=False
     )
@@ -2423,6 +2491,59 @@ def test_change_file_properties_invalid_workspace_file(bll):
     )
     release_request = factories.refresh_release_request(release_request)
     request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "new-group"
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+
+def test_change_file_properties_released_file(bll, mock_old_api):
+    author = factories.create_airlock_user(username="author", workspaces=["workspace"])
+    path = "path/file1.txt"
+    # release the file
+    factories.create_request_at_status(
+        "workspace",
+        RequestStatus.RELEASED,
+        author=author,
+        files=[
+            factories.request_file(path=path, contents="foo", approved=True),
+        ],
+    )
+    # make a new request with the released file as a supporting file
+    release_request = factories.create_request_at_status(
+        "workspace",
+        author=author,
+        status=RequestStatus.PENDING,
+        files=[
+            factories.request_file(
+                path=path, contents="foo", filetype=RequestFileType.SUPPORTING
+            ),
+        ],
+    )
+
+    # We CAN change the file group on a released file
+    bll.change_file_properties_in_request(
+        release_request,
+        path,
+        group_name="new-group",
+        user=author,
+        filetype=RequestFileType.SUPPORTING,
+    )
+    release_request = factories.refresh_release_request(release_request)
+    request_file = release_request.get_request_file_from_output_path(path)
+    assert request_file.group == "new-group"
+    assert request_file.filetype == RequestFileType.SUPPORTING
+
+    # but we cannot change the filetype to OUTPUT
+    with pytest.raises(
+        exceptions.RequestPermissionDenied,
+        match=r"Released files cannot be added as output files",
+    ):
+        bll.change_file_properties_in_request(
+            release_request,
+            path,
+            group_name="new-group",
+            user=author,
+            filetype=RequestFileType.OUTPUT,
+        )
     assert request_file.group == "new-group"
     assert request_file.filetype == RequestFileType.SUPPORTING
 

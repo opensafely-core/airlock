@@ -625,7 +625,7 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_add_file_to_request(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, relpath, filetype
         )
 
         src = workspace.abspath(relpath)
@@ -694,7 +694,7 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         permissions.check_user_can_add_file_to_request(
-            user, release_request, workspace, relpath
+            user, release_request, workspace, relpath, filetype
         )
 
         return self.replace_file_in_request(
@@ -715,13 +715,13 @@ class BusinessLogicLayer:
         relpath = UrlPath(relpath)
         workspace = self.get_workspace(release_request.workspace, user)
         request_file = release_request.get_request_file_from_output_path(relpath)
+        old_group = request_file.group
+        old_filetype = request_file.filetype
         permissions.check_user_can_change_request_file_properties(
-            user, release_request, workspace, relpath, request_file.filetype
+            user, release_request, workspace, relpath, filetype, old_filetype
         )
 
         request_file = release_request.get_request_file_from_output_path(relpath)
-        old_group = request_file.group
-        old_filetype = request_file.filetype
 
         # Ensure we're actually changing something
         if old_group == group_name and old_filetype == filetype:
