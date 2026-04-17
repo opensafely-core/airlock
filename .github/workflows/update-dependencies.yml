@@ -1,0 +1,55 @@
+name: Lockfile maintenance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  "0 4 * * WED"
+
+permissions:
+  contents: read
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: "opensafely-core/setup-action@v1"
+      with:
+        install-just: true
+        install-uv: true
+        cache: uv
+
+    - name: Install Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version-file: ".node-version"
+        cache: "npm"
+        cache-dependency-path: package-lock.json
+
+    - uses: actions/create-github-app-token@v2
+      id: generate-token
+      with:
+        app-id: ${{ vars.CREATE_PR_APP_ID }}
+        private-key: ${{ secrets.CREATE_PR_APP_PRIVATE_KEY }}
+
+    - uses: bennettoxford/update-dependencies-action@bdea909f667cfe51dae1e062ae04b7e644f60166  # v1
+      id: update
+      with:
+        token: ${{ steps.generate-token.outputs.token }}
+        pr_title: uv lockfile maintentance
+        pr_body: |
+          :information_source: Before reviewing this PR, merge any Renovate prod/dev/security dependency PRs and rebase.
+
+          This will ensure that this PR handles transitive dependencies only.
+
+          Automated changes by [update-dependencies-action](https://github.com/bennettoxford/update-dependencies-action)
+
+    - name: Notify slack of PR
+      if: ${{ steps.update.outputs.pull-request-operation != 'none' }}
+      uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a  # v2.1.1
+      with:
+        method: chat.postMessage
+        token: ${{ secrets.BENNETTBOT_SLACK_BOT_TOKEN }}
+        payload: |
+          channel: "C080S7W2ZPX"
+          text: "Update dependencies\n${{ steps.update.outputs.pull-request-url }}"
