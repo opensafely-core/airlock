@@ -51,7 +51,7 @@
   "packageRules": [
     // don't auto-update python-version or node-version, we want to manage these updates ourselves
     {
-      "matchDatasources": ["python-version", "node-version"],
+      "matchManagers": ["pyenv", "nodenv"],
       "enabled": false
     },
     // We handle github runners (ubuntu versions etc) manually
