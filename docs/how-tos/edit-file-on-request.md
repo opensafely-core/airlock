@@ -50,3 +50,6 @@ within the release request, and use "Change File Properties". You will have the 
 change the file type, select an existing file group, or create a new one to move the file to.
 
 ![Change file properties](../screenshots/update_file_properties.png)
+
+Note that previously released files can only be added as supporting files in a new release request.
+For previously released files, you will not see the option to change the file's type to "Output".

@@ -33,6 +33,10 @@ select the type of file (output file or supporting file).
     already have an active release request, the file will be added to it. If you do not have
     an active release request, a new one will be created.
 
+Note that if there are files that have previously been released in your workspace,
+you can add them to a new request only as supporting files.
+When you try to add the file, the dialogue will only show "Supporting" as an option.
+
 If you added a file that you did not intend to, you can
 [withdraw the file](edit-file-on-request.md#withdraw-a-file) prior to submitting the release request.
 
