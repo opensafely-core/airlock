@@ -54,6 +54,11 @@
       "matchManagers": ["pyenv", "nodenv"],
       "enabled": false
     },
+    // don't auto-update requires-python in pyproject.toml
+    {
+      matchDepTypes: ["requires-python"],
+      enabled: false,
+    },
     // We handle github runners (ubuntu versions etc) manually
     {
       "matchDatasources": ["github-runners"],
