@@ -18,7 +18,7 @@ jobs:
     
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           # Required to get main branch for comparison
           fetch-depth: 0
@@ -42,10 +42,10 @@ jobs:
     name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       
       - name: Install Python and just
-        uses: opensafely-core/setup-action@v1
+        uses: opensafely-core/setup-action@c458795dc9c6f219fa1cbf6148940db57c3ac03d # v1
         with:
           install-just: true
           install-uv: true

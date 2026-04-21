@@ -12,27 +12,27 @@ jobs:
   update-dependencies:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v6
-    - uses: "opensafely-core/setup-action@v1"
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+    - uses: "opensafely-core/setup-action@c458795dc9c6f219fa1cbf6148940db57c3ac03d" # v1
       with:
         install-just: true
         install-uv: true
         cache: uv
 
     - name: Install Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
       with:
         node-version-file: ".node-version"
         cache: "npm"
         cache-dependency-path: package-lock.json
 
-    - uses: actions/create-github-app-token@v2
+    - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
       id: generate-token
       with:
         app-id: ${{ vars.CREATE_PR_APP_ID }}
         private-key: ${{ secrets.CREATE_PR_APP_PRIVATE_KEY }}
 
-    - uses: bennettoxford/update-dependencies-action@bdea909f667cfe51dae1e062ae04b7e644f60166  # v1
+    - uses: bennettoxford/update-dependencies-action@b77a22bcfe1d06020d908e64c9828fe944da3a5e  # v1
       id: update
       with:
         token: ${{ steps.generate-token.outputs.token }}
