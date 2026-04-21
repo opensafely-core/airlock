@@ -52,7 +52,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ansi2html", specifier = "<=1.9.2" },
-    { name = "django", specifier = "<=5.2.13" },
+    { name = "django", specifier = "<=6.0.4" },
     { name = "django-extensions", specifier = "<=4.1" },
     { name = "django-htmx", specifier = "<=1.27.0" },
     { name = "django-markdownify", specifier = "<=0.9.6" },
