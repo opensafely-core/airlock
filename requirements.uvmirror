@@ -194,9 +194,9 @@ protobuf==6.33.5
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
-pydantic==2.12.5
+pydantic==2.13.0
     # via airlock
-pydantic-core==2.41.5
+pydantic-core==2.46.0
     # via pydantic
 pyee==13.0.1
     # via playwright
@@ -250,7 +250,7 @@ setuptools==82.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
-slippers==0.6.3
+slippers==0.7.0
     # via airlock
 sortedcontainers==2.4.0
     # via hypothesis
