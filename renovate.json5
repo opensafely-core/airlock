@@ -116,6 +116,15 @@
         "* 0-3 * * WED"
       ],
     },
+    // Fix Django to <6.0 due to current python verion (3.11)
+    // Otherwise renovate will use the general "widen" strategy to change the upper limit in pyproject.toml
+    // The locked version will correctly remain at the latest allowed version for python 3.11
+    // i.e. <6, but the upper limit in pytproject.toml is confusing 
+    {
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["Django"],
+      "allowedVersions": "<6.0"
+    },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
@@ -132,14 +141,6 @@
       "matchUpdateTypes": ["pinDigest"],
       "minimumReleaseAge": null,
     },
-    // EXAMPLE: If required, pin a specific dependency to an upper allowed version
-    // Otherwise renovate will use the general "widen" strategy to change the upper limit in pyproject.toml
-    // and will bump it anyway
-    // {
-    //   "matchManagers": ["pep621"],
-    //   "matchDepNames": ["Django"],
-    //   "allowedVersions": "<6.0"
-    // },
   ],
   // Include vulnerability alerts; this uses dependabot and requires that depenency graph and
   // dependabot alerts are enabled in the repo
