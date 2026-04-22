@@ -14,7 +14,7 @@
     "django-markdownify<=0.9.6",
     "whitenoise<=6.12.0",
     "gunicorn<=25.3.0",
-    "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.03.12.140752.zip",
+    "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.04.17.132418.zip",
     "requests<=2.33.1",
     "pydantic<=2.13.0",
     "ulid<=1.1",
