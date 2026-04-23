@@ -124,7 +124,7 @@ mypy==1.20.1
     # via django-stubs
 mypy-extensions==1.1.0
     # via mypy
-opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.03.12.140752.zip
+opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.04.22.171515.zip
     # via airlock
 opentelemetry-api==1.40.0
     # via
