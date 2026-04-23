@@ -54,7 +54,7 @@ prodenv:
     uv sync --no-dev
 
 # update to the latest version of the internal pipeline library
-update-pipeline:
+update-pipeline: && devenv uvmirror
     ./scripts/upgrade-pipeline.sh pyproject.toml
 
 # && dependencies are run after the recipe has run. Needs just>=0.9.9. This is
