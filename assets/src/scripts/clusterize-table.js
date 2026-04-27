@@ -576,6 +576,26 @@ function syncHideStyles() {
     `;
   });
 
+  // Pin the row number column (always the first column) to a fixed width
+  // so it doesn't shift when data columns are hidden or unhidden. We use
+  // the current rendered width at the time columns are first hidden, so
+  // it reflects the actual rendered size for this particular CSV file.
+  const rowNumberTh = headerCells[0];
+  const rowNumberWidth = rowNumberTh
+    ? rowNumberTh.getBoundingClientRect().width
+    : 0;
+
+  if (rowNumberWidth > 0) {
+    rules.push(`
+      #airlock-table th:nth-child(1),
+      #airlock-table td:nth-child(1) {
+        min-width: ${rowNumberWidth}px !important;
+        max-width: ${rowNumberWidth}px !important;
+        width: ${rowNumberWidth}px !important;
+      }
+    `);
+  }
+
   hideStyleEl.textContent = rules.join("\n");
 
   // Rebuild the colgroup so the col visibility rules have elements to target.
