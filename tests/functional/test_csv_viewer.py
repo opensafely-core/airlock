@@ -3,6 +3,7 @@ import sys
 from io import StringIO
 from os import environ
 
+import pytest
 from hypothesis import given, settings
 from playwright.sync_api import expect
 
@@ -470,3 +471,82 @@ def test_csv_column_hide(live_server, page, context):
     # Both columns should be visible again
     assert col_a_th.bounding_box()["width"] > 0
     assert col_b_th.bounding_box()["width"] > 0
+
+
+def test_csv_column_hide_row_number_width_stable(live_server, page, context):
+    """
+    Test that the row number column maintains a stable width when data columns
+    are hidden and unhidden.
+
+    This specifically tests the case where wide columns are hidden, causing a
+    significant table layout change that would otherwise cause the row number
+    column to resize. The CSV needs:
+    - Enough rows that the row number column width is determined by a multi-digit
+      number (1000+ rows so row numbers go from 1 to 4 digits)
+    - Wide columns so that hiding them causes a significant layout change
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    # Wide column values ensure hiding them causes a dramatic layout change
+    wide_value = "a" * 100
+    factories.write_workspace_file(
+        workspace,
+        "outputs/file1.csv",
+        "col_a,col_b,col_c\n"
+        + "\n".join(f"{wide_value},{wide_value},{wide_value}" for i in range(1, 1001)),
+    )
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 1"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    table = page.locator("#airlock-table")
+    expect(table.locator(".clusterized")).to_be_visible()
+
+    row_number_th = table.locator("thead th:nth-child(1)").first
+    row_number_width_initial = row_number_th.bounding_box()["width"]
+
+    col_a_th = table.locator("thead th:nth-child(2)").first
+    col_b_th = table.locator("thead th:nth-child(3)").first
+    col_c_th = table.locator("thead th:nth-child(4)").first
+
+    # Hide all data columns — the table layout changes dramatically because
+    # the wide columns are gone
+    col_a_th.locator(".clusterize-column-hide").click()
+    col_b_th.locator(".clusterize-column-hide").click()
+    col_c_th.locator(".clusterize-column-hide").click()
+
+    show_hidden = page.locator("#show-hidden-columns")
+
+    # Unhide one column — this triggers updateCellWidths which without the fix
+    # would recalculate and resize the row number column based on the new layout
+    show_hidden.get_by_role("button", name="col_a").click()
+
+    row_number_width_after_unhide = row_number_th.bounding_box()["width"]
+    assert row_number_width_after_unhide == pytest.approx(
+        row_number_width_initial, abs=2
+    )
+
+    # Unhide remaining columns and verify stability throughout
+    show_hidden.get_by_role("button", name="col_b").click()
+    assert row_number_th.bounding_box()["width"] == pytest.approx(
+        row_number_width_initial, abs=2
+    )
+
+    show_hidden.get_by_role("button", name="col_c").click()
+    assert row_number_th.bounding_box()["width"] == pytest.approx(
+        row_number_width_initial, abs=2
+    )
+
+    expect(show_hidden).to_be_hidden()
