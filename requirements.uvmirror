@@ -60,7 +60,7 @@ django-htmx==1.27.0
 django-markdownify==0.9.6
     # via airlock
 django-stubs==6.0.2
-django-stubs-ext==6.0.2
+django-stubs-ext==6.0.3
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -81,7 +81,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
 hypothesis==6.152.1
-idna==3.11
+idna==3.12
     # via
     #   anyio
     #   httpx
