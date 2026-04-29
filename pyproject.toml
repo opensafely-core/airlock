@@ -16,7 +16,7 @@
     "gunicorn<=25.3.0",
     "opensafely-pipeline@https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.04.22.171515.zip",
     "requests<=2.33.1",
-    "pydantic<=2.13.0",
+    "pydantic<=2.13.3",
     "ulid<=1.1",
     "opentelemetry-exporter-otlp-proto-http<=1.41.0",
     "opentelemetry-instrumentation-django<=0.61b0",
