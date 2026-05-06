@@ -58,19 +58,17 @@ EOF
 # NOTE: ensure .python-version is not excluded in .dockerignore
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=bind,source=docker/dependencies.txt,target=/dependencies.txt \
-    --mount=type=bind,source=.python-version,target=/.python-version \
-    /root/docker-apt-install.sh /dependencies.txt "python$(cat /.python-version)"
+    /root/docker-apt-install.sh /dependencies.txt
 
 # uv env var documentation: https://docs.astral.sh/uv/reference/environment/
 # copy files rather than symlink since the cache and the target are on different filesystems
 ENV UV_LINK_MODE=copy
 # compile at installation time, not import time
 ENV UV_COMPILE_BYTECODE=1
-# we are providing python via deadsnakes ppa
-# (as we require dynamic linking of openssl for security reasons)
-ENV UV_PYTHON_DOWNLOADS=never
 # set the directory for the venv
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+# Install python to a location that is readable by non-root users
+ENV UV_PYTHON_INSTALL_DIR="/opt/uv/python"
 
 ##################################################
 #
@@ -126,6 +124,9 @@ RUN --mount=type=cache,target=/var/cache/apt \
 # Pull in the binaries from our pinned uv-cli stage
 COPY --from=uv-cli /uv /uvx /usr/local/bin/
 
+RUN --mount=type=bind,source=.python-version,target=/.python-version \
+    uv python install "$(cat /.python-version)"
+
 RUN uv venv
 
 # The cache mount means a) /root/.cache is not in the image, and b) it's preserved
@@ -160,6 +161,9 @@ WORKDIR /app
 # copy venv over from builder image. These will have root:root ownership, but
 # are readable by all.
 COPY --from=builder /opt/venv /opt/venv
+
+# copy managed python dir
+COPY --from=builder /opt/uv/python /opt/uv/python
 
 # copy node assets over from node-builder image. These will have root:root ownership, but
 # are readable by all.
