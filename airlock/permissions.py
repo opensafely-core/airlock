@@ -50,6 +50,7 @@ def check_user_can_view_workspace(user: User | None, workspace_name: str):
     """
     if user is None or (
         not user.output_checker
+        and not user.readonly_access
         and workspace_name not in (user.workspaces | user.copiloted_workspaces)
     ):
         raise exceptions.WorkspacePermissionDenied(

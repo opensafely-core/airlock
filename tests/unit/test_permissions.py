@@ -9,26 +9,34 @@ from tests import factories
 
 
 @pytest.mark.parametrize(
-    "output_checker,workspaces,copiloted_workspaces,can_view",
+    "output_checker,readonly_access,workspaces,copiloted_workspaces,can_view",
     [
-        (True, {}, {}, True),
-        (True, {"other": {}, "other1": {}}, {}, True),
-        (True, {"other": {}, "other1": {}}, {"test1": {}}, True),
-        (True, {"other": {}, "other1": {}}, {"test": {}}, True),
-        (False, {"test": {}, "other": {}, "other1": {}}, {}, True),
-        (False, {"other": {}, "other1": {}}, {}, False),
-        (False, {"other": {}, "other1": {}}, {"test1": {}}, False),
-        (False, {"other": {}, "other1": {}}, {"test": {}}, True),
+        # output-checker
+        (True, False, {}, {}, True),
+        (True, False, {"other": {}, "other1": {}}, {}, True),
+        (True, False, {"other": {}, "other1": {}}, {"test1": {}}, True),
+        (True, False, {"other": {}, "other1": {}}, {"test": {}}, True),
+        # standard user
+        (False, False, {"test": {}, "other": {}, "other1": {}}, {}, True),
+        (False, False, {"other": {}, "other1": {}}, {}, False),
+        (False, False, {"other": {}, "other1": {}}, {"test1": {}}, False),
+        (False, False, {"other": {}, "other1": {}}, {"test": {}}, True),
+        # readonly_access user
+        (False, True, {}, {}, True),
+        (False, True, {"other": {}, "other1": {}}, {}, True),
+        (False, True, {"other": {}, "other1": {}}, {"test1": {}}, True),
+        (False, True, {"other": {}, "other1": {}}, {"test": {}}, True),
     ],
 )
 def test_user_can_view_workspace(
-    output_checker, workspaces, copiloted_workspaces, can_view
+    output_checker, readonly_access, workspaces, copiloted_workspaces, can_view
 ):
     user = factories.create_airlock_user(
         username="test",
         workspaces=workspaces,
         copiloted_workspaces=copiloted_workspaces,
         output_checker=output_checker,
+        readonly_access=readonly_access,
     )
     assert permissions.user_can_view_workspace(user, "test") == can_view
 

@@ -53,6 +53,7 @@ def create_api_user(
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
+    readonly_access: bool | None = None,
 ):
     """Test factory to create a user from the Auth API
 
@@ -77,6 +78,7 @@ def create_api_user(
         workspaces=_create_workspaces(workspaces),
         copiloted_workspaces=_create_workspaces(copiloted_workspaces),
         output_checker=output_checker or False,
+        readonly_access=readonly_access or False,
     )
 
 
@@ -100,11 +102,12 @@ def create_airlock_user(
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
+    readonly_access: bool | None = None,
     last_refresh: float | None = None,
 ) -> User:
     """Factory to create an Airlock User in the db.
 
-    The username, workspaces,copiloted_workspaces, and output_checker, are all
+    The username, workspaces,copiloted_workspaces, output_checker, and readonly_access are all
     just passed through to create_api_user.
     """
     api_user = create_api_user(
@@ -113,6 +116,7 @@ def create_airlock_user(
         workspaces=workspaces,
         copiloted_workspaces=copiloted_workspaces,
         output_checker=output_checker,
+        readonly_access=readonly_access,
     )
     return User.from_api_data(api_user, last_refresh)
 
@@ -123,6 +127,7 @@ def get_or_create_airlock_user(
     workspaces: dict[str, typing.Any] | list[str] | None = None,
     copiloted_workspaces: dict[str, typing.Any] | list[str] | None = None,
     output_checker: bool | None = None,
+    readonly_access: bool | None = None,
     last_refresh: float | None = None,
 ) -> User:
     """Get or create an airlock user.
@@ -140,14 +145,14 @@ def get_or_create_airlock_user(
     workspaces needed explilcitly ahead of time - when calling a factory
     function, it will ensure the user has the right workspace permissions.
 
-    However, for output_checker, we are stricter, or else we could accidentally
-    change that.
+    However, for output_checker and readonly_access, we are stricter, or else
+    we could accidentally change that.
 
-    The output_checker default is now None, and if so, we do nothing, as the the
-    call or this function expressed no opinion about whether this user should
-    be an output checker or not.  However, if it is set to True or False, we
-    assert that the pre-existing user is set the same, to help us catch logic
-    errors in our tests or test factories.
+    The output_checker/readonly_access default is None, and if so, we do nothing,
+    as the call or this function expressed no opinion about whether this user should
+    be an output checker/readonly_access user or not.  However, if it is set to True
+    or False, we assert that the pre-existing user is set the same, to help us catch
+    logic errors in our tests or test factories.
 
     Hopefully, this complexity will be short lived. Once we have users that can
     be looked up, I (smd) expect the BLL interface may change to need username,
@@ -160,11 +165,12 @@ def get_or_create_airlock_user(
         workspaces=workspaces,
         copiloted_workspaces=copiloted_workspaces,
         output_checker=output_checker,
+        readonly_access=readonly_access,
     )
     try:
         user = User.objects.get(pk=username)
     except User.DoesNotExist:
-        return User.from_api_data(api_user)
+        return User.from_api_data(api_user, last_refresh=last_refresh)
 
     # ok we have an existing user
     #
@@ -189,6 +195,11 @@ def get_or_create_airlock_user(
     if output_checker is not None:  # pragma: nocover
         # check that we are not accidentally expecting different roles
         assert user.output_checker is output_checker
+
+    # readonly_access=None means the caller did not specify
+    if readonly_access is not None:  # pragma: nocover
+        # check that we are not accidentally expecting different roles
+        assert user.readonly_access is readonly_access
 
     return user
 

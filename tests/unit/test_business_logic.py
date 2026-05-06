@@ -64,8 +64,10 @@ def setup_empty_release_request():
     return release_request, path, author
 
 
-@pytest.mark.parametrize("output_checker", [False, True])
-def test_provider_get_workspaces_for_user(bll, output_checker):
+@pytest.mark.parametrize(
+    "output_checker,readonly_access", [(False, True), (True, False)]
+)
+def test_provider_get_workspaces_for_user(bll, output_checker, readonly_access):
     factories.create_workspace("foo")
     factories.create_workspace("bar")
     factories.create_workspace("not-allowed")
@@ -75,7 +77,10 @@ def test_provider_get_workspaces_for_user(bll, output_checker):
         "not-exists": factories.create_api_workspace(project="project 3"),
     }
     user = factories.create_airlock_user(
-        username="testuser", workspaces=workspaces, output_checker=output_checker
+        username="testuser",
+        workspaces=workspaces,
+        output_checker=output_checker,
+        readonly_access=readonly_access,
     )
 
     assert bll.get_workspaces_for_user(user) == [
