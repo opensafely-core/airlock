@@ -12,18 +12,18 @@ asgiref==3.11.1
     #   django-htmx
 babel==2.18.0
     # via mkdocs-material
-backrefs==6.2
+backrefs==7.0
     # via mkdocs-material
 bleach==6.3.0
     # via django-markdownify
-certifi==2026.2.25
+certifi==2026.4.22
     # via
     #   httpcore
     #   httpx
     #   requests
 charset-normalizer==3.4.7
     # via requests
-click==8.3.2
+click==8.3.3
     # via mkdocs
 colorama==0.4.6
     # via
@@ -60,7 +60,7 @@ django-htmx==1.27.0
 django-markdownify==0.9.6
     # via airlock
 django-stubs==6.0.3
-django-stubs-ext==6.0.2
+django-stubs-ext==6.0.3
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -71,7 +71,7 @@ ghp-import==2.1.0
     # via mkdocs
 googleapis-common-protos==1.74.0
     # via opentelemetry-exporter-otlp-proto-http
-greenlet==3.4.0
+greenlet==3.5.0
     # via playwright
 gunicorn==25.3.0
     # via airlock
@@ -81,7 +81,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
 hypothesis==6.152.4
-idna==3.11
+idna==3.13
     # via
     #   anyio
     #   httpx
@@ -170,7 +170,7 @@ opentelemetry-util-http==0.61b0
     #   opentelemetry-instrumentation-django
     #   opentelemetry-instrumentation-requests
     #   opentelemetry-instrumentation-wsgi
-packaging==26.1
+packaging==26.2
     # via
     #   gunicorn
     #   mkdocs
@@ -178,7 +178,7 @@ packaging==26.1
     #   pytest
 paginate==0.5.7
     # via mkdocs-material
-pathspec==1.0.4
+pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
@@ -286,7 +286,7 @@ typing-extensions==4.15.0
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
-tzdata==2026.1 ; sys_platform == 'win32'
+tzdata==2026.2 ; sys_platform == 'win32'
     # via django
 ulid==1.1
     # via airlock
