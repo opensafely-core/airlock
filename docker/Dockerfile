@@ -27,8 +27,8 @@
 # are used in FROM lines, so need to be declared globally and have defaults
 # set.
 ARG NODE_VERSION=20
-ARG UBUNTU_VERSION=22.04
-ARG UV_VERSION=0.9
+ARG UBUNTU_VERSION=24.04
+ARG UV_VERSION=0.11
 
 # Create base image with python installed.
 # All Dockerfiles should start from the base-docker image
@@ -43,19 +43,9 @@ FROM ghcr.io/opensafely-core/base-docker:${UBUNTU_VERSION} AS base-python
 # docker clean up that deletes that cache on every apt install
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
 
-# use deadsnakes ppa to install a fully working base python installation
-# see: https://gist.github.com/tiran/2dec9e03c6f901814f6d1e8dad09528e
-# use space efficient utility from base image
-RUN --mount=type=cache,target=/var/cache/apt <<'EOF'
-UBUNTU_CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
-KEY_PATH=/usr/share/keyrings/deadsnakes.asc
-KEY_URL='https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf23c5a6cf475977595c89f51ba6932366a755776'
-/usr/lib/apt/apt-helper download-file "$KEY_URL" "$KEY_PATH"
-echo "deb [signed-by=$KEY_PATH] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu ${UBUNTU_CODENAME} main" > /etc/apt/sources.list.d/deadsnakes-ppa.list
-EOF
-
 # install any additional system dependencies
 # NOTE: ensure .python-version is not excluded in .dockerignore
+# Using system python for 24.04 (3.12)
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=bind,source=docker/dependencies.txt,target=/dependencies.txt \
     --mount=type=bind,source=.python-version,target=/.python-version \
@@ -66,8 +56,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
 ENV UV_LINK_MODE=copy
 # compile at installation time, not import time
 ENV UV_COMPILE_BYTECODE=1
-# we are providing python via deadsnakes ppa
-# (as we require dynamic linking of openssl for security reasons)
+# we are using the system python
 ENV UV_PYTHON_DOWNLOADS=never
 # set the directory for the venv
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
@@ -121,7 +110,8 @@ FROM base-python AS builder
 # Install any system build dependencies
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=bind,source=docker/dependencies-build.txt,target=/dependencies-build.txt \
-    /root/docker-apt-install.sh /dependencies-build.txt
+    --mount=type=bind,source=.python-version,target=/.python-version \
+    /root/docker-apt-install.sh /dependencies-build.txt "python$(cat /.python-version)-dev"
 
 # Pull in the binaries from our pinned uv-cli stage
 COPY --from=uv-cli /uv /uvx /usr/local/bin/
