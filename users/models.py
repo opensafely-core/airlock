@@ -54,6 +54,10 @@ class User(AbstractBaseUser):
     def output_checker(self):
         return self.api_data.get("output_checker", False)
 
+    @property
+    def readonly_access(self):
+        return self.api_data.get("readonly_access", False)
+
     @classmethod
     def from_api_data(cls, api_data, last_refresh: float | None = None) -> Self:
         user, _ = cls.objects.get_or_create(user_id=api_data["username"])
