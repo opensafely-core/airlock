@@ -489,14 +489,41 @@ def test_workspace_view_excluded_l4_output_path(airlock_client):
     "user,can_see_form",
     [
         (
-            factories.create_api_user(workspaces=["workspace"], output_checker=True),
+            factories.create_api_user(
+                workspaces=["workspace"], output_checker=True, readonly_access=False
+            ),
             True,
         ),
         (
-            factories.create_api_user(workspaces=["workspace"], output_checker=False),
+            factories.create_api_user(
+                workspaces=["workspace"], output_checker=False, readonly_access=False
+            ),
             True,
         ),
-        (factories.create_api_user(workspaces=[], output_checker=True), False),
+        (
+            factories.create_api_user(
+                workspaces=[], output_checker=True, readonly_access=False
+            ),
+            False,
+        ),
+        (
+            factories.create_api_user(
+                workspaces=["workspace"], output_checker=False, readonly_access=True
+            ),
+            True,
+        ),
+        (
+            factories.create_api_user(
+                workspaces=["workspace"], output_checker=False, readonly_access=False
+            ),
+            True,
+        ),
+        (
+            factories.create_api_user(
+                workspaces=[], output_checker=False, readonly_access=True
+            ),
+            False,
+        ),
     ],
 )
 def test_workspace_view_file_add_to_request(airlock_client, user, can_see_form):

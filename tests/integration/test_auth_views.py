@@ -34,6 +34,7 @@ def test_login(client, auth_api_stubber):
     assert user.is_authenticated
     assert user.username == "testuser"
     assert user.output_checker is False
+    assert user.readonly_access is False
     assert user.workspaces == {
         "workspace": {
             "project_details": {"name": "project", "ongoing": True, "orgs": []},
