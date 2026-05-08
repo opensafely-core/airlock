@@ -37,4 +37,7 @@ def test_github_workflows(filename, python_version):
 def test_docker_dependencies(filename, python_version):
     contents = filename.read_text()
     for match in re.findall(r"python.*?([\d\.]+)", contents):
-        assert match == python_version
+        # Note: this line is no-covered because we no longer include
+        # python dependencies in the docker dependencies files. The test is
+        # kept in case any are added in future
+        assert match == python_version  # pragma: no cover
