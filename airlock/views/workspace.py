@@ -84,18 +84,43 @@ def copilot_workspace_index(request):
     )
 
 
+@vary_on_headers("HX-Request")
 @instrument
 def all_workspaces_index(request):
     if not request.user.readonly_access:
         raise PermissionDenied()
 
+    query = request.GET.get("q", "").strip()
     all_workspaces = bll.get_all_workspaces(request.user)
-    workspaces = sorted(all_workspaces, key=lambda workspace: workspace.name)
+
+    if query:
+        filtered_workspaces = sorted(
+            [
+                workspace
+                for workspace in all_workspaces
+                if query.lower() in workspace.name.lower()
+            ],
+            key=lambda workspace: workspace.name,
+        )
+    else:
+        filtered_workspaces = sorted(
+            all_workspaces, key=lambda workspace: workspace.name
+        )
+
+    if request.htmx:
+        return TemplateResponse(
+            request,
+            "all_workspaces_results.html",
+            {"workspaces": filtered_workspaces},
+        )
 
     return TemplateResponse(
         request,
         "all_workspaces.html",
-        {"workspaces": workspaces},
+        {
+            "workspaces": filtered_workspaces,
+            "query": query,
+        },
     )
 
 

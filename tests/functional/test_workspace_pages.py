@@ -862,4 +862,12 @@ def test_all_workspaces_index_nav_not_visible_for_researcher(
     expect(page.get_by_role("navigation")).not_to_contain_text("All Workspaces")
 
 
+def test_all_workspaces_index_search_filters_list(live_server, page, readonly_user):
+    page.goto(live_server.url + "/workspaces/all/")
 
+    search_input = page.get_by_placeholder("Search workspaces…")
+    search_input.fill("test-dir1")
+    wait_for_htmx(page)
+
+    expect(page.locator("#workspace-results")).to_contain_text("test-dir1")
+    expect(page.locator("#workspace-results")).not_to_contain_text("test-dir2")
