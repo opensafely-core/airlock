@@ -322,6 +322,15 @@ class BusinessLogicLayer:
         """Get all the local workspace directories that a user is a copilot for."""
         return self._build_workspace_list(user, user.copiloted_workspaces)
 
+    def get_all_workspaces(self, user: User) -> list[Workspace]:
+        """Get all workspace directories present on the filesystem."""
+        workspace_names = [
+            workspace_dir.name
+            for workspace_dir in settings.WORKSPACE_DIR.iterdir()
+            if workspace_dir.is_dir()
+        ]
+        return self._build_workspace_list(user, workspace_names)
+
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""
 

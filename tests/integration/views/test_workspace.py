@@ -810,6 +810,98 @@ def test_copiloted_workspaces_index(airlock_client):
     assert [ws.name for ws in projects[inactive_project1]] == ["test2a", "test2b"]
 
 
+def test_all_workspaces_index(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+    airlock_client.login_with_user(user)
+    factories.create_workspace("alpha")
+    factories.create_workspace("beta")
+
+    response = airlock_client.get("/workspaces/all/")
+
+    assert response.status_code == 200
+    assert "alpha" in response.rendered_content
+    assert "beta" in response.rendered_content
+    assert [ws.name for ws in response.context["workspaces"]] == ["alpha", "beta"]
+
+
+@pytest.mark.parametrize(
+    "user_kwargs",
+    [
+        {
+            "workspaces": ["workspace"],
+            "output_checker": False,
+            "readonly_access": False,
+        },
+        {"workspaces": [], "output_checker": True, "readonly_access": False},
+    ],
+)
+def test_all_workspaces_index_permission_denied(airlock_client, user_kwargs):
+    airlock_client.login(**user_kwargs)
+    response = airlock_client.get("/workspaces/all/")
+    assert response.status_code == 403
+
+
+def test_all_workspaces_index_filter(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+    airlock_client.login_with_user(user)
+    factories.create_workspace("matching-workspace")
+    factories.create_workspace("other-workspace")
+
+    response = airlock_client.get(
+        "/workspaces/all/?q=matching",
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200
+    assert "matching-workspace" in response.rendered_content
+    assert "other-workspace" not in response.rendered_content
+
+
+def test_all_workspaces_index_filter_no_results(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+    airlock_client.login_with_user(user)
+    factories.create_workspace("some-workspace")
+
+    response = airlock_client.get(
+        "/workspaces/all/?q=nomatch",
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200
+    assert "No workspaces found" in response.rendered_content
+
+
+def test_all_workspaces_index_htmx_partial(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+    airlock_client.login_with_user(user)
+    factories.create_workspace("some-workspace")
+
+    response = airlock_client.get(
+        "/workspaces/all/?q=some",
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200
+    assert response.templates[0].name == "all_workspaces_results.html"
+    assert "some-workspace" in response.rendered_content
+
+
 def test_workspace_multiselect_add_files_all_valid(airlock_client, bll):
     airlock_client.login(workspaces=["test1"])
     workspace = factories.create_workspace("test1")

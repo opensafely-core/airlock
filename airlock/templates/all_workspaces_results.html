@@ -1,0 +1,11 @@
+<div id="workspace-results">
+  {% #card %}
+    {% #list_group id="workspaces" %}
+      {% for workspace in workspaces %}
+        {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
+      {% empty %}
+        {% list_group_empty title="No workspaces found" description="No workspaces match your search" %}
+      {% endfor %}
+    {% /list_group %}
+  {% /card %}
+</div>

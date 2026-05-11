@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% load django_vite %}
+{% load django_htmx %}
+
+{% block metatitle %}All Workspaces | Airlock{% endblock metatitle %}
+
+{% block content %}
+  <div class="flex flex-col gap-4 max-w-3xl">
+    {% airlock_header title="All Workspaces" %}
+
+    <input
+      type="text"
+      name="q"
+      value="{{ query }}"
+      placeholder="Search workspaces…"
+      class="border border-gray-300 rounded px-3 py-2 w-full"
+      hx-get="{% url 'all_workspaces_index' %}"
+      hx-trigger="input changed delay:200ms"
+      hx-target="#workspace-results"
+      hx-swap="outerHTML"
+      hx-include="[name='q']"
+    >
+
+    {% include "all_workspaces_results.html" %}
+  </div>
+{% endblock content %}
+
+{% block extra_js %}
+  {% vite_asset "assets/src/scripts/htmx.js" %}
+  {% django_htmx_script %}
+{% endblock %}

@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -79,6 +80,46 @@ def copilot_workspace_index(request):
             "projects": projects,
             "workspace_type": "copiloted workspaces",
             "workspace_header": workspace_header,
+        },
+    )
+
+
+@vary_on_headers("HX-Request")
+@instrument
+def all_workspaces_index(request):
+    if not request.user.readonly_access:
+        raise PermissionDenied()
+
+    query = request.GET.get("q", "").strip()
+    all_workspaces = bll.get_all_workspaces(request.user)
+
+    if query:
+        filtered_workspaces = sorted(
+            [
+                workspace
+                for workspace in all_workspaces
+                if query.lower() in workspace.name.lower()
+            ],
+            key=lambda workspace: workspace.name,
+        )
+    else:
+        filtered_workspaces = sorted(
+            all_workspaces, key=lambda workspace: workspace.name
+        )
+
+    if request.htmx:
+        return TemplateResponse(
+            request,
+            "all_workspaces_results.html",
+            {"workspaces": filtered_workspaces},
+        )
+
+    return TemplateResponse(
+        request,
+        "all_workspaces.html",
+        {
+            "workspaces": filtered_workspaces,
+            "query": query,
         },
     )
 

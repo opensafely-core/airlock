@@ -26,6 +26,7 @@ from .request import (
     uploaded_files_count,
 )
 from .workspace import (
+    all_workspaces_index,
     copilot_workspace_index,
     workspace_add_file_to_request,
     workspace_contents,
@@ -40,6 +41,7 @@ __all__ = [
     "login",
     "logout",
     "index",
+    "all_workspaces_index",
     "file_approve",
     "file_change_properties",
     "file_request_changes",
