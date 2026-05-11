@@ -51,6 +51,14 @@ def menu(request):
                 url_name="copiloted_workspace_index",
             )
             items.insert(nav_index, copiloted_workspaces_menu)
+        if request.user.readonly_access:
+            items.insert(
+                nav_index,
+                NavItem(
+                    name="All Workspaces",
+                    url_name="all_workspaces_index",
+                ),
+            )
     return {"nav": list(iter_nav(items, request))}
 
 

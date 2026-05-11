@@ -122,6 +122,34 @@ def test_provider_get_copiloted_workspaces_for_user(bll, output_checker):
     ]
 
 
+def test_provider_get_all_workspaces(bll):
+    factories.create_workspace("foo")
+    factories.create_workspace("bar")
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+
+    result = bll.get_all_workspaces(user)
+    assert sorted(ws.name for ws in result) == ["bar", "foo"]
+
+
+def test_provider_get_all_workspaces_skips_missing(bll):
+    factories.create_workspace("exists")
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={
+            "exists": factories.create_api_workspace(),
+            "not-on-disk": factories.create_api_workspace(),
+        },
+        readonly_access=True,
+    )
+
+    result = bll.get_all_workspaces(user)
+    assert [ws.name for ws in result] == ["exists"]
+
+
 def test_provider_request_release_files_request_not_approved(bll, mock_notifications):
     author = factories.create_airlock_user(username="author", workspaces=["workspace"])
     checker = factories.create_airlock_user(username="checker", output_checker=True)

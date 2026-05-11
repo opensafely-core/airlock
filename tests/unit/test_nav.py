@@ -65,3 +65,19 @@ def test_iter_nav_copilot(rf):
             "is_active": True,
         }
     ]
+
+
+def test_iter_nav_readonly(rf):
+    factories.create_airlock_user(username="user", workspaces=[], readonly_access=True)
+    items = [
+        nav.NavItem("All Workspaces", "all_workspaces_index"),
+    ]
+
+    request = rf.get("/workspaces/all/")
+    assert list(nav.iter_nav(items, request)) == [
+        {
+            "name": "All Workspaces",
+            "url": "/workspaces/all/",
+            "is_active": True,
+        }
+    ]

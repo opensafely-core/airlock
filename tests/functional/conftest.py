@@ -101,6 +101,20 @@ def login_as_user(live_server, context, user_dict):
 
 
 @pytest.fixture
+def readonly_user(live_server, context):
+    login_as_user(
+        live_server,
+        context,
+        factories.create_api_user(
+            username="test_readonly",
+            fullname="Test Readonly",
+            workspaces={},
+            readonly_access=True,
+        ),
+    )
+
+
+@pytest.fixture
 def output_checker_user(live_server, context):
     login_as_user(
         live_server,

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block metatitle %}All Workspaces | Airlock{% endblock metatitle %}
+
+{% block content %}
+  <div class="flex flex-col gap-4 max-w-3xl">
+    {% airlock_header title="All Workspaces" %}
+    {% include "all_workspaces_results.html" %}
+  </div>
+{% endblock content %}

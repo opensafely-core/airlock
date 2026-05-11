@@ -7,7 +7,7 @@ from airlock.enums import RequestFileType, RequestStatus
 from airlock.types import UrlPath
 from tests import factories
 
-from .conftest import click_and_htmx, login_as_user
+from .conftest import click_and_htmx, login_as_user, wait_for_htmx
 
 
 @pytest.fixture(autouse=True)
@@ -846,3 +846,20 @@ def test_alert_dismiss_resizes_content(page, context, live_server):
 
     assert tree_height_after > tree_height_with_alert
     assert content_height_after > content_height_with_alert
+
+
+def test_all_workspaces_index_nav_visible_for_readonly(
+    live_server, page, readonly_user
+):
+    page.goto(live_server.url + "/workspaces/")
+    expect(page.get_by_role("navigation")).to_contain_text("All Workspaces")
+
+
+def test_all_workspaces_index_nav_not_visible_for_researcher(
+    live_server, page, researcher_user
+):
+    page.goto(live_server.url + "/workspaces/")
+    expect(page.get_by_role("navigation")).not_to_contain_text("All Workspaces")
+
+
+
