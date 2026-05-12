@@ -91,7 +91,7 @@ def all_workspaces_index(request):
         raise PermissionDenied()
 
     query = request.GET.get("q", "").strip()
-    all_workspaces = bll.get_all_workspaces(request.user)
+    all_workspaces = bll.get_all_workspaces()
 
     if query:
         filtered_workspaces = sorted(
