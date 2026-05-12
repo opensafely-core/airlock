@@ -12,6 +12,7 @@ from typing import Protocol, cast
 from django.conf import settings
 from django.utils.functional import SimpleLazyObject
 from django.utils.module_loading import import_string
+from opentelemetry import trace
 
 import old_api
 from airlock import exceptions, permissions, policies
@@ -307,6 +308,15 @@ class BusinessLogicLayer:
             try:
                 workspace = self.get_workspace(workspace_name, user)
             except exceptions.WorkspaceNotFound:
+                continue
+            except exceptions.ManifestFileError as error:
+                if workspace_name in user.workspaces:
+                    # only send telemetry for this error if it's one of the user's
+                    # workspaces; readonly_users try to access all workspaces from the
+                    # workspace dir on disk and are likely to encounter some that are
+                    # old and have no/bad manifest files which we don't care about
+                    span = trace.get_current_span()
+                    span.record_exception(error)
                 continue
 
             valid_workspaces.append(workspace)
