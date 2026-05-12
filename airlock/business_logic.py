@@ -30,6 +30,7 @@ from airlock.models import (
     ReleaseRequest,
     RequestFile,
     Workspace,
+    WorkspaceListing,
 )
 from airlock.notifications import send_notification_event
 from airlock.types import UrlPath
@@ -310,13 +311,8 @@ class BusinessLogicLayer:
             except exceptions.WorkspaceNotFound:
                 continue
             except exceptions.ManifestFileError as error:
-                if workspace_name in user.workspaces:
-                    # only send telemetry for this error if it's one of the user's
-                    # workspaces; readonly_users try to access all workspaces from the
-                    # workspace dir on disk and are likely to encounter some that are
-                    # old and have no/bad manifest files which we don't care about
-                    span = trace.get_current_span()
-                    span.record_exception(error)
+                span = trace.get_current_span()
+                span.record_exception(error)
                 continue
 
             valid_workspaces.append(workspace)
@@ -332,14 +328,20 @@ class BusinessLogicLayer:
         """Get all the local workspace directories that a user is a copilot for."""
         return self._build_workspace_list(user, user.copiloted_workspaces)
 
-    def get_all_workspaces(self, user: User) -> list[Workspace]:
-        """Get all workspace directories present on the filesystem."""
-        workspace_names = [
-            workspace_dir.name
-            for workspace_dir in settings.WORKSPACE_DIR.iterdir()
-            if workspace_dir.is_dir()
-        ]
-        return self._build_workspace_list(user, workspace_names)
+    def get_all_workspaces(self) -> list[WorkspaceListing]:
+        """Get lightweight WorkspaceListing objects for all workspace directories.
+
+        Scans WORKSPACE_DIR once and checks only whether metadata/manifest.json
+        exists. Skips directories with no manifest file.
+        """
+        workspaces = []
+        for workspace_dir in settings.WORKSPACE_DIR.iterdir():
+            if not workspace_dir.is_dir():
+                continue
+            if not (workspace_dir / "metadata" / "manifest.json").exists():
+                continue
+            workspaces.append(WorkspaceListing(name=workspace_dir.name))
+        return workspaces
 
     def get_release_request(self, request_id: str, user: User) -> ReleaseRequest:
         """Get a ReleaseRequest object for an id."""

@@ -3,6 +3,8 @@ import json
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
+from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from opentelemetry import trace
 
@@ -21,6 +23,7 @@ from airlock.enums import (
 )
 from airlock.models import (
     AuditEvent,
+    WorkspaceListing,
 )
 from airlock.types import UrlPath
 from airlock.visibility import RequestFileStatus
@@ -124,60 +127,68 @@ def test_provider_get_copiloted_workspaces_for_user(bll, output_checker):
     ]
 
 
-def test_provider_get_all_workspaces(bll):
-    factories.create_workspace("foo")
-    factories.create_workspace("bar")
-    user = factories.create_airlock_user(
-        username="testuser",
-        workspaces={},
-        readonly_access=True,
-    )
-
-    result = bll.get_all_workspaces(user)
-    assert sorted(ws.name for ws in result) == ["bar", "foo"]
-
-
-def test_provider_get_all_workspaces_skips_missing(bll):
-    factories.create_workspace("exists")
+def test_provider_get_workspaces_for_user_skips_bad_manifest(bll):
+    factories.create_workspace("good")
+    bad_workspace = factories.create_workspace("bad-manifest")
+    bad_workspace.manifest_path().unlink()
     user = factories.create_airlock_user(
         username="testuser",
         workspaces={
-            "exists": factories.create_api_workspace(),
-            "not-on-disk": factories.create_api_workspace(),
+            "good": factories.create_api_workspace(),
+            "bad-manifest": factories.create_api_workspace(),
         },
-        readonly_access=True,
-    )
-
-    result = bll.get_all_workspaces(user)
-    assert [ws.name for ws in result] == ["exists"]
-
-
-def test_provider_get_all_workspaces_skips_missing_manifest_file(bll):
-    factories.create_workspace("exists")
-    bad_workspace = factories.create_workspace("no-manifest")
-    bad_workspace.manifest_path().unlink()
-    bad_workspace1 = factories.create_workspace("bad-manifest")
-    bad_workspace1.manifest_path().unlink()
-    user = factories.create_airlock_user(
-        username="testuser",
-        workspaces={"bad-manifest": factories.create_api_workspace()},
-        readonly_access=True,
     )
 
     tracer = trace.get_tracer("test")
     with tracer.start_as_current_span("test_span"):
-        result = bll.get_all_workspaces(user)
+        result = bll.get_workspaces_for_user(user)
 
-    assert [ws.name for ws in result] == ["exists"]
+    assert [ws.name for ws in result] == ["good"]
     spans = get_trace()
     assert len(spans) == 1
     assert len(spans[0].events) == 1
     event = spans[0].events[0]
     assert event.name == "exception"
     assert "ManifestFileError" in event.attributes["exception.type"]
-    assert (
-        "workspaces/bad-manifest/metadata/manifest.json does not exist"
-        in event.attributes["exception.message"]
+
+
+def test_provider_get_all_workspaces(bll):
+    factories.create_workspace("foo")
+    factories.create_workspace("bar")
+
+    result = bll.get_all_workspaces()
+    assert sorted(ws.name for ws in result) == ["bar", "foo"]
+
+
+def test_provider_get_all_workspaces_skips_no_manifest(bll):
+    factories.create_workspace("exists")
+    bad_workspace = factories.create_workspace("no-manifest")
+    bad_workspace.manifest_path().unlink()
+
+    result = bll.get_all_workspaces()
+    assert [ws.name for ws in result] == ["exists"]
+
+
+def test_provider_get_all_workspaces_skips_files(bll):
+    factories.create_workspace("real-workspace")
+    stray_file = settings.WORKSPACE_DIR / "stray-file.txt"
+    stray_file.write_text("not a workspace")
+
+    result = bll.get_all_workspaces()
+    assert [ws.name for ws in result] == ["real-workspace"]
+
+
+def test_provider_get_all_workspaces_returns_workspace_listings(bll):
+    factories.create_workspace("my-workspace")
+
+    result = bll.get_all_workspaces()
+    assert len(result) == 1
+    listing = result[0]
+    assert isinstance(listing, WorkspaceListing)
+    assert listing.name == "my-workspace"
+    assert listing.display_name() == "my-workspace"
+    assert listing.get_url() == reverse(
+        "workspace_view", kwargs={"workspace_name": "my-workspace"}
     )
 
 

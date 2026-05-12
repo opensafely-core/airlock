@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.api import get_messages
 from django.urls import reverse
@@ -900,6 +901,23 @@ def test_all_workspaces_index_htmx_partial(airlock_client):
     assert response.status_code == 200
     assert response.templates[0].name == "all_workspaces_results.html"
     assert "some-workspace" in response.rendered_content
+
+
+def test_all_workspaces_index_skips_directory_without_manifest(airlock_client):
+    user = factories.create_airlock_user(
+        username="testuser",
+        workspaces={},
+        readonly_access=True,
+    )
+    airlock_client.login_with_user(user)
+    factories.create_workspace("good-workspace")
+    no_manifest_dir = settings.WORKSPACE_DIR / "no-manifest"
+    no_manifest_dir.mkdir()
+
+    response = airlock_client.get("/workspaces/all/")
+
+    assert response.status_code == 200
+    assert [ws.name for ws in response.context["workspaces"]] == ["good-workspace"]
 
 
 def test_workspace_multiselect_add_files_all_valid(airlock_client, bll):

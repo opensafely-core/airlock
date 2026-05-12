@@ -159,6 +159,24 @@ class Project:
         return ", ".join(self.orgs)
 
 
+@dataclass(frozen=True, order=True)
+class WorkspaceListing:
+    """Lightweight workspace representation for the all-workspaces listing page.
+
+    Avoids reading manifest.json, computing hashes, building file trees, or
+    making database queries. Provides the same interface as Workspace for the
+    methods used by the all_workspaces_results.html template.
+    """
+
+    name: str
+
+    def get_url(self) -> str:
+        return reverse("workspace_view", kwargs={"workspace_name": self.name})
+
+    def display_name(self) -> str:
+        return self.name
+
+
 @dataclass(order=True)
 class Workspace:
     """Simple wrapper around a workspace directory on disk.
