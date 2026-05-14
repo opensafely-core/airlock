@@ -61,6 +61,9 @@ testpaths = [
 filterwarnings = [
     "ignore::DeprecationWarning:opentelemetry.*:",
     "ignore::DeprecationWarning:pytest_freezegun.*:",
+    # Slippers 0.7.0 deprecated underscore-to-hyphen conversion in attrs tags, but
+    # Django 6.0 rejects hyphens in template variable names, so we must use underscores.
+    "ignore:Underscores in attribute names are deprecated:DeprecationWarning",
 ]
 
 [tool.coverage.run]

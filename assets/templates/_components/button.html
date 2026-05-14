@@ -1,13 +1,13 @@
 {% if type == "link" %}
   <a
-    {% attrs data-table-pagination href id %}
+    {% attrs data_table_pagination href id %}
     {% if external %}
       rel="noopener noreferrer"
       target="_blank"
     {% endif %}
 {% else %}
   <button
-    {% attrs data-expander-button data-modal data-title disabled id name type=type|default:"button" value form hx-post hx-get hx-trigger hx-swap hx-target %}
+    {% attrs data_expander_button data_modal data_title disabled id name type=type|default:"button" value form hx_post hx_get hx_trigger hx_swap hx_target %}
 
 {% endif %}
 
