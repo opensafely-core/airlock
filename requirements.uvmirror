@@ -94,7 +94,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.9.0 ; platform_python_implementation != 'PyPy'
+librt==0.10.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.2
     # via
