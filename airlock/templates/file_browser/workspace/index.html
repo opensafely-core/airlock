@@ -1,7 +1,5 @@
 {% extends "file_browser/index.html" %}
 
 {% block content %}
-  {% #airlock_workspace_header current_request=current_request title=title workspace=workspace %}
-  {% /airlock_workspace_header %}
+  {% include "_components/header/workspace/header.html" with current_request=current_request title=title workspace=workspace %}
 {% endblock content %}
-

@@ -1,9 +1,9 @@
 {% load airlock %}
 {% load django_vite %}
 
-{% #card title=title class="mt-5" %}
+{% component "_components/card/card.html" with title=title class="mt-5" %}
   {% if activity %}
-    {% #datatable per_page="10" column_filter searchable sortable %}
+    {% component "_components/datatable.html" with per_page="10" column_filter=True searchable=True sortable=True %}
       <thead>
         <tr>
           <th>
@@ -44,7 +44,7 @@
         {% for log in activity %}
           <tr>
             <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
-            <td>{% airlock_user user=log.user %}</td>
+            <td>{% include "_components/user.html" with user=log.user %}</td>
             <td>{{ log.description }}</td>
             <td>
               <ul>
@@ -57,12 +57,12 @@
           </tr>
         {% endfor %}
       </tbody>
-    {% /datatable %}
+    {% endcomponent %}
   {% else %}
-    {% #list_group %}
-      {% list_group_empty title="No activity" description="There has been no recent activity on this workspace" %}
-    {% /list_group %}
+    {% component "_components/list-group/list-group.html" %}
+      {% include "_components/list-group/list-group-empty.html" with title="No activity" description="There has been no recent activity on this workspace" %}
+    {% endcomponent %}
   {% endif %}
-{% /card %}
+{% endcomponent %}
 
 {% vite_asset "assets/src/scripts/datatable.js" %}

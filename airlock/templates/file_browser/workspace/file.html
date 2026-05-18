@@ -3,13 +3,9 @@
     {% if content_buttons.add_file_button.show %}
       {% if content_buttons.add_file_button.disabled %}
         {% if content_buttons.add_file %}
-          {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="add-file-modal-button" %}
-            Add File to Request
-          {% /button %}
+          {% component "_components/button.html" with type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="add-file-modal-button" %}Add File to Request{% endcomponent %}
         {% else %}
-          {% #button type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="update-file-modal-button" %}
-            Update File in Request
-          {% /button %}
+          {% component "_components/button.html" with type="button" disabled=True tooltip=content_buttons.add_file_button.tooltip id="update-file-modal-button" %}Update File in Request{% endcomponent %}
         {% endif %}
       {% else %}
         <form
@@ -19,13 +15,9 @@
           hx-swap="outerHtml"
         >
           {% if content_buttons.add_file %}
-            {% #button type="submit" name="action" value="add_files" variant="success" id="add-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}
-              Add File to Request
-            {% /button %}
+            {% component "_components/button.html" with type="submit" name="action" value="add_files" variant="success" id="add-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}Add File to Request{% endcomponent %}
           {% else %}
-            {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}
-              Update File in Request
-            {% /button %}
+            {% component "_components/button.html" with type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.add_file_button.tooltip %}Update File in Request{% endcomponent %}
           {% endif %}
           <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
           <input type=hidden name="next_url" value="{{ request.path }}"/>
@@ -41,9 +33,10 @@
 {% endfragment %}
 
 {% if path_item.metadata.out_of_date_action %}
-  <div>{% #alert variant="warning" title="Out of date action" class="my-2 p-2" dismissible=False %}
-    This file was produced by an action that is no longer present in the workspace's project.yaml
-  {% /alert %}
+  <div>
+    {% component "_components/alert/alert.html" with variant="warning" title="Out of date action" class="my-2 p-2" dismissible=False %}
+      This file was produced by an action that is no longer present in the workspace's project.yaml
+    {% endcomponent %}
   </div>
 {% endif %}
 

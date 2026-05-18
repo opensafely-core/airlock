@@ -3,7 +3,7 @@
   #notes-list {list-style: circle; list-style-position: inside;}
 </style>
 
-{% #card container=True %}
+{% component "_components/card/card.html" with container=True %}
   <div class="text-sm">
     <table class="table-auto" id="csv-summary-table">
       <thead>
@@ -30,4 +30,4 @@
     {{ summary.notes }}
   </details>
 
-{% /card %}
+{% endcomponent %}

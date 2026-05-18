@@ -6,14 +6,14 @@
   {% if content_buttons.multiselect_withdraw.show %}
     <div class="div flex flex-col items-start gap-4">
       <div class="flex items-center gap-2">
-        {% #button type="submit" name="action" value="withdraw_files" variant="warning" form="multiselect_form"%}Withdraw Files from Request{% /button %}
+        {% component "_components/button.html" with type="submit" name="action" value="withdraw_files" variant="warning" form="multiselect_form" %}Withdraw Files from Request{% endcomponent %}
       </div>
       <div id="multiselect_modal"></div>
     </div>
   {% endif %}
 {% endfragment %}
 
-{% #card title=path_item.name container=False custom_button=buttons %}
+{% component "_components/card/card.html" with title=path_item.name container=False custom_button=buttons %}
   <form id="multiselect_form"
         method="POST"
         hx-post="{{ content_buttons.multiselect_withdraw.url }}"
@@ -90,7 +90,7 @@
         {% endif %}
       </tr>
     {% endfragment %}
-    {% #clusterize_table header_row=header_row %}
+    {% component "_components/clusterize-table.html" with header_row=header_row %}
       {% for path in path_item.children %}
         <tr>
           <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
@@ -100,15 +100,15 @@
           {% if content_buttons.multiselect_withdraw.show %}
             <td>
               {% if not path.is_directory %}
-                {% form_checkbox name="selected" value=path.relpath custom_field=True %}
+                {% include "_components/form/checkbox.html" with name="selected" value=path.relpath custom_field=True %}
               {% endif %}
             </td>
           {% endif %}
         </tr>
       {% endfor %}
-    {% /clusterize_table %}
+    {% endcomponent %}
   </form>
-{% /card %}
+{% endcomponent %}
 
 {% vite_hmr_client %}
 {% vite_asset "assets/src/scripts/datatable.js" %}

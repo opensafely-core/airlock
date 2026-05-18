@@ -1,37 +1,35 @@
 {# hide default button, as we are going to autoshow the modal anyway #}
 {% fragment as button %}
 {% endfragment %}
-{% #modal id="updateRequestFile" custom_button=button autoshow=True %}
-  {% #card container=True title="Update Files in Request" %}
+{% component "_components/modal/modal.html" with id="updateRequestFile" custom_button=button autoshow=True %}
+  {% component "_components/card/card.html" with container=True title="Update Files in Request" %}
     <form action="{{ add_file_url }}" method="POST" aria-label="add-file-form">
       {% csrf_token %}
       {{ form.next_url }}
       {{ formset.management_form }}
-      {% #list_group %}
+      {% component "_components/list-group/list-group.html" %}
         {% for name, reason in files_ignored.items %}
-          {% #list_group_item %}
+          {% component "_components/list-group/list-group-item.html" %}
             <div class="flex items-center gap-2 justify-between">
               <span>{{ name }}</span>
               <span class="flex flex-row">{{ reason }}</span>
             </div>
-          {% /list_group_item %}
+          {% endcomponent %}
         {% endfor %}
         {% for formset_form in formset %}
-          {% #list_group_item %}
+          {% component "_components/list-group/list-group-item.html" %}
             <div class="flex items-center gap-2 justify-between">
               <span>{{ formset_form.file.value }}</span>
               {{ formset_form.file }}
             </div>
-          {% /list_group_item %}
+          {% endcomponent %}
         {% endfor %}
-      {% /list_group %}
+      {% endcomponent %}
 
       <div class="mt-2">
-        {% #button type="submit" variant="success" id="update-file-button" disabled=no_valid_files %}
-          Update Files in Request
-        {% /button %}
-        {% #button variant="danger" type="cancel" %}Cancel{% /button %}
+        {% component "_components/button.html" with type="submit" variant="success" id="update-file-button" disabled=no_valid_files %}Update Files in Request{% endcomponent %}
+        {% component "_components/button.html" with variant="danger" type="cancel" %}Cancel{% endcomponent %}
       </div>
     </form>
-  {% /card %}
-{% /modal %}
+  {% endcomponent %}
+{% endcomponent %}

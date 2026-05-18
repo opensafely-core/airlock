@@ -91,7 +91,6 @@ INSTALLED_APPS = [
     # requirements for assets library
     "django.contrib.humanize",
     "django_vite",
-    "slippers",
     "django_htmx",
     "django_extensions",
 ]
@@ -150,8 +149,7 @@ TEMPLATES = [
                 "airlock.nav.dev_users",
             ],
             "builtins": [
-                "slippers.templatetags.slippers",  # required for assets library
-                "airlock.templatetags.airlock_components",  # required for airlock custom components
+                "airlock.templatetags.template_components",
             ],
             "debug": DEBUG,  # required for template coverage
         },
@@ -383,9 +381,30 @@ class MissingVariableErrorFilter(logging.Filter):
         "_partials",
     )
 
+    def _resolve_actual_template(self, exc_info):
+        # context.template_name is the top-level template, so {% include %}d
+        # templates can't be distinguished by that name. The render_context tracks
+        # the actual template currently being rendered via push_state — look it up
+        # via the exception traceback's frame locals.
+        if not exc_info:
+            return None
+        tb = exc_info[2]
+        while tb:
+            ctx = tb.tb_frame.f_locals.get("context")
+            render_ctx = getattr(ctx, "render_context", None)
+            template = getattr(render_ctx, "template", None)
+            origin = getattr(template, "origin", None)
+            name = getattr(origin, "template_name", None)
+            if name:
+                return name
+            tb = tb.tb_next
+        return None
+
     def filter(self, record):  # pragma: no cover
         if record.msg.startswith("Exception while resolving variable "):
-            template_name = record.args[1]
+            template_name = (
+                self._resolve_actual_template(record.exc_info) or record.args[1]
+            )
             if (
                 not template_name.startswith(self.ignored_prefixes)
                 # This shows up when rendering Django's internal error pages

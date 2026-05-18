@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block metatitle %}{{ workspace_header }} {% airlock_user user=request.user %} |  Airlock{% endblock metatitle %}
+{% block metatitle %}{{ workspace_header }} {% include "_components/user.html" with user=request.user %} |  Airlock{% endblock metatitle %}
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title=workspace_header|add:request.user.fullname %}
+    {% include "_components/header/base.html" with title=workspace_header|add:request.user.fullname %}
     {% for project, workspaces in projects.items %}
-      {% #card %}
+      {% component "_components/card/card.html" %}
 
         <details class="group" open>
           <summary class="list-none" id="projects">
@@ -15,63 +15,62 @@
             {% fragment as project_title %}
               {{ project.display_name }}
               {% for org in project.orgs %}
-                {% pill variant="info" text=org %}
+                {% include "_components/pill/pill.html" with variant="info" text=org %}
               {% endfor %}
             {% endfragment %}
-            {% card title=project_title custom_button=custom_button %}
-              </summary>
-              {% if workspace_type == "workspaces" %}
-                {% for workspace in workspaces %}
-                  <details class="group/inner">
-                    <summary class="list-none">
-                      {% fragment as button %}<span class="opacity-75 ml-auto"><img height="30" width="30" class="inline-block group-open/inner:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
-                        <img height="30" width="30" class="hidden group-open/inner:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
-                      {% #list_group id="workspaces" %}
-                        {% #airlock_list_dropdown custom_button=button %}
-                          <div>
-                            {{ workspace.display_name }}
-                          </div>
-                        {% /airlock_list_dropdown %}
-                      {% /list_group %}
-                    </summary>
-                    <div>
-                      <a class="header__link px-6 sm:px-12" href="{{ workspace.get_url }}">Go to {{ workspace.display_name }}</a>
-                    </div>
-                    <ul>
-                      {% #list_group id="authored-requests" %}
-                        {% for release_request in authored_requests|dictsortreversed:"created_at" %}
-                          {% if workspace.display_name == release_request.workspace %}
-                            <div class="transition-colors px-6 hover:bg-oxford-50 focus:bg-oxford-50">
-                              {% airlock_list_group_rich_item type="Request" created_date=release_request.created_at last_submitted_date=release_request.last_submitted_at title=release_request.get_short_id url=release_request.get_url status_text=release_request.status.description %}
-                            </div>
-                          {% endif %}
-                        {% empty %}
-                          {% list_group_empty title="No requests" description="You do not have any authored requests" %}
-                        {% endfor %}
-                      {% /list_group %}
-                    </ul>
-                  </details>
-                {% endfor %}
-              {% else%}
+            {% include "_components/card/card.html" with title=project_title custom_button=custom_button %}
+          </summary>
+          {% if workspace_type == "workspaces" %}
+            {% for workspace in workspaces %}
+              <details class="group/inner">
+                <summary class="list-none">
+                  {% fragment as button %}<span class="opacity-75 ml-auto"><img height="30" width="30" class="inline-block group-open/inner:hidden" src="/static/icons/keyboard_arrow_down.svg" alt="">
+                    <img height="30" width="30" class="hidden group-open/inner:inline-block" src="/static/icons/keyboard_arrow_up.svg" alt=""></span>{% endfragment %}
+                  {% component "_components/list-group/list-group.html" with id="workspaces" %}
+                    {% component "_components/list-group/list-group-item-dropdown.html" with custom_button=button %}
+                      <div>
+                        {{ workspace.display_name }}
+                      </div>
+                    {% endcomponent %}
+                  {% endcomponent %}
+                </summary>
+                <div>
+                  <a class="header__link px-6 sm:px-12" href="{{ workspace.get_url }}">Go to {{ workspace.display_name }}</a>
+                </div>
                 <ul>
-                  <li>
-                    {% #list_group id="workspaces" %}
-                      {% for workspace in workspaces %}
-                        {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
-                      {% endfor %}
-                    {% /list_group %}
-                  </li>
+                  {% component "_components/list-group/list-group.html" with id="authored-requests" %}
+                    {% for release_request in authored_requests|dictsortreversed:"created_at" %}
+                      {% if workspace.display_name == release_request.workspace %}
+                        <div class="transition-colors px-6 hover:bg-oxford-50 focus:bg-oxford-50">
+                          {% include "_components/list-group/list-group-rich-item.html" with type="Request" created_date=release_request.created_at last_submitted_date=release_request.last_submitted_at title=release_request.get_short_id url=release_request.get_url status_text=release_request.status.description %}
+                        </div>
+                      {% endif %}
+                    {% empty %}
+                      {% include "_components/list-group/list-group-empty.html" with title="No requests" description="You do not have any authored requests" %}
+                    {% endfor %}
+                  {% endcomponent %}
                 </ul>
-
-              {% endif %}
               </details>
+            {% endfor %}
+          {% else%}
+            <ul>
+              <li>
+                {% component "_components/list-group/list-group.html" with id="workspaces" %}
+                  {% for workspace in workspaces %}
+                    {% component "_components/list-group/list-group-item.html" with href=workspace.get_url %}{{ workspace.display_name }}{% endcomponent %}
+                  {% endfor %}
+                {% endcomponent %}
+              </li>
+            </ul>
 
-            {% /card %}
-      {% empty %}
-        {% #card title=workspace_type.title container=True %}
-          {% list_group_empty title="No "|add:workspace_type|add:" available" description="You do not have access to any "|add:workspace_type %}
-        {% /card %}
-      {% endfor %}
-      </div>
-    {% endblock content %}
+          {% endif %}
+        </details>
 
+      {% endcomponent %}
+    {% empty %}
+      {% component "_components/card/card.html" with title=workspace_type.title container=True %}
+        {% include "_components/list-group/list-group-empty.html" with title="No "|add:workspace_type|add:" available" description="You do not have access to any "|add:workspace_type %}
+      {% endcomponent %}
+    {% endfor %}
+  </div>
+{% endblock content %}

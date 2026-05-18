@@ -9,7 +9,6 @@
     "ansi2html<=1.9.2",
     "Django<=6.0.5",
     "django-vite<=3.1.0",
-    "slippers<=0.7.0",
     "django-htmx<=1.27.0",
     "django-markdownify<=0.9.6",
     "whitenoise<=6.12.0",
@@ -32,7 +31,6 @@
 # Exclude upstream assets files from jobserver
 exclude = [
   "assets/templates/*",
-  "assets/base_views.py"
 ]
 
 [tool.ruff.lint]
@@ -89,11 +87,6 @@ exclude_also = [
 
 [tool.coverage.django_coverage_plugin]
 template_extensions = "html"
-exclude_blocks = [
-    # exclude block lines for end of slippers component (blocks that 
-    # start with \ e.g. {% \button %}
-    "^\\/\\w+",
-]
 
 [tool.ruff.lint.per-file-ignores]
 "airlock/views/__init__.py" = ["F401"]
@@ -110,9 +103,6 @@ exclude = [
 ]
 
 # Don't follow the import chain into the modules containing code vendored from elsewhere
-[[tool.mypy.overrides]]
-module = "assets.base_views"
-follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = "services.tracing"
 follow_imports = "skip"

@@ -50,22 +50,22 @@
           {% if status_text %}
 
             {% if status_text == "APPROVED - FILES UPLOADING" or status_text == "RELEASED" %}
-              {% pill variant="success" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="success" text=status_text %}
 
             {% elif status_text == "SUBMITTED" or status_text == "ONE REVIEW SUBMITTED" or status_text == "ALL REVIEWS SUBMITTED" %}
-              {% pill variant="primary" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="primary" text=status_text %}
 
             {% elif status_text == "REJECTED" %}
-              {% pill variant="danger" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="danger" text=status_text %}
 
             {% elif status_text == "RETURNED" %}
-              {% pill variant="warning" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="warning" text=status_text %}
 
             {% elif status_text == "PENDING" %}
-              {% pill variant="info" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="info" text=status_text %}
 
             {% elif status_text == "WITHDRAWN" %}
-              {% pill variant="danger-outline" text=status_text %}
+              {% include "_components/pill/pill.html" with variant="danger-outline" text=status_text %}
             {% endif %}
           {% elif custom_status %}
             {{ custom_status }}
@@ -74,6 +74,6 @@
         </dd>
       {% endif %}
     </div>
-    {{ children }}
+    {% body %}
   </dl>
 </li>

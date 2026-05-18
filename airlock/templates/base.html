@@ -31,7 +31,7 @@
 
     <main class="max-h-full bg-slate-100 flex flex-col flex-1">
       <div class="container xl:max-w-screen-xl pt-4 pb-4" id="content">
-        {% alerts messages=messages %}
+        {% include "_partials/alerts.html" %}
         {% block content %}{% endblock %}
       </div>
       {% block full_width_content %}{% endblock full_width_content %}

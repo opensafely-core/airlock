@@ -7,7 +7,7 @@
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title="All Workspaces" %}
+    {% include "_components/header/base.html" with title="All Workspaces" %}
 
     <input
       type="text"

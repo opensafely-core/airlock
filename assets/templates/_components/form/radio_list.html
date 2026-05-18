@@ -1,19 +1,19 @@
-{% if id %}
-  {% var label_for=id %}
-  {% var radios_id=id %}
-  {% var radios_name=name %}
+{% if field %}
+  {% setvar label_for=field.id_for_label %}
+  {% setvar radios_id=field.auto_id %}
+  {% setvar radios_name=field.html_name %}
 {% else %}
-  {% var label_for=field.id_for_label %}
-  {% var radios_id=field.auto_id %}
-  {% var radios_name=field.html_name %}
+  {% setvar label_for=id %}
+  {% setvar radios_id=id %}
+  {% setvar radios_name=name %}
 {% endif %}
 
 {% if label %}
-  {% var radios_label=label %}
+  {% setvar radios_label=label %}
 {% elif field.label %}
-  {% var radios_label=label %}
+  {% setvar radios_label=label %}
 {% else  %}
-  {% var radios_label="" %}
+  {% setvar radios_label="" %}
 {% endif %}
 
 <div {% attrs class %}>
@@ -36,13 +36,13 @@
 {% for value, label in field.field.choices %}
 
   {% if field.value == value %}
-  {% var checked=True %}
+  {% setvar checked=True %}
   {% else %}
-  {% var checked=False %}
+  {% setvar checked=False %}
   {% endif %}
 
   {% with id=forloop.counter|stringformat:"s" %}
-  {% form_radio id="id_"|add:radios_name|add:id name=radios_name value=value label=label checked=checked %}
+  {% include "_components/form/radio.html" with id="id_"|add:radios_name|add:id name=radios_name value=value label=label checked=checked %}
   {% endwith %}
 
 {% endfor %}

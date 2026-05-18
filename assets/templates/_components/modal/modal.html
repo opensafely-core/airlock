@@ -1,14 +1,14 @@
+{% setvar local_custom_button=custom_button %}
+{% setvar custom_button="" %}
 <div class="{{ modal_container_class }}" id="{{ id }}-modal-container">
-  {% if custom_button %}
-    {{ custom_button }}
+  {% if local_custom_button %}
+    {{ local_custom_button }}
   {% else %}
-    {% #button class=button_class|default:"flex-shrink-0" small=button_small|default:False variant=button_variant|default:"primary" tooltip=button_tooltip data-modal=id %}
-    {{ button_text }}
-    {% /button %}
+    {% component "_components/button.html" with class=button_class|default:"flex-shrink-0" small=button_small|default:False variant=button_variant|default:"primary" tooltip=button_tooltip data_modal=id %}{{ button_text }}{% endcomponent %}
   {% endif %}
 
   <dialog class="max-w-lg w-full backdrop:bg-slate-900/25 backdrop:backdrop-blur {{ modal_class }}" id="{{ id }}">
-    {{ children }}
+    {% body %}
   </dialog>
 </div>
 
