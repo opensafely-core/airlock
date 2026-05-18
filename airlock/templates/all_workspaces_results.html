@@ -1,11 +1,11 @@
 <div id="workspace-results">
-  {% #card %}
-    {% #list_group id="workspaces" %}
+  {% component "_components/card/card.html" %}
+    {% component "_components/list-group/list-group.html" with id="workspaces" %}
       {% for workspace in workspaces %}
-        {% #list_group_item href=workspace.get_url %}{{ workspace.display_name }}{% /list_group_item %}
+        {% component "_components/list-group/list-group-item.html" with href=workspace.get_url %}{{ workspace.display_name }}{% endcomponent %}
       {% empty %}
-        {% list_group_empty title="No workspaces found" description="No workspaces match your search" %}
+        {% include "_components/list-group/list-group-empty.html" with title="No workspaces found" description="No workspaces match your search" %}
       {% endfor %}
-    {% /list_group %}
-  {% /card %}
+    {% endcomponent %}
+  {% endcomponent %}
 </div>

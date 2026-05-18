@@ -4,13 +4,13 @@
       <span class="file-type file-type--supporting relative group cursor-pointer">
         <span class="file-type__icon"></span>
         Supporting
-        {% tooltip content="This is a supporting file and will not be released." %}
+        {% include "_components/tooltip.html" with content="This is a supporting file and will not be released." %}
       </span>
     {% elif path_item.is_withdrawn %}
       <span class="file-type file-type--withdrawn relative group cursor-pointer">
         <span class="file-type__icon"></span>
         Withdrawn
-        {% tooltip content="This file has been withdrawn and will not be released." %}
+        {% include "_components/tooltip.html" with content="This file has been withdrawn and will not be released." %}
       </span>
     {% endif %}
 
@@ -20,7 +20,7 @@
           <div class="text-xs text-center pb-2">Overall decision</div>
           <span class="file-decision-status file-decision-status--{{ decision.name.lower }} relative group cursor-pointer">
             {{ decision.description }}
-            {% tooltip class="airlock-tooltip decision-status-tooltip" content=decision.reason %}
+            {% include "_components/tooltip.html" with class="airlock-tooltip decision-status-tooltip" content=decision.reason %}
           </span>
         </div>
       {% endwith %}
@@ -30,7 +30,7 @@
       <form action="{{ content_buttons.withdraw_file.url }}" method="POST">
         {% csrf_token %}
         <input type=hidden name="path" value="{{ path_item.relpath }}"/>
-        {% #button type="submit" id="withdraw-file-button" tooltip=content_buttons.withdraw_file.tooltip variant="warning" %}Withdraw from Request{% /button %}
+        {% component "_components/button.html" with type="submit" id="withdraw-file-button" tooltip=content_buttons.withdraw_file.tooltip variant="warning" %}Withdraw from Request{% endcomponent %}
       </form>
     {% endif %}
 
@@ -41,9 +41,7 @@
         hx-target="#multiselect_modal"
         hx-swap="outerHtml"
       >
-        {% #button type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.change_file_properties_button.tooltip %}
-          Update file properties
-        {% /button %}
+        {% component "_components/button.html" with type="submit" name="action" value="update_files" variant="success" id="update-file-modal-button" tooltip=content_buttons.change_file_properties_button.tooltip %}Update file properties{% endcomponent %}
         <input type=hidden name="selected" value="{{ path_item.relpath }}"/>
         <input type=hidden name="next_url" value="{{ request.path }}"/>
         {% csrf_token %}
@@ -105,9 +103,9 @@
       </div>
     {% endif %}
 
-    {% #modal id="group-context" button_text="View&nbsp;Context&nbsp;&&nbsp;Comments" %}
+    {% component "_components/modal/modal.html" with id="group-context" button_text="View&nbsp;Context&nbsp;&&nbsp;Comments" %}
       {% include "file_browser/request/filegroup.html" %}
-    {% /modal %}
+    {% endcomponent %}
 
     {% include "file_browser/_includes/more_dropdown.html" with include_code=include_code include_download=include_download %}
 

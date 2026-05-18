@@ -1,5 +1,5 @@
-{% var title_class=title_class|default:"font-bold sm:text-sm sm:font-semibold text-slate-900" %}
-{% var details_class=details_class|default:"mt-1 text-sm text-slate-900 pl-3 ml-0.5 border-l-2 border-l-slate-200 sm:pl-0 sm:ml-0 sm:border-l-0 sm:col-span-3 sm:mt-0" %}
+{% setvar title_class=title_class|default:"font-bold sm:text-sm sm:font-semibold text-slate-900" %}
+{% setvar details_class=details_class|default:"mt-1 text-sm text-slate-900 pl-3 ml-0.5 border-l-2 border-l-slate-200 sm:pl-0 sm:ml-0 sm:border-l-0 sm:col-span-3 sm:mt-0" %}
 
 <div
 	class="
@@ -17,5 +17,5 @@
 		class="
 			{{ title_class }}
 		">{{ title }}</dt>
-	<dd class="{{ details_class }} break-words">{{ children }}</dd>
+	<dd class="{{ details_class }} break-words">{% body %}</dd>
 </div>

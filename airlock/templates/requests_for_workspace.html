@@ -7,9 +7,9 @@
   {% fragment as custom_button %}
     {% if request_filter %}
       <div id="clear-filter" class="relative group cursor-pointer ml-auto">
-        <a class="inline-flex bg-oxford-50 rounded-md p-1 text-oxford-700 text-sm" href="{{ filter_url }}"> {{ request_filter|title }} {% icon_x_circle_solid class="text-oxford-600 h-5 w-5" %}
+        <a class="inline-flex bg-oxford-50 rounded-md p-1 text-oxford-700 text-sm" href="{{ filter_url }}"> {{ request_filter|title }} {% include "_icons/x-circle-solid.svg" with class="text-oxford-600 h-5 w-5" %}
         </a>
-        {% tooltip position="-bottom-3" content="Clear filter" %}
+        {% include "_components/tooltip.html" with position="-bottom-3" content="Clear filter" %}
       </div>
     {% endif %}
 
@@ -26,19 +26,19 @@
     </form>
   {% endfragment %}
 
-  {% #card title="All requests in Workspace: "|add:workspace custom_button=custom_button %}
-    {% #list_group id="requests-workspace" %}
+  {% component "_components/card/card.html" with title="All requests in Workspace: "|add:workspace custom_button=custom_button %}
+    {% component "_components/list-group/list-group.html" with id="requests-workspace" %}
       {% for request in requests_for_workspace|dictsortreversed:"created_at" %}
-        {% fragment as title %}{{ request.get_short_id }} by {% airlock_user user=request.author %}{% endfragment %}
-        {% #airlock_list_group_rich_item title=title url=request.get_url status_text=request.status.description %}
+        {% fragment as title %}{{ request.get_short_id }} by {% include "_components/user.html" with user=request.author %}{% endfragment %}
+        {% component "_components/list-group/list-group-rich-item.html" with title=title url=request.get_url status_text=request.status.description %}
           <div class="group-hover:pointer-events-none ml-auto sm:flex-row -mt-4 -mb-6 -mr-5">
-            {% airlock_list_group_rich_item created_date=request.created_at last_submitted_date=request.last_submitted_at %}
-              </div>
-            {% /airlock_list_group_rich_item %}
+            {% include "_components/list-group/list-group-rich-item.html" with created_date=request.created_at last_submitted_date=request.last_submitted_at %}
+          </div>
+        {% endcomponent %}
 
-        {% empty %}
-          {% list_group_empty title="No requests" description="There are no requests in this workspace" %}
-        {% endfor %}
-      {% /list_group %}
-    {% /card %}
-  {% endblock content %}
+      {% empty %}
+        {% include "_components/list-group/list-group-empty.html" with title="No requests" description="There are no requests in this workspace" %}
+      {% endfor %}
+    {% endcomponent %}
+  {% endcomponent %}
+{% endblock content %}

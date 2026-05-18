@@ -1,5 +1,5 @@
 <div hx-swap-oob="innerHTML:#content">
-  {% #airlock_request_header release_request=release_request title=title workspace=workspace group=group %}
+  {% component "_components/header/request/header.html" with release_request=release_request title=title workspace=workspace group=group %}
     {% if is_request_root %}
       <h2 class="font-semibold tracking-tight text-slate-900">Request overview</h2>
     {% else %}
@@ -7,13 +7,13 @@
         &larr; Request overview
       </a>
     {% endif %}
-  {% /airlock_request_header %}
+  {% endcomponent %}
 
   {% if request_action_required %}
     <div class="mt-4">
-      {% #alert variant="warning" title="Action required" dismissible=True %}
+      {% component "_components/alert/alert.html" with variant="warning" title="Action required" dismissible=True %}
         {{ request_action_required }}
-      {% /alert %}
+      {% endcomponent %}
     </div>
   {% endif %}
 </div>

@@ -5,13 +5,13 @@
   <div class="flex items-center gap-2">
     {% if content_buttons.submit.show %}
       {% if content_buttons.submit.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="success" id="submit-for-review-button" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True variant="success" id="submit-for-review-button" %}
           Submit for review
-          {% tooltip class="airlock-tooltip" content=content_buttons.submit.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.submit.tooltip %}
+        {% endcomponent %}
       {% else %}
-        {% #modal id="submitRequest" button_small=True button_text="Submit for review" button_variant="success" %}
-          {% #card container=True title="Submit this request for review" %}
+        {% component "_components/modal/modal.html" with id="submitRequest" button_small=True button_text="Submit for review" button_variant="success" %}
+          {% component "_components/card/card.html" with container=True title="Submit this request for review" %}
             <form action="{{ content_buttons.submit.url }}" method="POST">
               {% csrf_token %}
 
@@ -31,32 +31,30 @@
                   </p>
                 </blockquote>
               </div>
-              {% #button type="submit" variant="success" class="action-button" small=True id="submit-for-review-button" %}
-                I confirm I have read the documentation
-              {% /button %}
-              {% #button variant="primary" class="action-button" small=True type="cancel" %}Cancel{% /button %}
+              {% component "_components/button.html" with type="submit" variant="success" class="action-button" small=True id="submit-for-review-button" %}I confirm I have read the documentation{% endcomponent %}
+              {% component "_components/button.html" with variant="primary" class="action-button" small=True type="cancel" %}Cancel{% endcomponent %}
             </form>
-          {% /card %}
-        {% /modal %}
+          {% endcomponent %}
+        {% endcomponent %}
       {% endif %}
     {% endif %}
     {% if content_buttons.resubmit.show %}
       {% if content_buttons.resubmit.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="success" id="resubmit-for-review-button" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True variant="success" id="resubmit-for-review-button" %}
           Submit for review
-          {% tooltip class="airlock-tooltip" content=content_buttons.resubmit.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.resubmit.tooltip %}
+        {% endcomponent %}
       {% else %}
         {% comment %} Subsequent re-submission requires just a button press {% endcomment %}
         <form action="{{ content_buttons.resubmit.url }}" method="POST">
           {% csrf_token %}
-          {% #button type="submit" tooltip=content_buttons.resubmit.tooltip variant="success" class="action-button" small=True id="resubmit-for-review-button" %}Submit for review{% /button %}
+          {% component "_components/button.html" with type="submit" tooltip=content_buttons.resubmit.tooltip variant="success" class="action-button" small=True id="resubmit-for-review-button" %}Submit for review{% endcomponent %}
         </form>
       {% endif %}
     {% endif %}
     {% if content_buttons.withdraw.show %}
-      {% #modal id="withdrawRequest" button_small=True button_text="Withdraw this request" button_variant="warning" %}
-        {% #card container=True title="Withdraw this request" %}
+      {% component "_components/modal/modal.html" with id="withdrawRequest" button_small=True button_text="Withdraw this request" button_variant="warning" %}
+        {% component "_components/card/card.html" with container=True title="Withdraw this request" %}
           <form action="{{ content_buttons.withdraw.url }}" method="POST">
             {% csrf_token %}
 
@@ -66,34 +64,34 @@
               recreated from scratch.
               Please confirm you wish to withdraw this request.
             </div>
-            {% #button type="submit" variant="danger" class="action-button" small=True id="withdraw-request-confirm" %}Withdraw{% /button %}
-            {% #button variant="primary" type="cancel" small=True %}Cancel{% /button %}
+            {% component "_components/button.html" with type="submit" variant="danger" class="action-button" small=True id="withdraw-request-confirm" %}Withdraw{% endcomponent %}
+            {% component "_components/button.html" with variant="primary" type="cancel" small=True %}Cancel{% endcomponent %}
           </form>
-        {% /card %}
-      {% /modal %}
+        {% endcomponent %}
+      {% endcomponent %}
     {% endif %}
     {% if content_buttons.submit_review.show %}
       {% if content_buttons.submit_review.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="secondary" id="submit-review-button" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True variant="secondary" id="submit-review-button" %}
           Submit review
-          {% tooltip class="airlock-tooltip" content=content_buttons.submit_review.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.submit_review.tooltip %}
+        {% endcomponent %}
       {% else %}
         <form action="{{ content_buttons.submit_review.url }}" method="POST">
           {% csrf_token %}
-          {% #button type="submit" small=True tooltip=content_buttons.submit_review.tooltip variant="success" id="submit-review-button" %}Submit review{% /button %}
+          {% component "_components/button.html" with type="submit" small=True tooltip=content_buttons.submit_review.tooltip variant="success" id="submit-review-button" %}Submit review{% endcomponent %}
         </form>
       {% endif %}
     {% endif %}
     {% if content_buttons.reject.show %}
       {% if content_buttons.reject.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="danger" id="reject-request-button" data-modal="rejectRequest" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True variant="danger" id="reject-request-button" data_modal="rejectRequest" %}
           Reject request
-          {% tooltip class="airlock-tooltip" content=content_buttons.reject.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.reject.tooltip %}
+        {% endcomponent %}
       {% else %}
-        {% #modal id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" button_tooltip=content_buttons.reject.tooltip %}
-          {% #card container=True title="Reject this request" %}
+        {% component "_components/modal/modal.html" with id="rejectRequest" button_small=True button_text="Reject request" button_variant="danger" button_tooltip=content_buttons.reject.tooltip %}
+          {% component "_components/card/card.html" with container=True title="Reject this request" %}
             <form action="{{ content_buttons.reject.url }}" method="POST">
               {% csrf_token %}
 
@@ -103,47 +101,47 @@
                 from scratch. Please confirm you wish to reject this
                 request.
               </div>
-              {% #button type="submit" variant="danger" class="action-button" small=True id="reject-request-button" %}Reject request{% /button %}
-              {% #button variant="primary" type="cancel" %}Cancel{% /button %}
+              {% component "_components/button.html" with type="submit" variant="danger" class="action-button" small=True id="reject-request-button" %}Reject request{% endcomponent %}
+              {% component "_components/button.html" with variant="primary" type="cancel" %}Cancel{% endcomponent %}
             </form>
-          {% /card %}
-        {% /modal %}
+          {% endcomponent %}
+        {% endcomponent %}
       {% endif %}
     {% endif %}
     {% if content_buttons.return.show %}
       {% if content_buttons.return.disabled %}
-        {% #button disabled=True class="relative group" small=True id="return-request-button" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True id="return-request-button" %}
           Return request
-          {% tooltip class="airlock-tooltip" content=content_buttons.return.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.return.tooltip %}
+        {% endcomponent %}
       {% else %}
-        {% #modal id="returnRequest" button_small=True button_text="Return request" button_tooltip=content_buttons.return.tooltip %}
-          {% #card container=True title="Return this request" %}
+        {% component "_components/modal/modal.html" with id="returnRequest" button_small=True button_text="Return request" button_tooltip=content_buttons.return.tooltip %}
+          {% component "_components/card/card.html" with container=True title="Return this request" %}
             <form action="{{ content_buttons.return.url }}" method="POST">
               {% csrf_token %}
               <div class="pb-8">
                 {{content_buttons.return.modal_confirm_message}}
               </div>
-              {% #button type="submit" variant="warning" class="action-button" small=True id="return-request-button" %}Return request{% /button %}
-              {% #button variant="primary" type="cancel" small=True %}Cancel{% /button %}
+              {% component "_components/button.html" with type="submit" variant="warning" class="action-button" small=True id="return-request-button" %}Return request{% endcomponent %}
+              {% component "_components/button.html" with variant="primary" type="cancel" small=True %}Cancel{% endcomponent %}
             </form>
-          {% /card %}
-        {% /modal %}
+          {% endcomponent %}
+        {% endcomponent %}
       {% endif %}
     {% endif %}
     {% if content_buttons.release_files.show %}
       {% if content_buttons.release_files.disabled %}
-        {% #button disabled=True class="relative group" small=True variant="warning" id="release-files-button" %}
+        {% component "_components/button.html" with disabled=True class="relative group" small=True variant="warning" id="release-files-button" %}
           Release files
-          {% tooltip class="airlock-tooltip" content=content_buttons.release_files.tooltip %}
-        {% /button %}
+          {% include "_components/tooltip.html" with class="airlock-tooltip" content=content_buttons.release_files.tooltip %}
+        {% endcomponent %}
       {% else %}
         <form action="{{ content_buttons.release_files.url }}" method="POST" hx-post="{{ content_buttons.release_files.url }}" hx-disabled-elt="button">
           {% csrf_token %}
-          {% #button small=True type="submit" tooltip=content_buttons.release_files.tooltip variant="warning" id="release-files-button" %}
+          {% component "_components/button.html" with small=True type="submit" tooltip=content_buttons.release_files.tooltip variant="warning" id="release-files-button" %}
             Release files
             <img height="16" width="16" class="icon icon--green-700 animate-spin htmx-indicator" src="{% static 'icons/progress_activity.svg' %}" alt="">
-          {% /button %}
+          {% endcomponent %}
         </form>
       {% endif %}
     {% endif %}
@@ -151,21 +149,21 @@
   </div>
 {% endfragment %}
 
-{% #card title="Request: "|add:release_request.id custom_button=buttons %}
-  {% #description_list %}
-    {% #description_item title="Status" %}
+{% component "_components/card/card.html" with title="Request: "|add:release_request.id custom_button=buttons %}
+  {% component "_components/description-list.html" %}
+    {% component "_components/description-item.html" with title="Status" %}
       {{ release_request.status.description }}
-    {% /description_item %}
-    {% #description_item title="Files requested for release" %}
+    {% endcomponent %}
+    {% component "_components/description-item.html" with title="Files requested for release" %}
       {{ release_request.output_files|length }}
-    {% /description_item %}
-    {% #description_item title="Supporting files not for release" %}
+    {% endcomponent %}
+    {% component "_components/description-item.html" with title="Supporting files not for release" %}
       {{ release_request.supporting_files_count }}
-    {% /description_item %}
-    {% #description_item title="Files released and uploaded" %}
+    {% endcomponent %}
+    {% component "_components/description-item.html" with title="Files released and uploaded" %}
       {% include "file_browser/_includes/uploaded_files_count.html" %}
-    {% /description_item %}
-    {% #description_item title="Filegroups" %}
+    {% endcomponent %}
+    {% component "_components/description-item.html" with title="Filegroups" %}
       <ul class="list-disc">
         {% for filegroup in release_request.filegroups.values %}
           {% if not filegroup.empty %}
@@ -173,7 +171,7 @@
               <div class="flex flex-row flex-wrap gap-2">
                 <a class="text-oxford-600" href={{ release_request.get_url }}{{ filegroup.name|urlencode }}>{{ filegroup.name }}</a>
                 {% if filegroup.incomplete %}
-                  {% icon_exclamation_triangle_outline class="h-5 w-5 text-bn-flamenco-500" %}
+                  {% include "_icons/exclamation-triangle-outline.svg" with class="h-5 w-5 text-bn-flamenco-500" %}
                   <small><em>Information incomplete. Click on group name to enter context/controls.</em></small>
                 {% endif %}
               </div>
@@ -181,8 +179,8 @@
           {% endif %}
         {% endfor %}
       </ul>
-    {% /description_item %}
-  {% /description_list %}
-{% /card %}
+    {% endcomponent %}
+  {% endcomponent %}
+{% endcomponent %}
 
 {% include "activity.html" with title="Recent activity for this request"%}

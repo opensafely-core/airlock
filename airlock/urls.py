@@ -21,14 +21,12 @@ from django.views.generic import RedirectView
 
 import airlock.views
 import airlock.views.code
-import assets.views
 
 
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="workspace_index"), name="home"),
     path("login/", airlock.views.login, name="login"),
     path("logout/", airlock.views.logout, name="logout"),
-    path("ui-components/", assets.views.components),
     # workspaces
     path(
         "workspaces/",

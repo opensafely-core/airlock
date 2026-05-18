@@ -1,13 +1,13 @@
 {% if custom_field == True %}
-  {% var label_for=id %}
-  {% var input_id=id %}
-  {% var input_name=name %}
-  {% var input_value=value %}
+  {% setvar label_for=id %}
+  {% setvar input_id=id %}
+  {% setvar input_name=name %}
+  {% setvar input_value=value %}
 {% else %}
-  {% var label_for=field.id_for_label %}
-  {% var input_id=field.auto_id %}
-  {% var input_name=field.html_name %}
-  {% var input_value=field.value %}
+  {% setvar label_for=field.id_for_label %}
+  {% setvar input_id=field.auto_id %}
+  {% setvar input_name=field.html_name %}
+  {% setvar input_value=field.value %}
 {% endif %}
 
 <label

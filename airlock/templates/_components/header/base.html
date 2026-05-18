@@ -5,9 +5,7 @@
 
   {% block content %}{% endblock %}
 
-  {% if children %}
-    <div class="header__actions">
-      {{ children }}
-    </div>
+  {% body as body_content %}{% if body_content %}
+    <div class="header__actions">{{ body_content }}</div>
   {% endif %}
 </header>

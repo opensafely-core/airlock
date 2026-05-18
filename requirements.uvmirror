@@ -37,7 +37,7 @@ coverage==7.13.5
     #   pytest-cov
 distro==1.9.0
     # via ruyaml
-django==5.2.14
+django==6.0.5
     # via
     #   airlock
     #   django-coverage-plugin
@@ -48,7 +48,6 @@ django==5.2.14
     #   django-stubs
     #   django-stubs-ext
     #   django-vite
-    #   slippers
 django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip
 django-debug-toolbar==6.3.0
     # via django-debug-toolbar-template-profiler
@@ -232,7 +231,6 @@ pyyaml==6.0.3
     #   pymdown-extensions
     #   pyyaml-env-tag
     #   responses
-    #   slippers
 pyyaml-env-tag==1.1
     # via mkdocs
 requests==2.33.1
@@ -250,8 +248,6 @@ setuptools==82.0.1
     # via ruyaml
 six==1.17.0
     # via python-dateutil
-slippers==0.7.0
-    # via airlock
 sortedcontainers==2.4.0
     # via hypothesis
 sqlparse==0.5.5
@@ -262,8 +258,6 @@ text-unidecode==1.3
     # via python-slugify
 tinycss2==1.4.0
     # via bleach
-typeguard==2.13.3
-    # via slippers
 types-pyyaml==6.0.12.20260408
     # via django-stubs
 types-requests==2.33.0.20260503
@@ -280,7 +274,6 @@ typing-extensions==4.15.0
     #   pydantic
     #   pydantic-core
     #   pyee
-    #   slippers
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic

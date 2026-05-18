@@ -6,13 +6,13 @@
 
 {% block content %}
   <div class="flex flex-col gap-4 max-w-3xl">
-    {% airlock_header title="Requests for review" %}
+    {% include "_components/header/base.html" with title="Requests for review" %}
 
-    {% #card title="Outstanding requests awaiting review" %}
-      {% #list_group id="outstanding-requests" %}
+    {% component "_components/card/card.html" with title="Outstanding requests awaiting review" %}
+      {% component "_components/list-group/list-group.html" with id="outstanding-requests" %}
         {% for release_request, request_progress in outstanding_requests %}
-          {% fragment as title %}{{ release_request.get_short_id }} by {% airlock_user user=release_request.author %}{% endfragment %}
-          {% #airlock_list_group_rich_item type="Outstanding request" last_submitted_date=release_request.last_submitted_at title=title url=release_request.get_url status_text=release_request.status.description %}
+          {% fragment as title %}{{ release_request.get_short_id }} by {% include "_components/user.html" with user=release_request.author %}{% endfragment %}
+          {% component "_components/list-group/list-group-rich-item.html" with type="Outstanding request" last_submitted_date=release_request.last_submitted_at title=title url=release_request.get_url status_text=release_request.status.description %}
             <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
               <div class="flex flex-row gap-1 w-full">
                 <dt>Workspace:</dt>
@@ -31,18 +31,18 @@
                 <span>{{ release_request.display_organisations }}</span>
               </dd>
             </div>
-          {% /airlock_list_group_rich_item %}
+          {% endcomponent %}
         {% empty %}
-          {% list_group_empty title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
+          {% include "_components/list-group/list-group-empty.html" with title="No outstanding requests" description="There are no outstanding requests awaiting review" %}
         {% endfor %}
-      {% /list_group %}
-    {% /card %}
+      {% endcomponent %}
+    {% endcomponent %}
 
-    {% #card title="Requests returned for changes/questions" %}
-      {% #list_group id="returned-requests" %}
+    {% component "_components/card/card.html" with title="Requests returned for changes/questions" %}
+      {% component "_components/list-group/list-group.html" with id="returned-requests" %}
         {% for release_request in returned_requests %}
           {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
-          {% #airlock_list_group_rich_item type="Returned request" title=title url=release_request.get_url status_text=release_request.status.description %}
+          {% component "_components/list-group/list-group-rich-item.html" with type="Returned request" title=title url=release_request.get_url status_text=release_request.status.description %}
             <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
               <div class="flex flex-row gap-1 w-full">
                 <dt>Workspace:</dt>
@@ -57,19 +57,19 @@
                 <span>{{ release_request.display_organisations }}</span>
               </dd>
             </div>
-          {% /airlock_list_group_rich_item %}
+          {% endcomponent %}
         {% empty %}
-          {% list_group_empty title="No returned requests" description="There are no returned requests awaiting re-submission" %}
+          {% include "_components/list-group/list-group-empty.html" with title="No returned requests" description="There are no returned requests awaiting re-submission" %}
         {% endfor %}
-      {% /list_group %}
-    {% /card %}
+      {% endcomponent %}
+    {% endcomponent %}
 
     {% if approved_requests %}
-      {% #card title="Approved requests awaiting release" %}
-        {% #list_group id="returned-requests" %}
+      {% component "_components/card/card.html" with title="Approved requests awaiting release" %}
+        {% component "_components/list-group/list-group.html" with id="returned-requests" %}
           {% for release_request in approved_requests %}
             {% fragment as title %}{{ release_request.get_short_id }}{% endfragment %}
-            {% #airlock_list_group_rich_item type="Approved request" title=title url=release_request.get_url status_text=release_request.status.description %}
+            {% component "_components/list-group/list-group-rich-item.html" with type="Approved request" title=title url=release_request.get_url status_text=release_request.status.description %}
               <div class="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row">
                 <div class="flex flex-row gap-1 w-full">
                   <dt>Workspace:</dt>
@@ -84,10 +84,10 @@
                   <span>{{ release_request.display_organisations }}</span>
                 </dd>
               </div>
-            {% /airlock_list_group_rich_item %}
+            {% endcomponent %}
           {% endfor %}
-        {% /list_group %}
-      {% /card %}
+        {% endcomponent %}
+      {% endcomponent %}
     {% endif %}
 
   </div>

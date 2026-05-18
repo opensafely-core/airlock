@@ -1,6 +1,12 @@
+{# Re-bind the slot variables locally and clear the inherited values so #}
+{# nested components don't accidentally pick them up from outer context. #}
+{% setvar local_button=button %}
+{% setvar local_custom_button=custom_button %}
+{% setvar button="" %}
+{% setvar custom_button="" %}
 <section {% attrs class id %} {% if title %}aria-labelledby="{{ title | slugify }}-title"{% endif %}>
   <div class="bg-white shadow">
-    {% if title or subtitle or button %}
+    {% if title or subtitle or local_button %}
     <div class="flex flex-wrap gap-2 items-center justify-between px-4 py-2 sm:px-6 sm:py-4 {{ header_class }}">
       <div>
         {% if title %}
@@ -13,13 +19,11 @@
         <p class="text-slate-600 text-sm leading-tight">{{ subtitle }}</p>
         {% endif %}
       </div>
-      {% if button %}
-        {% #button class="flex-shrink-0" href=button_href type="link" variant="primary" %}
-          {{ button_text }}
-        {% /button %}
+      {% if local_button %}
+        {% component "_components/button.html" with class="flex-shrink-0" href=button_href type="link" variant="primary" %}{{ button_text }}{% endcomponent %}
       {% endif %}
-      {% if custom_button %}
-        {{ custom_button }}
+      {% if local_custom_button %}
+        {{ local_custom_button }}
       {% endif %}
     </div>
     {% endif %}
@@ -33,7 +37,7 @@
         "
       >
     {% endif %}
-      {{ children }}
+      {% body %}
     {% if container %}
       </div>
     {% endif %}

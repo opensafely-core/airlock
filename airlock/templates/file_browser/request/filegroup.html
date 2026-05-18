@@ -19,41 +19,41 @@
   {% if not group.inline %}
     <div class="flex items-center gap-2">
       {% if group.request_changes_button.show %}
-        {% #modal id="group-request-changes" button_small=True button_text="Request changes" button_tooltip=group.request_changes_button.tooltip button_variant="warning" %}
-          {% #card container=True title="Request changes for all remaining files in group "|add:group.name %}
+        {% component "_components/modal/modal.html" with id="group-request-changes" button_small=True button_text="Request changes" button_tooltip=group.request_changes_button.tooltip button_variant="warning" %}
+          {% component "_components/card/card.html" with container=True title="Request changes for all remaining files in group "|add:group.name %}
             <form action="{{ group.request_changes_button.url }}" method="POST">
               {% csrf_token %}
               <div class="pb-8">
                 Request changes for all unreviewed output files in group <strong>{{ group.name }}</strong>.
                 If you have already approved a file, your vote will NOT be changed.
               </div>
-              {% #button type="submit" variant="warning" class="action-button" small=True id="group-request-changes-button" %}Request changes{% /button %}
-              {% #button variant="secondary-outline" type="cancel" small=True %}Cancel{% /button %}
+              {% component "_components/button.html" with type="submit" variant="warning" class="action-button" small=True id="group-request-changes-button" %}Request changes{% endcomponent %}
+              {% component "_components/button.html" with variant="secondary-outline" type="cancel" small=True %}Cancel{% endcomponent %}
             </form>
-          {% /card %}
-        {% /modal %}
+          {% endcomponent %}
+        {% endcomponent %}
       {% endif %}
 
       {% if group.reset_votes_button.show %}
-        {% #modal id="group-reset-votes" button_small=True button_text="Reset votes" button_tooltip=group.reset_votes_button.tooltip %}
-          {% #card container=True title="Reset votes on all files in group "|add:group.name" %}
+        {% component "_components/modal/modal.html" with id="group-reset-votes" button_small=True button_text="Reset votes" button_tooltip=group.reset_votes_button.tooltip %}
+          {% component "_components/card/card.html" with container=True title="Reset votes on all files in group "|add:group.name %}
             <form action="{{ group.reset_votes_button.url }}" method="POST">
               {% csrf_token %}
               <div class="pb-8">
                 Reset <strong>all</strong> votes in group <strong>{{ group.name }}</strong>.
                 This will reset all files that you have approved or requested changes for.
               </div>
-              {% #button type="submit" variant="primary" class="action-button" small=True id="group-reset-votes-button" %}Reset votes{% /button %}
-              {% #button variant="secondary-outline" type="cancel" small=True %}Cancel{% /button %}
+              {% component "_components/button.html" with type="submit" variant="primary" class="action-button" small=True id="group-reset-votes-button" %}Reset votes{% endcomponent %}
+              {% component "_components/button.html" with variant="secondary-outline" type="cancel" small=True %}Cancel{% endcomponent %}
             </form>
-          {% /card %}
-        {% /modal %}
+          {% endcomponent %}
+        {% endcomponent %}
       {% endif %}
     </div>
   {% endif %}
 {% endfragment %}
 
-{% #card title=group.title container=True class="group_modal" custom_button=buttons %}
+{% component "_components/card/card.html" with title=group.title container=True class="group_modal" custom_button=buttons %}
 
   <div data-testid="c3">
     <form
@@ -63,42 +63,40 @@
       method="POST"
     >
       {% csrf_token %}
-      {% form_textarea field=group.c2_edit_form.context resize=True hint_below=True show_placeholder=True placeholder="Describe the data to be released in this group of files" class="w-full mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
-      {% form_textarea field=group.c2_edit_form.controls resize=True hint_below=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+      {% include "_components/form/textarea.html" with field=group.c2_edit_form.context resize=True hint_below=True show_placeholder=True placeholder="Describe the data to be released in this group of files" class="w-full mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
+      {% include "_components/form/textarea.html" with field=group.c2_edit_form.controls resize=True hint_below=True show_placeholder=True placeholder="Describe the disclosure controls that have been applied to these files" class="w-full mx-auto" rows=6 disabled=group.c2_readonly readonly=group.c2_readonly %}
       {% if not group.c2_readonly %}
-        {% #button type="submit" variant="success" id="edit-group-button" class="w-min" disabled=group.c2_readonly %}Save{% /button %}
+        {% component "_components/button.html" with type="submit" variant="success" id="edit-group-button" class="w-min" disabled=group.c2_readonly %}Save{% endcomponent %}
       {% endif %}
     </form>
 
     <div class="comments mt-4">
-      {% #list_group id="comments" %}
+      {% component "_components/list-group/list-group.html" with id="comments" %}
         {% for comment, comment_class in group.comments %}
 
           {% fragment as comment_status %}
             <span>
               {% if request.user.output_checker %}
                 {% if release_request.get_turn_phase.name == "INDEPENDENT" and comment.review_turn == release_request.review_turn %}
-                  {% #pill variant="info" text="Blinded" class="group" %}
-                  {% comment%}
+                  {% include "_components/pill/pill.html" with variant="info" text="Blinded" class="group" %}
+                  {% comment %}
                     TODO: get tooltips working for pills
-                    {% tooltip content=comment.visibility.blinded_description %}
-                  {% endcomment%}
-                  {% /pill%}
+                    include tooltip with content=comment.visibility.blinded_description
+                  {% endcomment %}
                 {% endif %}
-                {% #pill variant="info" class="group" text=comment.visibility.name.title %}
-                {% comment%}
+                {% include "_components/pill/pill.html" with variant="info" class="group" text=comment.visibility.name.title %}
+                {% comment %}
                   TODO: get tooltips working for pills
-                  {%tooltip content=comment.visibility.description %}
-                {% endcomment%}
-                {% /pill%}
+                  include tooltip with content=comment.visibility.description
+                {% endcomment %}
               {% endif %}
-              {% pill variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
-              {% pill variant="info" text=comment.review_turn %}
+              {% include "_components/pill/pill.html" with variant="info" text=comment.created_at|date:"Y-m-d H:i" %}
+              {% include "_components/pill/pill.html" with variant="info" text=comment.review_turn %}
             </span>
           {% endfragment %}
 
-          {% fragment as author %}{% airlock_user user=comment.author %}{% endfragment %}
-          {% #list_group_rich_item custom_status=comment_status class=comment_class title=author %}
+          {% fragment as author %}{% include "_components/user.html" with user=comment.author %}{% endfragment %}
+          {% component "_components/list-group/list-group-rich-item.html" with custom_status=comment_status class=comment_class title=author %}
             <div class="prose prose-code:before:hidden prose-code:after:hidden">{{ comment.comment|markdownify|linebreaks }}</div>
             {% if request.user == comment.author %}
               {% if comment.visibility.name == "PRIVATE" and comment.review_turn == release_request.review_turn %}
@@ -106,7 +104,7 @@
                   <form action="{{ group.comment_visibility_public_url }}" method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                    {% #button variant="danger" type="submit" %}Make comment visible to all users{% /button %}
+                    {% component "_components/button.html" with variant="danger" type="submit" %}Make comment visible to all users{% endcomponent %}
                   </form>
                 </div>
               {% endif %}
@@ -115,57 +113,57 @@
                   <form action="{{ group.comment_delete_url }}" method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                    {% #button variant="danger" type="submit" %}Delete comment{% /button %}
+                    {% component "_components/button.html" with variant="danger" type="submit" %}Delete comment{% endcomponent %}
                   </form>
                 </div>
               {% endif %}
             {% endif %}
-          {% /list_group_rich_item %}
+          {% endcomponent %}
         {% endfor %}
         {% if group.user_can_comment %}
-          {% #list_group_item %}
+          {% component "_components/list-group/list-group-item.html" %}
             <form action="{{ group.comment_create_url }}" method="POST" aria-label="group-comment-form">
               {% csrf_token %}
 
               {% if group.comment_form.visibility.field.choices|length == 1 %}
-                {% #alert variant="info" title="Comments are pending" no_icon=True %}
+                {% component "_components/alert/alert.html" with variant="info" title="Comments are pending" no_icon=True %}
                   Comments are initially only visible to you. Once you submit the request,
                   comments will be visible to other users.
-                {% /alert %}
+                {% endcomponent %}
               {% endif %}
 
               {% if group.inline %}
                 <input type="hidden" name="file_relpath" value="{{ path_item.relpath }}">
               {% endif %}
 
-              {% form_textarea field=group.comment_form.comment placeholder="Use Markdown to format your comment" label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
+              {% include "_components/form/textarea.html" with field=group.comment_form.comment placeholder="Use Markdown to format your comment" label="Add Comment" show_placeholder=True class="w-full max-w-lg" rows=6 required=False %}
               {% if group.comment_form.visibility.field.choices|length == 1 %}
                 <input type="hidden" name="visibility" value="{{ group.comment_form.visibility.field.choices.0.0 }}"/>
               {% else %}
                 {% if group.comment_form.visibility.label %}
                   <div class="text-bn-flamenco-500 w-full max-w-lg">
-                    {% icon_exclamation_triangle_outline class="h-5 w-5 text-bn-flamenco-500 inline" %}
+                    {% include "_icons/exclamation-triangle-outline.svg" with class="h-5 w-5 text-bn-flamenco-500 inline" %}
                     {{ group.comment_form.visibility.label }}
                   </div>
                 {% endif %}
-                {% form_radios field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
+                {% include "_components/form/radio_list.html" with field=group.comment_form.visibility choices=group.comment_form.visibility.field.choices class="w-full max-w-lg" %}
               {% endif %}
               {% if group.inline %}<div class="c2-help text-slate-400">Comments will be annotated with a link to this file</div>{% endif %}
               <div class="mt-2">
-                {% #button type="submit" variant="success" id="edit-comment-button" %}Comment{% /button %}
+                {% component "_components/button.html" with type="submit" variant="success" id="edit-comment-button" %}Comment{% endcomponent %}
               </div>
             </form>
-          {% /list_group_item %}
+          {% endcomponent %}
         {% endif %}
-      {% /list_group %}
+      {% endcomponent %}
     </div>
   </div>
   {% if not group.inline %}
     {% include "activity.html" with activity=group.activity title="Recent activity for this group" %}
   {% else %}
-    {% #card_footer no_container=False %}
-      {% #button variant="primary" class="action-button" small=True type="cancel" %}Close{% /button %}
-    {% /card_footer %}
+    {% component "_components/card/card-footer.html" with no_container=False %}
+      {% component "_components/button.html" with variant="primary" class="action-button" small=True type="cancel" %}Close{% endcomponent %}
+    {% endcomponent %}
   {% endif %}
 
-{% /card %}
+{% endcomponent %}

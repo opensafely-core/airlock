@@ -121,11 +121,6 @@
     // The locked version will correctly remain at the latest allowed version for python 3.11
     // i.e. <6, but the upper limit in pytproject.toml is confusing 
     {
-      "matchManagers": ["pep621"],
-      "matchDepNames": ["Django"],
-      "allowedVersions": "<6.0"
-    },
-    {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "addLabels": ["actions"],

@@ -23,7 +23,6 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "requests" },
-    { name = "slippers" },
     { name = "ulid" },
     { name = "whitenoise" },
 ]
@@ -52,7 +51,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ansi2html", specifier = "<=1.9.2" },
-    { name = "django", specifier = "<=5.2.14" },
+    { name = "django", specifier = "<=6.0.5" },
     { name = "django-extensions", specifier = "<=4.1" },
     { name = "django-htmx", specifier = "<=1.27.0" },
     { name = "django-markdownify", specifier = "<=0.9.6" },
@@ -67,7 +66,6 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = "<=1.41.0" },
     { name = "pydantic", specifier = "<=2.13.3" },
     { name = "requests", specifier = "<=2.33.1" },
-    { name = "slippers", specifier = "<=0.7.0" },
     { name = "ulid", specifier = "<=1.1" },
     { name = "whitenoise", specifier = "<=6.12.0" },
 ]
@@ -260,16 +258,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2.14"
+version = "6.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/65/95/95f7faa0950867afaa0bef2460c6263afd6a2c78cc9434046ed28160b015/django-5.2.14.tar.gz", hash = "sha256:58a63ba841662e5c686b57ba1fec52ddd68c0b93bd96ac3029d55728f00bf8a2", size = 10895118, upload-time = "2026-05-05T13:57:31.104Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/f1/bf85f0d29ef76abf901f193fe8fef4769d3da7794197832bc30151c071d8/django-6.0.5.tar.gz", hash = "sha256:bc6d6872e98a2864c836e42edd644b362db311147dd5aa8d5b82ba7a032f5269", size = 10924131, upload-time = "2026-05-05T13:54:39.329Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/44/f172870cf87aa25afef48fb72adba89ee8b77fcab6f3b23d240b923f1528/django-5.2.14-py3-none-any.whl", hash = "sha256:6f712143bd3064310d1f50fac859c3e9a274bdcfc9595339853be7779297fc76", size = 8311320, upload-time = "2026-05-05T13:57:25.795Z" },
+    { url = "https://files.pythonhosted.org/packages/94/5b/1328f8b84fce040c404f76822bf8c57d254e368e8cbd8bd67ec2b26d75f5/django-6.0.5-py3-none-any.whl", hash = "sha256:9d58a7cb49244e74c8e161d5e403a46d6209f1009ba40f5a66d6aa0d0786a8f0", size = 8368680, upload-time = "2026-05-05T13:54:33.532Z" },
 ]
 
 [[package]]
@@ -1272,21 +1270,6 @@ wheels = [
 ]
 
 [[package]]
-name = "slippers"
-version = "0.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-    { name = "pyyaml" },
-    { name = "typeguard" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/96/95bc00d151c2bcc2a669b6313e6a9cb902c6638258f2109e1cba3b625a0d/slippers-0.7.0.tar.gz", hash = "sha256:35059d4025845a46e252633a16a04136f21b28469dee7c4a2a361e00aee5335e", size = 11014, upload-time = "2026-04-04T13:51:38.841Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/63/a5d1c88e297b57152ec6e166ea2d7a31c0fcf0858a2a65490b91141610e2/slippers-0.7.0-py3-none-any.whl", hash = "sha256:49c67577939cf310283904199f405db481a08d6c43406ab5df01871b50a5758a", size = 13336, upload-time = "2026-04-04T13:51:37.596Z" },
-]
-
-[[package]]
 name = "sortedcontainers"
 version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1323,15 +1306,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7a/fd/7a5ee21fd08ff70d3d33a5781c255cbe779659bd03278feb98b19ee550f4/tinycss2-1.4.0.tar.gz", hash = "sha256:10c0972f6fc0fbee87c3edb76549357415e94548c1ae10ebccdea16fb404a9b7", size = 87085, upload-time = "2024-10-24T14:58:29.895Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/34/ebdc18bae6aa14fbee1a08b63c015c72b64868ff7dae68808ab500c492e2/tinycss2-1.4.0-py3-none-any.whl", hash = "sha256:3a49cf47b7675da0b15d0c6e1df8df4ebd96e9394bb905a5775adb0d884c5289", size = 26610, upload-time = "2024-10-24T14:58:28.029Z" },
-]
-
-[[package]]
-name = "typeguard"
-version = "2.13.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3a/38/c61bfcf62a7b572b5e9363a802ff92559cb427ee963048e1442e3aef7490/typeguard-2.13.3.tar.gz", hash = "sha256:00edaa8da3a133674796cf5ea87d9f4b4c367d77476e185e80251cc13dfbb8c4", size = 40604, upload-time = "2021-12-10T21:09:39.158Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/bb/d43e5c75054e53efce310e79d63df0ac3f25e34c926be5dffb7d283fb2a8/typeguard-2.13.3-py3-none-any.whl", hash = "sha256:5e3e3be01e887e7eafae5af63d1f36c849aaa94e3a0112097312aabfa16284f1", size = 17605, upload-time = "2021-12-10T21:09:37.844Z" },
 ]
 
 [[package]]

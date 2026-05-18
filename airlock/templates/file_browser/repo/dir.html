@@ -2,7 +2,7 @@
 {% load static %}
 {% load airlock %}
 
-{% #card title=path_item.name container=True %}
+{% component "_components/card/card.html" with title=path_item.name container=True %}
   {% fragment as header_row %}
     <tr>
       <th class="sort-ascending">
@@ -17,14 +17,14 @@
       </th>
     </tr>
   {% endfragment %}
-  {% #clusterize_table header_row=header_row %}
+  {% component "_components/clusterize-table.html" with header_row=header_row %}
     {% for path in path_item.children %}
       <tr>
         <td class="name"><a class="{{ path.html_classes }}" href="{{ path.url }}">{{ path.name }}</a></td>
       </tr>
     {% endfor %}
-  {% /clusterize_table %}
-{% /card %}
+  {% endcomponent %}
+{% endcomponent %}
 
 {% vite_hmr_client %}
 {% vite_asset "assets/src/scripts/datatable.js" %}

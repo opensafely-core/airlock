@@ -1,10 +1,10 @@
-{% #card title=workspace.display_name %}
-  {% #description_list %}
-    {% #description_item title="Project" %}
+{% component "_components/card/card.html" with title=workspace.display_name %}
+  {% component "_components/description-list.html" %}
+    {% component "_components/description-item.html" with title="Project" %}
       {{ project.display_name }}
-    {% /description_item %}
-    {% #description_item title="Organisation" %}
+    {% endcomponent %}
+    {% component "_components/description-item.html" with title="Organisation" %}
       {{ project.display_organisations }}
-    {% /description_item %}
-  {% /description_list %}
-{% /card %}
+    {% endcomponent %}
+  {% endcomponent %}
+{% endcomponent %}

@@ -1,11 +1,11 @@
-{% if id %}
-  {% var label_for=id %}
-  {% var select_id=id %}
-  {% var select_name=name %}
+{% if field %}
+  {% setvar label_for=field.id_for_label %}
+  {% setvar select_id=field.auto_id %}
+  {% setvar select_name=field.html_name %}
 {% else %}
-  {% var label_for=field.id_for_label %}
-  {% var select_id=field.auto_id %}
-  {% var select_name=field.html_name %}
+  {% setvar label_for=id %}
+  {% setvar select_id=id %}
+  {% setvar select_name=name %}
 {% endif %}
 
 <div {% attrs class %}>
@@ -54,7 +54,7 @@
 
     {% if field.errors %}
       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-        {% icon_exclamation_circle_mini class="h-4 w-4 text-red-500" %}
+        {% include "_icons/exclamation-circle-mini.svg" with class="h-4 w-4 text-red-500" %}
       </div>
     {% endif %}
   </div>
