@@ -1398,3 +1398,40 @@ def test_request_action_required_alert(
     click_and_htmx(page, page.locator(".tree__file").filter(has_text="file1"))
     expect(content_alert).to_be_visible()
     expect(content_alert_link).to_be_visible()
+
+
+@pytest.mark.parametrize(
+    "button_id",
+    ["#file-approve-button", "#file-request-changes-button"],
+)
+def test_tree_scroll_preserved_after_file_review_action(
+    live_server, context, page, button_id
+):
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(username="checker", output_checker=True),
+    )
+    release_request = factories.create_request_at_status(
+        "workspace",
+        status=RequestStatus.SUBMITTED,
+        files=[
+            factories.request_file(group="group", path=f"file{i:02d}.txt")
+            for i in range(30)
+        ],
+    )
+
+    page.goto(live_server.url + release_request.get_url("group/file00.txt"))
+
+    assert page.evaluate("document.getElementById('tree-container').scrollTop") == 0
+    page.evaluate("document.getElementById('tree-container').scrollTop = 200")
+    scroll_before = page.evaluate("document.getElementById('tree-container').scrollTop")
+    assert scroll_before > 0
+
+    page.locator(button_id).click()
+    page.wait_for_load_state("load")
+    # Tree is hidden during scroll restoration; wait for it to become visible
+    expect(page.locator("#tree-container")).to_be_visible()
+
+    scroll_after = page.evaluate("document.getElementById('tree-container').scrollTop")
+    assert scroll_after == scroll_before
