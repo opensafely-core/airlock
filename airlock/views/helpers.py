@@ -52,10 +52,16 @@ def login_exempt(view):
     return view
 
 
-def get_workspace_or_raise(user, workspace_name):
+def get_workspace_or_raise(
+    user, workspace_name, include_out_of_date_action_outputs=True
+):
     """Get the workspace, converting any errors to http codes."""
     try:
-        workspace = bll.get_workspace(workspace_name, user)
+        workspace = bll.get_workspace(
+            workspace_name,
+            user,
+            include_out_of_date_action_outputs=include_out_of_date_action_outputs,
+        )
     except exceptions.WorkspaceNotFound:
         raise Http404()
     except exceptions.WorkspacePermissionDenied:
