@@ -59,7 +59,7 @@ django-htmx==1.27.0
     # via airlock
 django-markdownify==0.9.6
     # via airlock
-django-stubs==6.0.3
+django-stubs==6.0.4
 django-stubs-ext==6.0.3
     # via django-stubs
 django-vite==3.1.0
@@ -80,7 +80,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.152.4
+hypothesis==6.152.6
 idna==3.13
     # via
     #   anyio
@@ -266,7 +266,7 @@ typeguard==2.13.3
     # via slippers
 types-pyyaml==6.0.12.20260408
     # via django-stubs
-types-requests==2.33.0.20260503
+types-requests==2.33.0.20260508
 typing-extensions==4.15.0
     # via
     #   anyio
