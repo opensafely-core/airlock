@@ -840,6 +840,53 @@ def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
     take_screenshot(page.locator("#tree"), "workspace_file_icons.png")
 
 
+def test_screenshot_out_of_date_action_toggle(page, live_server, context):
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(workspace, "outputs/file.csv", "col\n1\n2")
+    factories.write_workspace_file(workspace, "outputs/stale.txt", "old output")
+    workspace = factories.refresh_workspace("my-workspace")
+    workspace.manifest["outputs"]["outputs/stale.txt"]["out_of_date_action"] = True
+    workspace.manifest_path().write_text(json.dumps(workspace.manifest))
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "My Project", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+    page.goto(live_server.url + "/workspaces/view/my-workspace/outputs/file.csv")
+    wait_for_table_load(page)
+
+    # Verify page loaded correctly and toolbar is present
+    expect(page.locator("#tree-container")).to_be_visible()
+    expect(page.locator("#tree-container")).to_contain_text("out-of-date", timeout=5000)
+
+    # Default state: notice strip shows count, stale file hidden
+    screenshot_element_with_padding(
+        page,
+        page.locator("#tree-container .border-b"),
+        "workspace_out_of_date_hidden.png",
+    )
+
+    # Reveal out-of-date outputs
+    click_and_htmx(page, page.locator("#tree-container button[hx-post]"))
+
+    # Toggle strip now shows "shown" state
+    screenshot_element_with_padding(
+        page,
+        page.locator("#tree-container .border-b"),
+        "workspace_out_of_date_shown.png",
+    )
+
+
+
 def test_screenshot_copiloted_workspace(page, live_server, context):
     author, user_dicts = get_user_data()
 

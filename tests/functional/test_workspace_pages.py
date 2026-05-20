@@ -859,6 +859,72 @@ def test_manifest_file_changes(live_server, page, context):
     expect(content_alert).to_contain_text("Selected path is not a valid output path")
 
 
+def test_out_of_date_action_toggle_preserves_tree_expansion(live_server, page, context):
+    """Toggling out-of-date visibility keeps manually-expanded folders open."""
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(workspace, "current/file.txt", "current")
+    factories.write_workspace_file(workspace, "other/data.csv", "other")
+    factories.write_workspace_file(workspace, "stale/old.txt", "stale")
+    workspace = factories.refresh_workspace("my-workspace")
+    workspace.manifest["outputs"]["stale/old.txt"]["out_of_date_action"] = True
+    workspace.manifest_path().write_text(json.dumps(workspace.manifest))
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    page.goto(live_server.url + "/workspaces/view/my-workspace/current/file.txt")
+
+    tree = page.locator("#tree")
+    toggle = page.locator("#tree-container button[hx-post]")
+    other_details = page.locator(
+        "#tree details:has(> summary a.tree__folder-link[href$='/other/'])"
+    )
+
+    # Default state: button says 'show', stale file absent
+    expect(toggle).to_have_text("show")
+    expect(page.locator("#tree-container")).to_contain_text("1 output from out-of-date actions")
+    expect(tree.get_by_role("link", name="old.txt", include_hidden=True)).to_have_count(
+        0
+    )
+    # Currently-viewed folder is expanded (server-rendered), 'other' is not.
+    expect(other_details).not_to_have_attribute("open", "")
+
+    # Manually expand 'other' (a folder that isn't on the current path).
+    other_details.evaluate("el => el.open = true")
+    expect(other_details).to_have_attribute("open", "")
+
+    # Flip the toggle.
+    click_and_htmx(page, toggle)
+
+    # Toggle is on, button says 'hide', stale file is present in the tree DOM
+    # (its parent folder is collapsed by default so the link isn't visible,
+    # but it is now part of the rendered tree).
+    expect(toggle).to_have_text("hide")
+    expect(page.locator("#tree-container")).to_contain_text("1 output from out-of-date actions")
+    expect(tree.get_by_role("link", name="old.txt", include_hidden=True)).to_have_count(
+        1
+    )
+
+    # The manually-expanded 'other' folder is still expanded after the swap.
+    expect(other_details).to_have_attribute("open", "")
+
+    # URL is unchanged — no full page reload.
+    expect(page).to_have_url(
+        f"{live_server.url}/workspaces/view/my-workspace/current/file.txt"
+    )
+
+
 def get_element_height(page, selector):
     """Return the rendered height of an element in pixels via getBoundingClientRect."""
     return page.evaluate(
