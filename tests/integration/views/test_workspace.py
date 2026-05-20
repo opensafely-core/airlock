@@ -637,6 +637,15 @@ def test_workspace_view_file_add_to_current_request(
     assert button_enabled == can_see_form
 
 
+def _set_show_ood_session(client, workspace_name, value):
+    """Seed the per-workspace 'show out-of-date' session flag on the test client."""
+    session = client.session
+    state = session.get("show_out_of_date_action", {})
+    state[workspace_name] = value
+    session["show_out_of_date_action"] = state
+    session.save()
+
+
 def test_workspace_view_out_of_date_file(airlock_client):
     airlock_client.login(output_checker=True)
     factories.write_workspace_file("workspace", "file.txt", "test")
@@ -647,11 +656,154 @@ def test_workspace_view_out_of_date_file(airlock_client):
     (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
 
     workspace = factories.refresh_workspace("workspace")
+    # Toggle "out of date files" on for this workspace via session state.
+    _set_show_ood_session(airlock_client, "workspace", True)
     response = airlock_client.get("/workspaces/view/workspace/file.txt")
     assert response.status_code == 200
     assert (
         b"file was produced by an action that is no longer present" in response.content
     )
+
+
+def test_workspace_view_out_of_date_action_hidden_by_default(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    factories.write_workspace_file("workspace", "current.txt", "current")
+    workspace = factories.create_workspace("workspace")
+    manifest = workspace.manifest
+    manifest["outputs"]["file.txt"]["out_of_date_action"] = True
+    (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
+    factories.refresh_workspace("workspace")
+
+    # Default: no session entry -> out-of-date file is hidden
+    response = airlock_client.get("/workspaces/view/workspace/")
+    assert response.status_code == 200
+    assert response.context["show_out_of_date_action_outputs"] is False
+    assert response.context["out_of_date_action_count"] == 1
+    assert b"hidden" in response.content
+    assert b"current.txt" in response.content
+    assert b">file.txt<" not in response.content
+
+
+def test_workspace_view_out_of_date_action_visible_when_session_on(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    workspace = factories.create_workspace("workspace")
+    manifest = workspace.manifest
+    manifest["outputs"]["file.txt"]["out_of_date_action"] = True
+    (workspace.root() / workspace.manifest_path()).write_text(json.dumps(manifest))
+    factories.refresh_workspace("workspace")
+
+    _set_show_ood_session(airlock_client, "workspace", True)
+    response = airlock_client.get("/workspaces/view/workspace/")
+    assert response.status_code == 200
+    assert response.context["show_out_of_date_action_outputs"] is True
+    assert response.context["out_of_date_action_count"] == 1
+    assert b">file.txt<" in response.content
+    assert b"shown" in response.content
+
+
+def test_workspace_toggle_out_of_date_action_flips_session(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.create_workspace("workspace")
+
+    url = "/workspaces/toggle-out-of-date/workspace"
+    response = airlock_client.post(
+        url, headers={"HX-Current-URL": "http://testserver/workspaces/view/workspace/"}
+    )
+    assert response.status_code == 204
+    location = json.loads(response.headers["HX-Location"])
+    assert location["path"] == "/workspaces/view/workspace/"
+    assert location["target"] == "#file-browser-panel"
+    assert location["select"] == "#file-browser-panel"
+    assert airlock_client.session["show_out_of_date_action"] == {"workspace": True}
+
+    # Posting again flips it back off.
+    response = airlock_client.post(url)
+    assert response.status_code == 204
+    assert airlock_client.session["show_out_of_date_action"] == {"workspace": False}
+
+
+def test_workspace_toggle_out_of_date_action_preserves_subpath(airlock_client):
+    """The HX-Location points back to the file the user is currently viewing."""
+    airlock_client.login(output_checker=True)
+    factories.write_workspace_file("workspace", "subdir/file.txt", "test")
+    factories.create_workspace("workspace")
+
+    response = airlock_client.post(
+        "/workspaces/toggle-out-of-date/workspace",
+        headers={
+            "HX-Current-URL": "http://testserver/workspaces/view/workspace/subdir/file.txt",
+        },
+    )
+    assert response.status_code == 204
+    location = json.loads(response.headers["HX-Location"])
+    assert location["path"] == "/workspaces/view/workspace/subdir/file.txt"
+
+
+def test_workspace_toggle_out_of_date_action_falls_back_to_root(airlock_client):
+    """If HX-Current-URL is missing or unrelated, fall back to the workspace root."""
+    airlock_client.login(output_checker=True)
+    factories.create_workspace("workspace")
+
+    # No HX-Current-URL header at all.
+    response = airlock_client.post("/workspaces/toggle-out-of-date/workspace")
+    location = json.loads(response.headers["HX-Location"])
+    assert location["path"] == "/workspaces/view/workspace/"
+
+    # HX-Current-URL pointing at an unrelated path.
+    response = airlock_client.post(
+        "/workspaces/toggle-out-of-date/workspace",
+        headers={"HX-Current-URL": "http://testserver/some/other/place"},
+    )
+    location = json.loads(response.headers["HX-Location"])
+    assert location["path"] == "/workspaces/view/workspace/"
+
+
+def test_workspace_view_htmx_toggle_target_returns_full_panel(airlock_client):
+    """When HX-Target=file-browser-panel, return the full template (not the partial)."""
+    airlock_client.login(output_checker=True)
+    factories.write_workspace_file("workspace", "file.txt", "test")
+    factories.create_workspace("workspace")
+
+    response = airlock_client.get(
+        "/workspaces/view/workspace/",
+        headers={"HX-Request": "true", "HX-Target": "file-browser-panel"},
+    )
+    assert response.status_code == 200
+    # Full panel is present (not the partial).
+    assert b'id="file-browser-panel"' in response.content
+    assert b'id="tree-container"' in response.content
+
+
+def test_workspace_view_invalid_expanded_paths_header_ignored(airlock_client):
+    """Malformed X-Expanded-Paths header is silently ignored."""
+    airlock_client.login(output_checker=True)
+    factories.create_workspace("workspace")
+
+    response = airlock_client.get(
+        "/workspaces/view/workspace/",
+        headers={
+            "HX-Request": "true",
+            "HX-Target": "file-browser-panel",
+            "X-Expanded-Paths": "not-json",
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_workspace_toggle_out_of_date_action_get_not_allowed(airlock_client):
+    airlock_client.login(output_checker=True)
+    factories.create_workspace("workspace")
+    response = airlock_client.get("/workspaces/toggle-out-of-date/workspace")
+    assert response.status_code == 405
+
+
+def test_workspace_toggle_out_of_date_action_no_permission(airlock_client):
+    factories.create_workspace("workspace")
+    airlock_client.login(workspaces=["other-workspace"])
+    response = airlock_client.post("/workspaces/toggle-out-of-date/workspace")
+    assert response.status_code == 403
 
 
 def test_workspace_view_index_no_user(airlock_client):
