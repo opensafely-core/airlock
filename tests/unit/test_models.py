@@ -96,12 +96,16 @@ def test_workspace_from_directory_out_of_date_action_filter():
     manifest["outputs"]["stale.txt"]["out_of_date_action"] = True
     workspace.manifest_path().write_text(json.dumps(manifest))
 
-    included = Workspace.from_directory("workspace", include_out_of_date_action_outputs=True)
+    included = Workspace.from_directory(
+        "workspace", include_out_of_date_action_outputs=True
+    )
     assert UrlPath("stale.txt") in included.workspace_files
     assert UrlPath("current.txt") in included.workspace_files
     assert included.out_of_date_action_count == 1
 
-    excluded = Workspace.from_directory("workspace", include_out_of_date_action_outputs=False)
+    excluded = Workspace.from_directory(
+        "workspace", include_out_of_date_action_outputs=False
+    )
     assert UrlPath("stale.txt") not in excluded.workspace_files
     assert UrlPath("current.txt") in excluded.workspace_files
     # Count comes from the manifest, not the filtered file set.

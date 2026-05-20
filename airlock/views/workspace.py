@@ -1,4 +1,6 @@
+import json
 from collections import defaultdict
+from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -35,6 +37,10 @@ from services.tracing import instrument
 
 
 tracer = trace.get_tracer_provider().get_tracer("airlock")
+
+
+SHOW_OOD_ACTION_SESSION_KEY = "show_out_of_date_action"
+FILE_BROWSER_PANEL_ID = "file-browser-panel"
 
 
 def grouped_workspaces(workspaces):
@@ -237,16 +243,29 @@ def get_nearest_parent_url(workspace, urlpath):
     )
 
 
-# we return different content if it is a HTMX request.
-@vary_on_headers("HX-Request", "manifest-hash")
+# we return different content depending on the HX-Request / HX-Target headers.
+@vary_on_headers("HX-Request", "HX-Target", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
 def workspace_view(request, workspace_name: str, path: str = ""):
-    workspace = get_workspace_or_raise(request.user, workspace_name)
+    show_out_of_date_action_outputs = request.session.get(
+        SHOW_OOD_ACTION_SESSION_KEY, {}
+    ).get(workspace_name, False)
+    workspace = get_workspace_or_raise(
+        request.user,
+        workspace_name,
+        include_out_of_date_action_outputs=show_out_of_date_action_outputs,
+    )
     template_dir = "file_browser/workspace/"
     template = template_dir + "index.html"
     selected_only = False
 
-    if request.htmx:
+    # By default an HX-Request returns the right-hand pane only (tree
+    # navigation case). The out-of-date toggle targets #file-browser-panel
+    # and needs the full template so we can update both the tree and the contents panel.
+    # Note that we don't need to handle manifest file changes for the toggle, because the
+    # workspace will have already been reloaded (which will update the manifest) in the
+    # toggle view before this.
+    if request.htmx and request.htmx.target != FILE_BROWSER_PANEL_ID:
         template = "file_browser/contents.html"
         selected_only = True
         urlpath = UrlPath(path)
@@ -271,7 +290,20 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             response.headers["HX-Redirect"] = redirect_url
             return response
 
-    tree = get_workspace_tree(workspace, path, selected_only)
+    # X-Expanded-Paths is set by the out-of-date toggle to preserve folders
+    # the user had open before the HTMX panel swap.
+    try:
+        raw_expanded = json.loads(request.headers.get("X-Expanded-Paths", "[]"))
+    except (ValueError, TypeError):
+        raw_expanded = []
+    additional_expanded = {UrlPath(p) for p in raw_expanded if isinstance(p, str) and p}
+
+    tree = get_workspace_tree(
+        workspace,
+        path,
+        selected_only,
+        additional_expanded=additional_expanded,
+    )
 
     try:
         path_item = get_path_item_from_tree_or_404(tree, path)
@@ -329,6 +361,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             # for code button
             "code_url": code_url,
             "include_code": code_url is not None,
+            "show_out_of_date_action_outputs": show_out_of_date_action_outputs,
+            "out_of_date_action_count": workspace.out_of_date_action_count,
         },
     )
 
@@ -352,6 +386,50 @@ def workspace_contents(request, workspace_name: str, path: str):
     plaintext = request.GET.get("plaintext", False)
     renderer = workspace.get_renderer(UrlPath(path), plaintext=plaintext)
     return serve_file(request, renderer)
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["POST"])
+def workspace_toggle_out_of_date_action(request, workspace_name: str):
+    """Flip the per-workspace 'show out-of-date files' session flag.
+
+    Returns an HX-Location pointing back to the current workspace URL,
+    targeting #file-browser-panel. This lets HTMX swap the tree + contents
+    in place without a full reload, preserving the currently-open file/dir.
+
+    The POST body may include `expanded` (a JSON list of folder URLs that are
+    currently open in the tree); these are forwarded as an X-Expanded-Paths
+    header on the follow-up GET so workspace_view can re-open them when it
+    re-renders the tree.
+    """
+    get_workspace_or_raise(request.user, workspace_name)
+    state = request.session.get(SHOW_OOD_ACTION_SESSION_KEY, {})
+    state[workspace_name] = not state.get(workspace_name, False)
+    request.session[SHOW_OOD_ACTION_SESSION_KEY] = state
+
+    workspace_root = reverse(
+        "workspace_view", kwargs={"workspace_name": workspace_name}
+    )
+    current_path = urlparse(request.headers.get("HX-Current-URL", "")).path
+    if not current_path.startswith(workspace_root):
+        current_path = workspace_root
+
+    expanded = request.POST.get("expanded", "[]")
+
+    return HttpResponse(
+        status=204,
+        headers={
+            "HX-Location": json.dumps(
+                {
+                    "path": current_path,
+                    "target": f"#{FILE_BROWSER_PANEL_ID}",
+                    "select": f"#{FILE_BROWSER_PANEL_ID}",
+                    "swap": "outerHTML",
+                    "headers": {"X-Expanded-Paths": expanded},
+                }
+            ),
+        },
+    )
 
 
 @instrument(func_attributes={"workspace": "workspace_name"})

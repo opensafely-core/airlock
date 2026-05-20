@@ -67,6 +67,11 @@ urlpatterns = [
         name="workspace_multiselect",
     ),
     path(
+        "workspaces/toggle-out-of-date/<str:workspace_name>",
+        airlock.views.workspace_toggle_out_of_date_action,
+        name="workspace_toggle_out_of_date_action",
+    ),
+    path(
         "workspaces/add-file-to-request/<str:workspace_name>",
         airlock.views.workspace_add_file_to_request,
         name="workspace_add_file",

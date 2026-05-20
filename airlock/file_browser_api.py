@@ -535,7 +535,10 @@ def get_path_tree(
                     node.expanded = (
                         selected
                         or (path in (selected_path.parents or []))
-                        or (additional_expanded is not None and path in additional_expanded)
+                        or (
+                            additional_expanded is not None
+                            and path in additional_expanded
+                        )
                     )
             else:
                 node.type = PathType.FILE
