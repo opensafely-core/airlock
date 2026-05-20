@@ -5,3 +5,36 @@
   {% /airlock_workspace_header %}
 {% endblock content %}
 
+{% block tree_toolbar %}
+  {% if out_of_date_action_count %}
+    <label class="flex items-center justify-between px-3 py-2 border-b bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors gap-2"
+           title="Output files produced by actions that no longer exist in this project">
+      <span class="flex items-center gap-1.5 text-sm text-slate-700">
+        {% icon_exclamation_triangle_outline class="h-4 w-4 text-slate-500 shrink-0" %}
+        Show outputs from out-of-date actions
+      </span>
+      <span class="flex items-center gap-2 shrink-0">
+        <span class="text-xs text-slate-500 whitespace-nowrap">
+          {{ out_of_date_action_count }} {% if show_out_of_date_action_outputs %}shown{% else %}hidden{% endif %}
+        </span>
+        <span class="relative inline-flex items-center">
+          <input
+            type="checkbox"
+            class="sr-only peer"
+            {% if show_out_of_date_action_outputs %}checked{% endif %}
+            hx-post="{% url 'workspace_toggle_out_of_date_action' workspace.name %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-swap="none"
+            hx-vals='js:{"expanded": JSON.stringify([...document.querySelectorAll("#tree details[open]")].map(d => d.dataset.path))}'
+          >
+          <span class="w-9 h-5 bg-slate-300 rounded-full peer-checked:bg-oxford-600 transition-colors
+                       after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                       after:bg-white after:border after:border-slate-300 after:rounded-full
+                       after:h-4 after:w-4 after:transition-transform
+                       peer-checked:after:translate-x-4"></span>
+        </span>
+      </span>
+    </label>
+  {% endif %}
+{% endblock tree_toolbar %}
+
