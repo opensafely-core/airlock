@@ -13,7 +13,7 @@
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "<4",
-    "vite": "^8.0.10"
+    "vite": "^8.0.12"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.2.7",

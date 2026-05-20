@@ -31,7 +31,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.13.5
+coverage==7.14.0
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -60,7 +60,7 @@ django-htmx==1.27.0
 django-markdownify==0.9.6
     # via airlock
 django-stubs==6.0.4
-django-stubs-ext==6.0.3
+django-stubs-ext==6.0.4
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -69,7 +69,7 @@ freezegun==1.5.5
     # via pytest-freezer
 ghp-import==2.1.0
     # via mkdocs
-googleapis-common-protos==1.74.0
+googleapis-common-protos==1.75.0
     # via opentelemetry-exporter-otlp-proto-http
 greenlet==3.5.0
     # via playwright
@@ -81,7 +81,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
 hypothesis==6.152.6
-idna==3.13
+idna==3.15
     # via
     #   anyio
     #   httpx
@@ -94,7 +94,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.10.0 ; platform_python_implementation != 'PyPy'
+librt==0.11.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.2
     # via
@@ -264,7 +264,7 @@ tinycss2==1.4.0
     # via bleach
 typeguard==2.13.3
     # via slippers
-types-pyyaml==6.0.12.20260408
+types-pyyaml==6.0.12.20260510
     # via django-stubs
 types-requests==2.33.0.20260508
 typing-extensions==4.15.0
@@ -288,7 +288,7 @@ tzdata==2026.2 ; sys_platform == 'win32'
     # via django
 ulid==1.1
     # via airlock
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   requests
     #   responses
