@@ -194,9 +194,9 @@ protobuf==6.33.6
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
-pydantic==2.13.3
+pydantic==2.13.4
     # via airlock
-pydantic-core==2.46.3
+pydantic-core==2.46.4
     # via pydantic
 pyee==13.0.1
     # via playwright
@@ -235,7 +235,7 @@ pyyaml==6.0.3
     #   slippers
 pyyaml-env-tag==1.1
     # via mkdocs
-requests==2.33.1
+requests==2.34.0
     # via
     #   airlock
     #   mkdocs-material
