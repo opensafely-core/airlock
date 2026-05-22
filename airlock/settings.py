@@ -16,6 +16,7 @@ import os
 import warnings
 from pathlib import Path
 
+import dj_database_url
 from django.contrib import messages
 
 
@@ -163,48 +164,53 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    # This is our current production config
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": WORK_DIR / "db.sqlite3",
+            "OPTIONS": {
+                # For details on these pragmas see: https://www.sqlite.org/pragma.html
+                "init_command": """
+                    /* These settings give much better write performance than the default
+                       without sacrificing consistency guarantees */
+                    PRAGMA journal_mode = WAL;
+                    PRAGMA synchronous = NORMAL;
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": WORK_DIR / "db.sqlite3",
-        "OPTIONS": {
-            # For details on these pragmas see: https://www.sqlite.org/pragma.html
-            "init_command": """
-                /* These settings give much better write performance than the default
-                   without sacrificing consistency guarantees */
-                PRAGMA journal_mode = WAL;
-                PRAGMA synchronous = NORMAL;
+                    /* Enforce foreign keys which SQLite doesn't do by default only for
+                       backwards compatibility reasons */
+                    PRAGMA foreign_keys = ON;
 
-                /* Enforce foreign keys which SQLite doesn't do by default only for
-                   backwards compatibility reasons */
-                PRAGMA foreign_keys = ON;
+                    /* How long (in ms) to let one write transaction wait for another */
+                    PRAGMA busy_timeout = 5000;
 
-                /* How long (in ms) to let one write transaction wait for another */
-                PRAGMA busy_timeout = 5000;
-
-                /* The default cache size is 2MB but we can afford more! Note negative
-                   values set cache size in KB, positive numbers set it by number of
-                   database pages */
-                PRAGMA cache_size = -256000;
-            """,
-            # Switch from SQLite's default DEFERRED transaction mode to IMMEDIATE. This
-            # has the effect that write transactions will respect the busy timeout,
-            # rather than failing immediately with "Database locked" if another write
-            # transaction is in progress.
-            # https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
-            "transaction_mode": "IMMEDIATE",
-        },
-        # Specify a test db so that django uses a filesystem db instead on an in-memory
-        # one. This means it can use WAL mode in tests and prevents the "table is locked"
-        # error when two threads read and write at the same time (i.e. in the functional
-        # tests, where we have htmx polling in the running liveserver browser, and we
-        # also update a release request in the test code)
-        "TEST": {
-            "NAME": WORK_DIR / "test_db.sqlite3",
-        },
+                    /* The default cache size is 2MB but we can afford more! Note negative
+                       values set cache size in KB, positive numbers set it by number of
+                       database pages */
+                    PRAGMA cache_size = -256000;
+                """,
+                # Switch from SQLite's default DEFERRED transaction mode to IMMEDIATE. This
+                # has the effect that write transactions will respect the busy timeout,
+                # rather than failing immediately with "Database locked" if another write
+                # transaction is in progress.
+                # https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
+                "transaction_mode": "IMMEDIATE",
+            },
+            # Specify a test db so that django uses a filesystem db instead on an in-memory
+            # one. This means it can use WAL mode in tests and prevents the "table is locked"
+            # error when two threads read and write at the same time (i.e. in the functional
+            # tests, where we have htmx polling in the running liveserver browser, and we
+            # also update a release request in the test code)
+            "TEST": {
+                "NAME": WORK_DIR / "test_db.sqlite3",
+            },
+        }
     }
-}
+else:  # pragma: no cover
+    # We support Postgres so we can investigate alternative deployment scenarios
+    DATABASES = {"default": dj_database_url.parse(database_url)}  # type: ignore
 
 
 # ATOMIC_REQUESTS are disabled by default but we explicitly disable them here so we can
