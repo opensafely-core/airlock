@@ -893,7 +893,9 @@ def test_out_of_date_action_toggle_preserves_tree_expansion(live_server, page, c
 
     # Default state: button says 'show', stale file absent
     expect(toggle).to_have_text("show")
-    expect(page.locator("#tree-container")).to_contain_text("1 output from out-of-date actions")
+    expect(page.locator("#tree-container")).to_contain_text(
+        "1 output from out-of-date actions"
+    )
     expect(tree.get_by_role("link", name="old.txt", include_hidden=True)).to_have_count(
         0
     )
@@ -911,7 +913,9 @@ def test_out_of_date_action_toggle_preserves_tree_expansion(live_server, page, c
     # (its parent folder is collapsed by default so the link isn't visible,
     # but it is now part of the rendered tree).
     expect(toggle).to_have_text("hide")
-    expect(page.locator("#tree-container")).to_contain_text("1 output from out-of-date actions")
+    expect(page.locator("#tree-container")).to_contain_text(
+        "1 output from out-of-date actions"
+    )
     expect(tree.get_by_role("link", name="old.txt", include_hidden=True)).to_have_count(
         1
     )
