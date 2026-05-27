@@ -284,9 +284,10 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         manifest["workspace"] = name
-        ws_outputs = set(
-            Workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
-        ) & set(manifest["outputs"])
+        ws_outputs, _ = Workspace.get_valid_filepaths_from_manifest_outputs(
+            manifest["outputs"]
+        )
+        ws_outputs &= set(manifest["outputs"])
         if ws_outputs:
             first_output = manifest["outputs"][list(ws_outputs)[0]]
             repo = first_output["repo"]
@@ -336,14 +337,15 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
 
     if isinstance(workspace, Workspace):
         workspace.manifest = manifest
-        workspace_file_paths = set(
+        valid_paths, out_of_date_count = (
             workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
-        ) | set(workspace.scan_metadata_dir(workspace.name))
+        )
         workspace_child_map, workspace_files = workspace.get_workspace_child_map(
-            workspace_file_paths
+            valid_paths | set(workspace.scan_metadata_dir(workspace.name))
         )
         workspace.workspace_child_map = workspace_child_map
         workspace.workspace_files = workspace_files
+        workspace.out_of_date_action_count = out_of_date_count
 
 
 def create_workspace(name: str, user=None) -> Workspace:
@@ -425,11 +427,10 @@ def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeR
 
     commit = response.stdout.strip()
     update_manifest(workspace)
-    if not set(
-        workspace.get_valid_filepaths_from_manifest_outputs(
-            workspace.manifest["outputs"]
-        )
-    ):
+    valid_paths, _ = workspace.get_valid_filepaths_from_manifest_outputs(
+        workspace.manifest["outputs"]
+    )
+    if not valid_paths:
         write_workspace_file(workspace, "foo.txt")
 
     workspace.manifest["repo"] = None  # match job-runner output

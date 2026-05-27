@@ -88,6 +88,32 @@ def test_workspace_from_directory_no_outputs_in_manifest():
     )
 
 
+def test_workspace_from_directory_out_of_date_action_filter():
+    factories.write_workspace_file("workspace", "current.txt", "cur")
+    factories.write_workspace_file("workspace", "stale.txt", "stale")
+    workspace = factories.create_workspace("workspace")
+    manifest = workspace.manifest
+    manifest["outputs"]["stale.txt"]["out_of_date_action"] = True
+    workspace.manifest_path().write_text(json.dumps(manifest))
+
+    included = Workspace.from_directory("workspace", include_out_of_date_action_outputs=True)
+    assert UrlPath("stale.txt") in included.workspace_files
+    assert UrlPath("current.txt") in included.workspace_files
+    assert included.out_of_date_action_count == 1
+
+    excluded = Workspace.from_directory("workspace", include_out_of_date_action_outputs=False)
+    assert UrlPath("stale.txt") not in excluded.workspace_files
+    assert UrlPath("current.txt") in excluded.workspace_files
+    # Count comes from the manifest, not the filtered file set.
+    assert excluded.out_of_date_action_count == 1
+
+
+def test_workspace_out_of_date_action_count_zero():
+    factories.write_workspace_file("workspace", "current.txt", "cur")
+    workspace = Workspace.from_directory("workspace")
+    assert workspace.out_of_date_action_count == 0
+
+
 def test_workspace_request_filetype(bll):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "foo/bar.txt")
