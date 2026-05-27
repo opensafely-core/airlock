@@ -11,9 +11,9 @@
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.19",
     "autoprefixer": "^10.5.0",
-    "postcss": "^8.5.14",
+    "postcss": "^8.5.15",
     "tailwindcss": "<4",
-    "vite": "^8.0.12"
+    "vite": "^8.0.13"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.2.7",
