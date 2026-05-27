@@ -193,6 +193,7 @@ class Workspace:
     current_request: ReleaseRequest | None
     released_files: set[str]
     manifest_hash: str
+    out_of_date_action_count: int
 
     @classmethod
     def from_directory(
@@ -201,6 +202,7 @@ class Workspace:
         metadata: dict[str, str] | None = None,
         current_request: ReleaseRequest | None = None,
         released_files: set[str] | None = None,
+        include_out_of_date_action_outputs: bool = True,
     ) -> Workspace:
         root = settings.WORKSPACE_DIR / name
         if not root.exists():
@@ -239,9 +241,14 @@ class Workspace:
 
         # build a map of all valid workspace UrlPaths and their children from the
         # manifest file, plus a set of all paths for just the files
+        valid_paths, out_of_date_action_count = (
+            cls.get_valid_filepaths_from_manifest_outputs(
+                manifest["outputs"],
+                include_out_of_date_action_outputs=include_out_of_date_action_outputs,
+            )
+        )
         workspace_child_map, workspace_files = cls.get_workspace_child_map(
-            set(cls.get_valid_filepaths_from_manifest_outputs(manifest["outputs"]))
-            | cls.scan_metadata_dir(name)
+            valid_paths | cls.scan_metadata_dir(name)
         )
 
         return cls(
@@ -253,6 +260,7 @@ class Workspace:
             current_request=current_request,
             released_files=released_files or set(),
             manifest_hash=manifest_hash,
+            out_of_date_action_count=out_of_date_action_count,
         )
 
     def __str__(self):
@@ -291,15 +299,28 @@ class Workspace:
         return paths
 
     @staticmethod
-    def get_valid_filepaths_from_manifest_outputs(outputs):
+    def get_valid_filepaths_from_manifest_outputs(
+        outputs, include_out_of_date_action_outputs: bool = True
+    ) -> tuple[set[str], int]:
+        """Return (valid file paths, count of out-of-date-action outputs).
+
+        The count is always the total number of qualifying out-of-date-action
+        outputs, regardless of include_out_of_date_action_outputs, so callers
+        can display how many are hidden when the filter is active.
+        """
+        paths: set[str] = set()
+        out_of_date_count = 0
         for filename, output in outputs.items():
-            if output["level"] == "moderately_sensitive" and not output.get(
-                "out_of_date_output", False
-            ):
-                if not output["excluded"]:
-                    yield filename
-                else:
-                    yield f"{filename}.txt"
+            if output["level"] != "moderately_sensitive":
+                continue
+            if output.get("out_of_date_output", False):
+                continue
+            if output.get("out_of_date_action", False):
+                out_of_date_count += 1
+                if not include_out_of_date_action_outputs:
+                    continue
+            paths.add(filename if not output["excluded"] else f"{filename}.txt")
+        return paths, out_of_date_count
 
     @staticmethod
     def get_workspace_child_map(
