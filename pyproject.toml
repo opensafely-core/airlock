@@ -137,14 +137,14 @@ dev = [
     "django-debug-toolbar-template-profiler<=2.1.0",
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
-    "hypothesis<=6.152.6",
-    "ruff<=0.15.12",
-    "playwright<=1.59.0",
+    "hypothesis<=6.152.9",
+    "ruff<=0.15.13",
+    "playwright<=1.60.0",
     "pytest<=9.0.3",
     "pytest-cov<=7.1.0",
     "pytest-django<=4.12.0",
     "pytest-freezer<=0.4.9",
-    "pytest-playwright<=0.7.2",
+    "pytest-playwright<=0.8.0",
     "responses<=0.26.0",
     # Currently using our fork of django_coverage_plugin, pending
     # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
@@ -152,5 +152,5 @@ dev = [
     # Type-checking and type stubs
     "mypy<=1.20.2",
     "django-stubs[compatible-mypy]<=6.0.4",
-    "types-requests<=2.33.0.20260508",
+    "types-requests<=2.33.0.20260518",
 ]
