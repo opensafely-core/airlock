@@ -134,18 +134,18 @@ uvmirror file="requirements.uvmirror":
     uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras > {{ file }}
 
 format *args:
-    uv run ruff format --diff --quiet {{ args }} .
-    uv run djhtml --tabwidth 2 --check airlock/
+    uv run python -m ruff format --diff --quiet {{ args }} .
+    uv run python -m djhtml --tabwidth 2 --check airlock/
 
 lint *args:
-    uv run ruff check {{ args }} .
+    uv run python -m ruff check {{ args }} .
 
 lint-actions:
     docker run --rm -v $(pwd):/repo:ro --workdir /repo rhysd/actionlint:1.7.8 -color
 
 # run mypy type checker
 mypy *ARGS:
-    uv run mypy airlock/ local_db/ tests/ "$@"
+    uv run python -m mypy airlock/ local_db/ tests/ "$@"
 
 shellcheck:
     #!/usr/bin/env bash
@@ -204,9 +204,9 @@ check-lockfile:
 
 # fix the things we can automate: linting, formatting, import sorting, diagrams
 fix: && state-diagram
-    uv run ruff format .
-    uv run ruff check --fix .
-    uv run djhtml --tabwidth 2 airlock/
+    uv run python -m ruff format .
+    uv run python -m ruff check --fix .
+    uv run python -m djhtml --tabwidth 2 airlock/
     just --fmt --unstable --justfile justfile
     just --fmt --unstable --justfile docker/justfile
 
@@ -216,7 +216,7 @@ run *ARGS: docs-build _checksetup
 
 # run airlock with gunicorn, like in production
 run-gunicorn *args: _checkenv _checksetup
-    uv run gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
+    uv run python -m gunicorn --config gunicorn.conf.py airlock.wsgi {{ args }}
 
 run-uploader:
     just manage run_file_uploader
@@ -333,11 +333,11 @@ state-diagram file="docs/reference/request-states.md": _checkenv
 
 # Run the documentation server: to configure the port, append: ---dev-addr localhost:<port>
 docs-serve *ARGS:
-    uv run mkdocs serve --clean {{ ARGS }}
+    uv run python -m mkdocs serve --clean {{ ARGS }}
 
 # Build the documentation
 docs-build *ARGS:
-    uv run mkdocs build --clean {{ ARGS }}
+    uv run python -m mkdocs build --clean {{ ARGS }}
 
 # Remove built assets and node_modules
 assets-clean:
