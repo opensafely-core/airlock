@@ -23,7 +23,7 @@ certifi==2026.4.22
     #   requests
 charset-normalizer==3.4.7
     # via requests
-click==8.3.3
+click==8.4.0
     # via mkdocs
 colorama==0.4.6
     # via
@@ -209,7 +209,7 @@ pygments==2.20.0
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==10.21.2
+pymdown-extensions==10.21.3
     # via mkdocs-material
 pytest==9.0.3
     # via
@@ -269,7 +269,7 @@ tinycss2==1.4.0
     # via bleach
 typeguard==2.13.3
     # via slippers
-types-pyyaml==6.0.12.20260510
+types-pyyaml==6.0.12.20260518
     # via django-stubs
 types-requests==2.33.0.20260518
 typing-extensions==4.15.0
@@ -310,5 +310,5 @@ wrapt==1.17.3
     # via
     #   django-debug-toolbar-template-profiler
     #   opentelemetry-instrumentation
-zipp==3.23.1
+zipp==4.1.0
     # via importlib-metadata
