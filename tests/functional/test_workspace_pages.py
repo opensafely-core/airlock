@@ -703,10 +703,9 @@ def test_select_all(live_server, page, context):
         ((False, False, True, False), (False, False, True, True)),
         ((True, False, True, False), (True, False, True, True)),
         ((True, True, True, False), (True, True, True, True)),
-        # BUG: Not all checked but all unreleased checked - do nothing
-        ((False, False, True, True), (False, False, True, True)),
-        ((True, False, True, True), (True, False, True, True)),
-        # All checked - deselect all
+        # All unreleased checked - deselect all (incl. released)
+        ((False, False, True, True), (False, False, False, False)),
+        ((True, False, True, True), (False, False, False, False)),
         ((True, True, True, True), (False, False, False, False)),
     ],
 )
