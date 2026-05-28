@@ -60,7 +60,7 @@ django-extensions==4.1
     # via airlock
 django-htmx==1.27.0
     # via airlock
-django-markdownify==0.9.6
+django-markdownify==0.9.7
     # via airlock
 django-stubs==6.0.4
 django-stubs-ext==6.0.4
@@ -240,7 +240,7 @@ pyyaml==6.0.3
     #   slippers
 pyyaml-env-tag==1.1
     # via mkdocs
-requests==2.34.0
+requests==2.34.2
     # via
     #   airlock
     #   mkdocs-material
