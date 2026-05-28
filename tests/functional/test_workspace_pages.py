@@ -690,6 +690,97 @@ def test_select_all(live_server, page, context):
     expect(page.locator("input.selectall")).not_to_be_checked()
 
 
+@pytest.mark.parametrize(
+    # `initial_state` and `final_state` here are tuples of booleans representing
+    # the file checkboxes where True=checked, False=unchecked, in the order of
+    # (released_file_1, released_file_2, unreleased_file_1, unreleased_file_2)
+    "initial_state,final_state",
+    [
+        # Not all unreleased checked - select all unreleased
+        ((False, False, False, False), (False, False, True, True)),
+        ((True, False, False, False), (True, False, True, True)),
+        ((True, True, False, False), (True, True, True, True)),
+        ((False, False, True, False), (False, False, True, True)),
+        ((True, False, True, False), (True, False, True, True)),
+        ((True, True, True, False), (True, True, True, True)),
+        # BUG: Not all checked but all unreleased checked - do nothing
+        ((False, False, True, True), (False, False, True, True)),
+        ((True, False, True, True), (True, False, True, True)),
+        # All checked - deselect all
+        ((True, True, True, True), (False, False, False, False)),
+    ],
+)
+def test_select_all_with_released_files_in_directory(
+    mock_old_api, live_server, page, context, initial_state, final_state
+):
+    workspace = factories.create_workspace("my-workspace")
+    factories.write_workspace_file(workspace, "output/released_file_1.csv")
+    factories.write_workspace_file(workspace, "output/released_file_2.csv")
+    user = login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # Release the files
+    factories.create_request_at_status(
+        "my-workspace",
+        files=[
+            factories.request_file(
+                path="output/released_file_1.csv", contents="Released 1", approved=True
+            ),
+            factories.request_file(
+                path="output/released_file_2.csv", contents="Released 2", approved=True
+            ),
+        ],
+        status=RequestStatus.RELEASED,
+    )
+
+    # Create a current pending request
+    factories.create_release_request("my-workspace", user)
+
+    # Have some unreleased files in the directory
+    factories.write_workspace_file(
+        "my-workspace", path="output/unreleased_file_1.txt", contents="Unreleased 1"
+    )
+    factories.write_workspace_file(
+        "my-workspace", path="output/unreleased_file_2.txt", contents="Unreleased 2"
+    )
+
+    # goto page with files
+    page.goto(live_server.url + workspace.get_url(UrlPath("output")))
+
+    filepaths = [
+        "output/released_file_1.csv",
+        "output/released_file_2.csv",
+        "output/unreleased_file_1.txt",
+        "output/unreleased_file_2.txt",
+    ]
+    # Set and assert initial state
+    for file, checked in zip(filepaths, initial_state):
+        locator = page.locator(f'input[name="selected"][value="{file}"]')
+        if checked:
+            click_and_htmx(page, locator)
+        expect(locator).to_be_checked(checked=checked)
+
+    # Click the select all checkbox
+    page.locator("input.selectall").click()
+
+    # Assert the final state
+    for file, checked in zip(filepaths, final_state):
+        expect(page.locator(f'input[name="selected"][value="{file}"]')).to_be_checked(
+            checked=checked
+        )
+
+
 def test_manifest_file_changes(live_server, page, context):
     workspace = factories.create_workspace("my-workspace")
     file_1 = "outputs/file1.txt"
