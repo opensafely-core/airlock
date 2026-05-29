@@ -164,7 +164,7 @@ WSGI_APPLICATION = "airlock.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-database_url = os.environ.get("DATABASE_URL")
+database_url = os.environ.get("AIRLOCK_DATABASE_URL")
 if not database_url:
     # This is our current production config
     DATABASES = {
