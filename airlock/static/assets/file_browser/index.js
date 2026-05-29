@@ -67,13 +67,17 @@ function saveCheckboxSessionState() {
   sessionStorage.setItem("checkbox-cache", JSON.stringify(currentState));
 }
 
+function isReleasedFile(checkbox) {
+  return checkbox.closest('tr')?.dataset.released === 'true';
+}
+
 // implement select all checkbox
 function toggleSelectAll(elem) {
   const checkboxes = getVisibleCheckboxes();
 
   checkboxes.forEach((checkbox) => {
     // Skip checkboxes for released files that are currently unchecked
-    if (checkbox.closest('tr')?.dataset.released === 'true' && !checkbox.checked) {
+    if (isReleasedFile(checkbox) && !checkbox.checked) {
       return;
     }
     checkbox.checked = elem.checked;
@@ -83,9 +87,9 @@ function toggleSelectAll(elem) {
 }
 
 // Update the state of the select all checkbox. Checked if
-// all other checkboxes are checked, unchecked if none of the
-// others are checked, and "intermediate" (visual only) if some
-// of them are checked
+// all unreleased files are checked; unchecked otherwise
+// Then, set visual state to "indeterminate" if any box (released file or not)
+// is checked but not all of them
 function updateSelectAllCheckbox() {
   const selectAllCheckboxEl = document.querySelector(".selectall");
   if (!selectAllCheckboxEl) return;
@@ -95,8 +99,22 @@ function updateSelectAllCheckbox() {
 
   const areAllChecked = selected.length === checkboxes.length;
   const areNoneChecked = selected.length === 0;
+
+  if (areNoneChecked) {
+    selectAllCheckboxEl.checked = false;
+    selectAllCheckboxEl.indeterminate = false;
+    return;
+  }
+
+  const released = checkboxes.filter(isReleasedFile);
+
+  if (released.length === 0) {
   selectAllCheckboxEl.checked = areAllChecked;
-  selectAllCheckboxEl.indeterminate = !(areAllChecked || areNoneChecked);
+  } else {
+    // Checked if all unreleased files are selected (released files don't count)
+    selectAllCheckboxEl.checked = selected.filter(cb => !isReleasedFile(cb)).length === checkboxes.length - released.length;
+  }
+  selectAllCheckboxEl.indeterminate = !areAllChecked;
 }
 
 
