@@ -15,11 +15,15 @@ from .utils import screenshot_element_with_padding, take_screenshot
 
 
 @pytest.fixture(autouse=True)
-def hide_nav_item_switch_user(monkeypatch):
-    def mockreturn(request):
-        return {"dev_users": False}
-
-    monkeypatch.setattr("airlock.nav.dev_users", mockreturn)
+def hide_nav_item_switch_user(settings):
+    # The switch-user nav item is rendered when settings.DEV_USERS is truthy.
+    # Override via settings (rather than patching airlock.nav.dev_users) because
+    # Django caches the resolved context-processor function; patching the module
+    # attribute after that cache is populated has no effect, and patching it before
+    # populates the cache with the mock, affecting other tests.
+    # This worked (possibly just by luck) when the tests were run serially, but
+    # causes failures when they'rerun in parallel
+    settings.DEV_USERS = {}
 
 
 def get_user_data():
