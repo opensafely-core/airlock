@@ -230,7 +230,7 @@ manage *ARGS: _checkenv
 
 # run tests
 test *ARGS: _checkenv _checksetup get-chromium
-    uv run python -m pytest "$@"
+    uv run python -m pytest -n auto "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
 @test-all: _checkenv assets docs-build get-chromium
@@ -238,6 +238,7 @@ test *ARGS: _checkenv _checksetup get-chromium
     set -euo pipefail
 
     uv run python -m pytest \
+      -n auto \
       --cov=airlock \
       --cov=assets \
       --cov=local_db \
