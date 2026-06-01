@@ -14,7 +14,8 @@ from urllib.parse import urlparse, urlunparse
 # from jobrunner import config
 # from jobrunner.lib.string_utils import project_name_from_url
 # from jobrunner.lib.subprocess_utils import subprocess_run
-from airlock import settings as config
+from django.conf import settings as config
+
 from airlock.types import UrlPath
 
 

@@ -15,11 +15,15 @@ from .utils import screenshot_element_with_padding, take_screenshot
 
 
 @pytest.fixture(autouse=True)
-def hide_nav_item_switch_user(monkeypatch):
-    def mockreturn(request):
-        return {"dev_users": False}
-
-    monkeypatch.setattr("airlock.nav.dev_users", mockreturn)
+def hide_nav_item_switch_user(settings):
+    # The switch-user nav item is rendered when settings.DEV_USERS is truthy.
+    # Override via settings (rather than patching airlock.nav.dev_users) because
+    # Django caches the resolved context-processor function; patching the module
+    # attribute after that cache is populated has no effect, and patching it before
+    # populates the cache with the mock, affecting other tests.
+    # This worked (possibly just by luck) when the tests were run serially, but
+    # causes failures when they'rerun in parallel
+    settings.DEV_USERS = {}
 
 
 def get_user_data():
@@ -151,7 +155,7 @@ def test_screenshot_from_creation_to_release(
     csv_summary_container = iframe_content.get_by_test_id("csv-summary")
     csv_summary_toggle = csv_summary_container.get_by_text("View summary stats")
 
-    page.wait_for_timeout(3000)
+    expect(csv_summary_toggle).to_be_visible()
     screenshot_element_with_padding(
         page,
         csv_summary_toggle,
@@ -269,7 +273,6 @@ def test_screenshot_from_creation_to_release(
             live_server.url
             + release_request.get_url(UrlPath("my-group/outputs/file1.csv"))
         )
-        page.wait_for_timeout(100)
         wait_for_table_load(page)
 
         if screenshot:
