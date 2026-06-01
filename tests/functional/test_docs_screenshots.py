@@ -155,7 +155,7 @@ def test_screenshot_from_creation_to_release(
     csv_summary_container = iframe_content.get_by_test_id("csv-summary")
     csv_summary_toggle = csv_summary_container.get_by_text("View summary stats")
 
-    page.wait_for_timeout(3000)
+    expect(csv_summary_toggle).to_be_visible()
     screenshot_element_with_padding(
         page,
         csv_summary_toggle,
@@ -273,7 +273,6 @@ def test_screenshot_from_creation_to_release(
             live_server.url
             + release_request.get_url(UrlPath("my-group/outputs/file1.csv"))
         )
-        page.wait_for_timeout(100)
         wait_for_table_load(page)
 
         if screenshot:
