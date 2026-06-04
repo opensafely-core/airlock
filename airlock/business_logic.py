@@ -267,7 +267,12 @@ class BusinessLogicLayer:
     def __init__(self, data_access_layer: DataAccessLayerProtocol):
         self._dal = data_access_layer
 
-    def get_workspace(self, name: str, user: User) -> Workspace:
+    def get_workspace(
+        self,
+        name: str,
+        user: User,
+        include_out_of_date_action_outputs: bool = True,
+    ) -> Workspace:
         """Get a workspace object."""
 
         permissions.check_user_can_view_workspace(user, name)
@@ -301,6 +306,7 @@ class BusinessLogicLayer:
             metadata=metadata,
             current_request=self.get_current_request(name, user),
             released_files=self.get_released_files_for_workspace(name),
+            include_out_of_date_action_outputs=include_out_of_date_action_outputs,
         )
 
     def _build_workspace_list(self, user, workspaces) -> list[Workspace]:

@@ -5,3 +5,22 @@
   {% /airlock_workspace_header %}
 {% endblock content %}
 
+{% block tree_toolbar %}
+  {% if out_of_date_action_count %}
+    <div class="flex items-center justify-between px-3 py-1.5 border-b text-xs bg-slate-50"
+         title="Output files produced by actions that no longer exist in this project">
+      <span class="flex items-center gap-1.5 text-slate-600">
+        {% icon_exclamation_triangle_outline class="h-3.5 w-3.5 shrink-0" %}
+        {{ out_of_date_action_count }} output{{ out_of_date_action_count|pluralize }} from out-of-date actions
+        {% if show_out_of_date_action_outputs %}shown{% else %}hidden{% endif %}
+      </span>
+      <button
+        class="underline text-slate-500 hover:text-slate-700"
+        hx-post="{% url 'workspace_toggle_out_of_date_action' workspace.name %}"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        hx-swap="none"
+        hx-vals='js:{"expanded": JSON.stringify([...document.querySelectorAll("#tree details[open]")].map(d => d.dataset.path))}'
+      >{% if show_out_of_date_action_outputs %}hide{% else %}show{% endif %}</button>
+    </div>
+  {% endif %}
+{% endblock tree_toolbar %}

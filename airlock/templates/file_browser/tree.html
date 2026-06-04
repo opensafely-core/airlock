@@ -1,7 +1,7 @@
 {% for child in path.children %}
   <li class="tree tree__item">
     {% if child.is_directory %}
-      <details class="tree__folder group" {% if child.expanded %}open{% endif %}>
+      <details class="tree__folder group" {% if child.expanded %}open{% endif %} data-path="{{ child.relpath }}">
         <summary class="tree__folder-name">
           <span class="tree__folder-arrows"></span>
           <span class="tree__folder-icons"></span>

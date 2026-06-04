@@ -317,6 +317,7 @@ def get_workspace_tree(
     workspace: Workspace,
     selected_path: UrlPath | str = ROOT_PATH,
     selected_only: bool = False,
+    additional_expanded: set[UrlPath] | None = None,
 ) -> PathItem:
     """Recursively build workspace tree from the root dir.
 
@@ -364,6 +365,7 @@ def get_workspace_tree(
         parent=root_node,
         selected_path=selected_path,
         leaf_directories=leaf_directories,
+        additional_expanded=additional_expanded,
     )
     return root_node
 
@@ -488,6 +490,7 @@ def get_path_tree(
     expand_all: bool = False,
     leaf_directories: set[UrlPath] | None = None,
     user: User | None = None,
+    additional_expanded: set[UrlPath] | None = None,
 ):
     """Walk a flat list of paths and create a tree from them."""
 
@@ -527,7 +530,16 @@ def get_path_tree(
                 if expand_all:
                     node.expanded = True
                 else:
-                    node.expanded = selected or (path in (selected_path.parents or []))
+                    # additional_expanded preserves folders the user had open
+                    # before an HTMX panel swap (e.g. the out-of-date toggle).
+                    node.expanded = (
+                        selected
+                        or (path in (selected_path.parents or []))
+                        or (
+                            additional_expanded is not None
+                            and path in additional_expanded
+                        )
+                    )
             else:
                 node.type = PathType.FILE
                 # get_path_tree needs to work with both Workspace and

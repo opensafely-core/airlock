@@ -36,3 +36,18 @@ From the file view, the `More` dropdown also allows you to [view the file in alt
 the file.
 
 ![More dropdown](../screenshots/more_dropdown_el.png)
+
+## Outputs from out-of-date actions
+
+Some outputs may have been produced by an action that no longer exists in the `project.yaml`.
+These are hidden from the file tree by default to keep your workspace uncluttered.
+A notice at the top of the tree shows how many such outputs exist.
+
+![Outputs from out-of-date actions hidden](../screenshots/workspace_out_of_date_hidden.png)
+
+Click **show** to reveal them. Outputs from out-of-date actions appear with a warning icon and
+greyed-out styling to distinguish them from current outputs.
+
+![Outputs from out-of-date actions shown](../screenshots/workspace_out_of_date_shown.png)
+
+Click **hide** to hide them again.
