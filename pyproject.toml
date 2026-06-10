@@ -150,7 +150,7 @@ dev = [
     # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
     "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip",
     # Type-checking and type stubs
-    "mypy<=1.20.2",
+    "mypy<=2.1.0",
     "django-stubs[compatible-mypy]<=6.0.4",
     "types-requests<=2.33.0.20260518",
     "pytest-xdist<=3.8.0",
