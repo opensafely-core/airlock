@@ -11,10 +11,34 @@ clean:
     rm -rf $ASSETS_DIST
 
 
+# Rewrite hyphenated names in {% attrs %} and {% #component %} tags to use
+# underscores, for Django 6.0 + Slippers compatibility (see commit d45574c9).
+
+fix-components:
+    uv run python fix_slippers_tags.py templates/_components
+
 # Update upstream assets from job-server
-update JOBSERVER_DIR="": clean
+update JOBSERVER_DIR="": && fix-components
     #!/bin/bash
     set -euo pipefail
+    # job-server is on tailwind v4; Airlock is currently pinned to 
+    # v3 due to the unsupported chrome version in L4
+    # Check for our tailwind version and warn if we're not yet on v4 
+    TAILWIND_VERSION=$(node -p "
+        const lock = require('../package-lock.json');
+        lock.packages['node_modules/tailwindcss'].version
+    ")
+
+    if [[ ! "$TAILWIND_VERSION" =~ ^4\. ]]; then
+        echo "Warning: Upstream assets use Tailwind v4 (we're using: $TAILWIND_VERSION)."
+        read -p "Continue anyway? [y/N] " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "Aborting."
+            exit 1
+        fi
+    fi
+
+    just clean
 
     jobserver_dir={{ JOBSERVER_DIR }}
 
