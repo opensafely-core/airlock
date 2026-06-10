@@ -19,6 +19,8 @@ jobs:
       changed: ${{ steps.check_for_changes.outputs.changed }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
       - uses: opensafely-core/setup-action@93841f27c28c75bf85b1a0a915e2391a06c6c8a6 # v1
         with:
           install-just: true
@@ -55,6 +57,7 @@ jobs:
         with:
           ref: ${{ env.BRANCH_NAME }}
           token: ${{ steps.generate-token.outputs.token }}
+          persist-credentials: false
 
       - uses: opensafely-core/setup-action@93841f27c28c75bf85b1a0a915e2391a06c6c8a6 # v1
         with:
@@ -71,4 +74,4 @@ jobs:
         run: |
           git add requirements.uvmirror
           git -c user.name="opensafely-github-bot" -c user.email=opensafely-github-bot@users.noreply.github.com commit -m "Update uvmirror file"
-          git push origin ${{ env.BRANCH_NAME }}
+          git push origin "${BRANCH_NAME}"
