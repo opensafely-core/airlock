@@ -33,13 +33,6 @@ jobs:
       - id: check_for_changes
         run: echo "changed=$(git diff -s --exit-code requirements.uvmirror || echo 1)" >> "$GITHUB_OUTPUT"
 
-      - name: Fail if changes (dependabot only)
-        if: ${{ (github.actor == 'dependabot[bot]') && (steps.check_for_changes.outputs.changed) }}
-        run: |
-          echo "uvmirror file is out of date; run again manually (using the workflow_dispatch trigger for this branch) to update it."
-          echo "https://github.com/opensafely-core/airlock/actions/workflows/uvmirror-update.yml"
-          exit 1
-
   update_uvmirror:
 
     needs: check_uvmirror
