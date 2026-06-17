@@ -188,8 +188,10 @@ class Workspace:
     name: str
     manifest_text: str
     metadata: dict[str, Any]
-    workspace_child_map: dict[UrlPath, set[UrlPath]]
-    workspace_files: set[UrlPath]
+    # Valid file paths from the manifest. The workspace_child_map /
+    # workspace_files properties below build the tree from this lazily on
+    # first access (combined with a live scan of the metadata directory).
+    valid_paths: list[str]
     current_request: ReleaseRequest | None
     released_files: set[str]
     manifest_hash: str
@@ -200,6 +202,26 @@ class Workspace:
         """Lazily parsed manifest dict. The workspace-index hot path doesn't
         touch this and so avoids the JSON parse entirely."""
         return dict(json.loads(self.manifest_text))
+
+    @cached_property
+    def _tree_map(self) -> tuple[dict[UrlPath, set[UrlPath]], set[UrlPath]]:
+        """Build (workspace_child_map, workspace_files) on first access.
+
+        This is the most expensive thing for large workspaces, and is only
+        needed for views that render the file browser do, so this lets views
+        that don't need it skip doing the work of building the map.
+        """
+        return self.get_workspace_child_map(
+            set(self.valid_paths) | self.scan_metadata_dir(self.name)
+        )
+
+    @property
+    def workspace_child_map(self) -> dict[UrlPath, set[UrlPath]]:
+        return self._tree_map[0]
+
+    @property
+    def workspace_files(self) -> set[UrlPath]:
+        return self._tree_map[1]
 
     @classmethod
     def from_directory(
@@ -243,24 +265,18 @@ class Workspace:
                 )
             )
 
-        # build a map of all valid workspace UrlPaths and their children from the
-        # manifest file, plus a set of all paths for just the files
         valid_paths, out_of_date_action_count = (
             cls.get_valid_filepaths_from_manifest_outputs(
                 manifest["outputs"],
                 include_out_of_date_action_outputs=include_out_of_date_action_outputs,
             )
         )
-        workspace_child_map, workspace_files = cls.get_workspace_child_map(
-            valid_paths | cls.scan_metadata_dir(name)
-        )
 
         return cls(
             name,
             manifest_text=manifest_text,
             metadata=metadata,
-            workspace_child_map=workspace_child_map,
-            workspace_files=workspace_files,
+            valid_paths=sorted(valid_paths),
             current_request=current_request,
             released_files=released_files or set(),
             manifest_hash=manifest_hash,
