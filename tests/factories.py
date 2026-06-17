@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import typing
 from dataclasses import dataclass, field
-from hashlib import file_digest
+from hashlib import file_digest, sha256
 from pathlib import Path
 
 from django.conf import settings
@@ -333,10 +333,17 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         }
 
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2))
+    manifest_disk_text = json.dumps(manifest, indent=2)
+    manifest_path.write_text(manifest_disk_text)
 
     if isinstance(workspace, Workspace):
-        workspace.manifest = manifest
+        # Refresh the Workspace in place to match what's now on disk. Mirrors
+        # what bll.get_workspace() would produce on the next call: manifest_text
+        # is the on-disk content; the cached `manifest` property is primed with
+        # the same dict; manifest_hash matches the on-disk bytes.
+        workspace.manifest_text = manifest_disk_text
+        workspace.__dict__["manifest"] = manifest
+        workspace.manifest_hash = sha256(manifest_disk_text.encode()).hexdigest()
         valid_paths, out_of_date_count = (
             workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
         )

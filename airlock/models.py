@@ -186,7 +186,7 @@ class Workspace:
     """
 
     name: str
-    manifest: dict[str, Any]
+    manifest_text: str
     metadata: dict[str, Any]
     workspace_child_map: dict[UrlPath, set[UrlPath]]
     workspace_files: set[UrlPath]
@@ -194,6 +194,12 @@ class Workspace:
     released_files: set[str]
     manifest_hash: str
     out_of_date_action_count: int
+
+    @cached_property
+    def manifest(self) -> dict[str, Any]:
+        """Lazily parsed manifest dict. The workspace-index hot path doesn't
+        touch this and so avoids the JSON parse entirely."""
+        return dict(json.loads(self.manifest_text))
 
     @classmethod
     def from_directory(
@@ -212,18 +218,16 @@ class Workspace:
         if not manifest_path.exists():
             raise exceptions.ManifestFileError(f"{manifest_path} does not exist")
 
+        # Read once, then both parse and hash from the same bytes
+        data = manifest_path.read_bytes()
+        manifest_hash = hashlib.sha256(data).hexdigest()
+        manifest_text = data.decode()
         try:
-            manifest = json.loads(manifest_path.read_text())
+            manifest = json.loads(manifest_text)
         except json.JSONDecodeError as exc:
             raise exceptions.ManifestFileError(
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
-
-        # Store the manifest hash so get_url() can include it as a query parameter
-        # and views can use it to check if the manifest has changed
-        manifest_hash = hashlib.file_digest(
-            manifest_path.open("rb"), "sha256"
-        ).hexdigest()
 
         if metadata is None:  # pragma: no cover
             metadata = {}
@@ -253,7 +257,7 @@ class Workspace:
 
         return cls(
             name,
-            manifest=manifest,
+            manifest_text=manifest_text,
             metadata=metadata,
             workspace_child_map=workspace_child_map,
             workspace_files=workspace_files,
