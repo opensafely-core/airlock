@@ -248,7 +248,7 @@ def test_workspace_view_changed_manifest_htmx(airlock_client):
     factories.write_workspace_file("workspace", "some_dir/file.txt")
     # Fetch workspace with updated manifest
     workspace = factories.create_workspace("workspace")
-    assert UrlPath("some_dir/file.txt") in workspace.workspace_files
+    assert "some_dir/file.txt" in workspace.workspace_files
 
     # Store current manifest_hash
     current_manifest_hash = workspace.manifest_hash
