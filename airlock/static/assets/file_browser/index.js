@@ -1,3 +1,7 @@
+// Only disable browser scroll restoration when there is a position to restore
+if (sessionStorage.getItem("treeScrollTop") && 'scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
 // keep the selected class up to date in the tree on the client side
 function setTreeSelection(tree, event) {
   // target here is the hx-get link that has been clicked on
@@ -174,3 +178,31 @@ if (document.readyState !== "loading") {
 // Every time a datatable is rendered we need to update the checkboxes
 // so they match the saved state
 document.body.addEventListener("clusterize-table-updated", renderCheckboxStatus);
+
+// Save scroll position before approve/request_changes form submits
+document.body.addEventListener("submit", (event) => {
+  const form = event.target.closest("form");
+  if (!form) return;
+  const action = form.getAttribute("action") || "";
+  if (action.includes("/approve/") || action.includes("/request_changes/") || action.includes("/reset_review/")) {
+    sessionStorage.setItem("treeScrollTop", document.getElementById("tree-container").scrollTop);
+  }
+});
+
+// Restore scroll position on page load
+document.addEventListener("DOMContentLoaded", () => {
+  const saved = sessionStorage.getItem("treeScrollTop");
+  const treeContainer = document.getElementById("tree-container");
+
+  if (saved) {
+    sessionStorage.removeItem("treeScrollTop");
+    treeContainer.style.visibility = "hidden";
+    
+    // Wait for browser scroll restoration to complete before applying saved position.
+    // The browser may reset scrollTop after DOMContentLoaded, so we delay slightly.
+    setTimeout(() => {
+      treeContainer.scrollTop = parseInt(saved);
+      treeContainer.style.visibility = "visible";
+    }, 125);
+  }
+});
