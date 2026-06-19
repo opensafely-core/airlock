@@ -338,13 +338,10 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
 
     if isinstance(workspace, Workspace):
         # Refresh the Workspace in place to match what's now on disk. Mirrors
-        # what bll.get_workspace() would produce on the next call: manifest_text
-        # is the on-disk content; the cached `manifest` property is primed with
-        # the same dict; manifest_hash matches the on-disk bytes; valid_paths
-        # is recomputed and the cached tree_map is invalidated so it's rebuilt
-        # lazily on next access.
-        workspace.manifest_text = manifest_disk_text
-        workspace.__dict__["manifest"] = manifest
+        # what bll.get_workspace() would produce on the next call: manifest_hash
+        # matches the on-disk bytes; valid_paths is recomputed and the cached
+        # tree_map is invalidated so it's rebuilt lazily on next access.
+        workspace.manifest = manifest
         workspace.manifest_hash = sha256(manifest_disk_text.encode()).hexdigest()
         valid_paths, out_of_date_count = (
             workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])

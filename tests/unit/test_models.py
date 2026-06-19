@@ -1129,9 +1129,7 @@ def test_returned_release_request_filegroups_missing_public_comment_file_updated
 )
 def test_coderepo_from_workspace_no_repo_in_manifest(bll, manifest):
     workspace = factories.create_workspace("workspace")
-    # Prime the cached_property with the test manifest dict so
-    # CodeRepo.from_workspace sees it without re-parsing.
-    workspace.__dict__["manifest"] = manifest
+    workspace.manifest = manifest
     with pytest.raises(CodeRepo.RepoNotFound):
         CodeRepo.from_workspace(workspace, "commit")
 

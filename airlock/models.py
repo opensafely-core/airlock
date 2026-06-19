@@ -186,7 +186,7 @@ class Workspace:
     """
 
     name: str
-    manifest_text: str
+    manifest: dict[str, Any]
     metadata: dict[str, Any]
     # Valid file paths from the manifest. The workspace_child_map /
     # workspace_files properties below build the tree from this lazily on
@@ -196,12 +196,6 @@ class Workspace:
     released_files: set[str]
     manifest_hash: str
     out_of_date_action_count: int
-
-    @cached_property
-    def manifest(self) -> dict[str, Any]:
-        """Lazily parsed manifest dict. The workspace-index hot path doesn't
-        touch this and so avoids the JSON parse entirely."""
-        return dict(json.loads(self.manifest_text))
 
     @cached_property
     def _tree_map(self) -> tuple[dict[str, set[str]], set[str]]:
@@ -243,9 +237,8 @@ class Workspace:
         # Read once, then both parse and hash from the same bytes
         data = manifest_path.read_bytes()
         manifest_hash = hashlib.sha256(data).hexdigest()
-        manifest_text = data.decode()
         try:
-            manifest = json.loads(manifest_text)
+            manifest = json.loads(data)
         except json.JSONDecodeError as exc:
             raise exceptions.ManifestFileError(
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
@@ -274,7 +267,7 @@ class Workspace:
 
         return cls(
             name,
-            manifest_text=manifest_text,
+            manifest=manifest,
             metadata=metadata,
             valid_paths=sorted(valid_paths),
             current_request=current_request,
