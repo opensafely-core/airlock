@@ -341,14 +341,18 @@ def get_workspace_tree(
         if not workspace.is_valid_tree_path(selected_path):
             raise PathItem.PathNotFound(f"not current output {selected_path}")
 
-        for child in workspace.workspace_child_map[selected_path]:
+        # workspace_child_map is keyed by str, not UrlPath, for performance reasons, using "." for the root;
+        # str(UrlPath()) == "." so if we have the ROOT_PATH here, this lookup still works.
+        for child_str in workspace.workspace_child_map[str(selected_path)]:
+            child = UrlPath(child_str)
             pathlist.append(child)
             if workspace.workspace_child_map[
-                child
+                child_str
             ]:  # has children, therefore is directory
                 leaf_directories.add(child)
     else:
-        pathlist = list(set(workspace.workspace_child_map) - {ROOT_PATH})
+        # Convert at the boundary; "." is the internal root key, excluded here.
+        pathlist = [UrlPath(p) for p in workspace.workspace_child_map if p != "."]
 
     root_node = PathItem(
         container=workspace,

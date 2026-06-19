@@ -215,7 +215,11 @@ def test_workspace_view_with_file_htmx(airlock_client):
 def test_workspace_view_invalid_output_path_htmx(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
-    # Valid output path
+    # Stash the original manifest hash; the request below sends this stale hash
+    # to simulate the realistic case where the manifest changed between page
+    # load and a subsequent HTMX navigation.
+    original_manifest_hash = workspace.manifest_hash
+    # Valid output path (mutates the manifest, so the hash now differs)
     factories.write_workspace_file(workspace, "some_dir/file.txt")
     # File in subdir exists, but is invalid output path (no manifest entry)
     factories.write_workspace_file(
@@ -223,7 +227,7 @@ def test_workspace_view_invalid_output_path_htmx(airlock_client):
     )
     response = airlock_client.get(
         "/workspaces/view/workspace/some_dir/some_sub_dir/file1.txt",
-        headers={"HX-Request": "true", "manifest-hash": workspace.manifest_hash},
+        headers={"HX-Request": "true", "manifest-hash": original_manifest_hash},
     )
 
     # redirects to nearest valid parent with a message to the user
@@ -244,7 +248,7 @@ def test_workspace_view_changed_manifest_htmx(airlock_client):
     factories.write_workspace_file("workspace", "some_dir/file.txt")
     # Fetch workspace with updated manifest
     workspace = factories.create_workspace("workspace")
-    assert UrlPath("some_dir/file.txt") in workspace.workspace_files
+    assert "some_dir/file.txt" in workspace.workspace_files
 
     # Store current manifest_hash
     current_manifest_hash = workspace.manifest_hash

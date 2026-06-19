@@ -188,12 +188,34 @@ class Workspace:
     name: str
     manifest: dict[str, Any]
     metadata: dict[str, Any]
-    workspace_child_map: dict[UrlPath, set[UrlPath]]
-    workspace_files: set[UrlPath]
+    # Valid file paths from the manifest. The workspace_child_map /
+    # workspace_files properties below build the tree from this lazily on
+    # first access (combined with a live scan of the metadata directory).
+    valid_paths: list[str]
     current_request: ReleaseRequest | None
     released_files: set[str]
     manifest_hash: str
     out_of_date_action_count: int
+
+    @cached_property
+    def _tree_map(self) -> tuple[dict[str, set[str]], set[str]]:
+        """Build (workspace_child_map, workspace_files) on first access.
+
+        This is the most expensive thing for large workspaces, and is only
+        needed for views that render the file browser do, so this lets views
+        that don't need it skip doing the work of building the map.
+        """
+        return self.get_workspace_child_map(
+            set(self.valid_paths) | self.scan_metadata_dir(self.name)
+        )
+
+    @property
+    def workspace_child_map(self) -> dict[str, set[str]]:
+        return self._tree_map[0]
+
+    @property
+    def workspace_files(self) -> set[str]:
+        return self._tree_map[1]
 
     @classmethod
     def from_directory(
@@ -212,18 +234,15 @@ class Workspace:
         if not manifest_path.exists():
             raise exceptions.ManifestFileError(f"{manifest_path} does not exist")
 
+        # Read once, then both parse and hash from the same bytes
+        data = manifest_path.read_bytes()
+        manifest_hash = hashlib.sha256(data).hexdigest()
         try:
-            manifest = json.loads(manifest_path.read_text())
+            manifest = json.loads(data)
         except json.JSONDecodeError as exc:
             raise exceptions.ManifestFileError(
                 f"Could not parse manifest.json file: {manifest_path}:\n{exc}"
             )
-
-        # Store the manifest hash so get_url() can include it as a query parameter
-        # and views can use it to check if the manifest has changed
-        manifest_hash = hashlib.file_digest(
-            manifest_path.open("rb"), "sha256"
-        ).hexdigest()
 
         if metadata is None:  # pragma: no cover
             metadata = {}
@@ -239,24 +258,18 @@ class Workspace:
                 )
             )
 
-        # build a map of all valid workspace UrlPaths and their children from the
-        # manifest file, plus a set of all paths for just the files
         valid_paths, out_of_date_action_count = (
             cls.get_valid_filepaths_from_manifest_outputs(
                 manifest["outputs"],
                 include_out_of_date_action_outputs=include_out_of_date_action_outputs,
             )
         )
-        workspace_child_map, workspace_files = cls.get_workspace_child_map(
-            valid_paths | cls.scan_metadata_dir(name)
-        )
 
         return cls(
             name,
             manifest=manifest,
             metadata=metadata,
-            workspace_child_map=workspace_child_map,
-            workspace_files=workspace_files,
+            valid_paths=sorted(valid_paths),
             current_request=current_request,
             released_files=released_files or set(),
             manifest_hash=manifest_hash,
@@ -277,24 +290,27 @@ class Workspace:
         We are only really interested in file paths - those include any parent
         directories we need for the tree for free.
         """
-        root = settings.WORKSPACE_DIR / name
-        paths = set()
+        # Note: these are strings rather than UrlPaths to match get_workspace_child_map
+        # which is much more efficiently built with strings and only converted to
+        # UrlPath in the filebrowser when needed
+        root = str(settings.WORKSPACE_DIR / name) + "/"
+        paths: set[str] = set()
 
         def scan(current: str) -> int:
             children = 0
 
             for entry in os.scandir(current):
                 children += 1
-                path = UrlPath(entry.path).relative_to(root)
-
                 if entry.is_dir():
                     scan(entry.path)
                 else:
-                    paths.add(path)
+                    # Strip the workspace-root prefix for a workspace-relative
+                    # path.
+                    paths.add(entry.path[len(root) :])
 
             return children
 
-        scan(str(root / "metadata"))
+        scan(root + "metadata")
 
         return paths
 
@@ -325,28 +341,35 @@ class Workspace:
     @staticmethod
     def get_workspace_child_map(
         workspace_file_paths: set[str],
-    ) -> tuple[dict[UrlPath, set[UrlPath]], set[UrlPath]]:
-        """
-        Return a map of every valid path in the workspace and its children
-        This includes output paths from the manifest file and any files in the
-        metadata directory (i.e. the manifest itself and log files)
+    ) -> tuple[dict[str, set[str]], set[str]]:
+        """Build a map of every valid path in the workspace and its children.
+
+        Includes output paths from the manifest file and any files in the
+        metadata directory (the manifest itself and log files).
+
+        Returned as plain strings rather than UrlPath: PurePosixPath/UrlPath
+        construction for large workspaces was expensive. The string are now
+        convert where needed (i.e. in file_browser_api). The root is represented
+        as "." to match str(ROOT_PATH).
         """
         # every path is a child of at least the root path
-        workspace_child_map: dict[UrlPath, set[UrlPath]] = {
-            UrlPath(workspace_file_path): set()
-            for workspace_file_path in workspace_file_paths
+        workspace_child_map: dict[str, set[str]] = {
+            p: set() for p in workspace_file_paths
         }
-        workspace_files = set(workspace_child_map)
-        for child in list(workspace_child_map):
-            parent = child.parent
-            while parent != ROOT_PATH:
+        for path in workspace_file_paths:
+            child = path
+            idx = child.rfind("/")
+            while idx >= 0:
+                parent = child[:idx]
                 workspace_child_map.setdefault(parent, set()).add(child)
                 child = parent
-                parent = child.parent
-            # Add the child to the root path
-            assert parent == ROOT_PATH
-            workspace_child_map.setdefault(parent, set()).add(child)
-        return workspace_child_map, workspace_files
+                idx = child.rfind("/")
+
+            # Add the final child to the root path (which now we're at idx < 0
+            # has no parents and sits directly under the root)
+            workspace_child_map.setdefault(".", set()).add(child)
+
+        return workspace_child_map, workspace_file_paths
 
     @property
     def project(self) -> Project:
@@ -495,7 +518,7 @@ class Workspace:
         Is this path a valid workspace file (i.e. an output file from the manifest, or a
         file in the metadata directory)?
         """
-        return UrlPath(relpath) in self.workspace_files
+        return str(UrlPath(relpath)) in self.workspace_files
 
     def is_valid_tree_path(self, relpath: UrlPath | str) -> bool:
         """
@@ -506,7 +529,7 @@ class Workspace:
         Outputs from previous jobs which are not part of the current manifest may still
         exist on disk but are not displayed in the tree.
         """
-        return UrlPath(relpath) in self.workspace_child_map
+        return str(UrlPath(relpath)) in self.workspace_child_map
 
 
 @dataclass(frozen=True)

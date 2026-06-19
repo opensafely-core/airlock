@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import typing
 from dataclasses import dataclass, field
-from hashlib import file_digest
+from hashlib import file_digest, sha256
 from pathlib import Path
 
 from django.conf import settings
@@ -333,19 +333,22 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         }
 
     manifest_path.parent.mkdir(exist_ok=True, parents=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2))
+    manifest_disk_text = json.dumps(manifest, indent=2)
+    manifest_path.write_text(manifest_disk_text)
 
     if isinstance(workspace, Workspace):
+        # Refresh the Workspace in place to match what's now on disk. Mirrors
+        # what bll.get_workspace() would produce on the next call: manifest_hash
+        # matches the on-disk bytes; valid_paths is recomputed and the cached
+        # tree_map is invalidated so it's rebuilt lazily on next access.
         workspace.manifest = manifest
+        workspace.manifest_hash = sha256(manifest_disk_text.encode()).hexdigest()
         valid_paths, out_of_date_count = (
             workspace.get_valid_filepaths_from_manifest_outputs(manifest["outputs"])
         )
-        workspace_child_map, workspace_files = workspace.get_workspace_child_map(
-            valid_paths | set(workspace.scan_metadata_dir(workspace.name))
-        )
-        workspace.workspace_child_map = workspace_child_map
-        workspace.workspace_files = workspace_files
+        workspace.valid_paths = sorted(valid_paths)
         workspace.out_of_date_action_count = out_of_date_count
+        workspace.__dict__.pop("_tree_map", None)
 
 
 def create_workspace(name: str, user=None) -> Workspace:

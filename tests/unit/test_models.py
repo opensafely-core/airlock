@@ -74,7 +74,7 @@ def test_workspace_from_directory_no_outputs_in_manifest():
     tracer = trace.get_tracer("test")
     with tracer.start_as_current_span("test-span"):
         workspace = factories.refresh_workspace("workspace")
-    assert workspace.workspace_files == {UrlPath("metadata/manifest.json")}
+    assert workspace.workspace_files == {"metadata/manifest.json"}
     traces = get_trace()
     last_trace_event = traces[-1].events[0]
     assert last_trace_event.name == "exception"
@@ -99,15 +99,15 @@ def test_workspace_from_directory_out_of_date_action_filter():
     included = Workspace.from_directory(
         "workspace", include_out_of_date_action_outputs=True
     )
-    assert UrlPath("stale.txt") in included.workspace_files
-    assert UrlPath("current.txt") in included.workspace_files
+    assert "stale.txt" in included.workspace_files
+    assert "current.txt" in included.workspace_files
     assert included.out_of_date_action_count == 1
 
     excluded = Workspace.from_directory(
         "workspace", include_out_of_date_action_outputs=False
     )
-    assert UrlPath("stale.txt") not in excluded.workspace_files
-    assert UrlPath("current.txt") in excluded.workspace_files
+    assert "stale.txt" not in excluded.workspace_files
+    assert "current.txt" in excluded.workspace_files
     # Count comes from the manifest, not the filtered file set.
     assert excluded.out_of_date_action_count == 1
 
