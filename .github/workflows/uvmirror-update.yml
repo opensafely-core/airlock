@@ -61,9 +61,15 @@ jobs:
       - name: Ensure requirements.uvmirror is consistent with uv.lock
         run: just uvmirror
 
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        id: generate-token2
+        with:
+          app-id: ${{ vars.CREATE_PR_APP_ID }}
+          private-key: ${{ secrets.CREATE_PR_APP_PRIVATE_KEY }}
+
       - name: Commit uvmirror changes
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate-token2.outputs.token }}
         run: |
           git add requirements.uvmirror
           git -c user.name="opensafely-github-bot" -c user.email=opensafely-github-bot@users.noreply.github.com commit -m "Update uvmirror file"
