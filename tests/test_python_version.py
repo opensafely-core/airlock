@@ -20,7 +20,7 @@ def python_version():
 
 @pytest.mark.parametrize(
     "filename",
-    BASE_DIR.glob(".github/workflows/*.yml"),
+    list(BASE_DIR.glob(".github/workflows/*.yml")),
     ids=lambda path: path.name,
 )
 def test_github_workflows(filename, python_version):
@@ -31,7 +31,7 @@ def test_github_workflows(filename, python_version):
 
 @pytest.mark.parametrize(
     "filename",
-    BASE_DIR.glob("docker/dependencies*.txt"),
+    list(BASE_DIR.glob("docker/dependencies*.txt")),
     ids=lambda path: path.name,
 )
 def test_docker_dependencies(filename, python_version):
