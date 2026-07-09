@@ -78,7 +78,7 @@ googleapis-common-protos==1.75.0
     # via opentelemetry-exporter-otlp-proto-http
 greenlet==3.5.1
     # via playwright
-gunicorn==25.3.0
+gunicorn==26.0.0
     # via airlock
 h11==0.16.0
     # via httpcore
