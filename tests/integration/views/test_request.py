@@ -3070,7 +3070,7 @@ def test_group_comment_visibility_public(airlock_client):
     )
 
 
-@pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
+@pytest.mark.parametrize("endpoint", ["delete", "visibility_public"])
 def test_group_comment_modify_bad_form(airlock_client, endpoint):
     checker = factories.create_airlock_user(
         username="checker", workspaces=[], output_checker=True
@@ -3108,7 +3108,7 @@ def test_group_comment_modify_bad_form(airlock_client, endpoint):
     )
 
 
-@pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
+@pytest.mark.parametrize("endpoint", ["delete", "visibility_public"])
 def test_group_comment_modify_bad_group(airlock_client, endpoint):
     checker = factories.create_airlock_user(
         username="checker", workspaces=[], output_checker=True
@@ -3143,7 +3143,7 @@ def test_group_comment_modify_bad_group(airlock_client, endpoint):
     )
 
 
-@pytest.mark.parametrize("endpoint,", ["delete", "visibility_public"])
+@pytest.mark.parametrize("endpoint", ["delete", "visibility_public"])
 def test_group_comment_modify_missing_comment(airlock_client, endpoint):
     checker = factories.create_airlock_user(
         username="checker", workspaces=[], output_checker=True
