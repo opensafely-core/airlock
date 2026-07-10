@@ -4,7 +4,7 @@ annotated-types==0.7.0
     # via pydantic
 ansi2html==1.9.2
     # via airlock
-anyio==4.13.0
+anyio==4.14.1
     # via httpx
 asgiref==3.11.1
     # via
@@ -18,14 +18,14 @@ backrefs==7.0
     # via mkdocs-material
 bleach==6.4.0
     # via django-markdownify
-certifi==2026.5.20
+certifi==2026.6.17
     # via
     #   httpcore
     #   httpx
     #   requests
 charset-normalizer==3.4.7
     # via requests
-click==8.4.1
+click==8.4.2
     # via mkdocs
 colorama==0.4.6
     # via
@@ -33,7 +33,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.14.1
+coverage==7.15.0
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -65,7 +65,7 @@ django-htmx==1.27.0
 django-markdownify==0.9.7
     # via airlock
 django-stubs==6.0.6
-django-stubs-ext==6.0.5
+django-stubs-ext==6.0.6
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -78,7 +78,7 @@ ghp-import==2.1.0
     # via mkdocs
 googleapis-common-protos==1.75.0
     # via opentelemetry-exporter-otlp-proto-http
-greenlet==3.5.1
+greenlet==3.5.3
     # via playwright
 gunicorn==26.0.0
     # via airlock
@@ -101,7 +101,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.11.0 ; platform_python_implementation != 'PyPy'
+librt==0.12.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.2
     # via
@@ -213,7 +213,7 @@ pygments==2.20.0
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==10.21.3
+pymdown-extensions==11.0.1
     # via mkdocs-material
 pytest==9.1.1
     # via
@@ -278,7 +278,7 @@ typeguard==2.13.3
 types-pyyaml==6.0.12.20260518
     # via django-stubs
 types-requests==2.33.0.20260518
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   anyio
     #   django-stubs
