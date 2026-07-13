@@ -191,20 +191,47 @@ document.body.addEventListener("submit", (event) => {
   if (tree) sessionStorage.setItem("treeScrollTop", tree.scrollTop);
 });
 
-// Restore scroll position on page load
-document.addEventListener("DOMContentLoaded", () => {
+// Restore scroll position on page load.
+//
+// scrollTop is a property on any scrollable element. It's the number of
+// pixels the content is scrolled down from the top. We can read it and
+// write it - but because it's a position, the fact that we set it doesn't
+// mean that it definitely has the value we set.
+//
+// The valid range is [0, scrollHeight − clientHeight]. If the layout hasn't
+// fully settled when we assign, then scrollHeight can momentarily be <=
+// clientHeight, so it's actually set to 0 and nothing ever re-applies it.
+// Reading scrollTop back after assignment tells us whether the value stuck.
+//
+// So: assign, read back, and if it didn't stick, retry on the next animation
+// frame. Give up after ~30 frames (~0.5s at 60fps) so we don't loop forever if
+// the saved position is genuinely unreachable (e.g. the destination page has
+// less tree content than the source).
+//
+// Note on very large trees: the budget is 30 animation frames, not 500ms of
+// wall-clock time. If layout is expensive (tens of thousands of files) and the
+// frame rate drops, rAF fires less often, so we still get 30 real chances to
+// re-apply. The number of settle events we're waiting for (initial layout,
+// fonts, the resizer's 100ms debounce) is fixed regardless of tree size, so
+// this should scale.
+window.addEventListener("load", () => {
   const saved = sessionStorage.getItem("treeScrollTop");
+  if (!saved) return;
+  sessionStorage.removeItem("treeScrollTop");
+  // We only need to care about scroll positions if we're on a page with a tree
   const treeContainer = document.getElementById("tree-container");
+  if (!treeContainer) return;
 
-
-  if (saved) {
-    sessionStorage.removeItem("treeScrollTop");
-    // Wait for browser scroll restoration to complete before applying saved position.
-    // The browser may reset scrollTop after DOMContentLoaded, so we delay slightly.
-    setTimeout(() => {
-      treeContainer.scrollTop = parseInt(saved, 10);
+  const target = parseInt(saved, 10);
+  let attempts = 30;
+  const restoreScrollPosition = () => {
+    treeContainer.scrollTop = target;
+    if (treeContainer.scrollTop === target || attempts-- <= 0) {
       document.getElementById("scroll-restore-style")?.remove();
-    }, 125);
-  }
+      return;
+    }
+    requestAnimationFrame(restoreScrollPosition);
+  };
+  restoreScrollPosition();
 });
 

@@ -1416,22 +1416,39 @@ def test_tree_scroll_preserved_after_file_review_action(
         "workspace",
         status=RequestStatus.SUBMITTED,
         files=[
-            factories.request_file(group="group", path=f"file{i:02d}.txt")
-            for i in range(30)
+            factories.request_file(group="group", path=f"file{i:03d}.txt")
+            for i in range(100)
         ],
     )
 
-    page.goto(live_server.url + release_request.get_url("group/file00.txt"))
+    page.goto(live_server.url + release_request.get_url("group/file000.txt"))
+    tree_container = page.locator("#tree-container")
 
+    # The resizer script (assets/src/scripts/resizer.js) shrinks
+    # #tree-container to fit the viewport asynchronously via a debounced
+    # ResizeObserver; until it runs the container isn't overflow-scrollable
+    # and scroll_into_view_if_needed would scroll the window instead.
+    page.wait_for_function(
+        "() => { const c = document.getElementById('tree-container');"
+        "  return c && c.scrollHeight > c.clientHeight; }"
+    )
     assert page.evaluate("document.getElementById('tree-container').scrollTop") == 0
-    page.evaluate("document.getElementById('tree-container').scrollTop = 200")
+
+    # Scroll a file that isn't visible from the top of the tree into view.
+    # After the review action we expect both the scroll position and this
+    # file's on-screen visibility to be preserved.
+    target_file = tree_container.locator(".tree__file").filter(has_text="file080.txt")
+    target_file.scroll_into_view_if_needed()
     scroll_before = page.evaluate("document.getElementById('tree-container').scrollTop")
     assert scroll_before > 0
+    expect(target_file).to_be_in_viewport()
 
     page.locator(button_id).click()
     page.wait_for_load_state("load")
-    # Tree is hidden during scroll restoration; wait for it to become visible
-    expect(page.locator("#tree-container")).to_be_visible()
 
-    scroll_after = page.evaluate("document.getElementById('tree-container').scrollTop")
-    assert scroll_after == scroll_before
+    # scrollTop is restored (polls, tolerating the JS retry loop's timing)
+    expect(tree_container).to_have_js_property("scrollTop", scroll_before)
+    # ...which means the file we scrolled to is still on-screen
+    expect(target_file).to_be_in_viewport()
+    # Restore path cleared its sessionStorage entry
+    assert page.evaluate("sessionStorage.getItem('treeScrollTop')") is None
