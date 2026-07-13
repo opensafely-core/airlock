@@ -188,10 +188,8 @@ document.body.addEventListener("submit", (event) => {
   const form = event.target.closest("form");
   if (!form) return;
   const tree = document.getElementById("tree-container");                    
-  if (tree) sessionStorage.setItem("treeScrollTop", tree.scrollTop); 
-    sessionStorage.setItem("treeScrollTop", document.getElementById("tree-container").scrollTop);
-  }
-);
+  if (tree) sessionStorage.setItem("treeScrollTop", tree.scrollTop);
+});
 
 // Restore scroll position on page load
 document.addEventListener("DOMContentLoaded", () => {
