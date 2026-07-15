@@ -41,7 +41,7 @@ distro==1.9.0
     # via ruyaml
 dj-database-url==3.1.2
     # via airlock
-django==6.0.6
+django==6.0.7
     # via
     #   airlock
     #   dj-database-url
