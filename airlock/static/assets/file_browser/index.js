@@ -1,3 +1,13 @@
+// If we have a previous scroll position to restore, disable the browser's
+// own scroll restoration to avoid conflicts with restoreTreeScrollPosition
+// and hide the tree until our restore loop finishes.
+if (sessionStorage.getItem("treeScrollTop")) {
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+    document.head.insertAdjacentHTML("beforeend", "<style id='scroll-restore-style'>#tree-container{visibility:hidden}</style>");
+  }
+}
+
 // keep the selected class up to date in the tree on the client side
 function setTreeSelection(tree, event) {
   // target here is the hx-get link that has been clicked on
@@ -174,3 +184,56 @@ if (document.readyState !== "loading") {
 // Every time a datatable is rendered we need to update the checkboxes
 // so they match the saved state
 document.body.addEventListener("clusterize-table-updated", renderCheckboxStatus);
+
+// Save scroll position before approve/request_changes form submits
+document.body.addEventListener("submit", (event) => {
+  const form = event.target.closest("form");
+  if (!form) return;
+  const tree = document.getElementById("tree-container");                    
+  if (tree) sessionStorage.setItem("treeScrollTop", tree.scrollTop);
+});
+
+// Restore scroll position on page load (see restoreTreeScrollPosition).
+window.addEventListener("load", () => {
+  const saved = sessionStorage.getItem("treeScrollTop");
+  if (!saved) return;
+  sessionStorage.removeItem("treeScrollTop");
+  // We only need to care about scroll positions if we're on a page with a tree
+  const treeContainer = document.getElementById("tree-container");
+  if (!treeContainer) return;
+
+  restoreTreeScrollPosition(treeContainer, parseInt(saved, 10));
+});
+
+// scrollTop is a property on any scrollable element. It's the number of
+// pixels the content is scrolled down from the top. We can read it and
+// write it - but because it's a position, the fact that we set it doesn't
+// mean that it definitely has the value we set.
+//
+// The valid range is [0, scrollHeight − clientHeight]. If the layout hasn't
+// fully settled when we assign, then scrollHeight can momentarily be <=
+// clientHeight, so it's actually set to 0 and nothing ever re-applies it.
+// Reading scrollTop back after assignment tells us whether the value stuck.
+//
+// So: assign, read back, and if it didn't stick, retry on the next animation
+// frame. Give up after ~30 frames (~0.5s at 60fps) so we don't loop forever if
+// the saved position is genuinely unreachable (e.g. the destination page has
+// less tree content than the source).
+//
+// Note on very large trees: the budget is 30 animation frames, not 500ms of
+// wall-clock time. If layout is expensive (tens of thousands of files) and the
+// frame rate drops, rAF fires less often, so we still get 30 real chances to
+// re-apply. The number of settle events we're waiting for (initial layout,
+// fonts, the resizer's 100ms debounce) is fixed regardless of tree size, so
+// this should scale.
+function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
+  treeContainer.scrollTop = target;
+
+  if (treeContainer.scrollTop === target || attempts <= 0) {
+    // Show the tree
+    document.getElementById("scroll-restore-style")?.remove();
+    return;
+  }
+
+  requestAnimationFrame(() => restoreTreeScrollPosition(treeContainer, target, attempts - 1));
+}
