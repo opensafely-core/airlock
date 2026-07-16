@@ -222,8 +222,10 @@ window.addEventListener("load", () => {
   const treeContainer = document.getElementById("tree-container");
   if (!treeContainer) return;
 
-  const target = parseInt(saved, 10);
-  let attempts = 30;
+  restoreTreeScrollPosition(treeContainer, parseInt(saved, 10));
+});
+
+function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
   const restoreScrollPosition = () => {
     treeContainer.scrollTop = target;
     if (treeContainer.scrollTop === target || attempts-- <= 0) {
@@ -233,5 +235,5 @@ window.addEventListener("load", () => {
     requestAnimationFrame(restoreScrollPosition);
   };
   restoreScrollPosition();
-});
+}
 
