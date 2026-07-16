@@ -77,8 +77,16 @@ ro.observe(document.documentElement);
  * When the user selects a file from the tree, HTMX replaces the content.
  * Listen for this change, and reset the content height after the file content
  * has been loaded.
+ * 
+ * We need to recalculate both the content height AND the tree height; if there
+ * was an alert on a page, and the user click on a different file in the tree
+ * without dismissing it, the alert will disappear when htmx replaces the content,
+ * and we need to resize the tree to fix the available space.
  */
-document.body.addEventListener("htmx:afterSettle", () => setContentHeight());
+document.body.addEventListener("htmx:afterSettle", () => {
+  setContentHeight();
+  setTreeHeight();
+});
 
 /**
  * Alert behaviour is controlled by the _alert.js script which we pull in from upstream
