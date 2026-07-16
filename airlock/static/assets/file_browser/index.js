@@ -226,14 +226,13 @@ window.addEventListener("load", () => {
 });
 
 function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
-  const restoreScrollPosition = () => {
-    treeContainer.scrollTop = target;
-    if (treeContainer.scrollTop === target || attempts-- <= 0) {
-      document.getElementById("scroll-restore-style")?.remove();
-      return;
-    }
-    requestAnimationFrame(restoreScrollPosition);
-  };
-  restoreScrollPosition();
-}
+  treeContainer.scrollTop = target;
 
+  if (treeContainer.scrollTop === target || attempts <= 0) {
+    // Show the tree
+    document.getElementById("scroll-restore-style")?.remove();
+    return;
+  }
+
+  requestAnimationFrame(() => restoreTreeScrollPosition(treeContainer, target, attempts - 1));
+}
