@@ -1437,6 +1437,8 @@ def test_tree_scroll_preserved_after_file_review_action(
     # Scroll a file that isn't visible from the top of the tree into view.
     # After the review action we expect both the scroll position and this
     # file's on-screen visibility to be preserved.
+    # Note that we don't have to view file080.txt itself - we're using it
+    # to set a new scroll position only.
     target_file = tree_container.locator(".tree__file").filter(has_text="file080.txt")
     target_file.scroll_into_view_if_needed()
     scroll_before = page.evaluate("document.getElementById('tree-container').scrollTop")
