@@ -1,4 +1,6 @@
-// Only disable browser scroll restoration when there is a position to restore
+// If we have a previous scroll position to restore, disable the browser's
+// own scroll restoration to avoid conflicts with restoreTreeScrollPosition
+// and hide the tree until our restore loop finishes.
 if (sessionStorage.getItem("treeScrollTop")) {
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
@@ -191,8 +193,18 @@ document.body.addEventListener("submit", (event) => {
   if (tree) sessionStorage.setItem("treeScrollTop", tree.scrollTop);
 });
 
-// Restore scroll position on page load.
-//
+// Restore scroll position on page load (see restoreTreeScrollPosition).
+window.addEventListener("load", () => {
+  const saved = sessionStorage.getItem("treeScrollTop");
+  if (!saved) return;
+  sessionStorage.removeItem("treeScrollTop");
+  // We only need to care about scroll positions if we're on a page with a tree
+  const treeContainer = document.getElementById("tree-container");
+  if (!treeContainer) return;
+
+  restoreTreeScrollPosition(treeContainer, parseInt(saved, 10));
+});
+
 // scrollTop is a property on any scrollable element. It's the number of
 // pixels the content is scrolled down from the top. We can read it and
 // write it - but because it's a position, the fact that we set it doesn't
@@ -214,24 +226,14 @@ document.body.addEventListener("submit", (event) => {
 // re-apply. The number of settle events we're waiting for (initial layout,
 // fonts, the resizer's 100ms debounce) is fixed regardless of tree size, so
 // this should scale.
-window.addEventListener("load", () => {
-  const saved = sessionStorage.getItem("treeScrollTop");
-  if (!saved) return;
-  sessionStorage.removeItem("treeScrollTop");
-  // We only need to care about scroll positions if we're on a page with a tree
-  const treeContainer = document.getElementById("tree-container");
-  if (!treeContainer) return;
+function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
+  treeContainer.scrollTop = target;
 
-  const target = parseInt(saved, 10);
-  let attempts = 30;
-  const restoreScrollPosition = () => {
-    treeContainer.scrollTop = target;
-    if (treeContainer.scrollTop === target || attempts-- <= 0) {
-      document.getElementById("scroll-restore-style")?.remove();
-      return;
-    }
-    requestAnimationFrame(restoreScrollPosition);
-  };
-  restoreScrollPosition();
-});
+  if (treeContainer.scrollTop === target || attempts <= 0) {
+    // Show the tree
+    document.getElementById("scroll-restore-style")?.remove();
+    return;
+  }
 
+  requestAnimationFrame(() => restoreTreeScrollPosition(treeContainer, target, attempts - 1));
+}
