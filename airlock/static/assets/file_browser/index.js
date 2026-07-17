@@ -1,10 +1,11 @@
 // If we have a previous scroll position to restore, disable the browser's
-// own scroll restoration to avoid conflicts with restoreTreeScrollPosition
-// and hide the tree until our restore loop finishes.
+// own scroll restoration to avoid conflicts with restoreTreeScrollPosition,
+// hide the tree until our restore loop finishes, and show a spinner in its place.
 if (sessionStorage.getItem("treeScrollTop")) {
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
-    document.head.insertAdjacentHTML("beforeend", "<style id='scroll-restore-style'>#tree-container{visibility:hidden}</style>");
+    document.head.insertAdjacentHTML("beforeend", "<style id='scroll-restore-style'>#tree{visibility:hidden}</style>");
+    document.getElementById("tree-scroll-spinner")?.classList.remove("hidden");
   }
 }
 
@@ -230,8 +231,12 @@ function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
   treeContainer.scrollTop = target;
 
   if (treeContainer.scrollTop === target || attempts <= 0) {
-    // Show the tree
+    // Hide the spinner and show the tree.
+    document.getElementById("tree-scroll-spinner")?.classList.add("hidden");
     document.getElementById("scroll-restore-style")?.remove();
+    // Removing the spinner causes the browser to adjust scrollTop, so
+    // reset it to target again
+    treeContainer.scrollTop = target;
     return;
   }
 
