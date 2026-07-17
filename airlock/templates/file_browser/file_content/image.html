@@ -1,0 +1,7 @@
+{% extends "file_browser/file_content/content_base.html" %}
+{% block metatitle %}{{ filename }}{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-center h-screen overflow-hidden">
+    <img src="{{ image_src }}" alt="{{ filename }}" class="max-w-full max-h-full object-contain">
+  </div>
+{% endblock %}

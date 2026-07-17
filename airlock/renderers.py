@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import csv
 import hashlib
 import mimetypes
@@ -186,6 +187,28 @@ class InvalidFileRenderer(Renderer):
         }
 
 
+class ImageRenderer(Renderer):
+    """
+    Render an image by converting it to a data URI that we can pass to a dedicated
+    image template, where the max-width/max-height constraints needed to make it fit
+    the iframe can be applied.
+
+    Note this handles jpg/jpeg/png image files, but (deliberately) not svg files.
+    SVGs are served as raw FileResponse instead - they typically include a viewBox and
+    scale naturally inside the iframe without needing this renderer.
+    It should be rare to encounter an svg without a viewbox, especially in svg output
+    files, which will have been created programmatically.
+    """
+
+    template = RendererTemplate("file_browser/file_content/image.html")
+
+    def context(self):
+        data = self.stream.read()
+        mtype, _ = mimetypes.guess_type(self.filename)
+        encoded = base64.b64encode(data).decode("ascii")
+        return {"image_src": f"data:{mtype};base64,{encoded}"}
+
+
 class LogRenderer(TextRenderer):
     def context(self):
         # Convert the text of the log file to HTML, converting ANSI colour codes to css classes
@@ -221,10 +244,13 @@ class LogRenderer(TextRenderer):
 
 FILE_RENDERERS = {
     ".csv": CSVRenderer,
-    ".log": LogRenderer,
-    ".txt": TextRenderer,
+    ".jpeg": ImageRenderer,
+    ".jpg": ImageRenderer,
     ".json": TextRenderer,
+    ".log": LogRenderer,
     ".md": TextRenderer,
+    ".png": ImageRenderer,
+    ".txt": TextRenderer,
     ".yaml": TextRenderer,
 }
 
