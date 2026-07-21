@@ -17,6 +17,9 @@
   <span class="loading-indicator"></span>
   <div id="file-browser-panel" class="grid grid-cols-4 gap-x-4 flex-1">
     <div class="border-r border-t bg-white overflow-auto min-w-full hover:z-10 hover:w-fit hover:shadow-2xl" id="tree-container">
+      <span id="tree-scroll-spinner" class="hidden sticky top-4 flex justify-center py-4">
+        <img height="16" width="16" class="icon animate-spin" src="{% static 'icons/progress_activity.svg' %}" alt="">
+      </span>
       {% block tree_toolbar %}{% endblock %}
       <ul
         class="tree root tree__root"
