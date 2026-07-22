@@ -4,9 +4,9 @@ annotated-types==0.7.0
     # via pydantic
 ansi2html==1.9.2
     # via airlock
-anyio==4.14.1
+anyio==4.14.2
     # via httpx
-asgiref==3.11.1
+asgiref==3.12.1
     # via
     #   django
     #   django-htmx
@@ -23,7 +23,7 @@ certifi==2026.6.17
     #   httpcore
     #   httpx
     #   requests
-charset-normalizer==3.4.7
+charset-normalizer==3.4.9
     # via requests
 click==8.4.2
     # via mkdocs
@@ -33,7 +33,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.15.0
+coverage==7.15.1
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -65,7 +65,7 @@ django-htmx==1.27.0
 django-markdownify==0.9.7
     # via airlock
 django-stubs==6.0.6
-django-stubs-ext==6.0.6
+django-stubs-ext==6.0.7
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -101,7 +101,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.12.0 ; platform_python_implementation != 'PyPy'
+librt==0.13.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.2
     # via
@@ -257,7 +257,7 @@ responses==0.26.1
 ruff==0.15.13
 ruyaml==0.91.0
     # via opensafely-pipeline
-setuptools==82.0.1
+setuptools==83.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
@@ -295,7 +295,7 @@ typing-extensions==4.16.0
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
-tzdata==2026.2 ; sys_platform == 'win32'
+tzdata==2026.3 ; sys_platform == 'win32'
     # via django
 ulid==1.1
     # via airlock
