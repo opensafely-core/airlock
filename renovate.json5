@@ -116,10 +116,12 @@
         "* 0-3 * * WED"
       ],
     },
-    // Fix Django to <6.0 due to current python verion (3.11)
-    // Otherwise renovate will use the general "widen" strategy to change the upper limit in pyproject.toml
-    // The locked version will correctly remain at the latest allowed version for python 3.11
-    // i.e. <6, but the upper limit in pytproject.toml is confusing 
+    // temporarily pin ruff until https://github.com/opensafely-core/airlock/issues/1248
+    {
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["ruff"],
+      "allowedVersions": "<0.16"
+    },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
