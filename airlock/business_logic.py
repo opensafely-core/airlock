@@ -5,7 +5,7 @@ import json
 import logging
 import secrets
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Protocol, cast
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     # Make a "staging" copy of the file under a temporary name so we know it can't be
     # modified underneath us
-    tmp_name = f"{datetime.now():%Y%m%d-%H%M%S}_{secrets.token_hex(8)}.tmp"
+    tmp_name = f"{datetime.now(tz=UTC):%Y%m%d-%H%M%S}_{secrets.token_hex(8)}.tmp"
     tmp_path = release_request.root() / tmp_name
     tmp_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(abspath, tmp_path)
