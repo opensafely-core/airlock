@@ -1429,8 +1429,11 @@ def test_tree_scroll_preserved_after_file_review_action(
     # ResizeObserver; until it runs the container isn't overflow-scrollable
     # and scroll_into_view_if_needed would scroll the window instead.
     page.wait_for_function(
-        "() => { const c = document.getElementById('tree-container');"
-        "  return c && c.scrollHeight > c.clientHeight; }"
+        "() => {"
+        "    const c = document.getElementById('tree-container');"
+        "    if (!c) return false;"
+        "    return c.scrollHeight > c.clientHeight;"
+        "}"
     )
     assert page.evaluate("document.getElementById('tree-container').scrollTop") == 0
 
