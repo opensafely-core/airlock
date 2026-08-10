@@ -91,7 +91,7 @@ def _create_workspaces(workspaces):
         for k, v in workspaces.items():
             actual_workspaces[k] = create_api_workspace(**v)
     else:  # pragma: nocover
-        raise Exception("bad workspaces parameter, should be dict, list, or None")
+        raise TypeError("bad workspaces parameter, should be dict, list, or None")
     return actual_workspaces
 
 
