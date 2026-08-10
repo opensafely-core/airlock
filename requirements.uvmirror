@@ -254,7 +254,7 @@ requests==2.34.2
     #   pytest-base-url
     #   responses
 responses==0.26.2
-ruff==0.15.22
+ruff==0.16.0
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==83.0.0
