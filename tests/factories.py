@@ -584,7 +584,7 @@ def create_request_at_status(
     # Submitting a release request with no output files is not allowed.
     file_reviewers = [
         create_airlock_user(username=username, output_checker=True)
-        for username in list(request.output_files().values())[0].reviews.keys()
+        for username in list(request.output_files().values())[0].reviews
     ]
 
     if status == RequestStatus.PARTIALLY_REVIEWED:

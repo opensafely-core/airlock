@@ -257,7 +257,7 @@ def test_csv_sorting(live_server, browser, csv_file):
     ).to_contain_text(first_row_second_sort_column_value, timeout=1)
 
     # See note at the top of file
-    if "coverage" not in sys.modules.keys():  # pragma: no cover
+    if "coverage" not in sys.modules:  # pragma: no cover
         context.close()
 
 
