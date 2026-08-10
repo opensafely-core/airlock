@@ -252,9 +252,8 @@ class PathItem:
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
-            if self.request_filetype != RequestFileType.CODE:
-                if not self.is_valid():
-                    classes.append("invalid")
+            if not self.is_valid() and self.request_filetype != RequestFileType.CODE:
+                classes.append("invalid")
 
         if self.selected:
             classes.append("selected")

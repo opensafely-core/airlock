@@ -963,9 +963,10 @@ class ReleaseRequest:
             case _:  # pragma: nocover
                 assert False
 
-        if user == self.author or not user.output_checker:
-            if decision == RequestFileDecision.CONFLICTED:
-                decision = RequestFileDecision.CHANGES_REQUESTED
+        if (
+            user == self.author or not user.output_checker
+        ) and decision == RequestFileDecision.CONFLICTED:
+            decision = RequestFileDecision.CHANGES_REQUESTED
 
         return RequestFileStatus(
             user=user,
