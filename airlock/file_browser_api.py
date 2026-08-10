@@ -539,7 +539,7 @@ def get_path_tree(
         path_parts: list[list[str]], parent: PathItem
     ) -> list[PathItem]:
         # group multiple paths into groups by first part of path
-        grouped: dict[str, list[list[str]]] = dict()
+        grouped: dict[str, list[list[str]]] = {}
         for child, *descendant_parts in path_parts:
             if child not in grouped:
                 grouped[child] = []

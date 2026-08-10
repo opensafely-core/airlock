@@ -106,22 +106,24 @@ class RequestMetadata(models.Model):
 
     def to_dict(self):
         """Unpack the db data into a dict for the Request object."""
-        return dict(
-            id=self.id,
-            workspace=self.workspace,
-            project=self.project or "",
-            organisations=self.organisations.split(",") if self.organisations else [],
-            status=self.status,
-            author=self.author,
-            created_at=self.created_at,
-            last_submitted_at=self.last_submitted_at,
-            filegroups=self.get_filegroups_to_dict(),
-            submitted_reviews=self.submitted_reviews,
-            review_turn=self.review_turn,
-            turn_reviewers=set(self.turn_reviewers.split(","))
+        return {
+            "id": self.id,
+            "workspace": self.workspace,
+            "project": self.project or "",
+            "organisations": self.organisations.split(",")
+            if self.organisations
+            else [],
+            "status": self.status,
+            "author": self.author,
+            "created_at": self.created_at,
+            "last_submitted_at": self.last_submitted_at,
+            "filegroups": self.get_filegroups_to_dict(),
+            "submitted_reviews": self.submitted_reviews,
+            "review_turn": self.review_turn,
+            "turn_reviewers": set(self.turn_reviewers.split(","))
             if self.turn_reviewers
             else set(),
-        )
+        }
 
 
 class FileGroupMetadata(models.Model):
@@ -141,19 +143,19 @@ class FileGroupMetadata(models.Model):
 
     def to_dict(self):
         """Unpack file group db data for FileGroup, RequestFile & Comment objects."""
-        return dict(
-            name=self.name,
-            context=self.context,
-            controls=self.controls,
-            updated_at=self.updated_at,
-            comments=[
+        return {
+            "name": self.name,
+            "context": self.context,
+            "controls": self.controls,
+            "updated_at": self.updated_at,
+            "comments": [
                 comment.to_dict()
                 for comment in self.comments.all().order_by("created_at")
             ],
-            files=[
+            "files": [
                 file_metadata.to_dict() for file_metadata in self.request_files.all()
             ],
-        )
+        }
 
 
 class FileGroupComment(models.Model):
@@ -215,26 +217,26 @@ class RequestFileMetadata(models.Model):
         unique_together = ("relpath", "request")
 
     def to_dict(self):
-        return dict(
-            relpath=Path(self.relpath),
-            group=self.filegroup.name,
-            file_id=self.file_id,
-            filetype=self.filetype,
-            timestamp=self.timestamp,
-            size=self.size,
-            commit=self.commit,
-            repo=self.repo,
-            job_id=self.job_id,
-            row_count=self.row_count,
-            col_count=self.col_count,
-            reviews=[file_review.to_dict() for file_review in self.reviews.all()],
-            released_at=self.released_at,
-            released_by=self.released_by,
-            uploaded=self.uploaded,
-            uploaded_at=self.uploaded_at,
-            upload_attempts=self.upload_attempts,
-            upload_attempted_at=self.upload_attempted_at,
-        )
+        return {
+            "relpath": Path(self.relpath),
+            "group": self.filegroup.name,
+            "file_id": self.file_id,
+            "filetype": self.filetype,
+            "timestamp": self.timestamp,
+            "size": self.size,
+            "commit": self.commit,
+            "repo": self.repo,
+            "job_id": self.job_id,
+            "row_count": self.row_count,
+            "col_count": self.col_count,
+            "reviews": [file_review.to_dict() for file_review in self.reviews.all()],
+            "released_at": self.released_at,
+            "released_by": self.released_by,
+            "uploaded": self.uploaded,
+            "uploaded_at": self.uploaded_at,
+            "upload_attempts": self.upload_attempts,
+            "upload_attempted_at": self.upload_attempted_at,
+        }
 
 
 class FileReview(models.Model):
@@ -254,13 +256,13 @@ class FileReview(models.Model):
 
     def to_dict(self):
         """Convert a FileReview object into a dict"""
-        return dict(
-            reviewer=self.reviewer,
-            status=self.status,
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            review_turn=self.review_turn,
-        )
+        return {
+            "reviewer": self.reviewer,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "review_turn": self.review_turn,
+        }
 
 
 class AuditLog(models.Model):

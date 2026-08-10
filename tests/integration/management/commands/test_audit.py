@@ -32,10 +32,10 @@ def test_audit_command(test_audits, kwargs, expected_audits):
 
 def test_audit_command_shows_hidden(bll):
     factories.create_audit_event(
-        AuditEventType.REQUEST_FILE_VIEW, extra=dict(review_turn="0")
+        AuditEventType.REQUEST_FILE_VIEW, extra={"review_turn": "0"}
     )
     factories.create_audit_event(
-        AuditEventType.REQUEST_FILE_VIEW, extra=dict(review_turn="1")
+        AuditEventType.REQUEST_FILE_VIEW, extra={"review_turn": "1"}
     )
     output_lines = audit_output({}).split("\n")
     assert not any("hidden=True" in output_line for output_line in output_lines)

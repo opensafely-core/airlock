@@ -111,15 +111,15 @@ def test_content_buttons(
     tooltip,
 ):
     user_data = {
-        "researcher": dict(
-            username="researcher",
-            workspaces={
+        "researcher": {
+            "username": "researcher",
+            "workspaces": {
                 "workspace": factories.create_api_workspace(
                     project="Project 1", ongoing=ongoing, archived=archived
                 )
             },
-            output_checker=False,
-        ),
+            "output_checker": False,
+        },
         "checker": factories.create_api_user(
             username="checker", workspaces={}, output_checker=True
         ),
