@@ -1432,7 +1432,11 @@ def test_tree_scroll_preserved_after_file_review_action(
         "() => {"
         "    const c = document.getElementById('tree-container');"
         "    if (!c) return false;"
-        "    return c.scrollHeight > c.clientHeight;"
+        "    const target_file = [...c.querySelectorAll('.tree__file')].find("
+        "        el => el.textContent.includes('file080.txt')"
+        "    );"
+        "    if (!target_file) return false;"
+        "    return target_file.getBoundingClientRect().top > c.getBoundingClientRect().bottom;"
         "}"
     )
     assert page.evaluate("document.getElementById('tree-container').scrollTop") == 0
