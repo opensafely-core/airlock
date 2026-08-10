@@ -1424,16 +1424,20 @@ def test_tree_scroll_preserved_after_file_review_action(
     page.goto(live_server.url + release_request.get_url("group/file000.txt"))
     tree_container = page.locator("#tree-container")
 
+    # Target a file in the tree that must be scrolled into view
+    target_file_name = "file080.txt"
+
     # The resizer script (assets/src/scripts/resizer.js) shrinks
     # #tree-container to fit the viewport asynchronously via a debounced
-    # ResizeObserver; until it runs the container isn't overflow-scrollable
-    # and scroll_into_view_if_needed would scroll the window instead.
+    # ResizeObserver; wait until the container has been resized so that it
+    # is scrollable and the target file is below the container's visible area.
+    # Otherwise scroll_into_view_if_needed would scroll an outer container instead.
     page.wait_for_function(
         "() => {"
         "    const c = document.getElementById('tree-container');"
         "    if (!c) return false;"
         "    const target_file = [...c.querySelectorAll('.tree__file')].find("
-        "        el => el.textContent.includes('file080.txt')"
+        f"        el => el.textContent.includes('{target_file_name}')"
         "    );"
         "    if (!target_file) return false;"
         "    return target_file.getBoundingClientRect().top > c.getBoundingClientRect().bottom;"
@@ -1441,12 +1445,12 @@ def test_tree_scroll_preserved_after_file_review_action(
     )
     assert page.evaluate("document.getElementById('tree-container').scrollTop") == 0
 
-    # Scroll a file that isn't visible from the top of the tree into view.
+    # Scroll the file into view (there is no need to view the file contents).
     # After the review action we expect both the scroll position and this
     # file's on-screen visibility to be preserved.
-    # Note that we don't have to view file080.txt itself - we're using it
-    # to set a new scroll position only.
-    target_file = tree_container.locator(".tree__file").filter(has_text="file080.txt")
+    target_file = tree_container.locator(".tree__file").filter(
+        has_text=target_file_name
+    )
     target_file.scroll_into_view_if_needed()
     scroll_before = page.evaluate("document.getElementById('tree-container').scrollTop")
     assert scroll_before > 0
