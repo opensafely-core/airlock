@@ -39,13 +39,26 @@ class RendererTemplate:
         # This is cached by django, so is fast
         t = loader.get_template(self.name)
 
-        # Calculate content hash if not already done, an attach it to the
+        # Calculate content hash if not already done, and attach it to the
         # django template instance. This is a little hacky, but its convenient
         # way to ensure that the content hash changes if the template has been
         # reloaded, which is really only when DEBUG=True. As our tests run with
         # DEBUG=True, this is marked as nocover.
+        # In addition, we calculate the hash of vite manifest file and include that
+        # in the template content hash too. The manifest is mapping of source paths
+        # to hashed output filenames, generated when vite rebuilds. This means that
+        # the content hash also changes when the compiled JS changes, and we don't end
+        # up serving file content with outdated JS.
+
         if not hasattr(t, "airlock_content_hash"):  # pragma: no cover
-            t.airlock_content_hash = hashlib.md5(t.template.source.encode()).hexdigest()  # type: ignore
+            vite_settings: Any = settings.DJANGO_VITE
+            manifest_path = Path(vite_settings["default"]["manifest_path"])
+            manifest_bytes = (
+                manifest_path.read_bytes() if manifest_path.exists() else b""
+            )
+            source = t.template.source.encode()  # type: ignore[attr-defined]
+            cache_hash = hashlib.md5(source + manifest_bytes).hexdigest()
+            t.airlock_content_hash = cache_hash  # type: ignore[attr-defined]
         return t
 
     @property
