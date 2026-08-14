@@ -24,7 +24,6 @@
       <ul
         class="tree root tree__root"
         hx-boost="true"
-        hx-on:htmx:after-request="setTreeSelection(this, event)"
         hx-push-url="true"
         hx-select="#selected-contents"
         hx-swap="outerHTML show:window:none"
@@ -45,6 +44,6 @@
 {% block extra_js %}
   {% vite_asset "assets/src/scripts/htmx.js" %}
   {% django_htmx_script %}
-  <script src="{% static 'assets/file_browser/index.js' %}"></script>
+  {% vite_asset "assets/src/scripts/file-browser-index.js" %}
   {% vite_asset "assets/src/scripts/resizer.js" %}
 {% endblock %}

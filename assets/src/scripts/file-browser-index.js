@@ -10,18 +10,20 @@ if (sessionStorage.getItem("treeScrollTop")) {
 }
 
 // keep the selected class up to date in the tree on the client side
-function setTreeSelection(tree, event) {
+document.body.addEventListener('htmx:afterRequest', (evt) => {
+  const tree = document.getElementById('tree');
+  if (!tree) return;
   // target here is the hx-get link that has been clicked on
+  const target = evt.target;
+  if (!target || !tree.contains(target)) return;
 
   // remove class from currently selected node
   tree.querySelector(".selected")?.classList.remove("selected");
 
-  let target = event.srcElement;
-
   // set current selected
   target.classList.add("selected");
   // ensure parent details container is open, which means clicking on a directory will open containers.
-  target.closest("details").open = true;
+  target.closest("details")?.setAttribute("open", "");
 
   // if target link is a filegroup, ensure all child <details> are opened, to match server-side rendering of tree
   if (target.classList.contains("filegroup")) {
@@ -30,7 +32,7 @@ function setTreeSelection(tree, event) {
       .querySelectorAll("details")
       .forEach((e) => (e.open = true));
   }
-}
+});
 
 //////////////////////
 // Checkbox scripts //
@@ -158,10 +160,12 @@ function fileBrowserClicked({ target }) {
 }
 
 /**
- * Add click event listener on the form.
+ * Add click event listener on the body. We attach to document.body rather than
+ * #file-browser-panel so that the listener survives HTMX history restores, which
+ * replace all body children (including #file-browser-panel) but not body itself.
  */
 function addCheckboxClickListener() {
-  document.getElementById("file-browser-panel").addEventListener("click", fileBrowserClicked);
+  document.body.addEventListener("click", fileBrowserClicked);
 }
 
 // On first load of the page we need to wire up the event listener
@@ -185,6 +189,11 @@ if (document.readyState !== "loading") {
 // Every time a datatable is rendered we need to update the checkboxes
 // so they match the saved state
 document.body.addEventListener("clusterize-table-updated", renderCheckboxStatus);
+
+// When HTMX restores a page from history it replaces the body content but does
+// not re-execute modules. Call renderCheckboxStatus directly so that saved
+// checkbox state is applied to the restored DOM.
+document.body.addEventListener("htmx:historyRestore", renderCheckboxStatus);
 
 // Save scroll position before approve/request_changes form submits
 document.body.addEventListener("submit", (event) => {
@@ -242,3 +251,9 @@ function restoreTreeScrollPosition(treeContainer, target, attempts = 30) {
 
   requestAnimationFrame(() => restoreTreeScrollPosition(treeContainer, target, attempts - 1));
 }
+
+document.body.addEventListener('change', (e) => {
+  if (e.target.matches('.selectall')) {
+    toggleSelectAll(e.target);
+  }
+});

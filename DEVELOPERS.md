@@ -158,6 +158,61 @@ Note: do not commit assets updated using a local job-server checkout. Merge
 your job-server changes first, then run `just assets/update` to update from
 the upstream repo.
 
+### Custom Airlock JS
+
+Custom Airlock JS files should also be added to `assets/src/scripts/` and must
+be registered as entry points in `vite.config.js` so that Vite compiles them.
+Vite produces content-hashed output filenames (e.g. `file-browser-index-CkKETnET.js`),
+which means the browser can safely cache each build indefinitely.
+
+Reference compiled assets in templates using `{% vite_asset %}` rather than
+`{% static %}`. The tag resolves the current content-hashed filename from the
+Vite manifest at render time.
+
+#### Inline HTML function calls
+
+Because Vite compiles JS as ES modules, functions defined in module files are
+**not** available in the global scope. Inline HTML attributes that call JS
+functions directly will silently fail at runtime:
+
+```html
+<!-- These do NOT work with Vite-compiled modules -->
+<form onsubmit="showSpinner()">...</form>
+<ul hx-on:htmx:after-request="setTreeSelection(this, event)">...</ul>
+```
+
+Instead, wire up behaviour with event listeners inside the module:
+
+```js
+// In the .js module file:
+document.querySelector('form').addEventListener('submit', () => {
+  showSpinner();
+});
+
+// Or using event delegation on document.body for elements that may be
+// replaced by HTMX swaps:
+document.body.addEventListener('htmx:afterRequest', (evt) => {
+  setTreeSelection(evt);
+});
+```
+
+Event delegation on `document.body` (or `document`) is generally preferred
+for HTMX-driven pages because HTMX can replace DOM elements during swaps or
+history restores, which would detach listeners registered directly on those
+elements. Listeners on `document.body` survive because the body element itself
+is never replaced.
+
+#### Caching and the Vite manifest
+
+File content views (CSV, text, image) are served with a one-year
+`Cache-Control: immutable` header and an ETag derived from the file content and
+the renderer template. The ETag also incorporates a hash of the Vite
+`manifest.json`, so that a JS change (which updates the manifest) automatically
+invalidates cached content responses and ensures browsers load the updated JS.
+The manifest hash only changes when compiled output actually changes - a Vite
+rebuild with no source changes produces an identical manifest and leaves the
+ETag unchanged.
+
 
 ## Opentelemetry
 
