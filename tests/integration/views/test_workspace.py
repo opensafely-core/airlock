@@ -493,6 +493,8 @@ def test_workspace_view_excluded_l4_output_path(airlock_client):
 
 @pytest.mark.parametrize(
     "user,can_see_form",
+    # Note that if workspaces is empty and output_checker / readonly_access are both False,
+    # a 403 is raised, so we don't test that here.
     [
         (
             factories.create_api_user(
@@ -514,15 +516,21 @@ def test_workspace_view_excluded_l4_output_path(airlock_client):
         ),
         (
             factories.create_api_user(
+                workspaces=["workspace"], output_checker=True, readonly_access=True
+            ),
+            True,
+        ),
+        (
+            factories.create_api_user(
                 workspaces=["workspace"], output_checker=False, readonly_access=True
             ),
             True,
         ),
         (
             factories.create_api_user(
-                workspaces=["workspace"], output_checker=False, readonly_access=False
+                workspaces=[], output_checker=True, readonly_access=True
             ),
-            True,
+            False,
         ),
         (
             factories.create_api_user(
