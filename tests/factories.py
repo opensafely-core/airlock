@@ -393,7 +393,9 @@ def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeR
 
     env = {"GIT_DIR": str(repo_dir)}
     ensure_git_init(repo_dir)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], env=env)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"], check=True, env=env
+    )
     subprocess.run(["git", "config", "user.name", "Test"], check=True, env=env)
 
     with tempfile.TemporaryDirectory() as tmpdir:
