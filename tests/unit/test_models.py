@@ -157,7 +157,7 @@ def test_get_file_metadata():
 
     # directory
     with pytest.raises(AssertionError):
-        workspace.get_file_metadata(UrlPath("metadata")) is None
+        workspace.get_file_metadata(UrlPath("metadata"))
 
     # small log file
     factories.write_workspace_file(workspace, "metadata/foo.log", contents="foo")
