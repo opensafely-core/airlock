@@ -252,7 +252,7 @@ def test_request_view_with_submitted_request(airlock_client):
             "researcher",
             [factories.request_file(group="group", changes_requested=True)],
             None,
-            "researcher",
+            "researcher1",
         ),
         (
             # comments not required on approved file, no alert
