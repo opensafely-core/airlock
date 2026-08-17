@@ -289,7 +289,7 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         )
         ws_outputs &= set(manifest["outputs"])
         if ws_outputs:
-            first_output = manifest["outputs"][list(ws_outputs)[0]]
+            first_output = manifest["outputs"][next(iter(ws_outputs))]
             repo = first_output["repo"]
             if repo.startswith("https://github.com"):  # pragma: no cover
                 commit = first_output["commit"]
@@ -584,7 +584,7 @@ def create_request_at_status(
     # Submitting a release request with no output files is not allowed.
     file_reviewers = [
         create_airlock_user(username=username, output_checker=True)
-        for username in list(request.output_files().values())[0].reviews
+        for username in next(iter(request.output_files().values())).reviews
     ]
 
     if status == RequestStatus.PARTIALLY_REVIEWED:
