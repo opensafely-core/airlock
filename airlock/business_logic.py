@@ -390,7 +390,7 @@ class BusinessLogicLayer:
         none.
         """
         # get_current_request will raise exception if user has no permission
-        # and is not an output-cheker
+        # and is not an output-checker
         request = self.get_current_request(workspace, user)
 
         if request is not None:

@@ -96,7 +96,7 @@ def instrument(
     existing_tracer: pass an optional existing tracer to use. Defaults to
       a tracer named with the value of the environment variable
       `OTEL_SERVICE_NAME` if available, or the name of the module containing
-      the decoraated function.
+      the decorated function.
     """
 
     def span_decorator(func):
