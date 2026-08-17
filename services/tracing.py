@@ -72,9 +72,9 @@ def instrument(
     span_name: str = "",
     set_status_on_exception=False,
     record_exception: bool = True,
-    attributes: dict[str, str] = None,
-    func_attributes: dict[str, str] = None,
-    existing_tracer: trace.Tracer = None,
+    attributes: dict[str, str] | None = None,
+    func_attributes: dict[str, str] | None = None,
+    existing_tracer: trace.Tracer | None = None,
 ):
     """
     A decorator to instrument a function with an OTEL tracing span.
