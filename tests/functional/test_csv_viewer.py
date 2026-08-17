@@ -111,7 +111,7 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
         csv_list,
     )
 
-    assert len(failures) == 0, print(repr(failures))
+    assert len(failures) == 0, failures
 
     # We can tidy up here without hanging because there is a hypothesis test
     # after this one. See the comment at the top of the file for more detail
