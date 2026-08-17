@@ -96,7 +96,7 @@ def run_gunicorn(args, timeout, check_url="/", env=None) -> Iterator[GunicornPro
                 )
                 assert response.status_code < 500
                 break
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
             time.sleep(0.5)
