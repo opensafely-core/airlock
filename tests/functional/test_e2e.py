@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from playwright.sync_api import expect
@@ -387,7 +387,7 @@ def test_e2e_release_files(
     # the created_at date, and the review turn (in that order)
     assert len(pill_texts) == 4
     assert pill_texts[0:2] == ["Blinded", "Private"]
-    assert pill_texts[2].startswith(str(datetime.today().year))
+    assert pill_texts[2].startswith(str(datetime.now(tz=UTC).year))
     assert pill_texts[3] == "1"
 
     # now the submit review button is enabled
