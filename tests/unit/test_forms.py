@@ -17,8 +17,7 @@ def test_add_files_form_no_release_request():
 
 def test_filetype_formset():
     formset = FileTypeFormSet(initial=[{"file": f} for f in ["foo.txt", "bar.txt"]])
-    form1 = list(formset)[0]
-    form2 = list(formset)[1]
+    form1, form2, *_ = list(formset)
 
     assert form1.fields["file"].get_bound_field(form1, "file").value() == "foo.txt"
     assert form1.fields["filetype"].initial == "OUTPUT"
