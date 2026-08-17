@@ -115,13 +115,13 @@ def run_gunicorn(args, timeout, check_url="/", env=None) -> Iterator[GunicornPro
 
 
 def test_run_gunicorn_failure():
-    with pytest.raises(AssertionError) as exc:
+    with (
+        pytest.raises(AssertionError) as exc,
         # we use preload to force an early error and avoid race conditions
-        with run_gunicorn(
-            ["doesnotexist", "-w", "1", "--preload"], timeout=5
-        ) as process:
-            # should not get here, so if we do, print some debugging info
-            print(process.read_output())  # pragma: nocover
+        run_gunicorn(["doesnotexist", "-w", "1", "--preload"], timeout=5) as process,
+    ):
+        # should not get here, so if we do, print some debugging info
+        print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start correctly" in str(exc)
 
