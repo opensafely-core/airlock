@@ -3159,7 +3159,7 @@ def test_group_comment_modify_missing_comment(airlock_client, endpoint):
     assert len(release_request.filegroups["group"].comments) == 1
 
     bad_comment_id = 50
-    assert not release_request.filegroups["group"].comments[0].id == bad_comment_id
+    assert release_request.filegroups["group"].comments[0].id != bad_comment_id
 
     response = airlock_client.post(
         f"/requests/comment/{endpoint}/{release_request.id}/group",
