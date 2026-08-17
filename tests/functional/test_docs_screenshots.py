@@ -842,7 +842,7 @@ def test_screenshot_workspace_icons(page, context, live_server, mock_old_api):
 
 
 def test_screenshot_copiloted_workspace(page, live_server, context):
-    author, user_dicts = get_user_data()
+    _, user_dicts = get_user_data()
 
     # set up a workspace with files in a subdirectory
     workspace = factories.create_workspace("workspace-1")

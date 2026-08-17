@@ -101,7 +101,7 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
 
 def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     freezer.move_to("2022-01-01T12:34:56")
-    release_request, workspace = setup_release_request(
+    release_request, _ = setup_release_request(
         upload_files_stubber, bll, response_statuses=[403]
     )
     relpath = UrlPath("test/file.txt")
