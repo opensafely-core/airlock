@@ -333,7 +333,7 @@ def test_request_view_submit_request_alert(
         (
             "researcher",
             "checker",
-            [factories.request_file(changes_requested=True, comment=True)],
+            [factories.request_file(approved=True, comment=True)],
             "submit your review now",
         ),
         # approved, no comments
