@@ -550,7 +550,7 @@ class CodeRepo:
     @classmethod
     def from_workspace(cls, workspace: Workspace, commit: str) -> CodeRepo:
         try:
-            repo = list(workspace.manifest["outputs"].values())[0]["repo"]
+            repo = list(workspace.manifest["outputs"].values())[0]["repo"]  # noqa: RUF015
         except (exceptions.ManifestFileError, IndexError, KeyError) as exc:
             raise cls.RepoNotFound(
                 f"Could not parse manifest.json file: {workspace.manifest_path()}:\n{exc}"
