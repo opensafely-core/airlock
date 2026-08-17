@@ -2147,8 +2147,9 @@ def test_change_file_properties_permission_denied(airlock_client):
 
 def test_request_multiselect_withdraw_files(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2180,8 +2181,9 @@ def test_request_multiselect_withdraw_files(airlock_client):
 
 def test_request_multiselect_withdraw_all_files_pending_request(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.PENDING,
         files=[
@@ -2226,8 +2228,9 @@ def test_request_multiselect_withdraw_all_files_pending_request(airlock_client):
 
 def test_request_multiselect_change_file_properties(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2258,8 +2261,9 @@ def test_request_multiselect_change_file_properties(airlock_client):
 
 def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.SUBMITTED,
         files=[
@@ -2291,8 +2295,9 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
 
 def test_request_multiselect_change_file_properties_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2380,8 +2385,9 @@ def test_workspace_multiselect_change_file_properties_released_file(
 @pytest.mark.parametrize("action", ["withdraw_files", "update_files"])
 def test_request_multiselect_none_selected(airlock_client, action):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2403,8 +2409,9 @@ def test_request_multiselect_none_selected(airlock_client, action):
 
 def test_request_multiselect_invalid_action(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
