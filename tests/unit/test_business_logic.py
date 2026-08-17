@@ -692,9 +692,7 @@ def test_provider_get_outstanding_requests_for_review(
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
-            [r1.id]
-        )
+        assert {r.id for r in bll.get_outstanding_requests_for_review(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_outstanding_requests_for_review(user)
@@ -757,7 +755,7 @@ def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_returned_requests(user)) == set([r1.id])
+        assert {r.id for r in bll.get_returned_requests(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_returned_requests(user)
@@ -822,7 +820,7 @@ def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_approved_requests(user)) == set([r1.id])
+        assert {r.id for r in bll.get_approved_requests(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_approved_requests(user)
@@ -3626,7 +3624,7 @@ def test_dal_methods_have_audit_event_parameter():
 
     for name, func in dal_functions.items():
         signature = inspect.signature(func)
-        arg_annotations = set(p.annotation for p in signature.parameters.values())
+        arg_annotations = {p.annotation for p in signature.parameters.values()}
         assert "AuditEvent" in arg_annotations, (
             f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
         )
