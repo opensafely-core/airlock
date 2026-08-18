@@ -909,24 +909,122 @@ def test_out_of_date_action_toggle_preserves_tree_expansion(live_server, page, c
     # Flip the toggle.
     click_and_htmx(page, toggle)
 
-    # Toggle is on, button says 'hide', stale file is present in the tree DOM
-    # (its parent folder is collapsed by default so the link isn't visible,
-    # but it is now part of the rendered tree).
+    # Toggle is on, button says 'hide', stale folder is now visible in the tree.
     expect(toggle).to_have_text("hide")
     expect(page.locator("#tree-container")).to_contain_text(
         "1 output from out-of-date actions"
     )
-    expect(tree.get_by_role("link", name="old.txt", include_hidden=True)).to_have_count(
-        1
+    stale_details = page.locator(
+        "#tree details:has(> summary a.tree__folder-link[href$='/stale/'])"
     )
+    expect(stale_details).to_be_visible()
+    # Children are loaded lazily; expand stale/ to confirm old.txt is reachable.
+    stale_details.evaluate("el => el.open = true")
+    wait_for_htmx(page)
+    expect(tree.get_by_role("link", name="old.txt")).to_have_count(1)
 
     # The manually-expanded 'other' folder is still expanded after the swap.
     expect(other_details).to_have_attribute("open", "")
 
-    # URL is unchanged — no full page reload.
+    # URL is unchanged; no full page reload.
     expect(page).to_have_url(
         f"{live_server.url}/workspaces/view/my-workspace/current/file.txt"
     )
+
+
+def test_workspace_lazy_tree_expansion(live_server, page, context):
+    """Clicking the folder arrow (not the link) lazy-loads children and makes them clickable."""
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "subdir/file.txt", "file content")
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # Navigate to workspace root; subdir starts collapsed (lazy, children not in DOM).
+    page.goto(live_server.url + "/workspaces/view/workspace/")
+
+    tree = page.locator("#tree")
+    expect(tree.get_by_role("link", name="subdir")).to_be_visible()
+    expect(tree.get_by_role("link", name="file.txt")).to_have_count(0)
+
+    # Click the expand arrow - not the folder link - so no hx-boost navigation fires.
+    subdir_details = page.locator(
+        "#tree details:has(> summary a.tree__folder-link[href$='/subdir/'])"
+    )
+    subdir_expand_arrow = subdir_details.locator("span.tree__folder-arrows")
+    click_and_htmx(page, subdir_expand_arrow)
+
+    # Children are now visible; the URL has not changed (no navigation occurred).
+    file_link = tree.get_by_role("link", name="file.txt")
+    expect(file_link).to_be_visible()
+    expect(page).to_have_url(live_server.url + "/workspaces/view/workspace/")
+
+    # Clicking the file link navigates correctly (exercises the hx-boost inheritance
+    # path through the lazily-loaded subtree).
+    click_and_htmx(page, file_link)
+    expect(page).to_have_url(
+        live_server.url + "/workspaces/view/workspace/subdir/file.txt"
+    )
+
+
+def test_workspace_nested_lazy_tree_expansion(live_server, page, context):
+    """Expanding a lazily-loaded folder that itself contains lazy sub-folders works."""
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "parent/child/deep.txt", "content")
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    page.goto(live_server.url + "/workspaces/view/workspace/")
+
+    tree = page.locator("#tree")
+
+    # parent is visible but child and deep.txt are not yet in the DOM
+    expect(tree.get_by_role("link", name="parent")).to_be_visible()
+    expect(tree.get_by_role("link", name="child")).to_have_count(0)
+    expect(tree.get_by_role("link", name="deep.txt")).to_have_count(0)
+
+    # Expand parent - lazy-loads its children (including child/)
+    parent_details = page.locator(
+        "#tree details:has(> summary a.tree__folder-link[href$='/parent/'])"
+    )
+    parent_expand_arrow = parent_details.locator("span.tree__folder-arrows")
+    click_and_htmx(page, parent_expand_arrow)
+
+    expect(tree.get_by_role("link", name="child")).to_be_visible()
+    expect(tree.get_by_role("link", name="deep.txt")).to_have_count(0)
+
+    # Expand child - this is a lazy folder injected by the first lazy load
+    child_details = page.locator(
+        "#tree details:has(> summary a.tree__folder-link[href$='/child/'])"
+    )
+    child_expand_arrow = child_details.locator("span.tree__folder-arrows")
+    click_and_htmx(page, child_expand_arrow)
+
+    # deep.txt is now visible
+    expect(tree.get_by_role("link", name="deep.txt")).to_be_visible()
 
 
 def get_element_height(page, selector):
