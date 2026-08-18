@@ -83,10 +83,10 @@ class FileForm(forms.Form):
 
 
 class FileTypeForm(forms.Form):
-    FILETYPE_CHOICES = [
+    FILETYPE_CHOICES = (
         (RequestFileType.OUTPUT.name, RequestFileType.OUTPUT.name.title()),
         (RequestFileType.SUPPORTING.name, RequestFileType.SUPPORTING.name.title()),
-    ]
+    )
 
     file = forms.CharField(
         required=True,
