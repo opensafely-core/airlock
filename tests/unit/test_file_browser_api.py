@@ -12,7 +12,6 @@ from airlock.enums import (
     WorkspaceFileStatus,
 )
 from airlock.file_browser_api import (
-    PathItem,
     get_code_tree,
     get_request_tree,
     get_workspace_tree,
@@ -108,14 +107,14 @@ def test_get_workspace_tree_general(release_request):
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
-    # simple way to express the entire tree structure, including selected
+    # simple way to express the entire tree structure, including selected and lazy (collapsed dirs)
+    # Directories not on the path to selected_path are lazy (has_children=True,
+    # children=[], shown with "!" in __str__). metadata is not on the path to
+    # some_dir/file_a.txt so it appears lazy; some_dir is expanded.
     expected = textwrap.dedent(
         """
         workspace*
-          metadata
-            metadata_subdir
-              file.log
-            manifest.json
+          metadata!
           some_dir*
             .file.txt
             excluded.csv.txt
@@ -215,14 +214,11 @@ def test_get_workspace_tree_general_does_not_require_files_on_disk(release_reque
     selected_path = UrlPath("some_dir/file_a.txt")
     tree = get_workspace_tree(workspace, selected_path)
 
-    # simple way to express the entire tree structure, including selected
+    # simple way to express the entire tree structure, including selected and lazy (collapsed dirs)
     expected = textwrap.dedent(
         """
         workspace*
-          metadata
-            metadata_subdir
-              file.log
-            manifest.json
+          metadata!
           some_dir*
             .file.txt
             file_a.foo
@@ -402,42 +398,17 @@ def test_get_request_tree_status(bll):
     assert_status(checker2, RequestFileDecision.APPROVED, RequestFileVote.APPROVED)
 
 
-def test_get_workspace_tree_selected_only_file(workspace):
-    selected_path = UrlPath("some_dir/file_a.txt")
-    tree = get_workspace_tree(workspace, selected_path, selected_only=True)
-
-    # only the selected path should be in the tree
-    expected = textwrap.dedent(
-        """
-        workspace*
-          some_dir*
-            file_a.txt**
-        """
-    )
-
-    assert str(tree).strip() == expected.strip()
-
-
-def test_get_workspace_tree_selected_only_root(workspace):
-    tree = get_workspace_tree(workspace, UrlPath(), selected_only=True)
-    # only the selected path should be in the tree
+def test_get_workspace_tree_root_selected(workspace):
+    tree = get_workspace_tree(workspace, UrlPath())
     expected = textwrap.dedent(
         """
         workspace***
-          metadata
-          some_dir
+          metadata!
+          some_dir!
         """
     )
 
     assert str(tree).strip() == expected.strip()
-
-
-def test_get_workspace_tree_selected_only_is_invalid_output_path(workspace):
-    # Create a file that is not in the manifest
-    selected_path = UrlPath("some_dir/bad_output.txt")
-    (workspace.root() / selected_path).mkdir()
-    with pytest.raises(PathItem.PathNotFound, match="not current output"):
-        get_workspace_tree(workspace, selected_path, selected_only=True)
 
 
 @pytest.mark.django_db
@@ -500,7 +471,9 @@ def test_get_request_tree_selected_only_group(release_request):
     ],
 )
 def test_workspace_tree_get_path(workspace, path, exists):
-    tree = get_workspace_tree(workspace)
+    # Use a selected_path inside some_dir so that directory is expanded and its
+    # children are reachable via get_path.
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
 
     if exists:
         tree.get_path(path)
@@ -539,12 +512,12 @@ def test_request_tree_get_path(release_request, path, exists):
     ],
 )
 def test_workspace_tree_urls(workspace, path, url):
-    tree = get_workspace_tree(workspace)
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
     assert tree.get_path(path).url().endswith(url)
 
 
 def test_workspace_tree_content_urls(workspace):
-    tree = get_workspace_tree(workspace)
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
     url = tree.get_path("some_dir/file_a.txt").contents_url()
     assert "some_dir/file_a.txt" in url
     assert "cache_id=" in url
@@ -580,7 +553,7 @@ def test_request_tree_download_url(release_request):
 
 
 def test_workspace_tree_breadcrumbs(workspace):
-    tree = get_workspace_tree(workspace)
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
     path = tree.get_path("some_dir/file_a.txt")
     assert [c.name() for c in path.breadcrumbs()] == [
         "workspace",
@@ -678,7 +651,7 @@ def test_request_tree_selection_not_path(release_request):
 
 
 def test_workspace_tree_siblings(workspace):
-    tree = get_workspace_tree(workspace)
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
 
     assert tree.siblings() == []
     assert {s.name() for s in tree.get_path("some_dir").siblings()} == {
@@ -715,6 +688,57 @@ def test_get_workspace_tree_tracing(workspace):
     assert len(traces) == 1
     trace = traces[0]
     assert trace.attributes == {"workspace": workspace.name}
+
+
+def test_get_workspace_tree_lazy_dirs(workspace):
+    """Directories not on the selected path are lazy; selected-path dirs are expanded."""
+    selected_path = UrlPath("some_dir/file_a.txt")
+    tree = get_workspace_tree(workspace, selected_path)
+
+    # metadata is not on the path to some_dir/file_a.txt, lazy
+    metadata_node = tree.get_path("metadata")
+    assert metadata_node.has_children
+    assert metadata_node.children == []
+
+    # some_dir IS on the path → expanded, not lazy
+    some_dir_node = tree.get_path("some_dir")
+    assert not some_dir_node.has_children
+    assert len(some_dir_node.children) > 0
+
+    # files inside the expanded dir are present and have status
+    file_a = tree.get_path("some_dir/file_a.txt")
+    assert file_a.workspace_status is not None
+
+
+def test_get_workspace_tree_lazy_url(workspace):
+    """Lazy directories expose a URL for HTMX to fetch their children."""
+    tree = get_workspace_tree(workspace, selected_path=UrlPath("some_dir/file_a.txt"))
+
+    metadata_node = tree.get_path("metadata")
+    assert metadata_node.has_children
+
+    url = metadata_node.get_tree_children_url()
+    assert url is not None
+    assert "workspace" in url
+    assert "metadata" in url
+
+    # Expanded directories do not expose a lazy URL
+    assert tree.get_path("some_dir").get_tree_children_url() is None
+
+
+def test_build_workspace_tree_nested(workspace):
+    """Selecting a nested path expands all directories along the path."""
+    factories.write_workspace_file(workspace, "some_dir/sub/nested.txt")
+    workspace = factories.refresh_workspace("workspace")
+
+    tree = get_workspace_tree(
+        workspace, selected_path=UrlPath("some_dir/sub/nested.txt")
+    )
+
+    # some_dir and some_dir/sub are both on the selected path → expanded
+    assert not tree.get_path("some_dir").has_children
+    assert not tree.get_path("some_dir/sub").has_children
+    assert tree.get_path("some_dir/sub/nested.txt") is not None
 
 
 @pytest.mark.django_db
