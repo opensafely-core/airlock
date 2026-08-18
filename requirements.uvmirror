@@ -33,7 +33,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.15.2
+coverage==7.15.3
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -103,7 +103,7 @@ jinja2==3.1.6
     #   mkdocs-material
 librt==0.13.0 ; platform_python_implementation != 'PyPy'
     # via mypy
-markdown==3.10.2
+markdown==3.10.3
     # via
     #   django-markdownify
     #   mkdocs
@@ -177,7 +177,7 @@ opentelemetry-util-http==0.61b0
     #   opentelemetry-instrumentation-django
     #   opentelemetry-instrumentation-requests
     #   opentelemetry-instrumentation-wsgi
-packaging==26.2
+packaging==26.3
     # via
     #   gunicorn
     #   mkdocs
