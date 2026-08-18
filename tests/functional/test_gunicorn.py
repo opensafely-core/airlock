@@ -163,7 +163,7 @@ def create_test_wsgi_application():
     def slow_test_view(request):
         """View that intentionally times out"""
         time.sleep(5)
-        raise Exception("view did not timeout")  # pragma: nocover
+        raise RuntimeError("view did not timeout")  # pragma: nocover
 
     # Add test URL pattern to the existing urlpatterns
     urlconf_module = __import__(settings.ROOT_URLCONF, fromlist=[""])
