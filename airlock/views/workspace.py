@@ -455,6 +455,9 @@ def workspace_tree_children(request, workspace_name: str, path: str):
     )
     relpath = UrlPath(path)
 
+    if redirect := _manifest_changed_redirect(request, workspace, relpath):
+        return redirect
+
     if not workspace.is_valid_tree_path(relpath):
         raise Http404()
 
