@@ -15,7 +15,7 @@ for workspace in workspaces:
         is_real_repo = first_output and first_output["repo"].startswith(
             "https://github.com"
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         is_real_repo = False
 
     if is_real_repo:
