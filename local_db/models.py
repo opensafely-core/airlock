@@ -276,7 +276,7 @@ class AuditLog(models.Model):
     hidden = models.BooleanField(default=False)
 
     class Meta:
-        indexes = [
+        indexes = [  # noqa: RUF012
             models.Index(fields=["user"]),
             models.Index(fields=["workspace"]),
             models.Index(fields=["request"]),
