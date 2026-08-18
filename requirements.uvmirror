@@ -10,7 +10,7 @@ asgiref==3.12.1
     # via
     #   django
     #   django-htmx
-ast-serialize==0.6.0
+ast-serialize==0.8.0
     # via mypy
 babel==2.18.0
     # via mkdocs-material
@@ -33,7 +33,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.15.3
+coverage==7.15.4
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -65,7 +65,7 @@ django-htmx==1.28.0
 django-markdownify==0.9.7
     # via airlock
 django-stubs==6.0.7
-django-stubs-ext==6.0.7
+django-stubs-ext==6.0.9
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -76,9 +76,9 @@ freezegun==1.5.5
     # via pytest-freezer
 ghp-import==2.1.0
     # via mkdocs
-googleapis-common-protos==1.75.0
+googleapis-common-protos==1.75.1
     # via opentelemetry-exporter-otlp-proto-http
-greenlet==3.5.4
+greenlet==3.5.5
     # via playwright
 gunicorn==26.0.0
     # via airlock
@@ -101,7 +101,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.13.0 ; platform_python_implementation != 'PyPy'
+librt==0.15.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.3
     # via
@@ -189,7 +189,7 @@ pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-platformdirs==4.11.0
+platformdirs==4.11.2
     # via mkdocs-get-deps
 playwright==1.61.0
     # via pytest-playwright
@@ -257,7 +257,7 @@ responses==0.26.2
 ruff==0.15.22
 ruyaml==0.91.0
     # via opensafely-pipeline
-setuptools==83.0.0
+setuptools==84.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
@@ -293,7 +293,7 @@ typing-extensions==4.16.0
     #   pyee
     #   slippers
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.3
     # via pydantic
 tzdata==2026.3 ; sys_platform == 'win32'
     # via django
