@@ -960,7 +960,7 @@ def test_provider_get_current_request_for_former_user(bll):
         username="testuser", workspaces=[], output_checker=False
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(exceptions.WorkspacePermissionDenied):
         bll.get_current_request("workspace", former_user)
 
 
