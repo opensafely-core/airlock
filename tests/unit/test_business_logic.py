@@ -905,7 +905,10 @@ def test_provider_get_or_create_current_request_for_user(bll):
         ),
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(
+        RuntimeError,
+        match="Multiple active release requests for user testuser in workspace workspace",
+    ):
         bll.get_current_request("workspace", user)
 
 

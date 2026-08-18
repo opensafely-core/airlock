@@ -375,7 +375,7 @@ class BusinessLogicLayer:
         elif n == 1:
             return ReleaseRequest.from_dict(active_requests[0])
         else:
-            raise Exception(
+            raise RuntimeError(
                 f"Multiple active release requests for user {user} in "
                 f"workspace {workspace}"
             )
