@@ -522,7 +522,7 @@ def test_workspace_tree_content_urls(workspace):
     assert "some_dir/file_a.txt" in url
     assert "cache_id=" in url
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         assert tree.get_path("some_dir").contents_url()
 
 
@@ -548,8 +548,8 @@ def test_request_tree_download_url(release_request):
         .endswith("group1/some_dir/file_a.txt?download")
     )
 
-    with pytest.raises(Exception):
-        assert tree.get_path("some_dir").download_url()
+    with pytest.raises(ValueError):
+        assert tree.get_path("group1/some_dir").download_url()
 
 
 def test_workspace_tree_breadcrumbs(workspace):

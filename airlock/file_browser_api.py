@@ -138,7 +138,7 @@ class PathItem:
 
     def contents_url(self, download: bool = False, plaintext: bool = False):
         if self.type != PathType.FILE:
-            raise Exception(f"contents_url called on non-file path {self.relpath}")
+            raise ValueError(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(
             self.relpath, download=download, plaintext=plaintext
         )
