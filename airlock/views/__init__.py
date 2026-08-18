@@ -33,6 +33,7 @@ from .workspace import (
     workspace_index,
     workspace_multiselect,
     workspace_toggle_out_of_date_action,
+    workspace_tree_children,
     workspace_update_file_in_request,
     workspace_view,
 )
@@ -72,6 +73,7 @@ __all__ = [
     "workspace_contents",
     "workspace_index",
     "workspace_toggle_out_of_date_action",
+    "workspace_tree_children",
     "workspace_update_file_in_request",
     "workspace_view",
     "serve_docs",

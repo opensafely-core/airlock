@@ -257,7 +257,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
     template_dir = "file_browser/workspace/"
     template = template_dir + "index.html"
-    selected_only = False
 
     # By default an HX-Request returns the right-hand pane only (tree
     # navigation case). The out-of-date toggle targets #file-browser-panel
@@ -267,7 +266,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # toggle view before this.
     if request.htmx and request.htmx.target != FILE_BROWSER_PANEL_ID:
         template = "file_browser/contents.html"
-        selected_only = True
         urlpath = UrlPath(path)
         # If the manifest has changed, we redirect so that we reload the page and refresh
         # the tree. This ensures that the tree stays consistent with the files and metadata
@@ -301,7 +299,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     tree = get_workspace_tree(
         workspace,
         path,
-        selected_only,
         additional_expanded=additional_expanded,
     )
 
@@ -429,6 +426,38 @@ def workspace_toggle_out_of_date_action(request, workspace_name: str):
                 }
             ),
         },
+    )
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["GET"])
+def workspace_tree_children(request, workspace_name: str, path: str):
+    """Return the children of a workspace directory as an HTML fragment.
+
+    Called by HTMX when the user expands a directory that was not loaded as
+    part of the initial tree render (has_children=True).  Returns a <ul>
+    containing the immediate children of the requested directory.
+    """
+    show_out_of_date_action_outputs = request.session.get(
+        SHOW_OOD_ACTION_SESSION_KEY, {}
+    ).get(workspace_name, False)
+    workspace = get_workspace_or_raise(
+        request.user,
+        workspace_name,
+        include_out_of_date_action_outputs=show_out_of_date_action_outputs,
+    )
+    relpath = UrlPath(path)
+
+    if not workspace.is_valid_tree_path(relpath):
+        raise Http404()
+
+    tree = get_workspace_tree(workspace, selected_path=relpath)
+    dir_node = tree.get_path(relpath)
+
+    return TemplateResponse(
+        request,
+        "file_browser/workspace/tree_children.html",
+        {"path_item": dir_node},
     )
 
 

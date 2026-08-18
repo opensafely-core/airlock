@@ -1,18 +1,30 @@
 {% for child in path.children %}
   <li class="tree tree__item">
     {% if child.is_directory %}
-      <details class="tree__folder group" {% if child.expanded %}open{% endif %} data-path="{{ child.relpath }}">
-        <summary class="tree__folder-name">
-          <span class="tree__folder-arrows"></span>
-          <span class="tree__folder-icons"></span>
-          <a class="tree__folder-link {{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
-        </summary>
-        {% if child.children %}
-          <ul class="tree tree__child-list">
-            {% include "file_browser/tree.html" with path=child %}
-          </ul>
-        {% endif %}
-      </details>
+      {% with lazy_url=child.get_tree_children_url %}
+        <details class="tree__folder group" {% if child.expanded %}open{% endif %} data-path="{{ child.relpath }}">
+          <summary class="tree__folder-name">
+            <span class="tree__folder-arrows"></span>
+            <span class="tree__folder-icons"></span>
+            <a class="tree__folder-link {{ child.html_classes }}" href="{{ child.url }}">{{ child.display }}</a>
+          </summary>
+          {% if child.children %}
+            <ul class="tree tree__child-list">
+              {% include "file_browser/tree.html" with path=child %}
+            </ul>
+          {% elif lazy_url %}
+            <ul class="tree tree__child-list"
+                hx-get="{{ lazy_url }}"
+                hx-trigger="toggle from:closest details once"
+                hx-target="this"
+                hx-swap="outerHTML"
+                hx-select="ul[data-tree-lazy-root]"
+                hx-push-url="false"
+                hx-on:htmx:after-request="event.stopPropagation()">
+            </ul>
+          {% endif %}
+        </details>
+      {% endwith %}
     {% else %}
       <a class="tree__file {{ child.html_classes }}" href="{{ child.url }}">
         <span class="tree__file-icon"></span>

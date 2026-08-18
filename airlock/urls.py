@@ -72,6 +72,11 @@ urlpatterns = [
         name="workspace_toggle_out_of_date_action",
     ),
     path(
+        "workspaces/tree/<str:workspace_name>/<path:path>",
+        airlock.views.workspace_tree_children,
+        name="workspace_tree_children",
+    ),
+    path(
         "workspaces/add-file-to-request/<str:workspace_name>",
         airlock.views.workspace_add_file_to_request,
         name="workspace_add_file",
