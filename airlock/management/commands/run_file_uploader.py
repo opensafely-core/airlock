@@ -85,7 +85,7 @@ class Command(BaseCommand):
                     ) as span:
                         try:
                             do_upload_task(file_for_upload, approved_request)
-                        except Exception as error:
+                        except Exception as error:  # noqa: BLE001
                             # The most likely error here is old_api.FileUploadError, however
                             # we catch any unexpected exception here so we don't stop the task runner
                             # from running
