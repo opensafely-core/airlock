@@ -104,9 +104,9 @@ def test_instrument_decorator_parent_attributes(settings):
 def test_instrument_decorator_exception_status(set_status):
     @instrument(set_status_on_exception=set_status)
     def test_exception():
-        raise Exception("test")
+        raise Exception("test")  # noqa: TRY002
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         test_exception()
 
     spans = get_trace()
