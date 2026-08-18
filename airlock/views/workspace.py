@@ -243,6 +243,27 @@ def get_nearest_parent_url(workspace, urlpath):
     )
 
 
+def _manifest_changed_redirect(request, workspace, urlpath):
+    """Return an HX-Redirect response if the workspace manifest has changed, else None.
+
+    When the manifest hash in the request header differs from the current workspace
+    manifest, the client's tree is stale and we must trigger a full page reload.
+    """
+    if request.headers.get("manifest-hash") == workspace.manifest_hash:
+        return None
+    if workspace.is_valid_tree_path(urlpath):
+        redirect_url = workspace.get_url(urlpath)
+    else:
+        redirect_url = get_nearest_parent_url(workspace, urlpath)
+        messages.error(
+            request,
+            "Selected path is not a valid output path. A recent job may have updated its outputs.",
+        )
+    response = HttpResponse("", status=302)
+    response.headers["HX-Redirect"] = redirect_url
+    return response
+
+
 # we return different content depending on the HX-Request / HX-Target headers.
 @vary_on_headers("HX-Request", "HX-Target", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -271,21 +292,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
         # the tree. This ensures that the tree stays consistent with the files and metadata
         # displayed in the right-hand content panel even if a new job runs and updates the
         # manifest file before the page is reloaded again.
-        manifest_from_request = request.headers.get("manifest-hash")
-        if manifest_from_request != workspace.manifest_hash:
-            # The selected path may still be an valid output path. If so, we redirect back to
-            # it. Otherwise, we fall back to the closest valid parent and redirect there.
-            if workspace.is_valid_tree_path(urlpath):
-                redirect_url = workspace.get_url(urlpath)
-            else:
-                redirect_url = get_nearest_parent_url(workspace, urlpath)
-                messages.error(
-                    request,
-                    "Selected path is not a valid output path. A recent job may have updated its outputs.",
-                )
-            # tell HTMX to redirect us
-            response = HttpResponse("", status=302)
-            response.headers["HX-Redirect"] = redirect_url
+        if response := _manifest_changed_redirect(request, workspace, urlpath):
             return response
 
     # X-Expanded-Paths is set by the out-of-date toggle to preserve folders
