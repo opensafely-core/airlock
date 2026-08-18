@@ -210,7 +210,7 @@ def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
     elif isinstance(workspace_or_name, Workspace):
         return workspace_or_name
 
-    raise Exception(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
+    raise ValueError(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
 
 
 # get_output_metadata is imported from job-runner
@@ -643,7 +643,7 @@ def create_request_at_status(
 
         return refresh_release_request(request)
 
-    raise Exception(f"invalid state: {status}")  # pragma: no cover
+    raise ValueError(f"invalid state: {status}")  # pragma: no cover
 
 
 def add_request_file(
