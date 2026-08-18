@@ -19,27 +19,6 @@ dal = data_access.LocalDBDataAccessLayer()
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture
-def test_audits():
-    return {
-        "workspace_view": factories.create_audit_event(
-            AuditEventType.WORKSPACE_FILE_VIEW, request=None
-        ),
-        "other_workspace_view": factories.create_audit_event(
-            AuditEventType.WORKSPACE_FILE_VIEW, workspace="other", request=None
-        ),
-        "request_view": factories.create_audit_event(AuditEventType.REQUEST_FILE_VIEW),
-        "other_request_view": factories.create_audit_event(
-            AuditEventType.REQUEST_FILE_VIEW, request="other"
-        ),
-        "other_user": factories.create_audit_event(
-            AuditEventType.REQUEST_CREATE,
-            user=factories.create_airlock_user(username="other"),
-            path=None,
-        ),
-    }
-
-
 TEST_PARAMETERS = [
     (
         {},

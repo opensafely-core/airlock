@@ -5,14 +5,8 @@ from django.core.management import call_command
 
 from airlock.enums import AuditEventType
 from tests import factories
-from tests.local_db.test_data_access import (
-    TEST_PARAMETERS,
-    test_audits,
-)
+from tests.local_db.test_data_access import TEST_PARAMETERS
 
-
-# Keep ruff happy
-test_audits = test_audits
 
 pytestmark = pytest.mark.django_db
 
