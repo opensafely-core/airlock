@@ -879,7 +879,7 @@ def create_audit_event(
     user=None,
     workspace: str = "workspace",
     request="request",
-    path=UrlPath("foo/bar"),
+    path="foo/bar",
     extra=None,
 ):
     if user is None:
