@@ -41,7 +41,7 @@ distro==1.9.0
     # via ruyaml
 dj-database-url==3.1.2
     # via airlock
-django==6.0.7
+django==6.1
     # via
     #   airlock
     #   dj-database-url
@@ -60,7 +60,7 @@ django-debug-toolbar==7.0.0
 django-debug-toolbar-template-profiler==2.1.0
 django-extensions==4.1
     # via airlock
-django-htmx==1.28.0
+django-htmx==1.29.0
     # via airlock
 django-markdownify==0.9.7
     # via airlock
