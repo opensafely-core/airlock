@@ -238,7 +238,7 @@ class LogRenderer(TextRenderer):
         match = re.match(
             r".*(?P<style_tag><style.*</style>).*(?P<pre_tag><pre.*</pre>).*",
             text,
-            flags=re.S,
+            flags=re.DOTALL,
         )
         if match:  # pragma: no branch
             # After conversion, we should always find a match. As a precaution, check

@@ -3584,12 +3584,14 @@ def test_review_request_race_condition(bll):
     with patch("airlock.business_logic.BusinessLogicLayer.check_status"):
         bll.set_status(release_request, RequestStatus.SUBMITTED, checkers[0])
 
-    with pytest.raises(exceptions.InvalidStateTransition):
-        with patch(
+    with (
+        pytest.raises(exceptions.InvalidStateTransition),
+        patch(
             "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
-        ) as submitted_reviews:
-            submitted_reviews.side_effect = [2, 4]
-            bll.review_request(release_request, checkers[3])
+        ) as submitted_reviews,
+    ):
+        submitted_reviews.side_effect = [2, 4]
+        bll.review_request(release_request, checkers[3])
 
 
 # add DAL method names to this if they do not require auditing

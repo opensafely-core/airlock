@@ -30,8 +30,7 @@ def project_name_from_url(url):
     # correctly
     url = url.replace("\\", "/")
     name = urlparse(url).path.strip("/").split("/")[-1]
-    if name.endswith(".git"):
-        name = name[:-4]
+    name = name.removesuffix(".git")
     return name
 
 

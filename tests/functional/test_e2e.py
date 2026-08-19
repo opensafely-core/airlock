@@ -191,7 +191,9 @@ def test_e2e_release_files(
     # lets us search on the elements themselves as well as their children
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     expect(filegroup_link).to_be_visible()
-    expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
+    expect(filegroup_link).to_contain_text(
+        re.compile("my-new-group", flags=re.IGNORECASE)
+    )
 
     file_link = page.locator("#tree").get_by_role("link", name="file.txt")
 

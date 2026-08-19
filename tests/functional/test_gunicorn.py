@@ -127,12 +127,14 @@ def test_run_gunicorn_failure():
 
 
 def test_run_gunicorn_timeout():
-    with pytest.raises(AssertionError) as exc:
-        with run_gunicorn(
+    with (
+        pytest.raises(AssertionError) as exc,
+        run_gunicorn(
             ["airlock.wsgi:application"], check_url="/login", timeout=0
-        ) as process:
-            # should not get here, so if we do, print some debugging info
-            print(process.read_output())  # pragma: nocover
+        ) as process,
+    ):
+        # should not get here, so if we do, print some debugging info
+        print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start within" in str(exc)
 

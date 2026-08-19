@@ -1003,9 +1003,9 @@ def request_release_files(request, request_id):
     try:
         bll.release_files(release_request, request.user)
     except exceptions.RequestPermissionDenied as exc:
-        messages.error(request, f"Error releasing files: {str(exc)}")
+        messages.error(request, f"Error releasing files: {exc!s}")
     except exceptions.InvalidStateTransition as exc:
-        messages.error(request, f"Error releasing files: {str(exc)}")
+        messages.error(request, f"Error releasing files: {exc!s}")
     except requests.HTTPError as err:
         if settings.DEBUG:
             response_type = err.response.headers["Content-Type"]

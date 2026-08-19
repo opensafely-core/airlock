@@ -52,7 +52,7 @@ def grouped_workspaces(workspaces):
         workspaces_by_project.items(), key=lambda x: (not x[0].is_ongoing, x[0].name)
     ):
         # for each project, sort workspaces by archived status, then name
-        yield project, list(sorted(workspaces, key=lambda x: (x.is_archived(), x.name)))
+        yield project, sorted(workspaces, key=lambda x: (x.is_archived(), x.name))
 
 
 @instrument

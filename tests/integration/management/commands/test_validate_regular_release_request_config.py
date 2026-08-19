@@ -54,8 +54,11 @@ def test_validate_config_bad_json(tmp_path):
     config_path.write_text('[{"workspace_name": "foo"]')
 
     out = StringIO()
-    with patch(
-        "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH", config_path
+    with (
+        patch(
+            "airlock.jobs.daily.create_regular_release_requests.CONFIG_PATH",
+            config_path,
+        ),
+        pytest.raises(json.JSONDecodeError),
     ):
-        with pytest.raises(json.JSONDecodeError):
-            call_command("validate_regular_release_request_config", stdout=out)
+        call_command("validate_regular_release_request_config", stdout=out)

@@ -82,9 +82,7 @@ class EnumField(BaseTextField):
 class RequestMetadata(models.Model):
     """A request for a set of files to be reviewed and potentially released."""
 
-    id = models.TextField(  # noqa: A003
-        primary_key=True, editable=False, default=local_request_id
-    )
+    id = models.TextField(primary_key=True, editable=False, default=local_request_id)
 
     workspace = models.TextField()
     project = models.TextField(default="")

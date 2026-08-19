@@ -8,8 +8,8 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 
 import airlock.business_logic
 import old_api
-import services.tracing as tracing
 import tests.factories
+from services import tracing
 
 
 # set up tracing for tests
