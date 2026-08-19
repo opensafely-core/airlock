@@ -63,7 +63,7 @@ def filter_visible_items(
         match item.visibility:
             case Visibility.PUBLIC:
                 # can always see public items from previous turns and completed turns
-                if (
+                if (  # noqa: SIM114
                     item.review_turn < current_turn
                     or current_phase == ReviewTurnPhase.COMPLETE
                 ):
@@ -75,7 +75,7 @@ def filter_visible_items(
                 # have to be able to review this request to see *any* private items
                 if user_can_review:
                     # can always see private items from previous turns
-                    if (
+                    if (  # noqa: SIM114
                         item.review_turn < current_turn
                         or current_phase == ReviewTurnPhase.COMPLETE
                     ):
