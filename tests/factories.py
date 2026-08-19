@@ -880,10 +880,12 @@ def create_audit_event(
     workspace: str = "workspace",
     request="request",
     path=UrlPath("foo/bar"),
-    extra={"foo": "bar"},
+    extra=None,
 ):
     if user is None:
         user = create_airlock_user(username="user")
+    if extra is None:
+        extra = {"foo": "bar"}
     event = AuditEvent(
         type=type_,
         user=user,
