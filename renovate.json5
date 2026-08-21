@@ -122,6 +122,12 @@
       "matchDepNames": ["ruff"],
       "allowedVersions": "<0.16"
     },
+    // temporarily pin django-stubs until https://github.com/opensafely-core/airlock/issues/1265
+    {
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["django-stubs"],
+      "allowedVersions": "<=6.0.7"
+    },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
