@@ -7,10 +7,10 @@
   
   dependencies = [
     "ansi2html<=1.9.2",
-    "Django<=6.0.7",
+    "Django<=6.1",
     "django-vite<=3.1.0",
     "slippers<=0.7.0",
-    "django-htmx<=1.28.0",
+    "django-htmx<=1.29.0",
     "django-markdownify<=0.9.7",
     "whitenoise<=6.12.0",
     "gunicorn<=26.0.0",
