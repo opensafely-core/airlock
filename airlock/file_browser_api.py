@@ -334,22 +334,26 @@ def get_workspace_tree(
     workspace: Workspace,
     selected_path: UrlPath | str = ROOT_PATH,
     additional_expanded: set[UrlPath] | None = None,
+    selected_path_is_root: bool = False,
 ) -> PathItem:
     """Recursively build workspace tree from the root dir.
 
     Directories not on the path to selected_path are marked has_children=True
     and their children are loaded lazily via HTMX if/when required.
+
+    selected_path_is_root restricts traversal to the subtree rooted at
+    selected_path, avoiding traversal of its ancestors and siblings.
     """
     selected_path = UrlPath(selected_path)
+    root_path = selected_path if selected_path_is_root else ROOT_PATH
     selected_parents = frozenset(selected_path.parents)
     additional_expanded = additional_expanded or set()
-
     root_node = PathItem(
         container=workspace,
-        relpath=ROOT_PATH,
-        type=PathType.WORKSPACE,
+        relpath=root_path,
+        type=PathType.WORKSPACE if root_path == ROOT_PATH else PathType.DIR,
         parent=None,
-        selected=(selected_path == ROOT_PATH),
+        selected=(selected_path == root_path),
         expanded=True,
     )
 
@@ -361,7 +365,11 @@ def get_workspace_tree(
         # str(UrlPath()) == "." so when we have the ROOT_PATH here, this lookup still works.
         for child_str in workspace.workspace_child_map.get(path_str, set()):
             path = UrlPath(child_str)
-            pathlist.append(path)
+            # Build the list of paths relative to the root_path
+            pathlist.append(
+                path.relative_to(root_path) if selected_path_is_root else path
+            )
+
             if workspace.workspace_child_map[
                 child_str
             ]:  # has children, therefore is directory
@@ -375,7 +383,7 @@ def get_workspace_tree(
                 else:
                     collapsed_dirs.add(path)
 
-    build_path_list(".")
+    build_path_list(str(root_path))
 
     root_node.children = get_path_tree(
         workspace,

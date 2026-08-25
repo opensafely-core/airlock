@@ -461,8 +461,9 @@ def workspace_tree_children(request, workspace_name: str, path: str):
     if not workspace.is_valid_tree_path(relpath):
         raise Http404()
 
-    tree = get_workspace_tree(workspace, selected_path=relpath)
-    dir_node = tree.get_path(relpath)
+    dir_node = get_workspace_tree(
+        workspace, selected_path=relpath, selected_path_is_root=True
+    )
 
     return TemplateResponse(
         request,
