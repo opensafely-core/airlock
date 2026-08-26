@@ -10,7 +10,7 @@ asgiref==3.12.1
     # via
     #   django
     #   django-htmx
-ast-serialize==0.6.0
+ast-serialize==0.8.0
     # via mypy
 babel==2.18.0
     # via mkdocs-material
@@ -23,7 +23,7 @@ certifi==2026.7.22
     #   httpcore
     #   httpx
     #   requests
-charset-normalizer==3.4.9
+charset-normalizer==3.5.1
     # via requests
 click==8.4.2
     # via mkdocs
@@ -33,7 +33,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.15.3
+coverage==7.15.4
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -65,7 +65,7 @@ django-htmx==1.29.0
 django-markdownify==0.9.7
     # via airlock
 django-stubs==6.1.0
-django-stubs-ext==6.0.7
+django-stubs-ext==6.1.0
     # via django-stubs
 django-vite==3.1.0
     # via airlock
@@ -76,9 +76,9 @@ freezegun==1.5.5
     # via pytest-freezer
 ghp-import==2.1.0
     # via mkdocs
-googleapis-common-protos==1.75.0
+googleapis-common-protos==1.75.1
     # via opentelemetry-exporter-otlp-proto-http
-greenlet==3.5.4
+greenlet==3.5.5
     # via playwright
 gunicorn==26.1.0
     # via airlock
@@ -88,7 +88,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
 hypothesis==6.165.7
-idna==3.18
+idna==3.19
     # via
     #   anyio
     #   httpx
@@ -101,7 +101,7 @@ jinja2==3.1.6
     # via
     #   mkdocs
     #   mkdocs-material
-librt==0.13.0 ; platform_python_implementation != 'PyPy'
+librt==0.15.0 ; platform_python_implementation != 'PyPy'
     # via mypy
 markdown==3.10.3
     # via
@@ -131,7 +131,7 @@ mypy==2.3.0
     # via django-stubs
 mypy-extensions==1.1.0
     # via mypy
-opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.04.22.171515.zip
+opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.08.21.072958.zip
     # via airlock
 opentelemetry-api==1.40.0
     # via
@@ -188,7 +188,7 @@ pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-platformdirs==4.11.0
+platformdirs==4.11.3
     # via mkdocs-get-deps
 playwright==1.62.0
     # via pytest-playwright
@@ -208,7 +208,7 @@ pydantic-core==2.46.4
     # via pydantic
 pyee==13.0.1
     # via playwright
-pygments==2.20.0
+pygments==2.21.0
     # via
     #   mkdocs-material
     #   pytest
@@ -256,7 +256,7 @@ responses==0.26.2
 ruff==0.16.0
 ruyaml==0.91.0
     # via opensafely-pipeline
-setuptools==83.0.0
+setuptools==84.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
@@ -274,7 +274,7 @@ tinycss2==1.5.1
     # via bleach
 typeguard==2.13.3
     # via slippers
-types-pyyaml==6.0.12.20260724
+types-pyyaml==6.0.12.20260815
     # via django-stubs
 types-requests==2.33.0.20260712
 typing-extensions==4.16.0
@@ -292,7 +292,7 @@ typing-extensions==4.16.0
     #   pyee
     #   slippers
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.4
     # via pydantic
 tzdata==2026.3 ; sys_platform == 'win32'
     # via django
@@ -305,7 +305,7 @@ urllib3==2.7.0
     #   types-requests
 watchdog==6.0.0
     # via mkdocs
-webencodings==0.5.1
+webencodings==0.6.1
     # via
     #   bleach
     #   tinycss2
