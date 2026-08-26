@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import itertools
 import json
 import logging
 import os
@@ -323,14 +324,11 @@ elif dev_user_file := os.environ.get("AIRLOCK_DEV_USERS_FILE"):  # pragma: nocov
         }
         for dev_user in dev_users.values():
             workspace_keys = set(
-                sum(
-                    (
-                        list(ws.keys())
-                        for ws in dev_user["details"]["workspaces"].values()
-                    ),
-                    [],
+                itertools.chain.from_iterable(
+                    ws.keys() for ws in dev_user["details"]["workspaces"].values()
                 )
             )
+
             expected_keys = {"project_details", "archived"}
             if workspace_keys and workspace_keys != expected_keys:
                 raise RuntimeError(
@@ -453,8 +451,8 @@ LOGGING = {
 SCREENSHOT_DIR = BASE_DIR / "docs" / "screenshots"
 
 
-UPLOAD_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_DELAY", 1))
-UPLOAD_RETRY_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_RETRY_DELAY", 60))
+UPLOAD_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_DELAY") or 1)
+UPLOAD_RETRY_DELAY = float(os.environ.get("AIRLOCK_UPLOAD_RETRY_DELAY") or 60)
 
 # logs are truncated to this many
 MAX_LOG_BYTES = 10_000

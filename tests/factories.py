@@ -31,7 +31,7 @@ from users.models import User
 
 def create_api_project(project="project", ongoing=True, orgs=("organisation",)):
     """Test factory for project details"""
-    return dict(name=project, ongoing=ongoing, orgs=list(orgs))
+    return {"name": project, "ongoing": ongoing, "orgs": list(orgs)}
 
 
 def create_api_workspace(
@@ -40,10 +40,10 @@ def create_api_workspace(
     """Test factory for workspace details"""
     if project_details is None:
         project_details = create_api_project(project, ongoing, orgs=orgs or [])
-    return dict(
-        project_details=project_details,
-        archived=archived,
-    )
+    return {
+        "project_details": project_details,
+        "archived": archived,
+    }
 
 
 def create_api_user(
@@ -72,14 +72,14 @@ def create_api_user(
 
     copiloted_workspaces = copiloted_workspaces or []
 
-    return dict(
-        username=username,
-        fullname=fullname,
-        workspaces=_create_workspaces(workspaces),
-        copiloted_workspaces=_create_workspaces(copiloted_workspaces),
-        output_checker=output_checker or False,
-        readonly_access=readonly_access or False,
-    )
+    return {
+        "username": username,
+        "fullname": fullname,
+        "workspaces": _create_workspaces(workspaces),
+        "copiloted_workspaces": _create_workspaces(copiloted_workspaces),
+        "output_checker": output_checker or False,
+        "readonly_access": readonly_access or False,
+    }
 
 
 def _create_workspaces(workspaces):
@@ -91,7 +91,7 @@ def _create_workspaces(workspaces):
         for k, v in workspaces.items():
             actual_workspaces[k] = create_api_workspace(**v)
     else:  # pragma: nocover
-        raise Exception("bad workspaces parameter, should be dict, list, or None")
+        raise TypeError("bad workspaces parameter, should be dict, list, or None")
     return actual_workspaces
 
 
@@ -210,7 +210,7 @@ def ensure_workspace(workspace_or_name: Workspace | str) -> Workspace:
     elif isinstance(workspace_or_name, Workspace):
         return workspace_or_name
 
-    raise Exception(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
+    raise ValueError(f"Invalid workspace: {workspace_or_name})")  # pragma: nocover
 
 
 # get_output_metadata is imported from job-runner
@@ -289,7 +289,7 @@ def update_manifest(workspace: Workspace | str, files=None, user="author"):
         )
         ws_outputs &= set(manifest["outputs"])
         if ws_outputs:
-            first_output = manifest["outputs"][list(ws_outputs)[0]]
+            first_output = manifest["outputs"][next(iter(ws_outputs))]
             repo = first_output["repo"]
             if repo.startswith("https://github.com"):  # pragma: no cover
                 commit = first_output["commit"]
@@ -393,7 +393,9 @@ def create_repo(workspace: Workspace | str, files=None, temporary=True) -> CodeR
 
     env = {"GIT_DIR": str(repo_dir)}
     ensure_git_init(repo_dir)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], env=env)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"], check=True, env=env
+    )
     subprocess.run(["git", "config", "user.name", "Test"], check=True, env=env)
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -584,7 +586,7 @@ def create_request_at_status(
     # Submitting a release request with no output files is not allowed.
     file_reviewers = [
         create_airlock_user(username=username, output_checker=True)
-        for username in list(request.output_files().values())[0].reviews.keys()
+        for username in next(iter(request.output_files().values())).reviews
     ]
 
     if status == RequestStatus.PARTIALLY_REVIEWED:
@@ -643,7 +645,7 @@ def create_request_at_status(
 
         return refresh_release_request(request)
 
-    raise Exception(f"invalid state: {status}")  # pragma: no cover
+    raise ValueError(f"invalid state: {status}")  # pragma: no cover
 
 
 def add_request_file(
@@ -879,11 +881,13 @@ def create_audit_event(
     user=None,
     workspace: str = "workspace",
     request="request",
-    path=UrlPath("foo/bar"),
-    extra={"foo": "bar"},
+    path="foo/bar",
+    extra=None,
 ):
     if user is None:
         user = create_airlock_user(username="user")
+    if extra is None:
+        extra = {"foo": "bar"}
     event = AuditEvent(
         type=type_,
         user=user,

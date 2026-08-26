@@ -50,7 +50,7 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
         e.add_note(
             "You may want to run:\n\n    just load-example-data\n\nto create one."
         )
-        raise e
+        raise
     if user not in dev_users or dev_users[user]["token"] != token:
         raise LoginError("Invalid user or token")
     else:

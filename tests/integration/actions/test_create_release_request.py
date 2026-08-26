@@ -51,7 +51,7 @@ def test_create_release_request(bll):
     assert len(release_requests) == 1
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir", "test-dir1-test-subdir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file1.txt",
         "test-dir/test-subdir/file2.txt",
         "test-dir/test-subdir/file3.txt",
@@ -102,7 +102,7 @@ def test_create_release_request_with_supporting_files(bll):
     assert len(release_requests) == 1
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir", "test-dir1-test-subdir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file1.txt",
         "test-dir1/test-subdir/file2.txt",
     }
@@ -179,7 +179,7 @@ def test_create_release_request_existing_files(bll, mock_old_api, caplog):
 
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file_added.txt",
         "test-dir/test-subdir/file2.txt",
         "test-dir/test-subdir/file3.txt",
@@ -265,7 +265,7 @@ def test_create_release_request_with_file_errors(bll, caplog):
 
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file1.txt",
     }
 
@@ -622,7 +622,7 @@ def test_create_release_request_with_user_from_manifest(bll, auth_api_stubber):
     assert len(release_requests) == 1
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir", "test-dir1-test-subdir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file1.txt",
         "test-dir/test-subdir/file2.txt",
         "test-dir/test-subdir/file3.txt",
@@ -680,7 +680,7 @@ def test_create_release_requests_with_existing_author_from_manifest(
     assert len(release_requests) == 1
     release_request = release_requests[0]
     assert set(release_request.filegroups) == {"test-dir"}
-    assert {str(relpath) for relpath in release_request.output_files().keys()} == {
+    assert {str(relpath) for relpath in release_request.output_files()} == {
         "test-dir/file1.txt"
     }
     assert release_request.status == RequestStatus.PENDING

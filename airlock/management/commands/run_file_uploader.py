@@ -85,7 +85,7 @@ class Command(BaseCommand):
                     ) as span:
                         try:
                             do_upload_task(file_for_upload, approved_request)
-                        except Exception as error:
+                        except Exception as error:  # noqa: BLE001
                             # The most likely error here is old_api.FileUploadError, however
                             # we catch any unexpected exception here so we don't stop the task runner
                             # from running
@@ -137,7 +137,7 @@ def get_upload_files_and_update_request_status(release_request):
     files_for_upload = bll.get_released_files_for_upload(release_request)
     if not files_for_upload:
         # All files are now uploaded, set the status to released
-        last_uploaded_file = sorted(
+        last_uploaded_file = sorted(  # noqa: FURB192
             bll.get_released_files_for_request(release_request),
             key=lambda x: x.uploaded_at,
             reverse=True,

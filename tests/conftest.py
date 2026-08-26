@@ -8,8 +8,11 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 
 import airlock.business_logic
 import old_api
-import services.tracing as tracing
 import tests.factories
+from airlock.enums import (
+    AuditEventType,
+)
+from services import tracing
 
 
 # set up tracing for tests
@@ -163,3 +166,26 @@ def mock_old_api(monkeypatch):
         MagicMock(autospec=old_api.get_or_create_release),
     )
     monkeypatch.setattr(old_api, "upload_file", MagicMock(autospec=old_api.upload_file))
+
+
+@pytest.fixture
+def test_audits():
+    return {
+        "workspace_view": tests.factories.create_audit_event(
+            AuditEventType.WORKSPACE_FILE_VIEW, request=None
+        ),
+        "other_workspace_view": tests.factories.create_audit_event(
+            AuditEventType.WORKSPACE_FILE_VIEW, workspace="other", request=None
+        ),
+        "request_view": tests.factories.create_audit_event(
+            AuditEventType.REQUEST_FILE_VIEW
+        ),
+        "other_request_view": tests.factories.create_audit_event(
+            AuditEventType.REQUEST_FILE_VIEW, request="other"
+        ),
+        "other_user": tests.factories.create_audit_event(
+            AuditEventType.REQUEST_CREATE,
+            user=tests.factories.create_airlock_user(username="other"),
+            path=None,
+        ),
+    }

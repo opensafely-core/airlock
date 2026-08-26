@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from playwright.sync_api import expect
@@ -191,7 +191,9 @@ def test_e2e_release_files(
     # lets us search on the elements themselves as well as their children
     filegroup_link = page.get_by_role("link").locator(".filegroup:scope")
     expect(filegroup_link).to_be_visible()
-    expect(filegroup_link).to_contain_text(re.compile("my-new-group", flags=re.I))
+    expect(filegroup_link).to_contain_text(
+        re.compile("my-new-group", flags=re.IGNORECASE)
+    )
 
     file_link = page.locator("#tree").get_by_role("link", name="file.txt")
 
@@ -385,7 +387,7 @@ def test_e2e_release_files(
     # the created_at date, and the review turn (in that order)
     assert len(pill_texts) == 4
     assert pill_texts[0:2] == ["Blinded", "Private"]
-    assert pill_texts[2].startswith(str(datetime.today().year))
+    assert pill_texts[2].startswith(str(datetime.now(tz=UTC).year))
     assert pill_texts[3] == "1"
 
     # now the submit review button is enabled

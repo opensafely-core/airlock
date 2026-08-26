@@ -59,9 +59,10 @@ class FileMetadata:
     def content_hash(self) -> str:
         if self._content_hash is not None:
             return self._content_hash
-        elif self.path is not None:
-            assert self.path.is_file()
-            return hashlib.file_digest(self.path.open("rb"), "sha256").hexdigest()
-        else:  # pragma: no cover
-            # should never get here due to constructor's validation
-            raise Exception("no content_hash available. FileMetadata.path: {self.path}")
+
+        # self.path should never be None here due to constructor's validation
+        assert self.path is not None, (
+            f"no content_hash available. FileMetadata.path: {self.path}"
+        )
+        assert self.path.is_file()
+        return hashlib.file_digest(self.path.open("rb"), "sha256").hexdigest()

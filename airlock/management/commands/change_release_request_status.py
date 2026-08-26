@@ -39,6 +39,6 @@ class Command(BaseCommand):
                 request_id, username=user, to_status=status, **options
             )
         except ActionDenied as e:
-            self.stdout.write(f"Error: {str(e)}")
+            self.stdout.write(f"Error: {e!s}")
         else:
             self.stdout.write(result)

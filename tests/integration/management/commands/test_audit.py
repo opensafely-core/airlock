@@ -5,14 +5,8 @@ from django.core.management import call_command
 
 from airlock.enums import AuditEventType
 from tests import factories
-from tests.local_db.test_data_access import (
-    TEST_PARAMETERS,
-    test_audits,
-)
+from tests.local_db.test_data_access import TEST_PARAMETERS
 
-
-# Keep ruff happy
-test_audits = test_audits
 
 pytestmark = pytest.mark.django_db
 
@@ -32,10 +26,10 @@ def test_audit_command(test_audits, kwargs, expected_audits):
 
 def test_audit_command_shows_hidden(bll):
     factories.create_audit_event(
-        AuditEventType.REQUEST_FILE_VIEW, extra=dict(review_turn="0")
+        AuditEventType.REQUEST_FILE_VIEW, extra={"review_turn": "0"}
     )
     factories.create_audit_event(
-        AuditEventType.REQUEST_FILE_VIEW, extra=dict(review_turn="1")
+        AuditEventType.REQUEST_FILE_VIEW, extra={"review_turn": "1"}
     )
     output_lines = audit_output({}).split("\n")
     assert not any("hidden=True" in output_line for output_line in output_lines)

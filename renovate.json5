@@ -116,12 +116,6 @@
         "* 0-3 * * WED"
       ],
     },
-    // temporarily pin ruff until https://github.com/opensafely-core/airlock/issues/1248
-    {
-      "matchManagers": ["pep621"],
-      "matchDepNames": ["ruff"],
-      "allowedVersions": "<0.16"
-    },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",

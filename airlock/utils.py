@@ -54,11 +54,11 @@ def truncate_log_stream(stream: IO[str], n: int, marker: str):
     return log, truncated
 
 
-def _is_not_divisible_by(value: int | float, divider: int):
+def _is_not_divisible_by(value: float, divider: int):
     return value % divider != 0
 
 
-def _is_not_midpoint6_rounded(value: int | float):
+def _is_not_midpoint6_rounded(value: float):
     return value != 0 and ((value - 3) % 6 != 0)
 
 

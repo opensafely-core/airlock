@@ -1,7 +1,7 @@
 import os
 
-import services.tracing as tracing
 from airlock.exceptions import RequestTimeout
+from services import tracing
 
 
 # workers

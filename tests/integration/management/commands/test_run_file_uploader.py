@@ -101,7 +101,7 @@ def test_do_upload_task_updated_file_content(upload_files_stubber, bll):
 
 def test_do_upload_task_api_error(upload_files_stubber, bll, freezer):
     freezer.move_to("2022-01-01T12:34:56")
-    release_request, workspace = setup_release_request(
+    release_request, _ = setup_release_request(
         upload_files_stubber, bll, response_statuses=[403]
     )
     relpath = UrlPath("test/file.txt")
@@ -226,9 +226,9 @@ def test_run_file_uploader_command_api_error(upload_files_stubber, bll, settings
         # Running via the command updates retry attempt before the upload is tried
         # file and file2 succeeded on the first attempt, file1 on the second attempt
         if filename == "test/file1.txt":
-            request_file.upload_attempts == 2
+            assert request_file.upload_attempts == 2
         else:
-            request_file.upload_attempts == 1
+            assert request_file.upload_attempts == 1
 
 
 def test_run_file_uploader_with_retry_delay(
@@ -305,7 +305,7 @@ def test_run_file_uploader_command_unexpected_error(
     for filename in ["test/file.txt", "test/file1.txt", "test/file2.txt"]:
         request_file = refresh_request_file(release_request, UrlPath(filename))
         assert not request_file.uploaded
-        request_file.upload_attempts == 2
+        assert request_file.upload_attempts == 2
 
     traces = get_trace()
     last_trace = traces[-1]

@@ -53,6 +53,9 @@ extend-ignore = [
 ]
 isort.lines-after-imports = 2
 
+[tool.ruff.lint.extend-per-file-ignores]
+"**/migrations/**" = ["RUF012"]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "airlock.settings"
 testpaths = [
@@ -141,7 +144,7 @@ dev = [
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
     "hypothesis<=6.165.7",
-    "ruff<=0.15.22",
+    "ruff<=0.16.0",
     "playwright<=1.62.0",
     "pytest<=9.1.1",
     "pytest-cov<=7.1.0",

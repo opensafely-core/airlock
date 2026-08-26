@@ -138,7 +138,7 @@ class PathItem:
 
     def contents_url(self, download: bool = False, plaintext: bool = False):
         if self.type != PathType.FILE:
-            raise Exception(f"contents_url called on non-file path {self.relpath}")
+            raise ValueError(f"contents_url called on non-file path {self.relpath}")
         return self.container.get_contents_url(
             self.relpath, download=download, plaintext=plaintext
         )
@@ -252,9 +252,8 @@ class PathItem:
 
         if self.type == PathType.FILE:
             classes.append(self.file_type())
-            if self.request_filetype != RequestFileType.CODE:
-                if not self.is_valid():
-                    classes.append("invalid")
+            if not self.is_valid() and self.request_filetype != RequestFileType.CODE:
+                classes.append("invalid")
 
         if self.selected:
             classes.append("selected")
@@ -540,7 +539,7 @@ def get_path_tree(
         path_parts: list[list[str]], parent: PathItem
     ) -> list[PathItem]:
         # group multiple paths into groups by first part of path
-        grouped: dict[str, list[list[str]]] = dict()
+        grouped: dict[str, list[list[str]]] = {}
         for child, *descendant_parts in path_parts:
             if child not in grouped:
                 grouped[child] = []

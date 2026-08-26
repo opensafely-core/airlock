@@ -96,7 +96,7 @@ def run_gunicorn(args, timeout, check_url="/", env=None) -> Iterator[GunicornPro
                 )
                 assert response.status_code < 500
                 break
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
             time.sleep(0.5)
@@ -115,24 +115,26 @@ def run_gunicorn(args, timeout, check_url="/", env=None) -> Iterator[GunicornPro
 
 
 def test_run_gunicorn_failure():
-    with pytest.raises(AssertionError) as exc:
+    with (
+        pytest.raises(AssertionError) as exc,
         # we use preload to force an early error and avoid race conditions
-        with run_gunicorn(
-            ["doesnotexist", "-w", "1", "--preload"], timeout=5
-        ) as process:
-            # should not get here, so if we do, print some debugging info
-            print(process.read_output())  # pragma: nocover
+        run_gunicorn(["doesnotexist", "-w", "1", "--preload"], timeout=5) as process,
+    ):
+        # should not get here, so if we do, print some debugging info
+        print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start correctly" in str(exc)
 
 
 def test_run_gunicorn_timeout():
-    with pytest.raises(AssertionError) as exc:
-        with run_gunicorn(
+    with (
+        pytest.raises(AssertionError) as exc,
+        run_gunicorn(
             ["airlock.wsgi:application"], check_url="/login", timeout=0
-        ) as process:
-            # should not get here, so if we do, print some debugging info
-            print(process.read_output())  # pragma: nocover
+        ) as process,
+    ):
+        # should not get here, so if we do, print some debugging info
+        print(process.read_output())  # pragma: nocover
 
     assert "gunicorn failed to start within" in str(exc)
 
@@ -161,7 +163,7 @@ def create_test_wsgi_application():
     def slow_test_view(request):
         """View that intentionally times out"""
         time.sleep(5)
-        raise Exception("view did not timeout")  # pragma: nocover
+        raise RuntimeError("view did not timeout")  # pragma: nocover
 
     # Add test URL pattern to the existing urlpatterns
     urlconf_module = __import__(settings.ROOT_URLCONF, fromlist=[""])

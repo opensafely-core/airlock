@@ -41,7 +41,7 @@ from .csv_generator import csv_file
 
 
 @given(csv_file=csv_file(min_lines=2, max_lines=10, num_columns=5))
-@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES", 5)))
+@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES") or 5))
 def test_csv_renders_all_text(live_server, browser, csv_file):
     # Normally we pass "context" and "page" as per function fixtures.
     # However hypothesis would then use the same context/page for each
@@ -111,7 +111,7 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
         csv_list,
     )
 
-    assert len(failures) == 0, print(repr(failures))
+    assert len(failures) == 0, failures
 
     # We can tidy up here without hanging because there is a hypothesis test
     # after this one. See the comment at the top of the file for more detail
@@ -121,7 +121,7 @@ def test_csv_renders_all_text(live_server, browser, csv_file):
 # The current table virtualization implementation only shows 200 rows, plus
 # the header. So we simluate at least a 210 row csv file.
 @given(csv_file=csv_file(min_lines=210, max_lines=250, num_columns=5, just_text=True))
-@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES", 5)))
+@settings(deadline=None, max_examples=int(environ.get("HYPOTHESIS_MAX_EXAMPLES") or 5))
 def test_csv_sorting(live_server, browser, csv_file):
     # Normally we pass "context" and "page" as per function fixtures.
     # However hypothesis would then use the same context/page for each
@@ -257,7 +257,7 @@ def test_csv_sorting(live_server, browser, csv_file):
     ).to_contain_text(first_row_second_sort_column_value, timeout=1)
 
     # See note at the top of file
-    if "coverage" not in sys.modules.keys():  # pragma: no cover
+    if "coverage" not in sys.modules:  # pragma: no cover
         context.close()
 
 

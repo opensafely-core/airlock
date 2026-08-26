@@ -692,9 +692,7 @@ def test_provider_get_outstanding_requests_for_review(
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_outstanding_requests_for_review(user)) == set(
-            [r1.id]
-        )
+        assert {r.id for r in bll.get_outstanding_requests_for_review(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_outstanding_requests_for_review(user)
@@ -757,7 +755,7 @@ def test_provider_get_returned_requests(mock_old_api, output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_returned_requests(user)) == set([r1.id])
+        assert {r.id for r in bll.get_returned_requests(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_returned_requests(user)
@@ -822,7 +820,7 @@ def test_provider_get_approved_requests(mock_old_api, output_checker, bll):
         )
 
     if output_checker:
-        assert set(r.id for r in bll.get_approved_requests(user)) == set([r1.id])
+        assert {r.id for r in bll.get_approved_requests(user)} == {r1.id}
     else:
         with pytest.raises(exceptions.RequestPermissionDenied):
             bll.get_approved_requests(user)
@@ -907,7 +905,10 @@ def test_provider_get_or_create_current_request_for_user(bll):
         ),
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(
+        RuntimeError,
+        match="Multiple active release requests for user testuser in workspace workspace",
+    ):
         bll.get_current_request("workspace", user)
 
 
@@ -962,7 +963,7 @@ def test_provider_get_current_request_for_former_user(bll):
         username="testuser", workspaces=[], output_checker=False
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(exceptions.WorkspacePermissionDenied):
         bll.get_current_request("workspace", former_user)
 
 
@@ -3584,12 +3585,14 @@ def test_review_request_race_condition(bll):
     with patch("airlock.business_logic.BusinessLogicLayer.check_status"):
         bll.set_status(release_request, RequestStatus.SUBMITTED, checkers[0])
 
-    with pytest.raises(exceptions.InvalidStateTransition):
-        with patch(
+    with (
+        pytest.raises(exceptions.InvalidStateTransition),
+        patch(
             "airlock.business_logic.ReleaseRequest.submitted_reviews_count"
-        ) as submitted_reviews:
-            submitted_reviews.side_effect = [2, 4]
-            bll.review_request(release_request, checkers[3])
+        ) as submitted_reviews,
+    ):
+        submitted_reviews.side_effect = [2, 4]
+        bll.review_request(release_request, checkers[3])
 
 
 # add DAL method names to this if they do not require auditing
@@ -3624,7 +3627,7 @@ def test_dal_methods_have_audit_event_parameter():
 
     for name, func in dal_functions.items():
         signature = inspect.signature(func)
-        arg_annotations = set(p.annotation for p in signature.parameters.values())
+        arg_annotations = {p.annotation for p in signature.parameters.values()}
         assert "AuditEvent" in arg_annotations, (
             f"DataAccessLayerProtocol method {name} does not have an AuditEvent parameter"
         )

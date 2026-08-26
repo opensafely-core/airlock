@@ -13,7 +13,6 @@ def test_database_init_command(settings, tmp_path):
 
 @pytest.mark.django_db(transaction=True)
 def test_transaction_mode_immediate():
-    with CaptureQueriesContext(connection) as ctx:
-        with transaction.atomic():
-            pass
+    with CaptureQueriesContext(connection) as ctx, transaction.atomic():
+        pass
     assert ctx.captured_queries[0]["sql"] == "BEGIN IMMEDIATE"

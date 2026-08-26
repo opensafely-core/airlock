@@ -252,7 +252,7 @@ def test_request_view_with_submitted_request(airlock_client):
             "researcher",
             [factories.request_file(group="group", changes_requested=True)],
             None,
-            "researcher",
+            "researcher1",
         ),
         (
             # comments not required on approved file, no alert
@@ -333,7 +333,7 @@ def test_request_view_submit_request_alert(
         (
             "researcher",
             "checker",
-            [factories.request_file(changes_requested=True, comment=True)],
+            [factories.request_file(approved=True, comment=True)],
             "submit your review now",
         ),
         # approved, no comments
@@ -1336,7 +1336,7 @@ def test_request_review_output_checker(airlock_client):
     assert persisted_request.status == RequestStatus.PARTIALLY_REVIEWED
     assert (
         "Your review has been submitted"
-        in list(response.context["messages"])[0].message
+        in next(iter(response.context["messages"])).message
     )
 
     response = airlock_client.get(release_request.get_url())
@@ -2147,8 +2147,9 @@ def test_change_file_properties_permission_denied(airlock_client):
 
 def test_request_multiselect_withdraw_files(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2180,8 +2181,9 @@ def test_request_multiselect_withdraw_files(airlock_client):
 
 def test_request_multiselect_withdraw_all_files_pending_request(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.PENDING,
         files=[
@@ -2226,8 +2228,9 @@ def test_request_multiselect_withdraw_all_files_pending_request(airlock_client):
 
 def test_request_multiselect_change_file_properties(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2258,8 +2261,9 @@ def test_request_multiselect_change_file_properties(airlock_client):
 
 def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.SUBMITTED,
         files=[
@@ -2291,8 +2295,9 @@ def test_request_multiselect_withdraw_files_not_permitted(airlock_client):
 
 def test_request_multiselect_change_file_properties_not_permitted(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2380,8 +2385,9 @@ def test_workspace_multiselect_change_file_properties_released_file(
 @pytest.mark.parametrize("action", ["withdraw_files", "update_files"])
 def test_request_multiselect_none_selected(airlock_client, action):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2403,8 +2409,9 @@ def test_request_multiselect_none_selected(airlock_client, action):
 
 def test_request_multiselect_invalid_action(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
+    (workspace,) = user.workspaces
     release_request = factories.create_request_at_status(
-        list(user.workspaces)[0],
+        workspace,
         author=user,
         status=RequestStatus.RETURNED,
         files=[
@@ -2506,7 +2513,7 @@ def test_requests_release_author_403(airlock_client):
     )
     assert response.status_code == 200
     assert (
-        list(response.context["messages"])[0].message
+        next(iter(response.context["messages"])).message
         == "Error releasing files: Can not set your own request to APPROVED"
     )
 
@@ -2523,7 +2530,7 @@ def test_requests_release_invalid_state_transition_403(airlock_client):
     )
     assert response.status_code == 200
     assert (
-        list(response.context["messages"])[0].message
+        next(iter(response.context["messages"])).message
         == "Error releasing files: cannot change status from RETURNED to APPROVED"
     )
 
@@ -2547,7 +2554,7 @@ def test_requests_release_jobserver_403(airlock_client, release_files_stubber):
     )
     assert response.status_code == 200
     assert (
-        list(response.context["messages"])[0].message
+        next(iter(response.context["messages"])).message
         == "Error releasing files: Permission denied"
     )
 
@@ -2589,7 +2596,7 @@ def test_requests_release_jobserver_403_with_debug(
     )
     # DEBUG is on, so we return the job-server error
     assert response.status_code == 200
-    error_message = list(response.context["messages"])[0].message
+    error_message = next(iter(response.context["messages"])).message
     assert "An error from job-server" in error_message
     assert f"Type: {content_type}" in error_message
 
@@ -2612,7 +2619,7 @@ def test_requests_release_files_404(airlock_client, release_files_stubber):
     )
     assert response.status_code == 200
     assert (
-        list(response.context["messages"])[0].message
+        next(iter(response.context["messages"])).message
         == "Error releasing files; please contact tech-support."
     )
 
@@ -3159,7 +3166,7 @@ def test_group_comment_modify_missing_comment(airlock_client, endpoint):
     assert len(release_request.filegroups["group"].comments) == 1
 
     bad_comment_id = 50
-    assert not release_request.filegroups["group"].comments[0].id == bad_comment_id
+    assert release_request.filegroups["group"].comments[0].id != bad_comment_id
 
     response = airlock_client.post(
         f"/requests/comment/{endpoint}/{release_request.id}/group",

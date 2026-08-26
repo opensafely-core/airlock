@@ -496,12 +496,16 @@ def test_file_vote_buttons(
     decision_tooltip,
 ):
     user_data = {
-        "author": dict(
-            username="researcher", workspaces=_workspace_dict(), output_checker=True
-        ),
-        "checker": dict(
-            username="checker", workspaces=_workspace_dict(), output_checker=True
-        ),
+        "author": {
+            "username": "researcher",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
+        "checker": {
+            "username": "checker",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
     }
 
     author = factories.create_airlock_user(**user_data["author"])
@@ -645,9 +649,11 @@ def test_submit_button_visibility(
     files,
     submit_enabled,
 ):
-    user_data = dict(
-        username="researcher", workspaces=_workspace_dict(), output_checker=False
-    )
+    user_data = {
+        "username": "researcher",
+        "workspaces": _workspace_dict(),
+        "output_checker": False,
+    }
     release_request = factories.create_request_at_status(
         "workspace",
         author=factories.create_airlock_user(**user_data),
@@ -688,9 +694,11 @@ def test_submit_button_visibility(
 def test_submit_button_missing_context_controls(
     live_server, context, page, bll, status, submit_button_id
 ):
-    user_data = dict(
-        username="researcher", workspaces=_workspace_dict(), output_checker=False
-    )
+    user_data = {
+        "username": "researcher",
+        "workspaces": _workspace_dict(),
+        "output_checker": False,
+    }
     author = factories.create_airlock_user(**user_data)
     # Create request with one file (group context/controls is added)
     release_request = factories.create_request_at_status(
@@ -769,9 +777,11 @@ def test_resubmit_button_visibility(
     page,
     bll,
 ):
-    user_data = dict(
-        username="researcher", workspaces=_workspace_dict(), output_checker=False
-    )
+    user_data = {
+        "username": "researcher",
+        "workspaces": _workspace_dict(),
+        "output_checker": False,
+    }
     author = factories.create_airlock_user(**user_data)
     # Create a returned release request with one output file
     release_request = factories.create_request_at_status(
@@ -829,15 +839,21 @@ def test_request_returnable(
     can_return,
 ):
     user_data = {
-        "author": dict(
-            username="author", workspaces=_workspace_dict(), output_checker=False
-        ),
-        "checker1": dict(
-            username="checker1", workspaces=_workspace_dict(), output_checker=True
-        ),
-        "checker2": dict(
-            username="checker2", workspaces=_workspace_dict(), output_checker=True
-        ),
+        "author": {
+            "username": "author",
+            "workspaces": _workspace_dict(),
+            "output_checker": False,
+        },
+        "checker1": {
+            "username": "checker1",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
+        "checker2": {
+            "username": "checker2",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
     }
     author = factories.create_airlock_user(**user_data["author"])
     if checkers is not None:
@@ -886,15 +902,21 @@ def test_request_returnable(
 
 def test_returned_request(live_server, context, page, bll):
     user_data = {
-        "author": dict(
-            username="author", workspaces=_workspace_dict(), output_checker=False
-        ),
-        "checker1": dict(
-            username="checker1", workspaces=_workspace_dict(), output_checker=True
-        ),
-        "checker2": dict(
-            username="checker2", workspaces=_workspace_dict(), output_checker=True
-        ),
+        "author": {
+            "username": "author",
+            "workspaces": _workspace_dict(),
+            "output_checker": False,
+        },
+        "checker1": {
+            "username": "checker1",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
+        "checker2": {
+            "username": "checker2",
+            "workspaces": _workspace_dict(),
+            "output_checker": True,
+        },
     }
     author = factories.create_airlock_user(**user_data["author"])
     checkers = [

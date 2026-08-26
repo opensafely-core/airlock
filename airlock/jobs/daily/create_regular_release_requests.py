@@ -71,7 +71,7 @@ class Job(DailyJob):
                             release_request["workspace_name"],
                             result["message"],
                         )
-                except Exception as error:
+                except Exception as error:  # noqa: BLE001
                     span.record_exception(error)
                     logger.error(
                         "Failed to create release request for %s - %s",

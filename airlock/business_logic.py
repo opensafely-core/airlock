@@ -5,8 +5,9 @@ import json
 import logging
 import secrets
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Protocol, cast
 
 from django.conf import settings
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 def store_file(release_request: ReleaseRequest, abspath: Path) -> str:
     # Make a "staging" copy of the file under a temporary name so we know it can't be
     # modified underneath us
-    tmp_name = f"{datetime.now():%Y%m%d-%H%M%S}_{secrets.token_hex(8)}.tmp"
+    tmp_name = f"{datetime.now(tz=UTC):%Y%m%d-%H%M%S}_{secrets.token_hex(8)}.tmp"
     tmp_path = release_request.root() / tmp_name
     tmp_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(abspath, tmp_path)
@@ -374,7 +375,7 @@ class BusinessLogicLayer:
         elif n == 1:
             return ReleaseRequest.from_dict(active_requests[0])
         else:
-            raise Exception(
+            raise RuntimeError(
                 f"Multiple active release requests for user {user} in "
                 f"workspace {workspace}"
             )
@@ -390,7 +391,7 @@ class BusinessLogicLayer:
         none.
         """
         # get_current_request will raise exception if user has no permission
-        # and is not an output-cheker
+        # and is not an output-checker
         request = self.get_current_request(workspace, user)
 
         if request is not None:
@@ -470,55 +471,59 @@ class BusinessLogicLayer:
             self._get_reviewable_requests_by_status(user, RequestStatus.APPROVED)
         )
 
-    VALID_STATE_TRANSITIONS = {
-        RequestStatus.PENDING: [
-            RequestStatus.SUBMITTED,
-            RequestStatus.WITHDRAWN,
-        ],
-        RequestStatus.SUBMITTED: [
-            RequestStatus.PARTIALLY_REVIEWED,
-            RequestStatus.RETURNED,
-        ],
-        RequestStatus.PARTIALLY_REVIEWED: [
-            RequestStatus.REVIEWED,
-            RequestStatus.RETURNED,
-        ],
-        RequestStatus.REVIEWED: [
-            RequestStatus.APPROVED,
-            RequestStatus.REJECTED,
-            RequestStatus.RETURNED,
-        ],
-        RequestStatus.RETURNED: [
-            RequestStatus.SUBMITTED,
-            RequestStatus.WITHDRAWN,
-        ],
-        RequestStatus.APPROVED: [
-            RequestStatus.RELEASED,
-        ],
-    }
+    VALID_STATE_TRANSITIONS = MappingProxyType(
+        {
+            RequestStatus.PENDING: (
+                RequestStatus.SUBMITTED,
+                RequestStatus.WITHDRAWN,
+            ),
+            RequestStatus.SUBMITTED: (
+                RequestStatus.PARTIALLY_REVIEWED,
+                RequestStatus.RETURNED,
+            ),
+            RequestStatus.PARTIALLY_REVIEWED: (
+                RequestStatus.REVIEWED,
+                RequestStatus.RETURNED,
+            ),
+            RequestStatus.REVIEWED: (
+                RequestStatus.APPROVED,
+                RequestStatus.REJECTED,
+                RequestStatus.RETURNED,
+            ),
+            RequestStatus.RETURNED: (
+                RequestStatus.SUBMITTED,
+                RequestStatus.WITHDRAWN,
+            ),
+            RequestStatus.APPROVED: (RequestStatus.RELEASED,),
+        }
+    )
 
-    STATUS_AUDIT_EVENT = {
-        RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
-        RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
-        RequestStatus.PARTIALLY_REVIEWED: AuditEventType.REQUEST_REVIEW,
-        RequestStatus.REVIEWED: AuditEventType.REQUEST_REVIEW,
-        RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
-        RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
-        RequestStatus.RETURNED: AuditEventType.REQUEST_RETURN,
-        RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
-        RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
-    }
+    STATUS_AUDIT_EVENT = MappingProxyType(
+        {
+            RequestStatus.PENDING: AuditEventType.REQUEST_CREATE,
+            RequestStatus.SUBMITTED: AuditEventType.REQUEST_SUBMIT,
+            RequestStatus.PARTIALLY_REVIEWED: AuditEventType.REQUEST_REVIEW,
+            RequestStatus.REVIEWED: AuditEventType.REQUEST_REVIEW,
+            RequestStatus.APPROVED: AuditEventType.REQUEST_APPROVE,
+            RequestStatus.REJECTED: AuditEventType.REQUEST_REJECT,
+            RequestStatus.RETURNED: AuditEventType.REQUEST_RETURN,
+            RequestStatus.RELEASED: AuditEventType.REQUEST_RELEASE,
+            RequestStatus.WITHDRAWN: AuditEventType.REQUEST_WITHDRAW,
+        }
+    )
 
-    STATUS_EVENT_NOTIFICATION = {
-        RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
-        RequestStatus.PARTIALLY_REVIEWED: NotificationEventType.REQUEST_PARTIALLY_REVIEWED,
-        RequestStatus.REVIEWED: NotificationEventType.REQUEST_REVIEWED,
-        RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
-        RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
-        RequestStatus.RETURNED: NotificationEventType.REQUEST_RETURNED,
-        RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
-        RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
-    }
+    STATUS_EVENT_NOTIFICATION = MappingProxyType(
+        {
+            RequestStatus.SUBMITTED: NotificationEventType.REQUEST_SUBMITTED,
+            RequestStatus.PARTIALLY_REVIEWED: NotificationEventType.REQUEST_PARTIALLY_REVIEWED,
+            RequestStatus.REVIEWED: NotificationEventType.REQUEST_REVIEWED,
+            RequestStatus.APPROVED: NotificationEventType.REQUEST_APPROVED,
+            RequestStatus.REJECTED: NotificationEventType.REQUEST_REJECTED,
+            RequestStatus.RETURNED: NotificationEventType.REQUEST_RETURNED,
+            RequestStatus.RELEASED: NotificationEventType.REQUEST_RELEASED,
+            RequestStatus.WITHDRAWN: NotificationEventType.REQUEST_WITHDRAWN,
+        }
+    )
 
     def check_status(
         self, release_request: ReleaseRequest, to_status: RequestStatus, user: User
@@ -529,7 +534,7 @@ class BusinessLogicLayer:
         there's not transaction protection.
         """
         # validate state logic
-        valid_transitions = self.VALID_STATE_TRANSITIONS.get(release_request.status, [])
+        valid_transitions = self.VALID_STATE_TRANSITIONS.get(release_request.status, ())
 
         if to_status not in valid_transitions:
             raise exceptions.InvalidStateTransition(
@@ -1342,11 +1347,13 @@ class BusinessLogicLayer:
         )
 
     # can filter out these audit events
-    READONLY_EVENTS = {
-        AuditEventType.WORKSPACE_FILE_VIEW,
-        AuditEventType.REQUEST_FILE_VIEW,
-        AuditEventType.REQUEST_FILE_UNDECIDED,
-    }
+    READONLY_EVENTS = frozenset(
+        {
+            AuditEventType.WORKSPACE_FILE_VIEW,
+            AuditEventType.REQUEST_FILE_VIEW,
+            AuditEventType.REQUEST_FILE_UNDECIDED,
+        }
+    )
 
     def get_request_audit_log(
         self,
@@ -1361,7 +1368,9 @@ class BusinessLogicLayer:
         audits = self._dal.get_audit_log(
             request=request.id,
             group=group,
-            exclude=self.READONLY_EVENTS if exclude_readonly else set(),
+            # READONLY_EVENTS is a frozenset (since we generally want class vars
+            # to be immutable); convert to a set here since get_audit_log wants one.
+            exclude=set(self.READONLY_EVENTS) if exclude_readonly else set(),
             size=size,
         )
 

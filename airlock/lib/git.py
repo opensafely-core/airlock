@@ -30,8 +30,7 @@ def project_name_from_url(url):
     # correctly
     url = url.replace("\\", "/")
     name = urlparse(url).path.strip("/").split("/")[-1]
-    if name.endswith(".git"):
-        name = name[:-4]
+    name = name.removesuffix(".git")
     return name
 
 
@@ -352,6 +351,7 @@ def commit_is_ancestor(repo_dir, ancestor_sha, descendant_sha):
         ["git", "merge-base", "--is-ancestor", ancestor_sha, descendant_sha],
         cwd=repo_dir,
         capture_output=True,
+        check=False,
     )
     return response.returncode == 0
 
@@ -412,4 +412,4 @@ def redact(value, secret):
     elif isinstance(value, PurePath):
         return value
     else:
-        raise ValueError(f"Got {type(value)} expected str, bytes or Path")
+        raise TypeError(f"Got {type(value)} expected str, bytes or Path")
