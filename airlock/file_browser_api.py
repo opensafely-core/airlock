@@ -344,6 +344,12 @@ def get_workspace_tree(
     selected_path_is_root restricts traversal to the subtree rooted at
     selected_path, avoiding traversal of its ancestors and siblings.
     """
+    if selected_path_is_root:
+        # defensive check; this function is only called with selected_path_is_root
+        # from the workspace_tree_children to expand a directory. selected_path
+        # should always be a directory (i.e. it should have children)
+        assert workspace.workspace_child_map[str(selected_path)]
+
     selected_path = UrlPath(selected_path)
     root_path = selected_path if selected_path_is_root else ROOT_PATH
     selected_parents = frozenset(selected_path.parents)
