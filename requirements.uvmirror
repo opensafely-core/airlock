@@ -80,7 +80,7 @@ googleapis-common-protos==1.75.0
     # via opentelemetry-exporter-otlp-proto-http
 greenlet==3.5.4
     # via playwright
-gunicorn==26.0.0
+gunicorn==26.1.0
     # via airlock
 h11==0.16.0
     # via httpcore
@@ -179,7 +179,6 @@ opentelemetry-util-http==0.61b0
     #   opentelemetry-instrumentation-wsgi
 packaging==26.3
     # via
-    #   gunicorn
     #   mkdocs
     #   opentelemetry-instrumentation
     #   pytest
@@ -261,7 +260,7 @@ setuptools==83.0.0
     # via ruyaml
 six==1.17.0
     # via python-dateutil
-slippers==0.7.0
+slippers==0.7.1
     # via airlock
 sortedcontainers==2.4.0
     # via hypothesis
