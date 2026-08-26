@@ -377,6 +377,8 @@ def get_workspace_tree(
                 if (
                     path == selected_path
                     or path in selected_parents
+                    # additional_expanded preserves folders the user had open
+                    # before an HTMX panel swap (e.g. the out-of-date toggle).
                     or path in additional_expanded
                 ):
                     build_path_list(child_str)
@@ -391,7 +393,7 @@ def get_workspace_tree(
         parent=root_node,
         selected_path=selected_path,
         collapsed_dirs=collapsed_dirs,
-        additional_expanded=additional_expanded,
+        expand_all=True,
     )
 
     return root_node
@@ -518,17 +520,15 @@ def get_path_tree(
     leaf_directories: set[UrlPath] | None = None,
     collapsed_dirs: set[UrlPath] | None = None,
     user: User | None = None,
-    additional_expanded: set[UrlPath] | None = None,
 ) -> list[PathItem]:
     """Walk a flat list of paths and create a tree from them.
 
     Paths in collapsed_dirs are rendered as collapsed directories whose children
-    will be fetched on demand; they must not appear as ancestors in pathlist.
+    will be fetched on demand; their child paths must not appear in pathlist.
     """
 
     leaf_directories = leaf_directories or set()
     collapsed_dirs = collapsed_dirs or set()
-    additional_expanded = additional_expanded or set()
 
     def build_path_tree(
         path_parts: list[list[str]], parent: PathItem
@@ -565,17 +565,13 @@ def get_path_tree(
                 # recurse down the tree
                 node.children = build_path_tree(descendants, parent=node)
 
-                # expand all regardless of selected state, used for request filegroup trees
+                # expand all regardless of selected state, used for request filegroup
+                # trees (always expanded) and workspace_trees (pathlist is pre-calculated to
+                # only contain files and directories that be expanded).
                 if expand_all:
                     node.expanded = True
                 else:
-                    # additional_expanded preserves folders the user had open
-                    # before an HTMX panel swap (e.g. the out-of-date toggle).
-                    node.expanded = (
-                        selected
-                        or (path in (selected_path.parents or []))
-                        or (path in additional_expanded)
-                    )
+                    node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
                 # get_path_tree needs to work with both Workspace and
