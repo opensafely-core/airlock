@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
+from django.urls import reverse
+
 from airlock import renderers
 from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
 from airlock.models import (
@@ -83,6 +85,8 @@ class PathItem:
     selected: bool = False
     # should this node be expanded in the tree?
     expanded: bool = False
+    # does this directory have children that have not been loaded yet?
+    has_children: bool = False
 
     request_filetype: RequestFileType | None = RequestFileType.OUTPUT
 
@@ -301,11 +305,24 @@ class PathItem:
 
         return walk_selected(self)
 
+    def get_tree_children_url(self) -> str | None:
+        """URL to lazily fetch a Workspace directory's children."""
+        if self.has_children and isinstance(self.container, Workspace):
+            return reverse(
+                "workspace_tree_children",
+                kwargs={
+                    "workspace_name": self.container.name,
+                    "path": str(self.relpath),
+                },
+            )
+        return None
+
     def __str__(self):
         """Debugging utility to inspect tree."""
 
         def build_string(node, indent):
-            yield f"{indent}{node.name()}{'*' if node.expanded else ''}{'**' if node.selected else ''}"
+            lazy = "!" if (node.has_children and not node.children) else ""
+            yield f"{indent}{node.name()}{'*' if node.expanded else ''}{'**' if node.selected else ''}{lazy}"
             for child in node.children:
                 yield from build_string(child, indent + "  ")
 
@@ -316,61 +333,75 @@ class PathItem:
 def get_workspace_tree(
     workspace: Workspace,
     selected_path: UrlPath | str = ROOT_PATH,
-    selected_only: bool = False,
     additional_expanded: set[UrlPath] | None = None,
+    selected_path_is_root: bool = False,
 ) -> PathItem:
     """Recursively build workspace tree from the root dir.
 
-    If selected_only==True, we do not build entire tree, as that can be
-    expensive if we just want to partially render one node.
+    Directories not on the path to selected_path are marked has_children=True
+    and their children are loaded lazily via HTMX if/when required.
 
-    Instead, we build just the tree down to the selected path, and then all its
-    immediate children, if it has any. We include children so that if
-    selected_path is a directory, its contents can be partially rendered.
+    selected_path_is_root restricts traversal to the subtree rooted at
+    selected_path, avoiding traversal of its ancestors and siblings.
     """
+    if selected_path_is_root:
+        # defensive check; this function is only called with selected_path_is_root
+        # from the workspace_tree_children to expand a directory. selected_path
+        # should always be a directory (i.e. it should have children)
+        assert workspace.workspace_child_map[str(selected_path)]
+
     selected_path = UrlPath(selected_path)
-    leaf_directories = set()
+    root_path = selected_path if selected_path_is_root else ROOT_PATH
+    selected_parents = frozenset(selected_path.parents)
+    additional_expanded = additional_expanded or set()
+    root_node = PathItem(
+        container=workspace,
+        relpath=root_path,
+        type=PathType.WORKSPACE if root_path == ROOT_PATH else PathType.DIR,
+        parent=None,
+        selected=(selected_path == root_path),
+        expanded=True,
+    )
 
-    if selected_only:
-        pathlist = []
+    pathlist: list[UrlPath] = []
+    collapsed_dirs: set[UrlPath] = set()
 
-        # root path is implicit
-        if selected_path != ROOT_PATH:
-            pathlist.append(selected_path)
-
-        if not workspace.is_valid_tree_path(selected_path):
-            raise PathItem.PathNotFound(f"not current output {selected_path}")
-
+    def build_path_list(path_str: str) -> None:
         # workspace_child_map is keyed by str, not UrlPath, for performance reasons, using "." for the root;
-        # str(UrlPath()) == "." so if we have the ROOT_PATH here, this lookup still works.
-        for child_str in workspace.workspace_child_map[str(selected_path)]:
-            child = UrlPath(child_str)
-            pathlist.append(child)
+        # str(UrlPath()) == "." so when we have the ROOT_PATH here, this lookup still works.
+        for child_str in workspace.workspace_child_map.get(path_str, set()):
+            path = UrlPath(child_str)
+            # Build the list of paths relative to the root_path
+            pathlist.append(
+                path.relative_to(root_path) if selected_path_is_root else path
+            )
+
             if workspace.workspace_child_map[
                 child_str
             ]:  # has children, therefore is directory
-                leaf_directories.add(child)
-    else:
-        # Convert at the boundary; "." is the internal root key, excluded here.
-        pathlist = [UrlPath(p) for p in workspace.workspace_child_map if p != "."]
+                # Do we need to expand it?
+                if (
+                    path == selected_path
+                    or path in selected_parents
+                    # additional_expanded preserves folders the user had open
+                    # before an HTMX panel swap (e.g. the out-of-date toggle).
+                    or path in additional_expanded
+                ):
+                    build_path_list(child_str)
+                else:
+                    collapsed_dirs.add(path)
 
-    root_node = PathItem(
-        container=workspace,
-        relpath=ROOT_PATH,
-        type=PathType.WORKSPACE,
-        parent=None,
-        selected=(selected_path == ROOT_PATH),
-        expanded=True,
-    )
+    build_path_list(str(root_path))
 
     root_node.children = get_path_tree(
         workspace,
         pathlist,
         parent=root_node,
         selected_path=selected_path,
-        leaf_directories=leaf_directories,
-        additional_expanded=additional_expanded,
+        collapsed_dirs=collapsed_dirs,
+        expand_all=True,
     )
+
     return root_node
 
 
@@ -493,10 +524,17 @@ def get_path_tree(
     selected_path: UrlPath = ROOT_PATH,
     expand_all: bool = False,
     leaf_directories: set[UrlPath] | None = None,
+    collapsed_dirs: set[UrlPath] | None = None,
     user: User | None = None,
-    additional_expanded: set[UrlPath] | None = None,
-):
-    """Walk a flat list of paths and create a tree from them."""
+) -> list[PathItem]:
+    """Walk a flat list of paths and create a tree from them.
+
+    Paths in collapsed_dirs are rendered as collapsed directories whose children
+    will be fetched on demand; their child paths must not appear in pathlist.
+    """
+
+    leaf_directories = leaf_directories or set()
+    collapsed_dirs = collapsed_dirs or set()
 
     def build_path_tree(
         path_parts: list[list[str]], parent: PathItem
@@ -524,26 +562,22 @@ def get_path_tree(
                 request_filetype=container.request_filetype(path),
             )
 
-            if descendants or (leaf_directories and path in leaf_directories):
+            if path in collapsed_dirs:
+                node.type = PathType.DIR
+                node.has_children = True
+            elif descendants or (path in leaf_directories):
                 node.type = PathType.DIR
 
                 # recurse down the tree
                 node.children = build_path_tree(descendants, parent=node)
 
-                # expand all regardless of selected state, used for request filegroup trees
+                # expand all regardless of selected state, used for request filegroup
+                # trees (always expanded) and workspace_trees (pathlist is pre-calculated to
+                # only contain files and directories that be expanded).
                 if expand_all:
                     node.expanded = True
                 else:
-                    # additional_expanded preserves folders the user had open
-                    # before an HTMX panel swap (e.g. the out-of-date toggle).
-                    node.expanded = (
-                        selected
-                        or (path in (selected_path.parents or []))
-                        or (
-                            additional_expanded is not None
-                            and path in additional_expanded
-                        )
-                    )
+                    node.expanded = selected or (path in (selected_path.parents or []))
             else:
                 node.type = PathType.FILE
                 # get_path_tree needs to work with both Workspace and

@@ -243,6 +243,27 @@ def get_nearest_parent_url(workspace, urlpath):
     )
 
 
+def _manifest_changed_redirect(request, workspace, urlpath):
+    """Return an HX-Redirect response if the workspace manifest has changed, else None.
+
+    When the manifest hash in the request header differs from the current workspace
+    manifest, the client's tree is stale and we must trigger a full page reload.
+    """
+    if request.headers.get("manifest-hash") == workspace.manifest_hash:
+        return None
+    if workspace.is_valid_tree_path(urlpath):
+        redirect_url = workspace.get_url(urlpath)
+    else:
+        redirect_url = get_nearest_parent_url(workspace, urlpath)
+        messages.error(
+            request,
+            "Selected path is not a valid output path. A recent job may have updated its outputs.",
+        )
+    response = HttpResponse("", status=302)
+    response.headers["HX-Redirect"] = redirect_url
+    return response
+
+
 # we return different content depending on the HX-Request / HX-Target headers.
 @vary_on_headers("HX-Request", "HX-Target", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -257,7 +278,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     )
     template_dir = "file_browser/workspace/"
     template = template_dir + "index.html"
-    selected_only = False
 
     # By default an HX-Request returns the right-hand pane only (tree
     # navigation case). The out-of-date toggle targets #file-browser-panel
@@ -267,27 +287,12 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     # toggle view before this.
     if request.htmx and request.htmx.target != FILE_BROWSER_PANEL_ID:
         template = "file_browser/contents.html"
-        selected_only = True
         urlpath = UrlPath(path)
         # If the manifest has changed, we redirect so that we reload the page and refresh
         # the tree. This ensures that the tree stays consistent with the files and metadata
         # displayed in the right-hand content panel even if a new job runs and updates the
         # manifest file before the page is reloaded again.
-        manifest_from_request = request.headers.get("manifest-hash")
-        if manifest_from_request != workspace.manifest_hash:
-            # The selected path may still be an valid output path. If so, we redirect back to
-            # it. Otherwise, we fall back to the closest valid parent and redirect there.
-            if workspace.is_valid_tree_path(urlpath):
-                redirect_url = workspace.get_url(urlpath)
-            else:
-                redirect_url = get_nearest_parent_url(workspace, urlpath)
-                messages.error(
-                    request,
-                    "Selected path is not a valid output path. A recent job may have updated its outputs.",
-                )
-            # tell HTMX to redirect us
-            response = HttpResponse("", status=302)
-            response.headers["HX-Redirect"] = redirect_url
+        if response := _manifest_changed_redirect(request, workspace, urlpath):
             return response
 
     # X-Expanded-Paths is set by the out-of-date toggle to preserve folders
@@ -301,7 +306,6 @@ def workspace_view(request, workspace_name: str, path: str = ""):
     tree = get_workspace_tree(
         workspace,
         path,
-        selected_only,
         additional_expanded=additional_expanded,
     )
 
@@ -429,6 +433,42 @@ def workspace_toggle_out_of_date_action(request, workspace_name: str):
                 }
             ),
         },
+    )
+
+
+@instrument(func_attributes={"workspace": "workspace_name"})
+@require_http_methods(["GET"])
+def workspace_tree_children(request, workspace_name: str, path: str):
+    """Return the children of a workspace directory as an HTML fragment.
+
+    Called by HTMX when the user expands a directory that was not loaded as
+    part of the initial tree render (has_children=True).  Returns a <ul>
+    containing the immediate children of the requested directory.
+    """
+    show_out_of_date_action_outputs = request.session.get(
+        SHOW_OOD_ACTION_SESSION_KEY, {}
+    ).get(workspace_name, False)
+    workspace = get_workspace_or_raise(
+        request.user,
+        workspace_name,
+        include_out_of_date_action_outputs=show_out_of_date_action_outputs,
+    )
+    relpath = UrlPath(path)
+
+    if redirect := _manifest_changed_redirect(request, workspace, relpath):
+        return redirect
+
+    if not workspace.is_valid_tree_path(relpath):
+        raise Http404()
+
+    dir_node = get_workspace_tree(
+        workspace, selected_path=relpath, selected_path_is_root=True
+    )
+
+    return TemplateResponse(
+        request,
+        "file_browser/workspace/tree_children.html",
+        {"path_item": dir_node},
     )
 
 

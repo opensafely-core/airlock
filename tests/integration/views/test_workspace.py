@@ -397,8 +397,9 @@ def test_workspace_view_directory_with_sub_directory(airlock_client):
     workspace = factories.create_workspace("workspace")
     factories.write_workspace_file(workspace, "sub_dir/file.txt")
     response = airlock_client.get("/workspaces/view/workspace", follow=True)
+    # The workspace root is selected, so sub_dir appears as a lazy directory.
+    # Its children are not rendered until the user expands it.
     assert "sub_dir" in response.rendered_content
-    assert "file.txt" in response.rendered_content
 
 
 def test_workspace_view_redirects_to_file(airlock_client):
@@ -1748,3 +1749,167 @@ def test_workspace_view_tracing_with_workspace_attribute(
         "username": airlock_client.user.username,
         "user_id": airlock_client.user.user_id,
     }
+
+
+def test_workspace_tree_children_returns_directory_fragment(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "big_dir/file1.txt")
+    factories.write_workspace_file(workspace, "big_dir/file2.txt")
+    factories.write_workspace_file(workspace, "big_dir/subdir/nested.txt")
+    factories.write_workspace_file(workspace, "other_dir/file3.txt")
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "big_dir"},
+    )
+    response = airlock_client.get(
+        url, headers={"manifest-hash": workspace.manifest_hash}
+    )
+
+    assert response.status_code == 200
+    content = response.rendered_content
+    # Children of big_dir are present
+    assert "file1.txt" in content
+    assert "file2.txt" in content
+    assert "subdir" in content
+    # other_dir's contents are not included
+    assert "file3.txt" not in content
+
+
+def test_workspace_tree_children_subdirs_are_lazy(airlock_client):
+    """Sub-directories returned by the lazy endpoint are themselves lazy."""
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "parent/child_dir/deep.txt")
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "parent"},
+    )
+    response = airlock_client.get(
+        url, headers={"manifest-hash": workspace.manifest_hash}
+    )
+
+    assert response.status_code == 200
+    # child_dir is rendered as a directory with an hx-get for further lazy loading
+    assert "child_dir" in response.rendered_content
+    assert "hx-get" in response.rendered_content
+
+
+def test_workspace_tree_children_invalid_path(airlock_client):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "nonexistent"},
+    )
+    response = airlock_client.get(
+        url, headers={"manifest-hash": workspace.manifest_hash}
+    )
+    assert response.status_code == 404
+
+
+def test_workspace_tree_children_no_access(airlock_client):
+    airlock_client.login(workspaces=[])  # no workspace access
+    factories.create_workspace("workspace")
+    factories.write_workspace_file("workspace", "some_dir/file.txt")
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "some_dir"},
+    )
+    response = airlock_client.get(url)
+    assert response.status_code == 403
+
+
+def test_workspace_tree_children_respects_ood_session_flag(airlock_client):
+    """Lazy-loaded children honour the show-out-of-date-action session flag."""
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "some_dir/normal.txt")
+    factories.write_workspace_file(workspace, "some_dir/stale.txt")
+    workspace.manifest["outputs"]["some_dir/stale.txt"]["out_of_date_action"] = True
+    workspace.manifest_path().write_text(json.dumps(workspace.manifest))
+    workspace = factories.refresh_workspace("workspace")
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "some_dir"},
+    )
+
+    # OOD hidden (default): stale.txt excluded from lazy children
+    _set_show_ood_session(airlock_client, "workspace", False)
+    response = airlock_client.get(
+        url, headers={"manifest-hash": workspace.manifest_hash}
+    )
+    assert response.status_code == 200
+    assert "normal.txt" in response.rendered_content
+    assert "stale.txt" not in response.rendered_content
+
+    # OOD shown: stale.txt included in lazy children
+    _set_show_ood_session(airlock_client, "workspace", True)
+    response = airlock_client.get(
+        url, headers={"manifest-hash": workspace.manifest_hash}
+    )
+    assert response.status_code == 200
+    assert "normal.txt" in response.rendered_content
+    assert "stale.txt" in response.rendered_content
+
+
+def test_workspace_tree_children_changed_manifest_path_still_valid(airlock_client):
+    """Stale manifest hash results in HX-Redirect to the same dir (path still exists)."""
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    stale_hash = workspace.manifest_hash
+
+    # Mutate the workspace so the manifest hash differs
+    factories.write_workspace_file(workspace, "some_dir/new_file.txt")
+    workspace = factories.refresh_workspace("workspace")
+    assert workspace.manifest_hash != stale_hash
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "some_dir"},
+    )
+    response = airlock_client.get(url, headers={"manifest-hash": stale_hash})
+
+    assert response.status_code == 302
+    assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/some_dir"
+    assert not list(get_messages(response.wsgi_request))
+
+
+def test_workspace_tree_children_changed_manifest_path_removed(airlock_client):
+    """Stale manifest hash + dir removed -> HX-Redirect to nearest parent with error."""
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "some_dir/file.txt")
+    factories.write_workspace_file(workspace, "other_dir/file.txt")
+    stale_hash = workspace.manifest_hash
+
+    # Remove some_dir entirely by rewriting the manifest without it
+    workspace = factories.refresh_workspace("workspace")
+    workspace.manifest["outputs"] = {
+        k: v
+        for k, v in workspace.manifest["outputs"].items()
+        if not k.startswith("some_dir/")
+    }
+    workspace.manifest_path().write_text(json.dumps(workspace.manifest))
+    workspace = factories.refresh_workspace("workspace")
+    assert workspace.manifest_hash != stale_hash
+    assert not workspace.is_valid_tree_path(UrlPath("some_dir"))
+
+    url = reverse(
+        "workspace_tree_children",
+        kwargs={"workspace_name": "workspace", "path": "some_dir"},
+    )
+    response = airlock_client.get(url, headers={"manifest-hash": stale_hash})
+
+    assert response.status_code == 302
+    assert response.headers["HX-Redirect"] == "/workspaces/view/workspace/"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    assert all_messages[0].level == messages.ERROR
+    assert "Selected path is not a valid output path" in all_messages[0].message
