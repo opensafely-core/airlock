@@ -22,6 +22,7 @@ def test_summarize_csv():
     assert summary["rows"] == [
         ("Column type", "text", "integer", "float", "mixed", "mixed", "float"),
         ("Total rows", 3, 3, 3, 3, 3, 3),
+        ("Unique values", 2, 2, 3, 3, 3, 2),
         ("Total numeric", 0, 3, 3, 1, 2, 3),
         ("Null / missing", 0, 0, 0, 0, 0, 0),
         ("Redacted", 0, 0, 0, 0, 0, 0),
@@ -49,6 +50,7 @@ def test_summarize_csv_uneven_columns():
     assert summary["rows"] == [
         ("Column type", "text", "integer", "float"),
         ("Total rows", 3, 3, 3),
+        ("Unique values", 2, 2, 2),
         ("Total numeric", 0, 3, 2),
         ("Null / missing", 0, 0, 0),
         ("Redacted", 0, 0, 0),

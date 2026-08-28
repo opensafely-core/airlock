@@ -118,6 +118,7 @@ def summarize_column(column_data: tuple[str, ...]):
     column_summary = {
         "Column type": type_,
         "Total rows": len(column_data),
+        "Unique values": len(counter),
         "Total numeric": sum(numeric_data.values()),
         "Null / missing": sum(
             count for val, count in counter.items() if val in missing_strings
