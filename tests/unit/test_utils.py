@@ -26,7 +26,7 @@ def test_summarize_csv():
         ("Null / missing", 0, 0, 0, 0, 0, 0),
         ("Redacted", 0, 0, 0, 0, 0, 0),
         ("Min value", "-", 1, 0.5, "-", "-", 1),
-        ("Min non-zero", "-", 1, 0.5, "-", "-", 1),
+        ("Min abs non-zero", "-", 1, 0.5, "-", "-", 1),
         ("Max value", "-", 2, 3.0, "-", "-", float("inf")),
         ("Sum", "-", 4, 4.5, "-", "-", float("inf")),
         ("Divisible by 5", "-", "No", "No", "-", "-", "No"),
@@ -53,7 +53,7 @@ def test_summarize_csv_uneven_columns():
         ("Null / missing", 0, 0, 0),
         ("Redacted", 0, 0, 0),
         ("Min value", "-", 1, 0.5),
-        ("Min non-zero", "-", 1, 0.5),
+        ("Min abs non-zero", "-", 1, 0.5),
         ("Max value", "-", 2, 1.0),
         ("Sum", "-", 4, 1.5),
         ("Divisible by 5", "-", "No", "No"),
@@ -147,4 +147,4 @@ def test_summarize_column_all_0():
     assert column_summary["Column type"] == "integer"
     assert column_summary["Min value"] == 0
     assert column_summary["Max value"] == 0
-    assert column_summary["Min non-zero"] == "-"
+    assert column_summary["Min abs non-zero"] == "-"
