@@ -196,6 +196,7 @@ def summarize_csv(
             '<li>Missing values: The strings "null", "none", "NaN" and "" (case insenstive) are considered to represent missing or null values</li>'
             '<li>Redacted values: The strings "redacted", "[redacted]", "na", "n/a" and "<=7" (case insenstive) are considered to represent redacted values</li>'
             "<li>All other values are interpreted as numeric or text.</li>"
+            "<li>Unique values: a count of unique values, including any redacted or missing values described above.</li>"
             "<li>Mixed column types: both numeric and text values were detected (excluding missing/redacted).</li>"
             "<li>Min abs non-zero: Calculates the minimum <em>absolute</em> non-zero value. i.e. the value (negative or positive) that is closest to 0 but not 0"
             "<li>A value <code>x</code> is calculated as midpoint 6 rounded if <code>(x - 3) % 6 == 0</code> or <code>x == 0</code>.</li>"
