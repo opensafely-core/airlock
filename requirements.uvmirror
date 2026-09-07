@@ -2,7 +2,7 @@
 #    uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras
 annotated-types==0.8.0
     # via pydantic
-ansi2html==1.9.2
+ansi2html==1.9.3
     # via airlock
 anyio==4.14.2
     # via httpx
@@ -80,7 +80,7 @@ googleapis-common-protos==1.75.1
     # via opentelemetry-exporter-otlp-proto-http
 greenlet==3.5.5
     # via playwright
-gunicorn==26.0.0
+gunicorn==26.2.0
     # via airlock
 h11==0.16.0
     # via httpcore
@@ -179,7 +179,6 @@ opentelemetry-util-http==0.61b0
     #   opentelemetry-instrumentation-wsgi
 packaging==26.3
     # via
-    #   gunicorn
     #   mkdocs
     #   opentelemetry-instrumentation
     #   pytest
@@ -203,9 +202,9 @@ protobuf==6.33.6
     #   opentelemetry-proto
 psycopg2-binary==2.9.12
     # via airlock
-pydantic==2.13.4
+pydantic==2.13.5
     # via airlock
-pydantic-core==2.46.4
+pydantic-core==2.46.5
     # via pydantic
 pyee==13.0.1
     # via playwright
