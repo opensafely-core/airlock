@@ -187,7 +187,7 @@ pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-platformdirs==4.11.5
+platformdirs==4.11.7
     # via mkdocs-get-deps
 playwright==1.62.0
     # via pytest-playwright
