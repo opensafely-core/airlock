@@ -933,12 +933,24 @@ class ReleaseRequest:
         )
 
     def get_request_file_status(
-        self, relpath: UrlPath, user: User
+        self, relpath: UrlPath, user: User, can_review: bool | None = None
     ) -> RequestFileStatus | None:
         rfile = self.get_request_file_from_urlpath(relpath)
+        return self.get_request_file_status_from_file(rfile, user, can_review)
+
+    def get_request_file_status_from_file(
+        self, rfile: RequestFile, user: User, can_review: bool | None = None
+    ) -> RequestFileStatus:
+        """Shared implementation for get_request_file_status.
+
+        Split out so that if we already have the RequestFile we can
+        avoid repeating the get_request_file_from_urlpath lookup and the
+        permission check.
+        """
         phase = self.get_turn_phase()
         decision = RequestFileDecision.INCOMPLETE
-        can_review = permissions.user_can_review_request(user, self)
+        if can_review is None:
+            can_review = permissions.user_can_review_request(user, self)
         submitted_reviewers_this_turn = self.submitted_reviews.keys()
 
         # If we're in the AUTHOR phase of a turn (i.e. the request is being
