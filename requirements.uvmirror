@@ -54,7 +54,7 @@ django==6.1
     #   django-vite
     #   slippers
 django-coverage-plugin @ https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip
-django-debug-toolbar==7.1.1
+django-debug-toolbar==8.0.0
     # via django-debug-toolbar-template-profiler
 django-debug-toolbar-template-profiler==2.1.0
 django-extensions==4.1

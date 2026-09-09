@@ -140,7 +140,7 @@ required-version = ">=0.9"
 
 [dependency-groups]
 dev = [
-    "django-debug-toolbar<=7.1.1",
+    "django-debug-toolbar<=8.0.0",
     "django-debug-toolbar-template-profiler<=2.1.0",
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
