@@ -639,6 +639,17 @@ class CodeRepo:
         return RequestFileType.CODE
 
 
+def _resolve_user(user_id: str, users_by_id: dict[str, User] | None) -> User:
+    """Look up a User for a from_dict() call.
+
+    If a users_by_id map is provided (e.g. in ReleaseRequest._filegroups_from_dict),
+    use it to look up a pre-fetched User, otherwise fall back to a single query
+    """
+    if users_by_id is not None:
+        return users_by_id[user_id]
+    return User.objects.get(pk=user_id)
+
+
 @dataclass(frozen=True)
 class FileReview:
     """
@@ -652,10 +663,10 @@ class FileReview:
     review_turn: int
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs, users_by_id: dict[str, User] | None = None):
         return cls(
             **{k: v for k, v in attrs.items() if k != "reviewer"},
-            reviewer=User.objects.get(pk=attrs["reviewer"]),
+            reviewer=_resolve_user(attrs["reviewer"], users_by_id),
         )
 
 
@@ -685,16 +696,16 @@ class RequestFile:
     upload_attempted_at: datetime | None = None
 
     @classmethod
-    def from_dict(cls, attrs) -> Self:
+    def from_dict(cls, attrs, users_by_id: dict[str, User] | None = None) -> Self:
         released_by = (
-            User.objects.get(pk=attrs["released_by"])
+            _resolve_user(attrs["released_by"], users_by_id)
             if attrs.get("released_by")
             else None
         )
         return cls(
             **{k: v for k, v in attrs.items() if k not in ["reviews", "released_by"]},
             reviews={
-                value["reviewer"]: FileReview.from_dict(value)
+                value["reviewer"]: FileReview.from_dict(value, users_by_id)
                 for value in attrs.get("reviews", ())
             },
             released_by=released_by,
@@ -781,15 +792,15 @@ class FileGroup:
         ]
 
     @classmethod
-    def from_dict(cls, attrs) -> Self:
+    def from_dict(cls, attrs, users_by_id: dict[str, User] | None = None) -> Self:
         return cls(
             **{k: v for k, v in attrs.items() if k not in ["files", "comments"]},
             files={
-                UrlPath(value["relpath"]): RequestFile.from_dict(value)
+                UrlPath(value["relpath"]): RequestFile.from_dict(value, users_by_id)
                 for value in attrs.get("files", ())
             },
             comments=sorted(
-                [Comment.from_dict(c) for c in attrs.get("comments", [])],
+                [Comment.from_dict(c, users_by_id) for c in attrs.get("comments", [])],
                 key=lambda c: c.created_at,
                 reverse=True,
             ),
@@ -823,14 +834,14 @@ class Comment:
     review_turn: int
 
     @classmethod
-    def from_dict(cls, attrs):
+    def from_dict(cls, attrs, users_by_id: dict[str, User] | None = None):
         # `id` is implemented as an `int` in the current DAL, and as a `str`
         # in the BLL, so we need to add a conversion here (instead of just passing
         # it straight through with the other `attrs`)
         return cls(
             **{k: v for k, v in attrs.items() if k not in ["id", "author"]},
             id=str(attrs["id"]),
-            author=User.objects.get(pk=attrs["author"]),
+            author=_resolve_user(attrs["author"], users_by_id),
         )
 
 
@@ -867,7 +878,26 @@ class ReleaseRequest:
 
     @staticmethod
     def _filegroups_from_dict(attrs):
-        return {key: FileGroup.from_dict(value) for key, value in attrs.items()}
+        # Find all distinct users referenced across all filegroups on a
+        # release request (as a reviewer, a commenter or a releaser);
+        # typically this will only be a handful of users.
+        # This means we can fetch the Users in bulk once rather than have each
+        # FileReview/Comment/RequestFile during the FileGroup.from_dict do its own
+        # query - this can avoid hundreds of indivudial User lookups for large requests.
+        user_ids: set[str] = set()
+        for group in attrs.values():
+            for comment in group.get("comments", ()):
+                user_ids.add(comment["author"])
+            for file_attrs in group.get("files", ()):
+                if file_attrs.get("released_by"):
+                    user_ids.add(file_attrs["released_by"])
+                for review in file_attrs.get("reviews", ()):
+                    user_ids.add(review["reviewer"])
+        users_by_id = User.objects.in_bulk(user_ids)
+
+        return {
+            key: FileGroup.from_dict(value, users_by_id) for key, value in attrs.items()
+        }
 
     def __post_init__(self):
         self.root().mkdir(parents=True, exist_ok=True)
