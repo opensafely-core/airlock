@@ -53,9 +53,10 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
         return metadata.to_dict()
 
-    def _find_metadata(self, request_id: str):
+    def _find_metadata(self, request_id: str, queryset=None):
+        queryset = RequestMetadata.objects if queryset is None else queryset
         try:
-            return RequestMetadata.objects.get(id=request_id)
+            return queryset.get(id=request_id)
         except RequestMetadata.DoesNotExist:
             raise exceptions.ReleaseRequestNotFound(request_id)
 
@@ -66,8 +67,22 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
         )
         return groupmetadata
 
+    def _find_metadata_as_dict(self, request_id: str):
+        """Fetch a RequestMetadata row and serialize it to a dict.
+
+        Prefetches the filegroups/request_files/reviews needed by to_dict(),
+        avoiding a query per file for its reviews.
+        """
+        metadata = self._find_metadata(
+            request_id,
+            queryset=RequestMetadata.objects.prefetch_related(
+                "filegroups__request_files__reviews"
+            ),
+        )
+        return metadata.to_dict()
+
     def get_release_request(self, request_id: str):
-        return self._find_metadata(request_id).to_dict()
+        return self._find_metadata_as_dict(request_id)
 
     def get_active_requests_for_workspace_by_user(self, workspace: str, user: User):
         # Requests in these statuses are still editable by either an
@@ -192,8 +207,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
         # Return updated FileGroups data
-        metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups_to_dict()
+        return self._find_metadata_as_dict(request_id)["filegroups"]
 
     def delete_file_from_request(
         self,
@@ -222,8 +236,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
         # Return updated FileGroups data
-        metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups_to_dict()
+        return self._find_metadata_as_dict(request_id)["filegroups"]
 
     def withdraw_file_from_request(
         self,
@@ -250,8 +263,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
             self._create_audit_log(audit)
 
         # Return updated FileGroups data
-        metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups_to_dict()
+        return self._find_metadata_as_dict(request_id)["filegroups"]
 
     def update_request_file_properties(
         self,
@@ -275,8 +287,7 @@ class LocalDBDataAccessLayer(DataAccessLayerProtocol):
 
             self._create_audit_log(audit)
         # Return updated FileGroups data
-        metadata = self._find_metadata(request_id)
-        return metadata.get_filegroups_to_dict()
+        return self._find_metadata_as_dict(request_id)["filegroups"]
 
     def release_file(
         self, request_id: str, relpath: UrlPath, user: User, audit: AuditEvent
