@@ -86,7 +86,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.165.10
+hypothesis==6.167.1
 idna==3.19
     # via
     #   anyio
@@ -251,8 +251,8 @@ requests==2.34.2
     #   opentelemetry-exporter-otlp-proto-http
     #   pytest-base-url
     #   responses
-responses==0.26.2
-ruff==0.16.4
+responses==0.26.3
+ruff==0.16.5
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==84.0.0
