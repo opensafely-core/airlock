@@ -7,7 +7,7 @@ from typing import Protocol
 
 from django.urls import reverse
 
-from airlock import renderers
+from airlock import permissions, renderers
 from airlock.enums import PathType, RequestFileType, WorkspaceFileStatus
 from airlock.models import (
     CodeRepo,
@@ -535,6 +535,15 @@ def get_path_tree(
     leaf_directories = leaf_directories or set()
     collapsed_dirs = collapsed_dirs or set()
 
+    # Assess this once, rather than per-node in the loop below; it doesn't depend
+    # on the file, so for a request with lots of files, we don't need to re-compute
+    # it every time
+    can_review = (
+        permissions.user_can_review_request(user, container)
+        if isinstance(container, ReleaseRequest) and user
+        else None
+    )
+
     def build_path_tree(
         path_parts: list[list[str]], parent: PathItem
     ) -> list[PathItem]:
@@ -553,26 +562,34 @@ def get_path_tree(
         for child, descendants in grouped.items():
             path = parent.relpath / child
             selected = path == selected_path
+            # request_filetype defaults to None here rather than calling
+            # container.request_filetype(path) unconditionally: for a
+            # ReleaseRequest file that would look up the RequestFile just to
+            # discard it, since we look it up again below to also get the
+            # request_status. It's set properly for each container type below.
+            # Any directory path and Workspace files and stay as None.
             node = PathItem(
                 container=container,
                 relpath=path,
                 parent=parent,
                 selected=selected,
-                request_filetype=container.request_filetype(path),
+                request_filetype=None,
             )
 
             if path in collapsed_dirs:
                 node.type = PathType.DIR
                 node.has_children = True
+
             elif descendants or (path in leaf_directories):
                 node.type = PathType.DIR
 
                 # recurse down the tree
                 node.children = build_path_tree(descendants, parent=node)
 
-                # expand all regardless of selected state, used for request filegroup
-                # trees (always expanded) and workspace_trees (pathlist is pre-calculated to
-                # only contain files and directories that be expanded).
+                # expand all regardless of selected state, used for request
+                # filegroup trees (always expanded) and workspace_trees
+                # (pathlist is pre-calculated to only contain files and
+                # directories that be expanded).
                 if expand_all:
                     node.expanded = True
                 else:
@@ -584,10 +601,21 @@ def get_path_tree(
                 # calls
                 if isinstance(container, Workspace):
                     node.workspace_status = container.get_workspace_file_status(path)
-
-                # user is required for request status, due to visibility
-                if isinstance(container, ReleaseRequest) and user:
-                    node.request_status = container.get_request_file_status(path, user)
+                elif isinstance(container, ReleaseRequest):
+                    # user is required for request status, due to visibility; get_request_tree
+                    # always passes a user to get_path_tree
+                    assert user is not None
+                    # Fetch the RequestFile once and reuse it below for both
+                    # the request filetype and request status, rather than
+                    # looking it up twice.
+                    rfile = container.get_request_file_from_urlpath(path)
+                    node.request_filetype = rfile.filetype
+                    node.request_status = container.get_request_file_status_from_file(
+                        rfile, user, can_review
+                    )
+                else:
+                    # Code container files
+                    node.request_filetype = container.request_filetype(path)
 
             tree.append(node)
 
