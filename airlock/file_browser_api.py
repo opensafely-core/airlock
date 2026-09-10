@@ -567,7 +567,7 @@ def get_path_tree(
             # ReleaseRequest file that would look up the RequestFile just to
             # discard it, since we look it up again below to also get the
             # request_status. It's set properly for each container type below.
-            # Any directory path and Workspace files and stay as None.
+            # It will stay as None for any directory path, and for Workspace files.
             node = PathItem(
                 container=container,
                 relpath=path,

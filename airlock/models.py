@@ -883,7 +883,7 @@ class ReleaseRequest:
         # typically this will only be a handful of users.
         # This means we can fetch the Users in bulk once rather than have each
         # FileReview/Comment/RequestFile during the FileGroup.from_dict do its own
-        # query - this can avoid hundreds of indivudial User lookups for large requests.
+        # query - this can avoid hundreds of individual User lookups for large requests.
         user_ids: set[str] = set()
         for group in attrs.values():
             for comment in group.get("comments", ()):
