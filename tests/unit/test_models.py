@@ -711,6 +711,9 @@ def test_request_release_request_filetype(bll):
         release_request.request_filetype("default" / supporting_path)
         == RequestFileType.SUPPORTING
     )
+    # directory paths (and any other path not corresponding to a request file)
+    # don't have a filetype
+    assert release_request.request_filetype(UrlPath("default/foo")) is None
 
 
 def setup_empty_release_request():
