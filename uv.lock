@@ -54,9 +54,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ansi2html", specifier = "<=1.9.3" },
+    { name = "ansi2html", specifier = "<=1.9.5" },
     { name = "dj-database-url", specifier = ">=3.1.2" },
-    { name = "django", specifier = "<=6.1" },
+    { name = "django", specifier = "<=6.1.1" },
     { name = "django-extensions", specifier = "<=4.1" },
     { name = "django-htmx", specifier = "<=1.29.0" },
     { name = "django-markdownify", specifier = "<=0.9.7" },
@@ -110,11 +110,11 @@ wheels = [
 
 [[package]]
 name = "ansi2html"
-version = "1.9.3"
+version = "1.9.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/86/bb/7e7c177a038c15051cfa5ed18dd3a3bbde9fe81329f615a8c445ac2a0cb8/ansi2html-1.9.3.tar.gz", hash = "sha256:190b3fc65f0545fec6442527f8f55131949410fe97c15ac42a441f1e96726f57", size = 44781, upload-time = "2026-08-29T19:40:25.507Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/49/682b08f7d8247d18aaafaedaf50609de6d91d5ab378c912b5508392578a8/ansi2html-1.9.5.tar.gz", hash = "sha256:ae17e92f1d6cac0e67d367e07fb0ba8a23dac8f193fc5d7a8c8a50fe5ddd95a4", size = 45225, upload-time = "2026-09-06T12:43:46.36Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/a7/da58da66babbf58ae6638473dbadd53c6401a6228bcadc49c20b9107d6c8/ansi2html-1.9.3-py3-none-any.whl", hash = "sha256:bb7ebcbb64b36dabbfed8a29caad4f545f5e51d71be2171389a939ed69b524f9", size = 17679, upload-time = "2026-08-29T19:40:24.129Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/d4/104cba52b1aa94d1c60ae342c264d4308af59d3d8832b4975802e9fe8978/ansi2html-1.9.5-py3-none-any.whl", hash = "sha256:fff3d25b149951474a688c7e22240f93e69ac5aa023c44ab5dce806befcba281", size = 17877, upload-time = "2026-09-06T12:43:44.78Z" },
 ]
 
 [[package]]
@@ -335,16 +335,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "6.1"
+version = "6.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/42/6cb20996733984c1f6661daeda3877990836c76c633c6c8879d39f7120eb/django-6.1.tar.gz", hash = "sha256:86a2aacd59b817e4d6ac2ebfe22356c58f66f7b24e503f71b7c2fead677ee48b", size = 11223034, upload-time = "2026-08-05T19:21:53.789Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/d4/8314b5bdef20832f0ac6ae3b3e4d4924e4759fa3b4af27609dd747e7a6be/django-6.1.1.tar.gz", hash = "sha256:7ab93536d8e677aa14554c56426290c69480bf2ee68d7513d4a22f57d6bfeb84", size = 11284905, upload-time = "2026-09-02T17:20:45.621Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/9c/ce847620134cfab903e75690c498af73b46abbede2912ea89bd76d5c1e76/django-6.1-py3-none-any.whl", hash = "sha256:6c132cd980c9392b06807d4ca52d72530d631dc65a85d9dacede00a780cefbbe", size = 8417399, upload-time = "2026-08-05T19:21:47.285Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/ca/c1040a4fd15754ede7df15fd72fc2e123045b473b253ab5f5284e11c651e/django-6.1.1-py3-none-any.whl", hash = "sha256:585fb82bf15053c42cf52e67c2f1b54a032dca384759315fd6678ab1870d1d72", size = 8419512, upload-time = "2026-09-02T17:20:39.153Z" },
 ]
 
 [[package]]
