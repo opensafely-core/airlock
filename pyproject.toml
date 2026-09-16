@@ -144,8 +144,8 @@ dev = [
     "django-debug-toolbar-template-profiler<=2.1.0",
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
-    "hypothesis<=6.167.1",
-    "ruff<=0.16.5",
+    "hypothesis<=6.168.0",
+    "ruff<=0.16.6",
     "playwright<=1.62.0",
     "pytest<=9.1.1",
     "pytest-cov<=7.1.0",
@@ -159,6 +159,6 @@ dev = [
     # Type-checking and type stubs
     "mypy<=2.3.1",
     "django-stubs[compatible-mypy]<=6.1.0",
-    "types-requests<=2.33.0.20260712",
+    "types-requests<=2.33.0.20260906",
     "pytest-xdist<=3.8.0",
 ]
