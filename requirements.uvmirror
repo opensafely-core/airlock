@@ -86,7 +86,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.167.1
+hypothesis==6.168.0
 idna==3.19
     # via
     #   anyio
@@ -252,7 +252,7 @@ requests==2.34.2
     #   pytest-base-url
     #   responses
 responses==0.26.3
-ruff==0.16.5
+ruff==0.16.6
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==84.0.0
@@ -275,7 +275,7 @@ typeguard==2.13.3
     # via slippers
 types-pyyaml==6.0.12.20260815
     # via django-stubs
-types-requests==2.33.0.20260712
+types-requests==2.33.0.20260906
 typing-extensions==4.16.0
     # via
     #   anyio
