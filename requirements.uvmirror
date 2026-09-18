@@ -2,7 +2,7 @@
 #    uv export --format requirements-txt --frozen --no-hashes --all-groups --all-extras
 annotated-types==0.8.0
     # via pydantic
-ansi2html==1.9.3
+ansi2html==1.9.5
     # via airlock
 anyio==4.14.2
     # via httpx
@@ -40,7 +40,7 @@ distro==1.9.0
     # via ruyaml
 dj-database-url==3.1.2
     # via airlock
-django==6.1
+django==6.1.1
     # via
     #   airlock
     #   dj-database-url

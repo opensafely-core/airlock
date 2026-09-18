@@ -6,8 +6,8 @@
   requires-python = "==3.12.*"
   
   dependencies = [
-    "ansi2html<=1.9.3",
-    "Django<=6.1",
+    "ansi2html<=1.9.5",
+    "Django<=6.1.1",
     "django-vite<=3.1.0",
     "slippers<=0.7.1",
     "django-htmx<=1.29.0",
