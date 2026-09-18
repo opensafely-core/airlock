@@ -7,3 +7,4 @@ The reference provides background knowledge for working with Airlock.
 * [Downloading files](downloading-files.md)
 * [Request state diagram](request-states.md)
 * [Formatting comments with markdown](formatting-comments.md)
+* [Viewing summary statistics for CSV files](csv-summary.md)
