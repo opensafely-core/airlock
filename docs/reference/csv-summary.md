@@ -2,15 +2,15 @@ For CSV files, some summary statistics can be viewed by clicking on the "View su
 
 ![CSV summary stats toggle](../screenshots/csv_summary_toggle.png)
 
-This displays a table with details about each column in the CSV file, including its type and counts of
-missing and redacted values.
+This displays a table with details about each column in the CSV file, including its type,
+counts of missing and redacted values, and a count of unique values.
 
 For columns that were detected as containing all numeric values (excluding missing and redacted values),
 some common calculations are performed to allow reviewers to check for statistical disclosure controls
 that may have been applied. These include:
 
 - minimum value
-- minimum value, excluding zero
+- minimum absolute value, excluding zero
 - maximum value
 - sum of all values (useful for checking a column of percentages sums to 100%)
 - rounding - whether all values in the column are:
