@@ -4,13 +4,13 @@ annotated-types==0.8.0
     # via pydantic
 ansi2html==1.9.5
     # via airlock
-anyio==4.14.2
+anyio==4.15.1
     # via httpx
 asgiref==3.12.1
     # via
     #   django
     #   django-htmx
-ast-serialize==0.8.0
+ast-serialize==0.11.0
     # via mypy
 babel==2.18.0
     # via mkdocs-material
@@ -75,7 +75,7 @@ freezegun==1.5.5
     # via pytest-freezer
 ghp-import==2.1.0
     # via mkdocs
-googleapis-common-protos==1.75.2
+googleapis-common-protos==1.75.3
     # via opentelemetry-exporter-otlp-proto-http
 greenlet==3.5.5
     # via playwright
@@ -130,7 +130,7 @@ mypy==2.3.1
     # via django-stubs
 mypy-extensions==1.1.0
     # via mypy
-opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.08.28.121619.zip
+opensafely-pipeline @ https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.09.14.135127.zip
     # via airlock
 opentelemetry-api==1.40.0
     # via
@@ -187,7 +187,7 @@ pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-platformdirs==4.11.7
+platformdirs==4.11.8
     # via mkdocs-get-deps
 playwright==1.62.0
     # via pytest-playwright
@@ -273,7 +273,7 @@ tinycss2==1.5.1
     # via bleach
 typeguard==2.13.3
     # via slippers
-types-pyyaml==6.0.12.20260815
+types-pyyaml==6.0.12.20260906
     # via django-stubs
 types-requests==2.33.0.20260906
 typing-extensions==4.16.0
