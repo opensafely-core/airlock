@@ -145,8 +145,8 @@ dev = [
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
     "hypothesis<=6.168.0",
-    "ruff<=0.16.6",
-    "playwright<=1.62.0",
+    "ruff<=0.16.7",
+    "playwright<=1.63.0",
     "pytest<=9.1.1",
     "pytest-cov<=7.1.0",
     "pytest-django<=4.14.0",
@@ -158,7 +158,7 @@ dev = [
     "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip",
     # Type-checking and type stubs
     "mypy<=2.3.1",
-    "django-stubs[compatible-mypy]<=6.1.0",
+    "django-stubs[compatible-mypy]<=6.1.1",
     "types-requests<=2.33.0.20260906",
     "pytest-xdist<=3.8.0",
 ]
