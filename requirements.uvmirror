@@ -66,7 +66,7 @@ django-markdownify==0.9.7
 django-stubs==6.1.1
 django-stubs-ext==6.1.0
     # via django-stubs
-django-vite==3.1.0
+django-vite==3.2.0
     # via airlock
 djhtml==3.0.11
 execnet==2.1.2
