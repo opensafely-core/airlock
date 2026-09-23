@@ -19,15 +19,7 @@ test -z "${JOB_SERVER_IMAGE:-}" && docker compose pull job-server
 docker compose up -d --wait db
 docker compose up -d --wait job-server
 
-# if first time, give some time for the initial migration to complete
-echo "Checking service up..."
-if ! curl -I "$host" -s --compressed --fail --retry 20 --retry-delay 1 --retry-all-errors >/dev/null; then
-    echo "Service did not come up, likely a race condition. Re-run."
-    echo "If that doesn't fix it, look at the logs with:"
-    echo " - just job-server/logs"
-    echo " - just job-server/logs db"
-    exit 1
-fi
+docker compose exec job-server ./manage.py migrate
 
 # shellcheck disable=SC1091
 . .env.jobserver
