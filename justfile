@@ -397,10 +397,8 @@ check-renovate-config:
     npx --yes --package renovate -- renovate-config-validator
 
 upgrade-npm-lockfile:
-    npx -y npm-check-updates \
-        --upgrade \
-        --cooldown "7d" \
-        --reject tailwindcss
+    rm package-lock.json
+    # Cooldown period is set in .npmrc
     npm update
 
 # Upgrade all python and JS dependencies, including os-pipeline
