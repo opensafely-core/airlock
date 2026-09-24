@@ -10,15 +10,15 @@
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.20",
-    "autoprefixer": "^10.5.5",
+    "autoprefixer": "^10.6.1",
     "postcss": "^8.5.28",
     "tailwindcss": "<4",
-    "vite": "^8.2.2"
+    "vite": "^8.3.0"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.3.0",
     "clusterize.js": "^1.0.0",
-    "htmx.org": "^2.0.10",
+    "htmx.org": "^4.0.0",
     "simple-datatables": "^10.3.0"
   }
 }
