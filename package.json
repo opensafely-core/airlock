@@ -8,17 +8,17 @@
   },
   "type": "module",
   "devDependencies": {
-    "@tailwindcss/forms": "^0.5.11",
-    "@tailwindcss/typography": "^0.5.20",
-    "autoprefixer": "^10.5.5",
-    "postcss": "^8.5.28",
+    "@tailwindcss/forms": "*",
+    "@tailwindcss/typography": "*",
+    "autoprefixer": "*",
+    "postcss": "*",
     "tailwindcss": "<4",
-    "vite": "^8.2.2"
+    "vite": "*"
   },
   "dependencies": {
-    "@fontsource-variable/public-sans": "^5.3.0",
-    "clusterize.js": "^1.0.0",
+    "@fontsource-variable/public-sans": "*",
+    "clusterize.js": "*",
     "htmx.org": "<4",
-    "simple-datatables": "^10.3.0"
+    "simple-datatables": "*"
   }
 }
