@@ -28,3 +28,22 @@ jobs:
       artifact-name: image
       public-image-name: ghcr.io/opensafely-core/airlock
       tag: latest
+
+  build-docs:
+    needs: ci
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Trigger documentation deploy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ secrets.DOCS_WRITE_TOKEN }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: 'opensafely',
+              repo: 'documentation',
+              workflow_id: 'pages-deployment.yml',
+              ref: 'main'
+            });
