@@ -164,16 +164,20 @@ class CSVRenderer(Renderer):
         header_col_count = len(headers)
         rows = list(enumerate(reader, start=1))
 
-        summary = summarize_csv(headers, rows)
+        use_clusterize_table = True
+        if any(len(row) != header_col_count for _, row in rows):
+            use_clusterize_table = False
+            summary = None
+        else:
+            summary = summarize_csv(headers, rows)
 
         ctx = {
             "headers": headers,
             "rows": rows,
-            "use_clusterize_table": True,
+            "use_clusterize_table": use_clusterize_table,
             "summary": summary,
         }
-        if any(len(row) != header_col_count for _, row in rows):
-            ctx["use_clusterize_table"] = False
+
         return ctx
 
 

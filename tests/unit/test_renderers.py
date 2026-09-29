@@ -134,6 +134,7 @@ def test_csv_renderer_handles_empty_file(tmp_path):
 def test_csv_renderer_handles_uneven_columns(tmp_path):
     # CSVs without the equal numbers of columns per row
     # can be rendered in a plain html table, but not with datatables
+    # and can't be summarised
     bad_csv = tmp_path / "bad.csv"
     bad_csv.write_text("Foo Bar\nfoo,bar")
     relpath = bad_csv.relative_to(tmp_path)
@@ -143,6 +144,23 @@ def test_csv_renderer_handles_uneven_columns(tmp_path):
     response.render()
     assert response.status_code == 200
     assert response.context_data["use_clusterize_table"] is False
+    assert response.context_data["summary"] is None
+
+
+def test_csv_renderer_handles_missing_columns(tmp_path):
+    # CSVs with missing columns per row
+    # can be rendered in a plain html table, but not with datatables
+    # and can't be summarised
+    bad_csv = tmp_path / "bad.csv"
+    bad_csv.write_text("C1,C2,C3,C4\n1,2")
+    relpath = bad_csv.relative_to(tmp_path)
+    Renderer = renderers.get_renderer(relpath)
+    renderer = Renderer.from_file(bad_csv, relpath)
+    response = renderer.get_response()
+    response.render()
+    assert response.status_code == 200
+    assert response.context_data["use_clusterize_table"] is False
+    assert response.context_data["summary"] is None
 
 
 def test_csv_renderer_uses_faster_csv_renderer(tmp_path):
