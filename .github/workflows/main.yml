@@ -1,11 +1,6 @@
 ---
 name: CI
 
-env:
-  IMAGE_NAME: airlock
-  PUBLIC_IMAGE_NAME: ghcr.io/opensafely-core/airlock
-  REGISTRY: ghcr.io
-
 on:
   push:
 
@@ -134,45 +129,3 @@ jobs:
         with:
             name: airlock-image
             path: /tmp/airlock.tar.gz
-
-  docker-publish:
-    needs: [check, test, docker-test-dev, docker-test-prod]
-
-    runs-on: ubuntu-24.04
-
-    permissions:
-      contents: read
-      packages: write
-
-    if: github.ref == 'refs/heads/main'
-
-    concurrency: deploy-production
-
-    steps:
-     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-       with:
-         persist-credentials: false
-     - uses: "opensafely-core/setup-action@d9171097dd0d37bdb7bed58f701eb03ff317ed17" # v1
-       with:
-         install-just: true
-
-     - name: Download docker image
-       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-       with:
-           name: airlock-image
-           path: /tmp/image
-
-     - name: Import docker image
-       run: gunzip -c /tmp/image/airlock.tar.gz | docker load
-
-     - name: Test image we imported from previous job works
-       run: |
-           SKIP_BUILD=1 just docker/serve prod -d
-           sleep 5
-           just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
-
-     - name: Publish image
-       run: |
-           echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${GITHUB_ACTOR}" --password-stdin
-           docker tag "$IMAGE_NAME" "$PUBLIC_IMAGE_NAME:latest"
-           docker push "$PUBLIC_IMAGE_NAME:latest"
