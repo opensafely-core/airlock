@@ -120,12 +120,8 @@ jobs:
           sleep 5
           just docker/smoke-test || { docker logs airlock-prod-1; exit 1; }
 
-      - name: Save docker image
-        run: |
-          docker save airlock | gzip > /tmp/airlock.tar.gz
-
-      - name: Upload docker image
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - name: Save image as artifact
+        uses: ./.github/actions/save-image-as-artifact
         with:
-            name: airlock-image
-            path: /tmp/airlock.tar.gz
+          image-name: airlock
+          artifact-name: airlock-image
