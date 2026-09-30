@@ -59,7 +59,7 @@ smoke-test host="http://localhost:8000": _dotenv
     curl -I {{ host }} -s --compressed --fail --retry 20 --retry-delay 1 --retry-all-errors
 
 lint:
-    {{ docker_run_safe }} -i ghcr.io/hadolint/hadolint:v2.14.0-alpine < Dockerfile
+    {{ docker_run_safe }} -i ghcr.io/hadolint/hadolint:v2.15.1-alpine < Dockerfile
 
 # stop and remove all airlock containers
 clean:
