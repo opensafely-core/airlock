@@ -7,6 +7,10 @@ set dotenv-load := true
 export DEV_USERID := `id -u`
 export DEV_GROUPID := `id -g`
 
+# Run Docker with minimim possible privileges. Note that if you mount any directories in
+# you must still ensure these are mounted read-only.
+docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
+
 # list available commands
 default:
     @{{ just_executable() }} --list
@@ -55,7 +59,7 @@ smoke-test host="http://localhost:8000": _dotenv
     curl -I {{ host }} -s --compressed --fail --retry 20 --retry-delay 1 --retry-all-errors
 
 lint:
-    docker run --rm -i ghcr.io/hadolint/hadolint:v2.14.0-alpine < Dockerfile
+    {{ docker_run_safe }} -i ghcr.io/hadolint/hadolint:v2.14.0-alpine < Dockerfile
 
 # stop and remove all airlock containers
 clean:
