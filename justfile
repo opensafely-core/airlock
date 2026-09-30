@@ -155,7 +155,7 @@ shellcheck:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:v0.9.0
+    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:v0.11.0
 
 # Run the various dev checks but does not change any files
 check:
