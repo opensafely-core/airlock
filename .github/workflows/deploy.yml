@@ -1,0 +1,49 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/main.yml
+    with:
+      build-artifact-name: image
+
+  push-and-sign-image:
+    name: Publish Docker image
+    needs: ci
+    permissions:
+      packages: write
+      id-token: write
+      attestations: write    
+      artifact-metadata: write
+    uses: ./.github/workflows/push-and-sign-image.yml
+    with:
+      artifact-name: image
+      public-image-name: ghcr.io/opensafely-core/airlock
+      tag: latest
+
+  build-docs:
+    needs: ci
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Trigger documentation deploy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ secrets.DOCS_WRITE_TOKEN }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: 'opensafely',
+              repo: 'documentation',
+              workflow_id: 'pages-deployment.yml',
+              ref: 'main'
+            });
