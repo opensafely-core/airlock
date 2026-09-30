@@ -24,7 +24,7 @@
     {
       "customType": "regex",
       "description": "Update versions in the justfile marked with a renovate comment",
-      "managerFilePatterns": ["/(^|/)\\.?[Jj]ustfile$/"],
+      "managerFilePatterns": ["/(^|/)\\.?[Jj]ustfile(\\.versions)?$/"],
       // Matches a renovate comment followed by a just variable assignment, e.g.
       //
       //   # renovate: datasource=docker depName=kjanat/actionlint versioning=docker
@@ -97,7 +97,7 @@
       "matchManagers": ["custom.regex"],
       // this is technically redundant as the custom manager currently also only
       // matches justfiles, but it's included here in case we extend the manager later
-      "matchFileNames": ["**/justfile", "**/Justfile", "**/.justfile"],
+      "matchFileNames": ["**/justfile", "**/Justfile", "**/.justfile", "**/justfile.versions"],
       "groupName": "justfile tools",
       // minimumReleaseAge works as long as the datasource provides release timestamps.
       // Docker Hub provides them; ghcr and others don't.

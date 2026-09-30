@@ -1,9 +1,13 @@
+import 'justfile.versions'
 set dotenv-load := true
 set positional-arguments := true
 
 # Run Docker with minimim possible privileges. Note that if you mount any directories in
 # you must still ensure these are mounted read-only.
+
 docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
+
+
 
 # list available commands
 default:
@@ -145,7 +149,7 @@ lint *args:
     uv run python -m ruff check {{ args }} .
 
 lint-actions:
-    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo kjanat/actionlint:1.17.0 -color
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo kjanat/actionlint:{{ actionlint_version }} -color
 
 # run mypy type checker
 mypy *ARGS:
@@ -155,7 +159,7 @@ shellcheck:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:v0.11.0
+    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:{{ shellcheck_version }}
 
 # Run the various dev checks but does not change any files
 check:
@@ -398,7 +402,7 @@ assets-run: assets-install
     npm run dev
 
 check-renovate-config:
-    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:44.125.0 renovate-config-validator
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:{{ renovate_version }} renovate-config-validator
 
 upgrade-npm-lockfile:
     rm package-lock.json
