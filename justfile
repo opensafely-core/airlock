@@ -398,7 +398,7 @@ assets-run: assets-install
     npm run dev
 
 check-renovate-config:
-    npx --yes --package renovate -- renovate-config-validator
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:44.125.0 renovate-config-validator
 
 upgrade-npm-lockfile:
     rm package-lock.json
