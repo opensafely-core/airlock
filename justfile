@@ -1,4 +1,5 @@
 import 'justfile.versions'
+
 set dotenv-load := true
 set positional-arguments := true
 
@@ -6,8 +7,6 @@ set positional-arguments := true
 # you must still ensure these are mounted read-only.
 
 docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
-
-
 
 # list available commands
 default:
@@ -403,6 +402,46 @@ assets-run: assets-install
 
 check-renovate-config:
     {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:{{ renovate_version }} renovate-config-validator
+
+# Show what updates Renovate would propose; run with summary for a summary table, full for the complete output
+renovate-dry-run output="summary":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    run_renovate() {
+        # Note that we can't use docker_run_safe here because `--network` none stops
+        # Renovate querying docker, github, pypi etc for updates. It also has to
+        # write its working and cache directories under /tmp/renovate. We give it a
+        # tmpfs mount that it can write to and leave everything else readonly
+        docker run --rm --read-only --tmpfs /tmp \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --user 65534:65534 -e HOME=/tmp \
+            -v "$(pwd):/repo:ro" --workdir /repo \
+            -e LOG_LEVEL=debug -e LOG_FORMAT=json \
+            renovate/renovate:{{ renovate_version }} --platform=local
+    }
+
+    case "{{ output }}" in
+        summary)
+            run_renovate | jq -rRn '
+                ["PACKAGE", "CURRENT", "NEW"],
+                (inputs | fromjson? | objects
+                    | select(.msg == "packageFiles with updates")
+                    | .config[][]
+                    | .deps[]
+                    | .depName as $name | .currentValue as $current
+                    | (.updates // [])[]
+                    | [$name, $current, (.newValue // .newDigest)])
+                | @tsv' | column -t -s $'\t'
+            ;;
+        full)
+            run_renovate | jq -R 'fromjson? | objects | select(.msg == "packageFiles with updates") | .config'
+            ;;
+        *)
+            echo "Unknown output '{{ output }}': use 'summary' or 'full'" >&2
+            exit 1
+            ;;
+    esac
 
 upgrade-npm-lockfile:
     rm package-lock.json
