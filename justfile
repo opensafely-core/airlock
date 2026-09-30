@@ -1,6 +1,10 @@
 set dotenv-load := true
 set positional-arguments := true
 
+# Run Docker with minimim possible privileges. Note that if you mount any directories in
+# you must still ensure these are mounted read-only.
+docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
+
 # list available commands
 default:
     @{{ just_executable() }} --list
@@ -141,7 +145,7 @@ lint *args:
     uv run python -m ruff check {{ args }} .
 
 lint-actions:
-    docker run --rm -v $(pwd):/repo:ro --workdir /repo rhysd/actionlint:1.7.12 -color
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo rhysd/actionlint:1.7.12 -color
 
 # run mypy type checker
 mypy *ARGS:
@@ -151,7 +155,7 @@ shellcheck:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.9.0
+    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:v0.9.0
 
 # Run the various dev checks but does not change any files
 check:
