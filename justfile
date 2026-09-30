@@ -145,7 +145,7 @@ lint *args:
     uv run python -m ruff check {{ args }} .
 
 lint-actions:
-    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo rhysd/actionlint:1.7.12 -color
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo kjanat/actionlint:1.17.0 -color
 
 # run mypy type checker
 mypy *ARGS:
