@@ -10,6 +10,7 @@ dependencies = [
     { name = "ansi2html" },
     { name = "dj-database-url" },
     { name = "django" },
+    { name = "django-bgt" },
     { name = "django-extensions" },
     { name = "django-htmx" },
     { name = "django-markdownify" },
@@ -57,6 +58,7 @@ requires-dist = [
     { name = "ansi2html", specifier = "<=1.9.5" },
     { name = "dj-database-url", specifier = ">=3.1.2" },
     { name = "django", specifier = "<=6.1.1" },
+    { name = "django-bgt", specifier = ">=26.1.post1" },
     { name = "django-extensions", specifier = "<=4.1" },
     { name = "django-htmx", specifier = "<=1.29.0" },
     { name = "django-markdownify", specifier = "<=0.9.7" },
@@ -184,6 +186,15 @@ wheels = [
 ]
 
 [[package]]
+name = "attrs"
+version = "26.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9a/8e/82a0fe20a541c03148528be8cac2408564a6c9a0cc7e9171802bc1d26985/attrs-26.1.0.tar.gz", hash = "sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32", size = 952055, upload-time = "2026-03-19T14:22:25.026Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl", hash = "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309", size = 67548, upload-time = "2026-03-19T14:22:23.645Z" },
+]
+
+[[package]]
 name = "babel"
 version = "2.18.0"
 source = { registry = "https://pypi.org/simple" }
@@ -201,6 +212,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/fd/9bf53b6a6f6f519ffaac765df2f2a25e5c2fc6d32cfd2b2747099e72c911/backrefs-8.0-py310-none-any.whl", hash = "sha256:4a627b817fd2dce43b79ab48da63613340509381cd8ce0897078a0bce79a2ab8", size = 380377, upload-time = "2026-07-26T19:54:17.457Z" },
     { url = "https://files.pythonhosted.org/packages/e1/29/4bd7ae72a2634da00379c2b3bcc5439e7c94620235c6afea8af15229a973/backrefs-8.0-py311-none-any.whl", hash = "sha256:f0c35cf0102ba6b6070c12a492be3c1c1d3f5839529784b9a9565d6d04569a01", size = 392169, upload-time = "2026-07-26T19:54:18.782Z" },
     { url = "https://files.pythonhosted.org/packages/29/13/232505664e8e2a0c7a2eb0c505cfade9d715538f89a5d62bc4c272968f62/backrefs-8.0-py312-none-any.whl", hash = "sha256:87f0fae8c5f207fe9f4b2887efc71d42f4900ac78faa1af08d675ef303692dc5", size = 398084, upload-time = "2026-07-26T19:54:19.954Z" },
+]
+
+[[package]]
+name = "bgt"
+version = "26.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "prometheus-client" },
+    { name = "structlog" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/19/e179eb5269ec960e823dbbc3bdd0bbf661a52cc57fbbc93d0999289d3578/bgt-26.2.0.tar.gz", hash = "sha256:de2a379b1f67db3d1d4a072b023074c26a7a7222a3ad147d18812a3555e06849", size = 101008, upload-time = "2026-09-06T16:39:47.879Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/1b/f24dfc0d36499e04987b655fe22cc50aa85ce0b6657a3dda5235dd83937e/bgt-26.2.0-py3-none-any.whl", hash = "sha256:3dd88c0c2d6dd26140491eb58ee69daf43a2056b76e3ff819a24cf16850202a9", size = 12172, upload-time = "2026-09-06T16:39:46.504Z" },
 ]
 
 [[package]]
@@ -345,6 +370,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f8/d4/8314b5bdef20832f0ac6ae3b3e4d4924e4759fa3b4af27609dd747e7a6be/django-6.1.1.tar.gz", hash = "sha256:7ab93536d8e677aa14554c56426290c69480bf2ee68d7513d4a22f57d6bfeb84", size = 11284905, upload-time = "2026-09-02T17:20:45.621Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/ca/c1040a4fd15754ede7df15fd72fc2e123045b473b253ab5f5284e11c651e/django-6.1.1-py3-none-any.whl", hash = "sha256:585fb82bf15053c42cf52e67c2f1b54a032dca384759315fd6678ab1870d1d72", size = 8419512, upload-time = "2026-09-02T17:20:39.153Z" },
+]
+
+[[package]]
+name = "django-bgt"
+version = "26.1.post1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "bgt" },
+    { name = "django" },
+    { name = "structlog" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0e/94/15dccae03c3deff53c819f8b1d832056c6cd6990284f37c4b9e080ad73f0/django_bgt-26.1.post1.tar.gz", hash = "sha256:eee76a0269552bb074166ac0910b0aaef1dbdcec3512903ecf85aba4008c0c98", size = 16279, upload-time = "2026-09-27T12:41:01.915Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/cc/867e36f9d9fe1f5af97991cf6c6db66cbcae1e55f893b207e0f4901efa7f/django_bgt-26.1.post1-py3-none-any.whl", hash = "sha256:1fff790e56b88f7a0d26a196a1c7043cbba6ad4f7da5666776ef99d7150496bc", size = 12445, upload-time = "2026-09-27T12:41:00.646Z" },
 ]
 
 [[package]]
@@ -1077,6 +1117,15 @@ wheels = [
 ]
 
 [[package]]
+name = "prometheus-client"
+version = "0.26.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/73/f1334c29c2af4cd9dba6c7817e61b611bd0215e2eb5565c6064a4de18802/prometheus_client-0.26.0.tar.gz", hash = "sha256:04a91bcf94e2cf74a44a1a874d651a2e853ed354b6e822f3b7487751465d5c2b", size = 92910, upload-time = "2026-07-24T19:36:41.893Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/eb/a3/b69efbf4143b5b9859b977770bbbabcc2796b702fa69dc40271e45cd5a56/prometheus_client-0.26.0-py3-none-any.whl", hash = "sha256:fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6", size = 64494, upload-time = "2026-07-24T19:36:40.854Z" },
+]
+
+[[package]]
 name = "protobuf"
 version = "6.33.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1455,6 +1504,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5f/d3/3f06a1006f2261d1342aefb3c71eed02f5d4ca5bdbecd86ebc12ad38306e/sqlparse-0.6.0.tar.gz", hash = "sha256:113c35c75365ab9cc9c7231d68c6428fb11c085fc8e9eb1ad659b7ddbf6cd2b9", size = 178477, upload-time = "2026-08-13T19:16:06.396Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f", size = 50070, upload-time = "2026-08-13T19:16:04.062Z" },
+]
+
+[[package]]
+name = "structlog"
+version = "26.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/89/b4a0bcfdf4f71a3dea31379f095929613d7e4528a0996bca6aa964cd0dca/structlog-26.1.0.tar.gz", hash = "sha256:f63a716cbd1b1291cf7661de7794b455acfa4c43c5bcf1630e6ad5ddc1adb3b7", size = 1459881, upload-time = "2026-06-06T07:33:39.348Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/18/489c97b834dfff9cf2fc2507cede4bcd4b11e67f84bc462acd1992496f86/structlog-26.1.0-py3-none-any.whl", hash = "sha256:e081a26d6c373e6d201eca24eede26d8ffab07f88f477822e679183428d3d91e", size = 73764, upload-time = "2026-06-06T07:33:38.046Z" },
 ]
 
 [[package]]
