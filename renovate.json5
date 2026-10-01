@@ -25,22 +25,27 @@
       "customType": "regex",
       "description": "Update versions in the justfile marked with a renovate comment",
       "managerFilePatterns": ["/(^|/)\\.?[Jj]ustfile(\\.base)?$/"],
-      // Matches a renovate comment followed by a just variable assignment, e.g.
+      // matchStrings matches a renovate comment followed by a just variable assignment, e.g.
       //
-      //   # renovate: datasource=docker depName=kjanat/actionlint versioning=docker
-      //   actionlint_version := "1.17.0"
+      //   # renovate: datasource=docker depName=kjanat/actionlint
+      //   actionlint_version := "1.17.0@sha256:..."
+      //
+      //   # renovate: datasource=github-releases depName=casey/just
+      //   just_version := "1.36.0"
       //
       // Breakdown:
-      //   #\\s*renovate:\\s*                     "# renovate:" with flexible spacing
-      //   datasource=(?<datasource>\\S+)          datasource to look up (docker, github-releases, pypi etc)
-      //   \\s+depName=(?<depName>\\S+)            package/image name, e.g. hadolint/hadolint
-      //   (?:\\s+versioning=(?<versioning>\\S+))? optional versioning scheme (docker, pep440 etc)
-      //   \\s*\\n                                 end of the comment line
-      //   \\s*[A-Za-z0-9_-]+                      the variable name on the next line
-      //   \\s*:=\\s*                              the just assignment operator
-      //   [\"'](?<currentValue>[^\"']+)[\"']      the quoted version, captured without quotes
+      //   #\\s*renovate:\\s*                          "# renovate:" with flexible spacing
+      //   datasource=(?<datasource>\\S+)               datasource to look up (docker, github-releases, pypi etc)
+      //   \\s+depName=(?<depName>\\S+)                 package/image name, e.g. rhysd/actionlint
+      //   (?:\\s+versioning=(?<versioning>\\S+))?      optional versioning scheme (docker, pep440 etc)
+      //   \\s*\\n                                      end of the comment line (blank lines allowed)
+      //   \\s*[A-Za-z0-9_-]+                           the variable name on the next line
+      //   \\s*:=\\s*                                   the just assignment operator
+      //   [\"'](?<currentValue>[^\"'@]+)               opening quote and the current version, up to any "@"
+      //   (?:@(?<currentDigest>sha256:[a-f0-9]{64}))?  optional image digest
+      //   [\"']                                        closing quote
       "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\s*\\n\\s*[A-Za-z0-9_-]+\\s*:=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\s*\\n\\s*[A-Za-z0-9_-]+\\s*:=\\s*[\"'](?<currentValue>[^\"'@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?[\"']"
       ],
       // Use the versioning from the comment if given, otherwise fall back to semver-coerced
       // See https://docs.renovatebot.com/modules/versioning/ for versioning options
@@ -111,8 +116,10 @@
       ],
       // this is a guard in case `docker:pinDigests` is added to the `extends` section in
       // future. This would apply to the docker datasource, and it would attempt to run,
-      // but the justfile comments only include versions, not digests, so there's nowhere
-      // for renovate to rewrite the digest, and it could get confused.
+      // but in order to pin digests, renovate has to insert a digest where there isn't one
+      // already (i.e. notice a version without @sha... and insert it). There are ways to do
+      // that, but I don't think it's worth it; instead we just expect that the justfile comments
+      // will include digests if we want to update by digest.
       "pinDigests": false
     },
     {

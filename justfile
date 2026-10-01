@@ -431,9 +431,10 @@ renovate-dry-run output="summary":
                     | select(.msg == "packageFiles with updates")
                     | .config[][]
                     | .deps[]
-                    | .depName as $name | .currentValue as $current
+                    | .depName as $name
+                    | (.currentValue + (if .currentDigest then "@" + .currentDigest else "" end)) as $current
                     | (.updates // [])[]
-                    | [$name, $current, (.newValue // .newDigest)])
+                    | [$name, $current, ((.newValue // "") + (if .newDigest then "@" + .newDigest else "" end))])
                 | @tsv' | column -t -s $'\t'
             ;;
         full)
