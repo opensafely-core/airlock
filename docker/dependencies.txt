@@ -1,5 +1,4 @@
 # list ubuntu packages needed in production, one per line
 git
 postgresql-client
-run-one
 tzdata
