@@ -1,9 +1,7 @@
+import 'justfile.base'
+
 set dotenv-load := true
 set positional-arguments := true
-
-# Run Docker with minimim possible privileges. Note that if you mount any directories in
-# you must still ensure these are mounted read-only.
-docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
 
 # list available commands
 default:
@@ -145,7 +143,7 @@ lint *args:
     uv run python -m ruff check {{ args }} .
 
 lint-actions:
-    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo kjanat/actionlint:1.17.0 -color
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo kjanat/actionlint:{{ actionlint_version }} -color
 
 # run mypy type checker
 mypy *ARGS:
@@ -155,7 +153,7 @@ shellcheck:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:v0.11.0
+    find docker/ airlock/ job-server/ scripts/ -name \*.sh -print0 | xargs -0 {{ docker_run_safe }} -v "$PWD:/mnt:ro" koalaman/shellcheck:{{ shellcheck_version }}
 
 # Run the various dev checks but does not change any files
 check:
@@ -398,7 +396,54 @@ assets-run: assets-install
     npm run dev
 
 check-renovate-config:
-    npx --yes --package renovate -- renovate-config-validator
+    {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:{{ renovate_version }} renovate-config-validator
+
+# Show what updates Renovate would propose; run with summary for a summary table, full for the complete output
+renovate-dry-run output="summary":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "Running renovate, this may take a few minutes"
+
+    run_renovate() {
+        # Note that we can't use docker_run_safe here because `--network none` stops
+        # Renovate querying docker, github, pypi etc for updates. It also has to
+        # write its working and cache directories under /tmp/renovate. We give it a
+        # tmpfs mount that it can write to and leave everything else readonly
+
+        # Let the user know something is still happening
+        ( while sleep 5; do printf '.' >&2; done ) &
+        trap "kill $! 2>/dev/null; echo >&2" EXIT
+
+        docker run --rm --read-only --tmpfs /tmp \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --user 65534:65534 -e HOME=/tmp \
+            -v "$(pwd):/repo:ro" --workdir /repo \
+            -e LOG_LEVEL=debug -e LOG_FORMAT=json \
+            renovate/renovate:{{ renovate_version }} --platform=local
+    }
+
+    case "{{ output }}" in
+        summary)
+            run_renovate | jq -rRn '
+                ["PACKAGE", "CURRENT", "NEW"],
+                (inputs | fromjson? | objects
+                    | select(.msg == "packageFiles with updates")
+                    | .config[][]
+                    | .deps[]
+                    | .depName as $name | .currentValue as $current
+                    | (.updates // [])[]
+                    | [$name, $current, (.newValue // .newDigest)])
+                | @tsv' | column -t -s $'\t'
+            ;;
+        full)
+            run_renovate | jq -R 'fromjson? | objects | select(.msg == "packageFiles with updates") | .config'
+            ;;
+        *)
+            echo "Unknown output '{{ output }}': use 'summary' or 'full'" >&2
+            exit 1
+            ;;
+    esac
 
 upgrade-npm-lockfile:
     rm package-lock.json
