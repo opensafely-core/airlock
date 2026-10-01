@@ -48,6 +48,10 @@ serve env="dev" *args="": _dotenv
 run env="dev" *args="": _dotenv (build env)
     docker compose run --rm --service-ports {{ env }} {{ args }}
 
+run-dev-services:
+    {{ just_executable() }} build dev
+    docker compose run --rm dev-services
+
 # exec command in existing dev|prod container
 exec env="dev" *args="bash": _dotenv (build env)
     docker compose exec {{ env }} {{ args }}
