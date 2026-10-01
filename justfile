@@ -408,11 +408,18 @@ renovate-dry-run output="summary":
     #!/usr/bin/env bash
     set -euo pipefail
 
+    echo "Running renovate, this may take a few minutes"
+
     run_renovate() {
-        # Note that we can't use docker_run_safe here because `--network` none stops
+        # Note that we can't use docker_run_safe here because `--network none` stops
         # Renovate querying docker, github, pypi etc for updates. It also has to
         # write its working and cache directories under /tmp/renovate. We give it a
         # tmpfs mount that it can write to and leave everything else readonly
+
+        # Let the user know something is still happening
+        ( while sleep 5; do printf '.' >&2; done ) &
+        trap "kill $! 2>/dev/null; echo >&2" EXIT
+
         docker run --rm --read-only --tmpfs /tmp \
             --cap-drop ALL --security-opt no-new-privileges:true \
             --user 65534:65534 -e HOME=/tmp \
