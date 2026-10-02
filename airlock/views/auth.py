@@ -5,6 +5,7 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 
 from airlock.forms import TokenLoginForm
+from users import login_api
 
 from .helpers import login_exempt, validate_url
 
@@ -43,11 +44,18 @@ def get_user_or_set_form_errors(request, form):
     if not form.is_valid():
         return
 
-    user = auth.authenticate(
-        request,
-        username=form.cleaned_data["user"],
-        token=form.cleaned_data["token"],
-    )
+    try:
+        user = auth.authenticate(
+            request,
+            username=form.cleaned_data["user"],
+            token=form.cleaned_data["token"],
+        )
+    except login_api.LoginUpstreamError:
+        messages.error(
+            request,
+            "Could not contact jobs.opensafely.org to verify your login.  Please try again in a few minutes.",
+        )
+        return
 
     if user:
         return user
