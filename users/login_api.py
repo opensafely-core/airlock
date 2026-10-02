@@ -9,11 +9,7 @@ from opentelemetry import trace
 session = requests.Session()
 
 
-class LoginError(Exception):
-    pass
-
-
-class LoginUpstreamError(LoginError):
+class LoginUpstreamError(Exception):
     """Indicates connection error or server error when logging in against the job server
     API."""
 
@@ -22,11 +18,11 @@ class LoginClientError(Exception):
     """Indicates a client error when logging in against the job server API."""
 
 
-class NotAuthenticatedError(LoginError):
+class NotAuthenticatedError(Exception):
     """Indicates an authentication failure."""
 
 
-class NotAuthorizedError(LoginError):
+class NotAuthorizedError(Exception):
     """Indicates an authenticated user is not authorized."""
 
 
