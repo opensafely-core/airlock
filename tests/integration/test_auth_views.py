@@ -65,6 +65,18 @@ def test_login_invalid_form(client, settings):
     assert "This field is required" in response.rendered_content
 
 
+def test_login_upstream_error(client, auth_api_stubber):
+    auth_api_stubber("authenticate", status=500)
+
+    response = client.post(
+        "/login/",
+        {"user": "test_user", "token": "foo bar baz"},
+    )
+
+    assert "user" not in client.session
+    assert "Please try again" in response.rendered_content
+
+
 def test_logout(airlock_client):
     airlock_client.login()
 

@@ -8,12 +8,12 @@ from django.conf import settings
 from airlock.actions import create_release_request
 from airlock.enums import RequestFileType, RequestStatus
 from airlock.exceptions import (
-    APIException,
     FileNotFound,
     ManifestFileError,
     RequestPermissionDenied,
 )
 from tests import factories
+from users import login_api
 from users.models import User
 
 
@@ -716,10 +716,7 @@ def test_create_release_request_api_auth_error(bll, auth_api_stubber):
         manifest_username="manifest_user",
     )
 
-    with pytest.raises(
-        APIException,
-        match="Could not retrieve user information from API for user 'manifest_user'",
-    ):
+    with pytest.raises(login_api.NotAuthorizedError):
         create_release_request(
             None,
             "workspace",

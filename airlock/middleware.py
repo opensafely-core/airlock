@@ -3,13 +3,14 @@ from typing import cast
 from urllib.parse import urlencode
 
 from django.contrib import auth
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.defaults import server_error
 from opentelemetry import trace
 
 from airlock.exceptions import RequestTimeout
+from users import login_api
 from users.auth import Level4AuthenticationBackend
 
 
@@ -36,9 +37,17 @@ class UserMiddleware:
             span.set_attribute("user_id", request.user.user_id)
             if self.backend.needs_refresh(request.user):
                 span.set_attribute("auth_refresh", True)
-                user = self.backend.refresh(request)
-                if user:  # refresh may have failed for some reason
-                    request.user = user
+                try:
+                    request.user = self.backend.refresh(request)
+                except login_api.LoginUpstreamError:
+                    # The upstream is down and so we cannot get refreshed user data.
+                    # This means that roles and permissions may be out of date.
+                    pass
+                except login_api.NotAuthorizedError:
+                    # The user is no longer authorized to access Airlock, perhaps
+                    # because they have been removed from the backend.
+                    auth.logout(request)
+                    return HttpResponseForbidden()
         else:
             span.set_attribute("username", "anonymous")
             span.set_attribute("user_id", "anonymous")

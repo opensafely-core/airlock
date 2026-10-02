@@ -18,14 +18,17 @@ class Level4AuthenticationBackend(BaseBackend):
     ) -> User | None:
         """Standard backend authenticate API call.
 
-        Returns the user if successfully authenticate, or None if not
+        Returns the user if successfully authenticated, or None if not.
+
+        Raises login_api.LoginUpstreamError if upstream API is unreachable or returns
+        a server error.
         """
         if not username or not token:
             return None
 
         try:
             api_data = login_api.get_user_data(username, token)
-        except login_api.LoginError:
+        except login_api.NotAuthenticatedError:
             return None
 
         return User.from_api_data(api_data)
@@ -43,7 +46,7 @@ class Level4AuthenticationBackend(BaseBackend):
         time_since_authz = time.time() - user.last_refresh
         return time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT
 
-    def create_or_update(self, username: str, force_refresh=False) -> User | None:
+    def create_or_update(self, username: str) -> User:
         """
         Create a user and/or update their data via the API.
         Note: does not authenticate the user.
@@ -56,16 +59,21 @@ class Level4AuthenticationBackend(BaseBackend):
             user = User.from_api_data({"username": username}, last_refresh=0)
 
         # Only update the user if last refresh was longer ago than the allowed web timeout
-        if self.needs_refresh(user) or force_refresh:
+        if self.needs_refresh(user):
             return self.update(user)
 
         return user
 
-    def update(self, user) -> User | None:
-        try:
-            api_data = login_api.get_user_authz(user)
-        except login_api.LoginError:
-            return None
+    def update(self, user) -> User:
+        """Get updated roles and permissions for user from job server.
+
+        Raises:
+
+        * login_api.LoginUpstreamError if upstream API is unreachable or returns a
+        server error
+        * login_api.NotAuthorizedError if user is not authorized
+        """
+        api_data = login_api.get_user_authz(user)
         return User.from_api_data(api_data)
 
     def get_user(self, user_id: str) -> User | None:

@@ -58,5 +58,5 @@ def test_get_user_data_with_dev_users_invalid(settings, tmp_path):
         )
     )
 
-    with pytest.raises(login_api.LoginError):
+    with pytest.raises(login_api.NotAuthenticatedError):
         login_api.get_user_data("test_user", "bad token")

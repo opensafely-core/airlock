@@ -9,8 +9,21 @@ from opentelemetry import trace
 session = requests.Session()
 
 
-class LoginError(Exception):
-    pass
+class LoginUpstreamError(Exception):
+    """Indicates connection error or server error when logging in against the job server
+    API."""
+
+
+class LoginClientError(Exception):
+    """Indicates a client error when logging in against the job server API."""
+
+
+class NotAuthenticatedError(Exception):
+    """Indicates an authentication failure."""
+
+
+class NotAuthorizedError(Exception):
+    """Indicates an authenticated user is not authorized."""
 
 
 def get_user_data(user: str, token: str):
@@ -29,14 +42,20 @@ def get_user_authz(user):
 
 
 def get_user_data_prod(username: str, token: str):
-    return auth_api_call(
-        "/releases/authenticate",
-        {"user": username, "token": token},
-    )
+    try:
+        return auth_api_call(
+            "/releases/authenticate",
+            {"user": username, "token": token},
+        )
+    except LoginClientError as exc:
+        raise NotAuthenticatedError from exc
 
 
 def get_user_authz_prod(username: str):
-    return auth_api_call("/releases/authorise", json={"user": username})
+    try:
+        return auth_api_call("/releases/authorise", json={"user": username})
+    except LoginClientError as exc:
+        raise NotAuthorizedError from exc
 
 
 def get_user_data_dev(dev_users_file: Path, user: str, token: str):
@@ -52,7 +71,7 @@ def get_user_data_dev(dev_users_file: Path, user: str, token: str):
         )
         raise
     if user not in dev_users or dev_users[user]["token"] != token:
-        raise LoginError("Invalid user or token")
+        raise NotAuthenticatedError("Invalid user or token")
     else:
         return dev_users[user]["details"]
 
@@ -68,13 +87,12 @@ def auth_api_call(path, json):
         response.raise_for_status()
     except requests.ConnectionError as exc:  # pragma: nocover
         span.record_exception(exc)
-        raise LoginError("Could not connect to jobs.opensafely.org")
+        raise LoginUpstreamError from exc
     except requests.HTTPError as exc:
         span.record_exception(exc)
-        if exc.response.status_code == requests.codes.forbidden:
-            # We don't currently get any more detail about failures than this
-            raise LoginError("Invalid user or token")
+        if exc.response.status_code < 500:
+            raise LoginClientError from exc
         else:
-            raise LoginError("Error when logging in")
+            raise LoginUpstreamError from exc
 
     return response.json()

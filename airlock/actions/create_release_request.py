@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from airlock import permissions, policies
 from airlock.business_logic import bll
 from airlock.enums import RequestFileType, WorkspaceFileStatus
-from airlock.exceptions import APIException, FileNotFound, ManifestFileError
+from airlock.exceptions import FileNotFound, ManifestFileError
 from airlock.types import UrlPath
 from users.auth import Level4AuthenticationBackend
 from users.models import User
@@ -81,10 +81,6 @@ def create_release_request(
     # the past 60s, we retrieve them again.
 
     user = Level4AuthenticationBackend().create_or_update(username)
-    if user is None:
-        raise APIException(
-            f"Could not retrieve user information from API for user '{username}'"
-        )
 
     request = bll.get_or_create_current_request(
         workspace_name, user, audit_extra=audit_extra
