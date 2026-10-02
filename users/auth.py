@@ -46,7 +46,7 @@ class Level4AuthenticationBackend(BaseBackend):
         time_since_authz = time.time() - user.last_refresh
         return time_since_authz > settings.AIRLOCK_AUTHZ_TIMEOUT
 
-    def create_or_update(self, username: str) -> User | None:
+    def create_or_update(self, username: str) -> User:
         """
         Create a user and/or update their data via the API.
         Note: does not authenticate the user.
@@ -64,11 +64,16 @@ class Level4AuthenticationBackend(BaseBackend):
 
         return user
 
-    def update(self, user) -> User | None:
-        try:
-            api_data = login_api.get_user_authz(user)
-        except login_api.LoginError:
-            return None
+    def update(self, user) -> User:
+        """Get updated roles and permissions for user from job server.
+
+        Raises:
+
+        * login_api.LoginUpstreamError if upstream API is unreachable or returns a
+        server error
+        * login_api.NotAuthorizedError if user is not authorized
+        """
+        api_data = login_api.get_user_authz(user)
         return User.from_api_data(api_data)
 
     def get_user(self, user_id: str) -> User | None:

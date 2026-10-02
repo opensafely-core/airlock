@@ -1,5 +1,7 @@
+import pytest
+
 from tests import factories
-from users import auth
+from users import auth, login_api
 
 
 def test_authenticate_no_credentials(rf):
@@ -29,13 +31,14 @@ def test_refresh_success(rf, auth_api_stubber):
     assert backend.refresh(request) == user
 
 
-def test_refresh_failure(rf, auth_api_stubber):
+def test_refresh_failure_raises(rf, auth_api_stubber):
     user = factories.create_airlock_user()
     auth_api_stubber("authorise", status=403)
     request = rf.get("/")
     request.user = user
     backend = auth.Level4AuthenticationBackend()
-    assert backend.refresh(request) is None
+    with pytest.raises(login_api.NotAuthorizedError):
+        backend.refresh(request)
 
 
 def test_get_user():

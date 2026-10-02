@@ -10,6 +10,7 @@ from django.views.defaults import server_error
 from opentelemetry import trace
 
 from airlock.exceptions import RequestTimeout
+from users import login_api
 from users.auth import Level4AuthenticationBackend
 
 
@@ -36,9 +37,11 @@ class UserMiddleware:
             span.set_attribute("user_id", request.user.user_id)
             if self.backend.needs_refresh(request.user):
                 span.set_attribute("auth_refresh", True)
-                user = self.backend.refresh(request)
-                if user:  # refresh may have failed for some reason
-                    request.user = user
+                try:
+                    request.user = self.backend.refresh(request)
+                except login_api.LoginError:
+                    # refresh may have failed for some reason
+                    pass
         else:
             span.set_attribute("username", "anonymous")
             span.set_attribute("user_id", "anonymous")
