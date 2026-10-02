@@ -77,6 +77,16 @@ def test_middleware_expired_error(airlock_client, settings, auth_api_stubber):
 
 
 @pytest.mark.django_db
+def test_middleware_expired_user_removed(airlock_client, settings, auth_api_stubber):
+    last_refresh = time.time() - (2 * settings.AIRLOCK_AUTHZ_TIMEOUT)
+    user = factories.create_airlock_user(last_refresh=last_refresh)
+    airlock_client.login_with_user(user)
+    auth_api_stubber("authorise", status=403)
+    response = airlock_client.get("/workspaces/")
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
 def test_middleware_user_trace(airlock_client):
     user = factories.create_airlock_user(workspaces=["workspace"])
     airlock_client.login_with_user(user)
