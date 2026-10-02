@@ -18,14 +18,17 @@ class Level4AuthenticationBackend(BaseBackend):
     ) -> User | None:
         """Standard backend authenticate API call.
 
-        Returns the user if successfully authenticate, or None if not
+        Returns the user if successfully authenticated, or None if not.
+
+        Raises login_api.LoginUpstreamError if upstream API is unreachable or returns
+        a server error.
         """
         if not username or not token:
             return None
 
         try:
             api_data = login_api.get_user_data(username, token)
-        except login_api.LoginError:
+        except login_api.NotAuthenticatedError:
             return None
 
         return User.from_api_data(api_data)
