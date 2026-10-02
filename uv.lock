@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.12.*"
 
 [[package]]
@@ -64,7 +64,7 @@ requires-dist = [
     { name = "gunicorn", specifier = "<=26.2.0" },
     { name = "mkdocs", specifier = "<=1.6.1" },
     { name = "mkdocs-material", specifier = "<=9.7.7" },
-    { name = "opensafely-pipeline", url = "https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.09.14.135127.zip" },
+    { name = "opensafely-pipeline", url = "https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.10.02.122250.zip" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = "<=1.44.0" },
     { name = "opentelemetry-instrumentation-django", specifier = "<=0.61b0" },
     { name = "opentelemetry-instrumentation-requests", specifier = "<=0.61b0" },
@@ -849,12 +849,12 @@ wheels = [
 
 [[package]]
 name = "opensafely-pipeline"
-version = "2026.9.14.135127"
-source = { url = "https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.09.14.135127.zip" }
+version = "2026.10.2.122250"
+source = { url = "https://github.com/opensafely-core/pipeline/archive/refs/tags/v2026.10.02.122250.zip" }
 dependencies = [
     { name = "ruyaml" },
 ]
-sdist = { hash = "sha256:a8577198cb9e3507a8b5f8788b4d2a15059302a7d73d441b3f0ea8932b1d5b5f" }
+sdist = { hash = "sha256:d6659f3276f06487a5f9d1de3519a535ac8818c8692e660f3795e78dbcd31f1c" }
 
 [package.metadata]
 requires-dist = [
