@@ -1,18 +1,22 @@
-# tooling versions for Renovate updates
+######## Tooling versions for Renovate updates ########
+
+# If adding a new docker tool, find the digest for the version you're adding by running e.g.
+# docker buildx imagetools inspect kjanat/actionlint:1.17.0
 
 # renovate: datasource=docker depName=kjanat/actionlint versioning=docker
-actionlint_version := "1.17.0"
+actionlint_version := "1.17.0@sha256:d484cccadf56b6a356466ade9af4c8e05c5dce1badaf0a9ecd0d7639d68d9c92"
 
 # renovate: datasource=docker depName=koalaman/shellcheck versioning=docker
-shellcheck_version := "v0.11.0"
+shellcheck_version := "v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d"
 
 # renovate: datasource=docker depName=renovate/renovate versioning=docker
-renovate_version := "44.125.0"
+renovate_version := "44.125.0@sha256:627e246b6cbd824c18ab635fc1e15e9e6ef98da0f56dec0993dfa0810598f384"
 
 # renovate: datasource=docker depName=ghcr.io/hadolint/hadolint versioning=docker
-hadolint_version := "v2.15.1-alpine"
+hadolint_version := "v2.15.1-alpine@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552"
 
 
+######## Reusable variables ########
 # Run Docker with minimim possible privileges. Note that if you mount any directories in
 # you must still ensure these are mounted read-only.
 docker_run_safe := 'docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65534:65534'
