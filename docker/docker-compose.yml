@@ -67,6 +67,14 @@ services:
     # override command
     command: /app/manage.py runserver 0.0.0.0:8000
 
+  dev-services:
+    extends:
+      service: dev-base
+    # override command
+    command: /app/manage.py runservices
+    # no forwarded ports so we can run multiple of these for testing
+    ports:
+
   # test runner service - uses dev-image with a different commnd
   test:
     extends:
