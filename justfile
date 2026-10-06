@@ -437,14 +437,35 @@ renovate-dry-run output="summary":
                     | [$name, $current, ((.newValue // "") + (if .newDigest then "@" + .newDigest else "" end))])
                 | @tsv' | column -t -s $'\t'
             ;;
-        full)
+        packages)
             run_renovate | jq -R 'fromjson? | objects | select(.msg == "packageFiles with updates") | .config'
             ;;
+        full)
+            run_renovate | jq
+            ;;
         *)
-            echo "Unknown output '{{ output }}': use 'summary' or 'full'" >&2
+            echo "Unknown output '{{ output }}': use 'summary', 'packages' or 'full'" >&2
             exit 1
             ;;
     esac
+
+# Run a full Renovate dry run against this branch (requires pushing the branch first)
+renovate-dry-run-github branch:
+    # This checks some things that renovate-dry-run (which runs against local files)
+    # can't, e.g. lockFileMaintenance, which depend on it determinining what branches
+    # and PRs it would need to make.
+    # Note that we can't use docker_run_safe here because `--network none` stops
+    # Renovate querying docker, github, pypi etc for updates. It's not --read-only
+    # because it needs to install uv and npm; however, it doesn't need to mount in
+    # any local files because it's pulling a remote branch.
+    docker run --rm --tmpfs /tmp \
+        --cap-drop ALL --security-opt no-new-privileges:true \
+        -e LOG_LEVEL=debug -e LOG_FORMAT=json \
+        -e RENOVATE_TOKEN="$(gh auth token)" \
+        renovate/renovate:{{ renovate_version }} \
+        --platform=github --dry-run=full \
+        --base-branch-patterns={{ branch }} --use-base-branch-config=merge \
+        opensafely-core/airlock
 
 # Upgrade all python dependencies, including os-pipeline
 update-dependencies: upgrade-all && uvmirror
