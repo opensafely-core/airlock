@@ -446,10 +446,5 @@ renovate-dry-run output="summary":
             ;;
     esac
 
-upgrade-npm-lockfile:
-    rm package-lock.json
-    # Cooldown period is set in .npmrc
-    npm update
-
-# Upgrade all python and JS dependencies, including os-pipeline
-update-dependencies: upgrade-npm-lockfile upgrade-all && uvmirror
+# Upgrade all python dependencies, including os-pipeline
+update-dependencies: upgrade-all && uvmirror
