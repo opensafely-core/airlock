@@ -55,24 +55,30 @@
   // Label all Reonvate PRs with "dependencies"
   "labels": ["dependencies"],
   //
-  // NOTE: lockFileMaintenance is currently disabled as it doesn't respect the
-  // minimumReleaseAge for uv. An open PR for adding it has been put on hold for now.
-  // https://github.com/renovatebot/renovate/pull/41913#issuecomment-4231423178
-  // Instead, for now we use the update-dependencies-action to update the
-  // uv lockfile
-  "lockFileMaintenance": { "enabled": false},
   // update transitive deps by updating the entire lockfile
   // We run this on the same schedule; add a note for the reviewer to do the
   // default dependencies first to reduce the amount needed for review in the
   // full lockfile update
-  // "lockFileMaintenance": {
-  //     "enabled": true,
-  //     "minimumReleaseAge": "7 days",
-  //     "schedule": [
-  //       "* 0-3 * * WED"
-  //     ],
-  //     "prBodyNotes": [":information_source: Before reviewing this PR, merge any prod/dev dependency PRs and rebase."]
-  // },
+  "lockFileMaintenance": {
+      "enabled": true,
+      "minimumReleaseAge": "7 days",
+      // Prevent permanently pending runs when there is a package that doesn't
+      // provide a timestamp
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
+      "schedule": [
+        "* 0-3 * * WED"
+      ],
+      "prBodyNotes": [":information_source: Before reviewing this PR, merge any prod/dev dependency PRs and rebase."]
+  },
+  // NOTE: lockFileMaintenance is currently disabled for pep621 as it doesn't yet
+  // respect minimumReleaseAge for uv. An open PR for adding it has been put on hold
+  // for now.
+  // https://github.com/renovatebot/renovate/pull/41913#issuecomment-4231423178
+  // Instead, for now we use the update-dependencies-action to update the
+  // uv lockfile
+  "pep621": {
+    "lockFileMaintenance": { "enabled": false }
+  },
   //
   // Note package rules apply only to direct dependencies
   // group dependencies by dev/prod, cooldown 7 days, run early Wed mornings
