@@ -19,10 +19,10 @@
     "requests<=2.34.2",
     "pydantic<=2.13.5",
     "ulid<=1.1",
-    "opentelemetry-exporter-otlp-proto-http<=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http<=1.45.0",
     "opentelemetry-instrumentation-django<=0.61b0",
     "opentelemetry-instrumentation-requests<=0.61b0",
-    "opentelemetry-sdk<=1.44.0",
+    "opentelemetry-sdk<=1.45.0",
     # docs
     "mkdocs<=1.6.1",
     "mkdocs-material<=9.7.7",
