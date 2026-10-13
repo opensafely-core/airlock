@@ -29,6 +29,7 @@
     "django-extensions<=4.1",
     "dj-database-url>=3.1.2",
     "psycopg2-binary>=2.9.12",
+    "django-bgt>=26.1.post1",
 ]
 
 [tool.ruff]

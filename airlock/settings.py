@@ -96,6 +96,8 @@ INSTALLED_APPS = [
     "slippers",
     "django_htmx",
     "django_extensions",
+    # for background services
+    "django_bgt",
 ]
 
 MIDDLEWARE = [
