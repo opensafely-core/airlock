@@ -144,8 +144,8 @@ dev = [
     "django-debug-toolbar-template-profiler<=2.1.0",
     "djhtml<=3.0.11",
     "httpx<=0.28.1",
-    "hypothesis<=6.168.3",
-    "ruff<=0.16.9",
+    "hypothesis<=6.168.5",
+    "ruff<=0.16.10",
     "playwright<=1.63.0",
     "pytest<=9.1.1",
     "pytest-cov<=7.1.0",
@@ -157,8 +157,8 @@ dev = [
     # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
     "django_coverage_plugin@https://github.com/opensafely-core/django_coverage_plugin/archive/75209df74c37178666868abbd9687a41aaba0e13.zip",
     # Type-checking and type stubs
-    "mypy<=2.3.1",
-    "django-stubs[compatible-mypy]<=6.1.1",
-    "types-requests<=2.33.0.20260906",
+    "mypy<=2.4.0",
+    "django-stubs[compatible-mypy]<=6.1.2",
+    "types-requests<=2.33.0.20261006",
     "pytest-xdist<=3.8.0",
 ]
