@@ -28,7 +28,7 @@
 # set.
 ARG NODE_VERSION=24
 ARG UBUNTU_VERSION=24.04
-ARG UV_VERSION=0.11
+ARG UV_VERSION=0.13
 
 # Create base image with python installed.
 # All Dockerfiles should start from the base-docker image
