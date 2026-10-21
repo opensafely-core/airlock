@@ -18,7 +18,7 @@ backrefs==8.1
     # via mkdocs-material
 bleach==6.4.0
     # via django-markdownify
-certifi==2026.7.22
+certifi==2026.10.19
     # via
     #   httpcore
     #   httpx
