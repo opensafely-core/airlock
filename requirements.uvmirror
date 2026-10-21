@@ -201,9 +201,9 @@ protobuf==6.33.6
     #   opentelemetry-proto
 psycopg2-binary==2.9.13
     # via airlock
-pydantic==2.13.5
+pydantic==2.14.1
     # via airlock
-pydantic-core==2.46.5
+pydantic-core==2.50.1
     # via pydantic
 pyee==13.0.1
     # via playwright
