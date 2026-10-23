@@ -6,7 +6,7 @@
     "config:recommended",
     // ensure all GHA are pinned to digests
     // https://docs.renovatebot.com/presets-helpers/#helperspingithubactiondigests
-    "helpers:pinGitHubActionDigests",
+    "helpers:pinGitHubActionDigestsToSemver",
     // report on abandoned pacakges
     // https://docs.renovatebot.com/presets-abandonments/
     "abandonments:recommended",
