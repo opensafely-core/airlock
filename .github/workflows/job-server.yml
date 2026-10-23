@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: "opensafely-core/setup-action@d9171097dd0d37bdb7bed58f701eb03ff317ed17" # v1
+      - uses: "opensafely-core/setup-action@1f93a08c6e31a75b0908fcac5d25c2cf729c31f2" # v1
         with:
           python-version: "3.12"
           install-just: true
