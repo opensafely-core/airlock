@@ -66,7 +66,7 @@ update-pipeline: && devenv uvmirror
 # Install dev requirements into venv without removing extraneous packages
 devenv: _dotenv
     uv sync --inexact
-    playwright install chromium   
+    uv run playwright install chromium   
 
 # Upgrade a single package to the latest version as of the cutoff in pyproject.toml
 upgrade-package package: && uvmirror devenv
