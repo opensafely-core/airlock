@@ -66,61 +66,7 @@ update-pipeline: && devenv uvmirror
 # Install dev requirements into venv without removing extraneous packages
 devenv: _dotenv
     uv sync --inexact
-
-# Fetch and extract the chromium version we need for testing
-get-chromium:
-    #!/bin/bash
-    # We use chromium v108 for consistency with backends
-    # https://www.chromium.org/getting-involved/download-chromium/#downloading-old-builds-of-chrome-chromium
-    # 
-    # Instructions on the link are not entirely up to date, so, to find another version
-    # 1) Go to https://chromiumdash.appspot.com/releases
-    # 2) Select the relevant platform 
-    # 3) In the "Stable" table, click Load more until you get to the version you're after
-    #    Make a note of the base position (e.g. 1368529 @ Nov 12 2024)
-    # 4) Go to https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html
-    # 5) Select your platform (Mac/Linux_x64). Filter for the base position (there might not be
-    #    an exact match, so filter for the first 5 numbers or so and find the closest)
-
-    # Exit with an error if the playwright env variable isn't set; we want to ensure that
-    # functional tests are always run with the custom chrome version
-    if [[ -z ${PLAYWRIGHT_BROWSER_EXECUTABLE_PATH} ]]; then
-      echo "ERROR: PLAYWRIGHT_BROWSER_EXECUTABLE_PATH environment variable is not set"
-      exit 1
-    fi
-
-    # If this is being fetched for docker, the platform is passed in and we bypass whatever the
-    # local OS is. Otherwise, get the right chrome for the detected platform.
-    PLATFORM="${PLATFORM:-$OSTYPE}"
-
-    chrome_linux_executable=.playwright-browsers/chrome-linux/chrome
-    chrome_mac_executable=.playwright-browsers/chrome-mac/Chromium.app/Contents/MacOS/Chromium
-
-    if [[ "$PLATFORM" == "linux-gnu"* ]]; then
-        chrome_executable=$chrome_linux_executable
-        # The chrome executable after unzipping is at ../.playwright-browsers/chrome-linux/chrome
-        if [[ ! -f $chrome_executable ]]; then
-            mkdir -p .playwright-browsers
-            curl -o .playwright-browsers/chrome-linux.zip https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/1058929/chrome-linux.zip
-            unzip .playwright-browsers/chrome-linux.zip -d .playwright-browsers && rm .playwright-browsers/chrome-linux.zip
-        fi
-    elif [[ "$PLATFORM" == "darwin"* ]]; then
-        # Mac OSX
-        chrome_executable=$chrome_mac_executable
-        # The chrome executable after unzipping is at ../.playwright-browsers/chrome-mac/chrome
-        if [[ ! -f $chrome_executable ]]; then
-            mkdir -p .playwright-browsers
-            curl -o .playwright-browsers/chrome-mac.zip https://commondatastorage.googleapis.com/chromium-browser-snapshots/Mac/1058919/chrome-mac.zip
-            unzip .playwright-browsers/chrome-mac.zip -d .playwright-browsers && rm .playwright-browsers/chrome-mac.zip
-        fi
-
-        if [[ ${PLAYWRIGHT_BROWSER_EXECUTABLE_PATH} == ${chrome_linux_executable} ]]; then
-            echo "" 
-            echo "WARNING: Detected MacOS but PLAYWRIGHT_BROWSER_EXECUTABLE_PATH is set to $chrome_linux_executable"
-        fi
-    else
-        echo "Unsupported OS $PLATFORM found"
-    fi
+    playwright install chromium   
 
 # Upgrade a single package to the latest version as of the cutoff in pyproject.toml
 upgrade-package package: && uvmirror devenv
@@ -231,11 +177,11 @@ manage *ARGS: _checkenv
     uv run python manage.py "$@"
 
 # run tests
-test *ARGS: _checkenv _checksetup get-chromium
+test *ARGS: _checkenv _checksetup
     uv run python -m pytest -n auto "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: _checkenv assets docs-build get-chromium
+@test-all: _checkenv assets docs-build
     #!/usr/bin/env bash
     set -euo pipefail
 
