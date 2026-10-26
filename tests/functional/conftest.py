@@ -52,6 +52,7 @@ def set_env():
     # See https://github.com/microsoft/playwright-pytest/issues/29
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "1"
 
+
 def login_as_user(live_server, context, user_dict):
     """
     Creates a session with relevant user data and
