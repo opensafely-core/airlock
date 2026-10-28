@@ -10,7 +10,7 @@ asgiref==3.12.1
     # via
     #   django
     #   django-htmx
-ast-serialize==0.13.0
+ast-serialize==0.13.1
     # via mypy
 babel==2.18.0
     # via mkdocs-material
@@ -102,7 +102,7 @@ jinja2==3.1.6
     #   mkdocs-material
 librt==0.16.0 ; platform_python_implementation != 'PyPy'
     # via mypy
-markdown==3.11.1
+markdown==3.11.2
     # via
     #   django-markdownify
     #   mkdocs
@@ -187,11 +187,11 @@ pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-platformdirs==4.13.0
+platformdirs==4.13.5
     # via mkdocs-get-deps
 playwright==1.63.0
     # via pytest-playwright
-pluggy==1.6.0
+pluggy==1.7.0
     # via
     #   pytest
     #   pytest-cov
@@ -211,7 +211,7 @@ pygments==2.21.0
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==12.2
+pymdown-extensions==12.3
     # via mkdocs-material
 pytest==9.1.1
     # via
@@ -255,7 +255,7 @@ responses==0.26.3
 ruff==0.16.10
 ruyaml==0.91.0
     # via opensafely-pipeline
-setuptools==84.0.0
+setuptools==84.2.1
     # via ruyaml
 six==1.17.0
     # via python-dateutil
