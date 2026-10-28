@@ -86,7 +86,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.168.5
+hypothesis==6.170.5
 idna==3.20
     # via
     #   anyio
@@ -189,7 +189,7 @@ pathspec==1.1.1
     #   mypy
 platformdirs==4.13.0
     # via mkdocs-get-deps
-playwright==1.63.0
+playwright==1.64.0
     # via pytest-playwright
 pluggy==1.6.0
     # via
@@ -215,18 +215,15 @@ pymdown-extensions==12.2
     # via mkdocs-material
 pytest==9.1.1
     # via
-    #   pytest-base-url
     #   pytest-cov
     #   pytest-django
     #   pytest-freezer
     #   pytest-playwright
     #   pytest-xdist
-pytest-base-url==2.1.0
-    # via pytest-playwright
 pytest-cov==7.1.0
 pytest-django==4.14.0
 pytest-freezer==0.4.9
-pytest-playwright==0.9.0
+pytest-playwright==0.10.0
 pytest-xdist==3.8.0
 python-dateutil==2.9.0.post0
     # via
@@ -249,10 +246,9 @@ requests==2.34.2
     #   airlock
     #   mkdocs-material
     #   opentelemetry-exporter-otlp-proto-http
-    #   pytest-base-url
     #   responses
 responses==0.26.3
-ruff==0.16.10
+ruff==0.17.1
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==84.0.0
