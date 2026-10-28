@@ -398,51 +398,145 @@ assets-run: assets-install
 check-renovate-config:
     {{ docker_run_safe }} -v $(pwd):/repo:ro --workdir /repo renovate/renovate:{{ renovate_version }} renovate-config-validator
 
-# Show what updates Renovate would propose; run with summary for a summary table, full for the complete output
+# Show what updates Renovate would propose.
+# summary: table with version age and pending status
+# packages: structured JSON of proposed package updates
+
+# full: complete Renovate debug log
 renovate-dry-run output="summary":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    echo "Running renovate, this may take a few minutes"
+    echo "Running Renovate, this may take a few minutes" >&2
+
+    # Buffer Renovate's output so progress dots can't appear in the middle of the formatted JSON or summary table.
+    log_file=$(mktemp)
+    progress_pid=""
+
+    cleanup() {
+        if [[ -n "$progress_pid" ]]; then
+            kill "$progress_pid" 2>/dev/null || true
+            wait "$progress_pid" 2>/dev/null || true
+            progress_pid=""
+        fi
+        rm -f "$log_file"
+    }
+    trap cleanup EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
 
     run_renovate() {
-        # Note that we can't use docker_run_safe here because `--network none` stops
-        # Renovate querying docker, github, pypi etc for updates. It also has to
-        # write its working and cache directories under /tmp/renovate. We give it a
-        # tmpfs mount that it can write to and leave everything else readonly
+        # We can't use docker_run_safe because --network none prevents
+        # Renovate querying Docker, GitHub, PyPI, etc.
+        #
+        # Renovate also needs writable working/cache directories.
+        # Give it a tmpfs mount and leave everything else read-only.
 
-        # Let the user know something is still happening
-        ( while sleep 5; do printf '.' >&2; done ) &
-        trap "kill $! 2>/dev/null; echo >&2" EXIT
+        # Let the user know something is still happening.
+        (
+            while sleep 5; do
+                printf '.' >&2
+            done
+        ) &
+        progress_pid=$!
+
+        local status=0
 
         docker run --rm --read-only --tmpfs /tmp \
-            --cap-drop ALL --security-opt no-new-privileges:true \
-            --user 65534:65534 -e HOME=/tmp \
-            -v "$(pwd):/repo:ro" --workdir /repo \
-            -e LOG_LEVEL=debug -e LOG_FORMAT=json \
-            renovate/renovate:{{ renovate_version }} --platform=local
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --user 65534:65534 \
+            -e HOME=/tmp \
+            -v "$(pwd):/repo:ro" \
+            --workdir /repo \
+            -e LOG_LEVEL=debug \
+            -e LOG_FORMAT=json \
+            renovate/renovate:{{ renovate_version }} \
+            --platform=local > "$log_file" || status=$?
+
+        # Stop the progress indicator before printing any output.
+        kill "$progress_pid" 2>/dev/null || true
+        wait "$progress_pid" 2>/dev/null || true
+        progress_pid=""
+        echo >&2
+
+        return "$status"
     }
+
+    # Run Renovate once, then format the buffered output.
+    if ! run_renovate; then
+        echo "Renovate failed. Last 30 log lines:" >&2
+        tail -n 30 "$log_file" >&2
+        exit 1
+    fi
 
     case "{{ output }}" in
         summary)
-            run_renovate | jq -rRn '
-                ["PACKAGE", "CURRENT", "NEW"],
-                (inputs | fromjson? | objects
+            jq -rRn '
+
+                # Truncate to the first 19 characters.
+                # Keep the full version number.
+                def format_digest:
+                    if . then
+                        "@" + .[:19] + "..."
+                    else
+                        ""
+                    end;
+
+                ["PACKAGE", "CURRENT", "NEW", "AGE", "STATUS"],
+                (
+                    fromjson?
+                    | objects
                     | select(.msg == "packageFiles with updates")
                     | .config[][]
                     | .deps[]
                     | .depName as $name
-                    | (.currentValue + (if .currentDigest then "@" + .currentDigest else "" end)) as $current
+                    | (
+                        (.currentValue // .currentVersion // "-")
+                        + (.currentDigest | format_digest)
+                      ) as $current
                     | (.updates // [])[]
-                    | [$name, $current, ((.newValue // "") + (if .newDigest then "@" + .newDigest else "" end))])
-                | @tsv' | column -t -s $'\t'
+                    | [
+                        $name,
+                        $current,
+                        (
+                            (.newValue // .newVersion // "-")
+                            + (.newDigest | format_digest)
+                        ),
+                        (
+                            if .newVersionAgeInDays != null then
+                                "\(.newVersionAgeInDays)d"
+                            else
+                                "-"
+                            end
+                        ),
+                        (
+                            if .pendingChecks then
+                                "pending"
+                            else
+                                "ready"
+                            end
+                        )
+                    ]
+                )
+                | @tsv
+            ' "$log_file" | column -t -s $'\t'
             ;;
+
         packages)
-            run_renovate | jq -R 'fromjson? | objects | select(.msg == "packageFiles with updates") | .config'
+            jq -R '
+                    inputs
+                    | fromjson?
+                | objects
+                | select(.msg == "packageFiles with updates")
+                | .config
+            ' "$log_file"
             ;;
+
         full)
-            run_renovate | jq
+            jq -R 'fromjson? // .' "$log_file"
             ;;
+
         *)
             echo "Unknown output '{{ output }}': use 'summary', 'packages' or 'full'" >&2
             exit 1
