@@ -66,6 +66,8 @@ update-pipeline: && devenv uvmirror
 # Install dev requirements into venv without removing extraneous packages
 devenv: _dotenv
     uv sync --inexact
+
+install-chromium:
     uv run playwright install chromium   
 
 # Upgrade a single package to the latest version as of the cutoff in pyproject.toml
@@ -177,11 +179,11 @@ manage *ARGS: _checkenv
     uv run python manage.py "$@"
 
 # run tests
-test *ARGS: _checkenv _checksetup
+test *ARGS: _checkenv _checksetup install-chromium
     uv run python -m pytest -n auto "$@"
 
 # run tests as they will be in run CI (checking code coverage etc)
-@test-all: _checkenv assets docs-build
+@test-all: _checkenv assets docs-build install-chromium
     #!/usr/bin/env bash
     set -euo pipefail
 
