@@ -4,8 +4,6 @@ from airlock.enums import RequestStatus
 from tests import factories
 from tests.functional.conftest import login_as_user
 
-from .conftest import click_and_htmx
-
 
 def _make_pending_request(live_server, context):
     author = login_as_user(
@@ -40,10 +38,22 @@ def test_traditional_form_button_disabled_after_click(live_server, context, page
     # rather than navigating to a response body.
     page.route("**/requests/withdraw/**", lambda route: route.fulfill(status=204))
 
-    click_and_htmx(page, page.locator("#withdraw-file-button"))
+    # explicitly wait for the matching HTTP request to be sent, without waiting for navigation to complete
+    with page.expect_request("**/requests/withdraw/**") as request_info:
+        # Trigger the click directly in the browser to avoid Playwright's automatic
+        # navigation wait, which can time out when the form POST returns 204.
+        button.evaluate("(button) => button.click()")
 
-    expect(button).to_be_disabled()
-    expect(button).to_have_attribute("aria-busy", "true")
+    assert request_info.value.method == "POST"
+
+    # Wait for the button to become disabled and marked as busy, without resolving a Playwright locator.
+    page.wait_for_function(
+        """() => {
+            const button = document.querySelector('#withdraw-file-button');
+            return button?.disabled === true &&
+                button?.getAttribute('aria-busy') === 'true';
+        }"""
+    )
 
 
 def test_traditional_form_double_click_only_submits_once(live_server, context, page):
@@ -64,20 +74,26 @@ def test_traditional_form_double_click_only_submits_once(live_server, context, p
 
     page.route("**/requests/withdraw/**", handler)
 
-    # Two consecutive clicks via JS. The disable is scheduled via setTimeout(0)
-    # so we sleep briefly between them to give the macrotask a chance to run.
-    page.evaluate(
-        """async () => {
-            const btn = document.querySelector('#withdraw-file-button');
-            btn.click();
-            await new Promise((r) => setTimeout(r, 50));
-            btn.click();
-        }"""
-    )
+    # Wait for the first POST without waiting for navigation to complete.
+    with page.expect_request("**/requests/withdraw/**"):
+        # Trigger two clicks directly in the browser to avoid Playwright's
+        # automatic navigation wait.
+        page.evaluate(
+            """async () => {
+                const btn = document.querySelector('#withdraw-file-button');
+                btn.click();
+                await new Promise((r) => setTimeout(r, 50));
+                btn.click();
+            }"""
+        )
 
     # Wait until the button is disabled (i.e. the first submission fired and the
     # script ran), then assert only one request was recorded.
-    expect(button).to_be_disabled()
+    # Wait for the button to become disabled without resolving a locator during the
+    # pending navigation.
+    page.wait_for_function(
+        "() => document.querySelector('#withdraw-file-button')?.disabled === true"
+    )
     assert len(withdraw_requests) == 1
 
 
