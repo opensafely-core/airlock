@@ -185,6 +185,9 @@
       "groupName": "GitHub Actions",
       "addLabels": ["actions"],
       "minimumReleaseAge": "7 days",
+      // Prevent permanently pending runs when there is a package that doesn't
+      // provide a timestamp
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "schedule": [
         "* 0-3 * * WED"
       ]
