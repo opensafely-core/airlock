@@ -9,10 +9,10 @@
   "type": "module",
   "devDependencies": {
     "@tailwindcss/forms": "*",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "*",
-    "autoprefixer": "*",
     "postcss": "*",
-    "tailwindcss": "<4",
+    "tailwindcss": "^4.3.3",
     "vite": "*"
   },
   "dependencies": {
