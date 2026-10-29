@@ -12,7 +12,7 @@
 {% endif %}
 
     class="
-      inline-flex items-center justify-center border rounded-md shadow-sm transition-buttons duration-200
+      inline-flex items-center justify-center border rounded-md shadow-xs transition-buttons duration-200
 
       {% if small %}
         px-2 py-1 text-xs font-normal
@@ -35,7 +35,7 @@
         hover:bg-slate-600 hover:border-slate-600
         focus:bg-slate-600 focus:border-slate-600 focus:ring-slate-500 focus:ring-offset-white
       {% elif variant == "secondary-outline" %}
-        border border-slate-400/75 text-slate-700 !shadow-none
+        border border-slate-400/75 text-slate-700 shadow-none!
         hover:bg-slate-200
         focus:bg-slate-200 focus:ring-slate-500 focus:ring-offset-white
       {% elif variant == "danger" %}
@@ -43,7 +43,7 @@
         hover:bg-bn-ribbon-700 hover:border-bn-ribbon-700
         focus:bg-bn-ribbon-700 focus:border-bn-ribbon-700 focus:ring-bn-ribbon-500 focus:ring-offset-white
       {% elif variant == "danger-outline" %}
-        border border-bn-ribbon-400 text-bn-ribbon-700 !shadow-none
+        border border-bn-ribbon-400 text-bn-ribbon-700 shadow-none!
         hover:bg-bn-ribbon-100
         focus:bg-bn-ribbon-100 focus:ring-bn-ribbon-500 focus:ring-offset-white
       {% elif variant == "warning" %}
@@ -62,7 +62,7 @@
 
       {% if not disabled %}
         hover:shadow-lg
-        focus:outline-none focus:ring-2 focus:ring-offset-2
+        focus:outline-hidden focus:ring-2 focus:ring-offset-2
       {% endif %}
 
       {% if tooltip %}

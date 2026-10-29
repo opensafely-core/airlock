@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import tailwindForms from "@tailwindcss/forms";
 import tailwindTypography from "@tailwindcss/typography";
-import { fontFamily } from "tailwindcss/defaultTheme";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -14,7 +13,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Public Sans Variable", ...fontFamily.sans],
+        sans: ["Public Sans Variable", "sans-serif"],
       },
       colors: {
         oxford: {
