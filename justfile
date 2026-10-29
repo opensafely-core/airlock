@@ -473,7 +473,6 @@ renovate-dry-run output="summary":
     case "{{ output }}" in
         summary)
             jq -rRn '
-
                 # Truncate to the first 19 characters.
                 # Keep the full version number.
                 def format_digest:
@@ -485,7 +484,8 @@ renovate-dry-run output="summary":
 
                 ["PACKAGE", "CURRENT", "NEW", "AGE", "STATUS"],
                 (
-                    fromjson?
+                    inputs
+                    | fromjson?
                     | objects
                     | select(.msg == "packageFiles with updates")
                     | .config[][]
@@ -525,8 +525,7 @@ renovate-dry-run output="summary":
 
         packages)
             jq -R '
-                    inputs
-                    | fromjson?
+                fromjson?
                 | objects
                 | select(.msg == "packageFiles with updates")
                 | .config

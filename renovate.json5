@@ -19,6 +19,13 @@
     // https://docs.renovatebot.com/presets-mergeConfidence/#mergeconfidenceall-badges
     "mergeConfidence:all-badges"
   ],
+  // Disable limits on number of PRs / branches in this repo
+  // No limit on number of PRs created per hour
+  "prHourlyLimit" : 0,
+  // No limit on number of concurrent PRs
+  "prConcurrentLimit" : 0,
+  // No limit on number of concurrent branches
+  "branchConcurrentLimit": 0,
   // Custom manager to update versions in justfiles
   "customManagers": [
     {
