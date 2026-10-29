@@ -1,0 +1,1 @@
+var e=document.getElementById(`confirmDialog`),t=document.getElementById(`confirmBtn`),n=e.querySelector(`[value="cancel"]`);e.classList.add(`hidden`),t.addEventListener(`click`,()=>{e.classList.remove(`hidden`),e.showModal()}),n.addEventListener(`click`,()=>{e.classList.add(`hidden`),e.close(`Cancelled`)});
