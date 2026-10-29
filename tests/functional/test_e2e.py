@@ -243,6 +243,10 @@ def test_e2e_release_files(
     # Expand the tree
     filegroup_link.click()
 
+    # Verify the tree has opened
+    details = page.locator("details[data-path='my-new-group']")
+    expect(details).to_have_attribute("open", "")
+
     # Click on the output directory to ensure that renders correctly.
     assert_tree_element_is_not_selected(page, subdir_link)
     click_and_htmx(page, subdir_link)
