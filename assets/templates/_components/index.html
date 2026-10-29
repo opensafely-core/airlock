@@ -8,17 +8,17 @@
 {% block content %}
   <details
     class="
-      fixed top-4 right-4 inline-flex z-50 group bg-oxford-50 border border-l-4 border-oxford-700/95 overflow-hidden rounded
-      open:bg-white
-    "
+           fixed top-12 right-2 inline-flex flex-col z-50 group bg-oxford-50 border border-l-4 border-oxford-700/95 overflow-hidden rounded
+           open:bg-white
+          "
     open
   >
     <summary
       class="
-        cursor-pointer list-none p-4 py-2 transition-colors
-        hover:bg-oxford-100 hover:text-oxford-900
-        group-open:border-b
-      "
+             cursor-pointer list-none p-4 py-2 transition-colors
+             hover:bg-oxford-100 hover:text-oxford-900
+             group-open:border-b
+            "
     >
       <span class="text-lg font-semibold text-oxford">
         <span class="group-open:hidden inline-flex">Show</span>
@@ -28,19 +28,19 @@
     </summary>
     <ul
       class="
-        m-2 pl-8 pr-4 list-disc overflow-y-auto max-h-[75vh]
-        [&_a]:text-oxford-600 [&_a]:font-semibold [&_a:hover]:text-oxford-900 [&_a:hover]:underline
-        [&_ul_li]:list-[circle] [&_ul_li]:ml-4
-      "
+             m-2 pl-8 pr-4 list-disc overflow-y-auto max-h-[75vh]
+             [&_a]:text-oxford-600 [&_a]:font-semibold [&_a:hover]:text-oxford-900 [&_a:hover]:underline
+             [&_ul_li]:list-[circle] [&_ul_li]:ml-4
+            "
       id="table-of-contents"
     ></ul>
   </details>
 
   <div class="
-    prose mx-auto relative flex flex-col
-    [&_section+section]:mt-24 [&_section+section]:pt-24 [&_section+section]:border-t
-    [&_section>h2]:mt-0
-  ">
+              prose mx-auto relative flex flex-col
+              [&_section+section]:mt-24 [&_section+section]:pt-24 [&_section+section]:border-t
+              [&_section>h2]:mt-0
+             ">
     <h1>UI Components</h1>
     <p>A gallery for the available components for building OpenSAFELY Jobs pages.</p>
 
@@ -396,9 +396,9 @@
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inputmode"><code>inputmode</code></a></li>
         <li><code>label</code>: [string] - overwrite the label passed from Django</li>
         <li><code>name</code>: [string] - set the HTML name for the input element</li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#pattern"><code>pattern</code></a></li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#placeholder"><code>placeholder</code></a></li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required"><code>required</code></a></li>
-        <li><code>show_placeholder</code>: [boolean] - if true, display the placeholder text</li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#input_types"><code>type</code></a></li>
         <li><code>value</code>: [string] - set the HTML value for the input element</li>
       </ul>
@@ -484,23 +484,26 @@
 
       <h3>Select</h3>
       <ul>
-        <li><code>choices</code>: [dict] - dict of [value, label] for the options</li>
+        <li><code>choices</code>: [iterable] - list/tuple of [value, label] for the options</li>
         <li><code>class</code>: [string] - add HTML classes to the component</li>
         <li><code>field</code>: a Django form field
           <ul>
-            <li><a href="https://devdocs.io/django~4.1/ref/forms/api#django.forms.Form.auto_id"><code>auto_id</code></a></li>
-            <li><a href="https://devdocs.io/django~4.1/ref/forms/api#django.forms.Form.errors"><code>errors</code></a></li>
-            <li><a href="https://devdocs.io/django~4.1/ref/forms/api#django.forms.BoundField.html_name"><code>html_name</code></a></li>
-            <li><a href="https://devdocs.io/django~4.1/ref/forms/api#django.forms.BoundField.id_for_label"><code>id_for_label</code></a></li>
-            <li><a href="https://devdocs.io/django~4.1/ref/forms/api#django.forms.BoundField.label"><code>label</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.Form.auto_id"><code>auto_id</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.Form.errors"><code>errors</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.BoundField.help_text"><code>help_text</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.BoundField.html_name"><code>html_name</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.BoundField.id_for_label"><code>id_for_label</code></a></li>
+            <li><a href="https://devdocs.io/django~5.2/ref/forms/api#django.forms.BoundField.label"><code>label</code></a></li>
           </ul>
         </li>
-        <li><code>hint_text</code>: [string] - add a subtitle as hint text for the select</li>
+        <li><code>hint_below</code>: [boolean] - render hint text below the select (defaults to above)</li>
+        <li><code>hint_extra_class</code>: [string] - add HTML classes to the hint text wrapper</li>
+        <li><code>hint_text</code>: [string] - add hint text for the select (defaults to <code>field.help_text</code>)</li>
         <li><code>id</code>: [string] - set the HTML id for the select element</li>
         <li><code>label</code>: [string] - overwrite the label passed from Django</li>
-        <li><code>name</code>: [string] - set the HTML name for the select element</li>
+        <li><code>name</code>: [string] - set the HTML name for the select element when overriding <code>id</code></li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required"><code>required</code></a></li>
-        <li><code>selected</code>: [string] - matches value of choice for preselected option</li>
+        <li><code>selected</code>: [string] - matches the value of a choice for the preselected option</li>
       </ul>
       <div class="not-prose flex flex-col gap-y-8 relative w-screen max-w-5xl left-1/2 -translate-x-1/2 p-8 bg-slate-200 border border-slate-500 rounded-sm">
         {% form_select class="w-full max-w-lg mx-auto" label="Select a language" required=True field=example_form.example_select choices=example_form.example_select.field.choices selected=example_form.example_select.value %}
@@ -534,11 +537,10 @@
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/readonly"><code>readonly</code></a></li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required"><code>required</code></a></li>
         <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea#attr-rows"><code>rows</code></a></li>
-        <li><code>show_placeholder</code>: [boolean] - if true, display the placeholder text</li>
         <li><code>value</code>: [string] - set the HTML value for the input element</li>
       </ul>
       <div class="not-prose flex flex-col gap-y-8 relative w-screen max-w-5xl left-1/2 -translate-x-1/2 p-8 bg-slate-200 border border-slate-500 rounded-sm">
-        {% form_textarea class="max-w-lg w-full mx-auto" field=example_form.example_textarea label="Enter a short description of the project" resize=True rows=8 %}
+        {% form_textarea class="max-w-lg w-full mx-auto" field=example_form.example_textarea label="Enter a short description of the project" resize=True rows=8 required=True %}
         <pre><code class="language-django">{% verbatim %}{% form_textarea class="max-w-lg w-full mx-auto" field=example_form.example_textarea label="Enter a short description of the project" resize=True rows=8 %}{% endverbatim %}</code></pre>
       </div>
     </section>
@@ -691,10 +693,10 @@
       <h2>Modal</h2>
       <ul>
         <li><code>button_text</code>: [string] - the text to display on the button to open the dialog</li>
+        <li><code>button_tooltip</code>: [string] - the tooltip to display on the button to open the dialog. If not passed there is no tooltip.</li>
         <li><code>button_variant</code>: [string] - the button variant (default: primary)</li>
         <li><code>button_small</code>: [boolean] - if True, will reduce the font size, weight, and padding</li>
         <li><code>button_class</code>: [string] - extra classes to add to the button (default: flex-shrink-0)</li>
-        : [boolean] - if true, will reduce the font size, weight, and padding
         <li><code>children</code>: [html] - display the children components. You could include one button with <code>type="cancel"</code>, which will close the modal window.</li>
         <li><code>custom_button</code>: [string] - add a fragment for a custom button. This button should have the attribute <code>data-modal=id`</code> in order to trigger opening the dialog modal.</li>
         <li><code>id</code>: [string] - HTML element ID for dialog element</li>
