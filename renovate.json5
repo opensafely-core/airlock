@@ -163,6 +163,12 @@
       "matchDepNames": ["tailwindcss"],
       "allowedVersions": "<4"
     },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "matchDepNames": ["htmx.org"],
+      "allowedVersions": "<4"
+    },
     // pep621 covers pyproject.toml and uv.lock files
     // https://docs.renovatebot.com/modules/manager/pep621/
     {
