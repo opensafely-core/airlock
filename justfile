@@ -473,11 +473,19 @@ renovate-dry-run output="summary":
     case "{{ output }}" in
         summary)
             jq -rRn '
-                # Truncate to the first 19 characters.
+                # Truncate digests to the first 19 characters.
                 # Keep the full version number.
                 def format_digest:
                     if . then
                         "@" + .[:19] + "..."
+                    else
+                        ""
+                    end;
+
+                # Only display digests for Docker and GitHub Actions.
+                def display_digest($manager):
+                    if ($manager == "docker" or $manager == "github-actions") then
+                        format_digest
                     else
                         ""
                     end;
@@ -489,19 +497,20 @@ renovate-dry-run output="summary":
                     | objects
                     | select(.msg == "packageFiles with updates")
                     | .config[][]
+                    | .manager as $manager
                     | .deps[]
                     | .depName as $name
                     | (
                         (.currentValue // .currentVersion // "-")
-                        + (.currentDigest | format_digest)
-                      ) as $current
+                        + (.currentDigest | display_digest($manager))
+                    ) as $current
                     | (.updates // [])[]
                     | [
                         $name,
                         $current,
                         (
                             (.newValue // .newVersion // "-")
-                            + (.newDigest | format_digest)
+                            + (.newDigest | display_digest($manager))
                         ),
                         (
                             if .newVersionAgeInDays != null then

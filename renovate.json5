@@ -163,6 +163,12 @@
       "matchDepNames": ["tailwindcss"],
       "allowedVersions": "<4"
     },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "matchDepNames": ["htmx.org"],
+      "allowedVersions": "<4"
+    },
     // pep621 covers pyproject.toml and uv.lock files
     // https://docs.renovatebot.com/modules/manager/pep621/
     {
@@ -198,6 +204,12 @@
       "schedule": [
         "* 0-3 * * WED"
       ]
+    },
+    // Bypass the cooldown for setup-action, which we own
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["opensafely-core/setup-action"],
+      "minimumReleaseAge": null,
     },
     // disable minimumReleaseAge for pinDigest to avoid the stability-days check showing as pending
     // when Renovate opens a PR for pinning GHA dependencies to digests
