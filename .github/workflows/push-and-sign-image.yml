@@ -126,7 +126,27 @@ jobs:
     - name: Install Cosign
       uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
+    - name: Check for existing signature
+      # This is required because `cosign sign` is not idempotent and will error if we
+      # have already signed an identical image in a previous run. If this gets fixed
+      # then we can remove this check.
+      # https://github.com/sigstore/cosign/issues/4711
+      id: check-signature
+      env:
+        PUBLIC_IMAGE_NAME: ${{ inputs.public-image-name }}
+        DIGEST: ${{ steps.get-digest.outputs.digest }}
+      run: |
+        if cosign verify \
+          --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+          --certificate-identity-regexp '^https://github\.com/.*' \
+          "${PUBLIC_IMAGE_NAME}@${DIGEST}"; then
+          echo "missing=" >> "$GITHUB_OUTPUT"
+        else
+          echo "missing=true" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Sign image
+      if: steps.check-signature.outputs.missing
       env:
         PUBLIC_IMAGE_NAME: ${{ inputs.public-image-name }}
         DIGEST: ${{ steps.get-digest.outputs.digest }}
