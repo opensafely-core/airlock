@@ -39,7 +39,7 @@ function buildTables() {
         datatable-table min-w-full divide-y divide-slate-300
         [&_th]:bg-slate-200 [&_th]:text-slate-900 [&_th]:text-sm [&_th]:font-semibold [&_th]:leading-5 [&_th]:text-left [&_th]:whitespace-nowrap [&_th]:w-auto
         [&_td]:text-slate-700 [&_td]:text-sm [&_td]:p-2
-        [&_tr]:border-t [&_tr]:border-slate-200 first:[&_tr]:border-t-0 [&_tr]:bg-white even:[&_tr]:bg-slate-50
+        [&_tr]:border-t [&_tr]:border-slate-200 [&_tr]:first:border-t-0 [&_tr]:bg-white [&_tr]:even:bg-slate-50
       `,
         top: "hidden",
         bottom: paging
@@ -80,7 +80,7 @@ function buildTables() {
                             nodeName: "INPUT",
                             attributes: {
                               class:
-                                "datatable-input block w-full border-slate-300 font-normal shadow-sm rounded-md mb-1 sm:text-sm sm:leading-5 focus:border-oxford-500 focus:outline-oxford-500 focus:-outline-offset-1",
+                                "datatable-input block w-full border-slate-300 font-normal shadow-xs rounded-md mb-1 sm:text-sm sm:leading-5 focus:border-oxford-500 focus:outline-oxford-500 focus:-outline-offset-1",
                               "data-columns": `[${index}]`,
                               // @ts-ignore
                               placeholder: `Filter ${_data.headings[index].text

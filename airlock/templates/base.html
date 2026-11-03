@@ -30,7 +30,7 @@
     {% include '_includes/header.html' %}
 
     <main class="max-h-full bg-slate-100 flex flex-col flex-1">
-      <div class="container xl:max-w-screen-xl pt-4 pb-4" id="content">
+      <div class="container xl:max-w-(--breakpoint-xl) pt-4 pb-4" id="content">
         {% alerts messages=messages %}
         {% block content %}{% endblock %}
       </div>
