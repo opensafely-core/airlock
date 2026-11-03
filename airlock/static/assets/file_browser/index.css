@@ -109,6 +109,7 @@
   right: 0;
   transform-origin: top right;
   width: 14rem;
+  top: 100%
 }
 
 .more-dropdown__link {
