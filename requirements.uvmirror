@@ -86,7 +86,7 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-hypothesis==6.170.8
+hypothesis==6.170.12
 idna==3.20
     # via
     #   anyio
@@ -213,7 +213,7 @@ pygments==2.21.0
     #   pytest
 pymdown-extensions==12.3
     # via mkdocs-material
-pytest==9.1.1
+pytest==9.2.0
     # via
     #   pytest-cov
     #   pytest-django
@@ -248,7 +248,7 @@ requests==2.34.2
     #   opentelemetry-exporter-otlp-proto-http
     #   responses
 responses==0.26.3
-ruff==0.17.2
+ruff==0.17.3
 ruyaml==0.91.0
     # via opensafely-pipeline
 setuptools==84.2.1
