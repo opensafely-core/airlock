@@ -15,8 +15,8 @@ export class Dropdown extends LitElement {
   @property({ type: String })
   rel = "";
 
-  @property({ type: String })
-  id = "";
+  @property({ type: String, attribute: "link-id" })
+  linkId = "";
 
   static styles = css`
     li {
@@ -57,7 +57,7 @@ export class Dropdown extends LitElement {
           class="more-dropdown__link"
           target="${this.target}"
           rel="${this.rel}"
-          id="${this.id}"
+          id="${this.linkId}"
         >
           <img class="more-dropdown__icon" src="${this.icon}" alt="" />
           <slot></slot>

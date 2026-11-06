@@ -111,7 +111,7 @@ export class Dropdown extends LitElement {
   render() {
     return html`
       <details class="more-dropdown" @keydown=${this.handleDetailsKeyDown}>
-        <summary class="more-dropdown__btn">
+        <summary class="more-dropdown__btn" id="file-button-more">
           ${this.title}
           <span class="icon-container">
             <img
