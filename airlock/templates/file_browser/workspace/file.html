@@ -35,7 +35,37 @@
       {% endif %}
     {% endif %}
 
-    {% include "file_browser/_includes/more_dropdown.html" with include_code=include_code include_download=False %}
+    <airlock-dropdown>
+      <airlock-dropdown-item
+        icon="/static/icons/open_in_new.svg"
+        href="{{path_item.contents_url}}"
+        target="_blank"
+        rel="noopener noreferrer"
+        id="view-button"
+      >
+        Open in new tab
+      </airlock-dropdown-item>
+      <airlock-dropdown-item
+        icon="/static/icons/open_in_new.svg"
+        href="{{path_item.contents_plaintext_url}}"
+        target="_blank"
+        rel="noopener noreferrer"
+        id="plain-text-button"
+      >
+        Open as plain text
+      </airlock-dropdown-item>
+      {% if include_code %}
+        <airlock-dropdown-item
+          icon="/static/icons/code_blocks.svg"
+          href="{{code_url}}"
+          target="_blank"
+          rel="noopener noreferrer"
+          id="file-code-button"
+        >
+          View source code
+        </airlock-dropdown-item>
+      {% endif %}
+    </airlock-dropdown>
 
   </div>
 {% endfragment %}
