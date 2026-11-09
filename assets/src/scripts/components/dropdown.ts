@@ -39,12 +39,12 @@ export class Dropdown extends LitElement {
   }
 
   static styles = css`
-    .more-dropdown {
+    .dropdown {
       display: flex;
       position: relative;
     }
 
-    .more-dropdown__btn {
+    .dropdown__btn {
       align-items: center;
       background: white;
       border: 1px solid var(--color-gray-300);
@@ -63,13 +63,19 @@ export class Dropdown extends LitElement {
         border-color 0.2s;
     }
 
-    .more-dropdown__btn:focus,
-    .more-dropdown__btn:active {
+    .dropdown__btn:hover {
+      background-color: var(--color-gray-100);
+      border-color: var(--color-gray-400);
+      color: var(--color-gray-700);
+    }
+
+    .dropdown__btn:focus,
+    .dropdown__btn:active {
       outline: 2px solid var(--color-oxford-600);
       outline-offset: 2px;
     }
 
-    .more-dropdown__nav {
+    .dropdown__nav {
       background: white;
       border-radius: 0.375rem;
       box-shadow:
@@ -91,10 +97,10 @@ export class Dropdown extends LitElement {
       padding: 0;
       margin-top: 0.5rem;
     }
-    .more-dropdown[open] .open {
+    .dropdown[open] .open {
       display: block;
     }
-    .more-dropdown[open] .closed {
+    .dropdown[open] .closed {
       display: none;
     }
     .open {
@@ -110,8 +116,8 @@ export class Dropdown extends LitElement {
 
   render() {
     return html`
-      <details class="more-dropdown" @keydown=${this.handleDetailsKeyDown}>
-        <summary class="more-dropdown__btn" id="file-button-more">
+      <details class="dropdown" @keydown=${this.handleDetailsKeyDown}>
+        <summary class="dropdown__btn" id="file-button-more">
           ${this.title}
           <span class="icon-container">
             <img
@@ -130,7 +136,7 @@ export class Dropdown extends LitElement {
             />
           </span>
         </summary>
-        <ul class="more-dropdown__nav">
+        <ul class="dropdown__nav">
           <slot></slot>
         </ul>
       </details>
