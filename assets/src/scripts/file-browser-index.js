@@ -257,3 +257,13 @@ document.body.addEventListener('change', (e) => {
     toggleSelectAll(e.target);
   }
 });
+
+document.body.addEventListener("htmx:configRequest", (event) => {
+    const form = event.detail.elt.closest("#multiselect_form");
+    if (!form) return;
+
+    const state = getCheckboxSessionState()[document.baseURI] || {};
+    event.detail.parameters.selected = Object.entries(state)
+        .filter(([_value, checked]) => checked)
+        .map(([value]) => value);
+});
