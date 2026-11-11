@@ -690,6 +690,54 @@ def test_select_all(live_server, page, context):
     expect(page.locator("input.selectall")).not_to_be_checked()
 
 
+def test_offscreen_selected_file_is_submitted(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+    # Create more files than the 200 clusterize window
+    filepaths = [f"outputs/row-{index:03}.txt" for index in range(250)]
+    for filepath in filepaths:
+        factories.write_workspace_file(
+            workspace, filepath, contents="test", manifest=False
+        )
+    factories.update_manifest(workspace, filepaths)
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    selected_filepath = filepaths[-1]
+    selected_checkbox = page.locator(
+        f'input[type="checkbox"][name="selected"][value="{selected_filepath}"]'
+    )
+    # Scroll to bottom of list
+    page.locator("#scrollArea").evaluate(
+        "element => { element.scrollTop = element.scrollHeight; "
+        "element.dispatchEvent(new Event('scroll')); }"
+    )
+    expect(selected_checkbox).to_be_visible()
+    selected_checkbox.check()
+
+    # Scroll checkbox out of clusterize window
+    page.locator("#scrollArea").evaluate(
+        "element => { element.scrollTop = 0; "
+        "element.dispatchEvent(new Event('scroll')); }"
+    )
+    expect(selected_checkbox).to_have_count(0)
+
+    click_and_htmx(page, page.locator("#add-file-modal-button"))
+    expect(page.locator("#addOrChangeRequestFile")).to_contain_text(selected_filepath)
+
+
 @pytest.mark.parametrize(
     # `initial_state` and `final_state` here are tuples of booleans representing
     # the file checkboxes where True=checked, False=unchecked, in the order of
