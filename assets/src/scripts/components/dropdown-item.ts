@@ -1,7 +1,7 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-@customElement("airlock-dropdown-item")
+@customElement("os-dropdown-item")
 export class Dropdown extends LitElement {
   @property({ type: String })
   icon = "";

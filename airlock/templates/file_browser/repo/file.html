@@ -1,7 +1,7 @@
 {% fragment as buttons %}
   <div class="flex items-center gap-2">
-    <airlock-dropdown>
-      <airlock-dropdown-item
+    <os-dropdown>
+      <os-dropdown-item
         icon="/static/icons/open_in_new.svg"
         href="{{path_item.contents_url}}"
         target="_blank"
@@ -9,8 +9,8 @@
         link-id="view-button"
       >
         Open in new tab
-      </airlock-dropdown-item>
-      <airlock-dropdown-item
+      </os-dropdown-item>
+      <os-dropdown-item
         icon="/static/icons/open_in_new.svg"
         href="{{path_item.contents_plaintext_url}}"
         target="_blank"
@@ -18,8 +18,8 @@
         link-id="plain-text-button"
       >
         Open as plain text
-      </airlock-dropdown-item>
-    </airlock-dropdown>
+      </os-dropdown-item>
+    </os-dropdown>
   </div>
 {% endfragment %}
 

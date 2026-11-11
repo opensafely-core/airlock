@@ -109,17 +109,17 @@
       {% include "file_browser/request/filegroup.html" %}
     {% /modal %}
 
-    <airlock-dropdown>
+    <os-dropdown>
       {% if include_download %}
-        <airlock-dropdown-item
+        <os-dropdown-item
           icon="/static/icons/cloud_download.svg"
           href="{{path_item.download_url}}"
           link-id="download-button"
         >
           Download file
-        </airlock-dropdown-item>
+        </os-dropdown-item>
       {% endif %}
-      <airlock-dropdown-item
+      <os-dropdown-item
         icon="/static/icons/open_in_new.svg"
         href="{{path_item.contents_url}}"
         target="_blank"
@@ -127,8 +127,8 @@
         link-id="view-button"
       >
         Open in new tab
-      </airlock-dropdown-item>
-      <airlock-dropdown-item
+      </os-dropdown-item>
+      <os-dropdown-item
         icon="/static/icons/open_in_new.svg"
         href="{{path_item.contents_plaintext_url}}"
         target="_blank"
@@ -136,9 +136,9 @@
         link-id="plain-text-button"
       >
         Open as plain text
-      </airlock-dropdown-item>
+      </os-dropdown-item>
       {% if include_code %}
-        <airlock-dropdown-item
+        <os-dropdown-item
           icon="/static/icons/code_blocks.svg"
           href="{{code_url}}"
           target="_blank"
@@ -146,11 +146,11 @@
           link-id="file-code-button"
         >
           View source code
-        </airlock-dropdown-item>
+        </os-dropdown-item>
       {% endif %}
 
 
-    </airlock-dropdown>
+    </os-dropdown>
   </div>
 {% endfragment %}
 
