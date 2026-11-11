@@ -24,7 +24,7 @@ export class Dropdown extends LitElement {
       margin: 0;
       padding: 0;
     }
-    .dropdown__link {
+    a {
       align-items: center;
       color: var(--color-gray-700);
       display: flex;
@@ -35,13 +35,13 @@ export class Dropdown extends LitElement {
       text-decoration: none;
     }
 
-    .dropdown__link:hover {
+    a:hover {
       background-color: var(--color-gray-100);
       border-color: var(--color-gray-400);
       color: var(--color-gray-700);
     }
 
-    .dropdown__icon {
+    img {
       filter: invert(76%) sepia(12%) saturate(264%) hue-rotate(179deg)
         brightness(83%) contrast(93%);
       height: 1.25rem;
@@ -50,15 +50,14 @@ export class Dropdown extends LitElement {
   `;
   render() {
     return html`
-      <li class="dropdown__item">
+      <li>
         <a
           href="${this.href}"
-          class="dropdown__link"
           target="${this.target}"
           rel="${this.rel}"
           id="${this.linkId}"
         >
-          <img class="dropdown__icon" src="${this.icon}" alt="" />
+          <img src="${this.icon}" alt="" />
           <slot></slot>
         </a>
       </li>
