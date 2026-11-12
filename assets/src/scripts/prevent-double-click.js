@@ -62,8 +62,10 @@ document.body.addEventListener("htmx:afterRequest", (event) => {
     return;
   }
   if (elt instanceof HTMLFormElement) {
-    elt.querySelectorAll("button[type='submit']").forEach((button) => {
-      if (button.isConnected) enableButton(button);
-    });
+    for (const control of elt.elements) {
+      if (control instanceof HTMLButtonElement && control.type === "submit" && control.isConnected){ 
+        enableButton(control);
+      }
+    }
   }
 });
