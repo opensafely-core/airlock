@@ -65,6 +65,26 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
     assert exporter._headers == {"foo": "bar"}
 
 
+def test_setup_default_tracing_otlp_without_headers(monkeypatch):
+    env = {
+        "PYTHONPATH": "",
+        "OTEL_SERVICE_NAME": "service",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "https://endpoint",
+    }
+    monkeypatch.setattr(os, "environ", env)
+    monkeypatch.setattr(
+        opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
+    )
+    provider = setup_default_tracing(set_global=False)
+    assert provider.resource.attributes["service.name"] == "service"
+
+    exporter = provider._active_span_processor._span_processors[0].span_exporter
+
+    assert isinstance(exporter, OTLPSpanExporter)
+    assert exporter._endpoint == "https://endpoint/v1/traces"
+    assert exporter._headers == {}
+
+
 def test_not_instrument_decorator():
     assert trace.get_current_span().is_recording() is False
 

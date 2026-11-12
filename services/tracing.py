@@ -37,9 +37,20 @@ def add_exporter(provider, exporter, processor=BatchSpanProcessor):
 
 
 def setup_default_tracing(set_global=True):
+    """Inspect environment variables and set up exporters accordingly."""
+
     provider = get_provider()
 
-    """Inspect environment variables and set up exporters accordingly."""
+    # OTel client defaults are very low while Honeycomb supports much higher values. We
+    # silently lose data if we hit these limits so we bump them here.
+    #
+    # Honeycomb limit: 2,000 fields per event
+    os.environ.setdefault("OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT", "2000")
+    # Honeycomb limit: 64KB per string field (useful for formatted SQL queries)
+    os.environ.setdefault("OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT", "65536")
+    # Use stable HTTP semantic conventions
+    os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "http")
+
     if "OTEL_EXPORTER_OTLP_HEADERS" in os.environ:
         # workaround for env file parsing issues
         cleaned_headers = os.environ["OTEL_EXPORTER_OTLP_HEADERS"].strip("\"'")
@@ -49,6 +60,8 @@ def setup_default_tracing(set_global=True):
         if "OTEL_EXPORTER_OTLP_ENDPOINT" not in os.environ:
             os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://api.honeycomb.io"
 
+    if "OTEL_EXPORTER_OTLP_ENDPOINT" in os.environ:
+        # now we can created OTLP exporter
         add_exporter(provider, OTLPSpanExporter())
 
     if os.environ.get("OTEL_EXPORTER_CONSOLE", "").lower() == "true":
