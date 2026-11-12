@@ -1177,3 +1177,38 @@ def test_all_workspaces_index_search_filters_list(live_server, page, readonly_us
 
     expect(page.locator("#workspace-results")).to_contain_text("test-dir1")
     expect(page.locator("#workspace-results")).not_to_contain_text("test-dir2")
+
+
+def test_add_files_click_does_not_permanently_disable_button(
+    live_server, page, context
+):
+    """
+    Opening the add files modal and clicking cancel didn't reset the disabled state on the button, meaning it couldn't be clicked again. This acts as a regression test
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/file1.csv"
+    factories.write_workspace_file(workspace, file_1)
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 1")
+            },
+        ),
+    )
+
+    # goto folder view
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+    # select an item
+    page.check(f'input[name="selected"][value="{file_1}"]')
+    button = page.get_by_role("button", name="Add Files to Request")
+    # open the modal
+    click_and_htmx(page, button)
+    dialog = page.locator("#addOrChangeRequestFile")
+    expect(dialog).to_be_visible()
+    dialog.locator("button[type=cancel]").click()
+    expect(dialog).not_to_be_visible()
+    expect(button).to_be_enabled()
