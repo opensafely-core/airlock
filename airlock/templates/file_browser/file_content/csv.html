@@ -50,7 +50,7 @@
       {% #clusterize_table header_row=header_row %}
         {% for index, row in rows %}
           <tr><td class="datatable-row-number">{{ index }}</td>
-            {% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% for cell in row %}<td>{{ cell | linebreaks }}</td>{% endfor %}</tr>
         {% endfor %}
       {% /clusterize_table %}
 
@@ -71,7 +71,7 @@
             <tr>
               <td>{{ index }}</td>
               {% for cell in row %}
-                <td>{{ cell }}</td>
+                <td>{{ cell | linebreaks }}</td>
               {% endfor %}
             </tr>
           {% endfor %}
