@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "/static/",
   build: {
+    target: "chrome108",
     manifest: "manifest.json",
     outDir: "./assets/out",
     rollupOptions: {

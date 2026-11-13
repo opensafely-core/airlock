@@ -35,7 +35,37 @@
       {% endif %}
     {% endif %}
 
-    {% include "file_browser/_includes/more_dropdown.html" with include_code=include_code include_download=False %}
+    <os-dropdown>
+      <os-dropdown-item
+        icon="/static/icons/open_in_new.svg"
+        href="{{path_item.contents_url}}"
+        target="_blank"
+        rel="noopener noreferrer"
+        link-id="view-button"
+      >
+        Open in new tab
+      </os-dropdown-item>
+      <os-dropdown-item
+        icon="/static/icons/open_in_new.svg"
+        href="{{path_item.contents_plaintext_url}}"
+        target="_blank"
+        rel="noopener noreferrer"
+        link-id="plain-text-button"
+      >
+        Open as plain text
+      </os-dropdown-item>
+      {% if include_code %}
+        <os-dropdown-item
+          icon="/static/icons/code_blocks.svg"
+          href="{{code_url}}"
+          target="_blank"
+          rel="noopener noreferrer"
+          link-id="file-code-button"
+        >
+          View source code
+        </os-dropdown-item>
+      {% endif %}
+    </os-dropdown>
 
   </div>
 {% endfragment %}
