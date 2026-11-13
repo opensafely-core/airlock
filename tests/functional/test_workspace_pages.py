@@ -690,6 +690,65 @@ def test_select_all(live_server, page, context):
     expect(page.locator("input.selectall")).not_to_be_checked()
 
 
+def test_select_all_not_shown_if_all_directories(live_server, page, context):
+    """
+    If a folder contains only folders, the select all checkbox should not be shown
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/subdir/file1.csv"
+    factories.write_workspace_file(workspace, file_1)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # goto page with files
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    # confirm selectall is not visible
+    expect(page.locator("input.selectall")).not_to_be_visible()
+
+
+def test_select_all_shown_if_some_directories(live_server, page, context):
+    """
+    If a folder a mix of folders and files, the select all checkbox should be shown
+    """
+    workspace = factories.create_workspace("my-workspace")
+
+    file_1 = "outputs/subdir/file1.csv"
+    file_1 = "outputs/file2.csv"
+    factories.write_workspace_file(workspace, file_1)
+    login_as_user(
+        live_server,
+        context,
+        user_dict={
+            "username": "author",
+            "workspaces": {
+                "my-workspace": {
+                    "project_details": {"name": "Project 1", "ongoing": True},
+                    "archived": False,
+                },
+            },
+        },
+    )
+
+    # goto page with files
+    page.goto(live_server.url + workspace.get_url(UrlPath("outputs")))
+
+    # confirm selectall is visible
+    expect(page.locator("input.selectall")).to_be_visible()
+
+
 def test_offscreen_selected_file_is_submitted(live_server, page, context):
     workspace = factories.create_workspace("my-workspace")
     # Create more files than the 200 clusterize window
