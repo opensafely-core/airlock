@@ -351,6 +351,8 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             + f"?return_url={workspace.get_url(path)}"
         )
 
+    path_has_files = any(not path.is_directory() for path in path_item.children)
+
     return TemplateResponse(
         request,
         template,
@@ -370,6 +372,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             "include_code": code_url is not None,
             "show_out_of_date_action_outputs": show_out_of_date_action_outputs,
             "out_of_date_action_count": workspace.out_of_date_action_count,
+            "path_has_files": path_has_files,
         },
     )
 
