@@ -147,7 +147,7 @@ def test_request_file_group_context_and_comments_modal(live_server, context, pag
     expect(comments_locator).to_contain_text("A Test Comment")
 
     # Close the modal
-    dialog.locator("button[type=cancel]").click()
+    dialog.locator("button[type=cancel]").first.click()
     expect(dialog).not_to_be_visible()
 
 
