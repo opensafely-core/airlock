@@ -6,6 +6,8 @@ from django.conf import settings
 def take_screenshot(context, path):  # pragma: nocover
     """Only take a screen shot if env var is set."""
     if os.getenv("TAKE_SCREENSHOTS") is not None:
+        page = getattr(context, "page", context)
+        page.wait_for_load_state("networkidle")
         context.screenshot(path=settings.SCREENSHOT_DIR / path)
 
 
@@ -42,6 +44,7 @@ def screenshot_element_with_padding(
         clip[key] *= extra_crop
 
     if os.getenv("TAKE_SCREENSHOTS") is not None:  # pragma: nocover
+        page.wait_for_load_state("networkidle")
         page.screenshot(
             path=settings.SCREENSHOT_DIR / filename,
             clip=clip,
