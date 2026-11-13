@@ -53,7 +53,14 @@
   {% endif %}
 {% endfragment %}
 
-{% #card title=group.title container=True class="group_modal" custom_button=buttons %}
+{% fragment as closebutton %}
+  <button type="cancel">
+    {% icon_x_outline class="h-4 w-4" %}
+    <span class="sr-only">Close</span>
+  </button>
+{% endfragment %}
+
+{% #card title=group.title container=True class="group_modal" custom_button=buttons top_right_button=closebutton %}
 
   <div data-testid="c3">
     <form
