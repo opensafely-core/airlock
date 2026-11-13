@@ -36,6 +36,8 @@ def _escape_csv_field(field) -> str:
     # This is fine, but annoying for the tests which then fail. So easier to just
     # exclude them as a possible csv character
     field = field.replace("\r", "_")
+    # Newline characters (\n) are rendered as new lines and so the output doesn't match the input, this removes them
+    field = field.replace("\n", "_")
     return str(field)
 
 

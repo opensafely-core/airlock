@@ -550,3 +550,32 @@ def test_csv_column_hide_row_number_width_stable(live_server, page, context):
     )
 
     expect(show_hidden).to_be_hidden()
+
+
+def test_csv_newlines_render(live_server, page, context):
+    workspace = factories.create_workspace("my-workspace")
+
+    factories.write_workspace_file(
+        workspace, "outputs/file1.csv", 'Heading\r\n"Line\nbreak"\r\n'
+    )
+
+    login_as_user(
+        live_server,
+        context,
+        user_dict=factories.create_api_user(
+            username="author",
+            workspaces={
+                "my-workspace": factories.create_api_workspace(project="Project 1"),
+            },
+        ),
+    )
+
+    page.goto(
+        live_server.url + workspace.get_contents_url(UrlPath("outputs/file1.csv"))
+    )
+
+    table_locator = page.locator("#airlock-table")
+    cell = table_locator.locator("tbody tr").first.locator("td").nth(1)
+
+    expect(cell.locator("br")).to_have_count(1)
+    assert cell.inner_text() == "Line\nbreak"
