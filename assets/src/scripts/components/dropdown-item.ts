@@ -2,7 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 @customElement("os-dropdown-item")
-export class Dropdown extends LitElement {
+export class DropdownItem extends LitElement {
   @property({ type: String })
   icon = "";
 
@@ -62,5 +62,11 @@ export class Dropdown extends LitElement {
         </a>
       </li>
     `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "os-dropdown-item": DropdownItem;
   }
 }

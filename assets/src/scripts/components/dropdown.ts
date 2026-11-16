@@ -143,3 +143,9 @@ export class Dropdown extends LitElement {
     `;
   }
 }
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "os-dropdown": Dropdown;
+  }
+}
