@@ -215,11 +215,13 @@ pymdown-extensions==12.3
     # via mkdocs-material
 pytest==9.2.0
     # via
+    #   pytest-base-url
     #   pytest-cov
     #   pytest-django
     #   pytest-freezer
     #   pytest-playwright
     #   pytest-xdist
+pytest-base-url==2.1.0
 pytest-cov==7.1.0
 pytest-django==4.14.0
 pytest-freezer==0.4.9
@@ -246,6 +248,7 @@ requests==2.34.2
     #   airlock
     #   mkdocs-material
     #   opentelemetry-exporter-otlp-proto-http
+    #   pytest-base-url
     #   responses
 responses==0.26.3
 ruff==0.17.4
