@@ -152,6 +152,12 @@ dev = [
     "pytest-django<=4.14.0",
     "pytest-freezer<=0.4.9",
     "pytest-playwright<=0.10.0",
+    # This is a temporarily required dependency until a new release of
+    # `pytest-playwright` is cut which includes the below PR. Without this,
+    # pytest-playright triggers a PytestRemovedIn10Warning when running under pytest
+    # 9.2.0:
+    # https://github.com/microsoft/playwright-pytest/pull/345
+    "pytest-base-url>=2.1.0",
     "responses<=0.26.3",
     # Currently using our fork of django_coverage_plugin, pending
     # upstream PR https://github.com/nedbat/django_coverage_plugin/pull/93
