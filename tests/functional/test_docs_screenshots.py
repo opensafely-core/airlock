@@ -304,7 +304,7 @@ def test_screenshot_from_creation_to_release(
             modal_button.click()
             take_screenshot(page, "context_modal.png")
 
-            page.get_by_role("button", name="Close").click()
+            page.get_by_role("button", name="Close").first.click()
 
         if screenshot:
             # Screenshot the request file page after voting

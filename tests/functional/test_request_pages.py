@@ -147,7 +147,19 @@ def test_request_file_group_context_and_comments_modal(live_server, context, pag
     expect(comments_locator).to_contain_text("A Test Comment")
 
     # Close the modal
-    dialog.locator("button[type=cancel]").click()
+    top_right_close_button = (
+        page.locator(".group_modal")
+        .get_by_role("button", name="Close")
+        .and_(page.locator("button:not(.action-button)"))
+    )
+    top_right_close_button.click()
+    expect(dialog).not_to_be_visible()
+
+    # Reopen the modal and close it using the bottom button
+    modal_button.click()
+    expect(dialog).to_be_visible()
+    close_button = page.locator("button.action-button").filter(has_text="Close")
+    close_button.click()
     expect(dialog).not_to_be_visible()
 
 
