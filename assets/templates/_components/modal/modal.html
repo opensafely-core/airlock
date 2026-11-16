@@ -16,17 +16,20 @@
   const container = document.getElementById("{{ id }}-modal-container");
   const modal = container.querySelector("dialog");
   const triggerBtn = container.querySelector("[data-modal={{ id }}]");
-  const cancelBtn = container.querySelector('[type="cancel"]');
+  const cancelBtns = container.querySelectorAll('[type="cancel"]');
 
   triggerBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     modal.showModal();
   });
 
-  cancelBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    modal.close();
+  cancelBtns?.forEach((cancelBtn) => {
+    cancelBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      modal.close();
+    });
   });
+
 
   // useful for loading and imediately showing modals over htmx
   {% if autoshow %}
