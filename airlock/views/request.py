@@ -452,6 +452,8 @@ def request_view(request, request_id: str, path: str = ""):
     else:
         request_action_required = None
 
+    path_has_files = any(not path.is_directory() for path in path_item.children)
+
     context = {
         "template_dir": template_dir,
         "workspace": workspace,
@@ -468,6 +470,7 @@ def request_view(request, request_id: str, path: str = ""):
         "include_download": not is_author,
         "upload_in_progress": release_request.upload_in_progress(),
         "is_request_root": release_request.get_url() == request.path,
+        "path_has_files": path_has_files,
     }
 
     return TemplateResponse(request, template, context)
