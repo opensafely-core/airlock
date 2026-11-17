@@ -5,7 +5,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "type": "module",
   "devDependencies": {
@@ -15,7 +17,9 @@
     "postcss": "<=8.5.31",
     "tailwindcss": "<=3.4.19",
     "typescript": "^7.0.2",
-    "vite": "<=8.3.5"
+    "vite": "<=8.3.5",
+    "storybook": "^10.6.7",
+    "@storybook/web-components-vite": "^10.6.7"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "<=5.3.0",

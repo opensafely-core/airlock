@@ -26,3 +26,6 @@ assets/out
 # Hypothesis outputs
 .hypothesis
 
+
+*storybook.log
+storybook-static

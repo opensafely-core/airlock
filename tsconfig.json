@@ -8,7 +8,8 @@
     "useDefineForClassFields": false,
     "skipLibCheck": true,
     "noEmit": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"]
   },
-  "include": ["assets/src/**/*.ts"]
+  "include": ["assets/src/**/*.ts", ".storybook/**/*.ts", "stories/**/*.ts"]
 }
