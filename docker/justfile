@@ -27,12 +27,8 @@ build env="dev": _dotenv
     # build the thing
     docker compose build --pull {{ env }}
 
-# Fetch and extract the chromium version we need for testing
-get-chromium:
-    PLATFORM="linux-gnu" {{ just_executable() }} --justfile {{ justfile_directory() }}/../justfile get-chromium
-
 # run tests in dev container
-test *pytest_args="": _dotenv build get-chromium
+test *pytest_args="": _dotenv build
     #!/bin/bash
     # Note, we do *not* run coverage in docker, as we want to use xdist, and coverage does not seem to work reliably.
     docker compose run --rm test pytest -n auto {{ pytest_args }}
