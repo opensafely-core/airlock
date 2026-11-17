@@ -1,12 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 
 import { html } from "lit";
-import "../assets/src/scripts/components/dropdown";
 import "../assets/src/scripts/components/dropdown-item";
+import  "../assets/src/scripts/components/dropdown";
+import type {Dropdown} from "../assets/src/scripts/components/dropdown";
 
-type DropdownArgs = {
-  title: string;
-};
 const meta = {
   title: "UI/Dropdown",
   tags: ["autodocs"],
@@ -24,10 +22,10 @@ const meta = {
     </div>
   `,
   argTypes: {},
-} satisfies Meta<DropdownArgs>;
+} satisfies Meta<Dropdown>;
 
 export default meta;
-type Story = StoryObj<DropdownArgs>;
+type Story = StoryObj<Dropdown>;
 
 export const Primary: Story = {
   args: {
