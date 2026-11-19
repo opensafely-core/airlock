@@ -63,3 +63,11 @@ python3 process.py
 
 Only the two CSVs in `csvs-to-export/` are intended to leave the secure environment. The
 JSON files should be deleted after the CSVs are exported.
+
+## Tests
+
+LLM generated tests are provided in `scripts/operational-data/`. They can be run with:
+
+```bash
+python3.12 -m unittest discover -s scripts/operational-data -v
+```
