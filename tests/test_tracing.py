@@ -1,7 +1,6 @@
 import os
 from dataclasses import dataclass
 
-import opentelemetry.exporter.otlp.proto.http.trace_exporter
 import pytest
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -31,16 +30,13 @@ def test_setup_default_tracing_otlp_defaults(monkeypatch):
     # add single quotes to test quote stripping
     env = {"PYTHONPATH": "", "OTEL_EXPORTER_OTLP_HEADERS": "'foo=bar'"}
     monkeypatch.setattr(os, "environ", env)
-    monkeypatch.setattr(
-        opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
-    )
     provider = setup_default_tracing(set_global=False)
     assert provider.resource.attributes["service.name"] == "airlock"
 
     exporter = provider._active_span_processor._span_processors[0].span_exporter
     assert isinstance(exporter, OTLPSpanExporter)
     assert exporter._endpoint == "https://api.honeycomb.io/v1/traces"
-    assert exporter._headers == {"foo": "bar"}
+    assert exporter._client._headers["foo"] == "bar"
     assert env["OTEL_EXPORTER_OTLP_ENDPOINT"] == "https://api.honeycomb.io"
 
 
@@ -52,9 +48,6 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
         "OTEL_EXPORTER_OTLP_ENDPOINT": "https://endpoint",
     }
     monkeypatch.setattr(os, "environ", env)
-    monkeypatch.setattr(
-        opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
-    )
     provider = setup_default_tracing(set_global=False)
     assert provider.resource.attributes["service.name"] == "service"
 
@@ -62,7 +55,7 @@ def test_setup_default_tracing_otlp_with_env(monkeypatch):
 
     assert isinstance(exporter, OTLPSpanExporter)
     assert exporter._endpoint == "https://endpoint/v1/traces"
-    assert exporter._headers == {"foo": "bar"}
+    assert exporter._client._headers["foo"] == "bar"
 
 
 def test_setup_default_tracing_otlp_without_headers(monkeypatch):
@@ -72,9 +65,6 @@ def test_setup_default_tracing_otlp_without_headers(monkeypatch):
         "OTEL_EXPORTER_OTLP_ENDPOINT": "https://endpoint",
     }
     monkeypatch.setattr(os, "environ", env)
-    monkeypatch.setattr(
-        opentelemetry.exporter.otlp.proto.http.trace_exporter, "environ", env
-    )
     provider = setup_default_tracing(set_global=False)
     assert provider.resource.attributes["service.name"] == "service"
 
@@ -82,7 +72,7 @@ def test_setup_default_tracing_otlp_without_headers(monkeypatch):
 
     assert isinstance(exporter, OTLPSpanExporter)
     assert exporter._endpoint == "https://endpoint/v1/traces"
-    assert exporter._headers == {}
+    assert "foo" not in exporter._client._headers
 
 
 def test_not_instrument_decorator():
