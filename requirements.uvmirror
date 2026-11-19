@@ -14,7 +14,7 @@ ast-serialize==0.13.1
     # via mypy
 babel==2.18.0
     # via mkdocs-material
-backrefs==8.2
+backrefs==8.2.1
     # via mkdocs-material
 bleach==6.4.0
     # via django-markdownify
@@ -32,7 +32,7 @@ colorama==0.4.6
     #   mkdocs
     #   mkdocs-material
     #   pytest
-coverage==7.17.2
+coverage==7.17.3
     # via
     #   django-coverage-plugin
     #   pytest-cov
@@ -211,7 +211,7 @@ pygments==2.21.0
     # via
     #   mkdocs-material
     #   pytest
-pymdown-extensions==13.0
+pymdown-extensions==13.1
     # via mkdocs-material
 pytest==9.2.0
     # via
@@ -270,7 +270,7 @@ tinycss2==1.5.1
     # via bleach
 typeguard==2.13.3
     # via slippers
-types-pyyaml==6.0.12.20261103
+types-pyyaml==6.0.12.20261111
     # via django-stubs
 types-requests==2.33.0.20261030
 typing-extensions==4.16.0
