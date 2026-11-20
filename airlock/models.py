@@ -393,8 +393,8 @@ class Workspace:
             return f"{self.name} (ARCHIVED)"
         return self.name
 
-    def root(self):
-        return settings.WORKSPACE_DIR / self.name
+    def root(self) -> Path:
+        return Path(settings.WORKSPACE_DIR) / self.name
 
     def manifest_path(self):
         return self.root() / "metadata/manifest.json"
