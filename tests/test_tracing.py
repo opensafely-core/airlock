@@ -72,7 +72,7 @@ def test_setup_default_tracing_otlp_without_headers(monkeypatch):
 
     assert isinstance(exporter, OTLPSpanExporter)
     assert exporter._endpoint == "https://endpoint/v1/traces"
-    assert "foo" not in exporter._client._headers
+    assert set(exporter._client._headers.keys()) == {"content-type", "user-agent"}
 
 
 def test_not_instrument_decorator():
