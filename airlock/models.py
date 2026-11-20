@@ -522,14 +522,24 @@ class Workspace:
 
     def is_valid_tree_path(self, relpath: UrlPath | str) -> bool:
         """
-        A relpath can be displayed in the workspace tree if it is:
+        A relpath is valid if it is one of:
          - a valid output path defined in the manifest.json or
          - a parent of a valid output path or
          - in the metadata directory (i.e. the manifest file itself and log files).
+        The file or directory must also exist on the disk
         Outputs from previous jobs which are not part of the current manifest may still
         exist on disk but are not displayed in the tree.
         """
-        return str(UrlPath(relpath)) in self.workspace_child_map
+        key = str(UrlPath(relpath))
+        if key not in self.workspace_child_map:
+            return False
+        root = self.root()
+        path = root / relpath
+        try:
+            path.resolve().relative_to(root)
+        except ValueError:
+            return False
+        return path.is_file() if key in self.workspace_files else path.is_dir()
 
 
 @dataclass(frozen=True)
