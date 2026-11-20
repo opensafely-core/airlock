@@ -292,6 +292,31 @@ def test_workspace_get_workspace_file_status_does_not_require_files_on_disk(bll)
     )
 
 
+def test_workspace_get_workspace_file_status_missing_metadata_file():
+    workspace = factories.create_workspace("workspace")
+    path = UrlPath("metadata/log.txt")
+    factories.write_workspace_file(workspace, path, manifest=False)
+    workspace = factories.refresh_workspace("workspace")
+
+    assert str(path) in workspace.workspace_files
+    (workspace.root() / path).unlink()
+
+    assert workspace.get_workspace_file_status(path) is WorkspaceFileStatus.INVALID
+
+
+def test_workspace_is_valid_tree_path_rejects_symlink_outside_workspace(tmp_path):
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "foo.txt", contents="foo")
+    workspace = factories.refresh_workspace("workspace")
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("outside")
+    workspace_file = workspace.root() / "foo.txt"
+    workspace_file.unlink()
+    workspace_file.symlink_to(outside_file)
+
+    assert not workspace.is_valid_tree_path(UrlPath("foo.txt"))
+
+
 def test_workspace_get_released_files(bll, mock_old_api):
     path = UrlPath("foo/bar.txt")
     path1 = UrlPath("foo/supporting_bar.txt")
