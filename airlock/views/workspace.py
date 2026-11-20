@@ -267,6 +267,12 @@ def _manifest_changed_redirect(request, workspace, urlpath):
     return response
 
 
+def _file_not_found_redirect(workspace, path, request, message):
+    redirect_url = get_nearest_parent_url(workspace, UrlPath(path))
+    messages.error(request, message)
+    return redirect(redirect_url)
+
+
 # we return different content depending on the HX-Request / HX-Target headers.
 @vary_on_headers("HX-Request", "HX-Target", "manifest-hash")
 @instrument(func_attributes={"workspace": "workspace_name"})
@@ -314,19 +320,25 @@ def workspace_view(request, workspace_name: str, path: str = ""):
 
     try:
         path_item = get_path_item_from_tree_or_404(tree, path)
+
     except Http404:
         # If we get a 404 on this path, it can't be the root (otherwise it would have
         # already raised an error fetching the workspace), so it will always be possible
         # to find a valid parent to this path.
-        redirect_url = get_nearest_parent_url(workspace, UrlPath(path))
-        # Unlike the htmx request above, this error did not necessarily occur because the
-        # manifest.json changed - it could be a user manually (mis)typing a URL, hence
-        # the different error message.
-        messages.error(
+        return _file_not_found_redirect(
+            workspace,
+            path,
             request,
             f"Path '{path}' is not a valid file or directory path in this workspace.",
         )
-        return redirect(redirect_url)
+
+    if not workspace.is_valid_tree_path(path_item.relpath):
+        return _file_not_found_redirect(
+            workspace,
+            path,
+            request,
+            f"Path '{path}' has been removed on the disk for this workspace.",
+        )
 
     is_directory_url = path.endswith("/") or path == ""
     if path_item.is_directory() != is_directory_url:

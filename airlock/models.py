@@ -393,8 +393,8 @@ class Workspace:
             return f"{self.name} (ARCHIVED)"
         return self.name
 
-    def root(self):
-        return settings.WORKSPACE_DIR / self.name
+    def root(self) -> Path:
+        return Path(settings.WORKSPACE_DIR) / self.name
 
     def manifest_path(self):
         return self.root() / "metadata/manifest.json"
@@ -413,11 +413,13 @@ class Workspace:
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         relpath = UrlPath(relpath)
-        if not self.is_valid_tree_path(relpath):
+        if not self.is_workspace_file(relpath):
             return WorkspaceFileStatus.INVALID
 
-        # get_file_metadata will throw FileNotFound if we have a bad file path
-        metadata = self.get_file_metadata(relpath)
+        try:
+            metadata = self.get_file_metadata(relpath)
+        except exceptions.FileNotFound:
+            return WorkspaceFileStatus.INVALID
 
         # check if file has been released once we can do that
         if metadata and metadata.content_hash in self.released_files:
@@ -522,14 +524,24 @@ class Workspace:
 
     def is_valid_tree_path(self, relpath: UrlPath | str) -> bool:
         """
-        A relpath can be displayed in the workspace tree if it is:
+        A relpath is valid if it is one of:
          - a valid output path defined in the manifest.json or
          - a parent of a valid output path or
          - in the metadata directory (i.e. the manifest file itself and log files).
+        The file or directory must also exist on the disk
         Outputs from previous jobs which are not part of the current manifest may still
         exist on disk but are not displayed in the tree.
         """
-        return str(UrlPath(relpath)) in self.workspace_child_map
+        key = str(UrlPath(relpath))
+        if key not in self.workspace_child_map:
+            return False
+        root = self.root()
+        path = root / relpath
+        try:
+            path.resolve().relative_to(root)
+        except ValueError:
+            return False
+        return path.is_file() if key in self.workspace_files else path.is_dir()
 
 
 @dataclass(frozen=True)
