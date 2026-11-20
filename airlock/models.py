@@ -413,11 +413,13 @@ class Workspace:
 
     def get_workspace_file_status(self, relpath: UrlPath) -> WorkspaceFileStatus | None:
         relpath = UrlPath(relpath)
-        if not self.is_valid_tree_path(relpath):
+        if not self.is_workspace_file(relpath):
             return WorkspaceFileStatus.INVALID
 
-        # get_file_metadata will throw FileNotFound if we have a bad file path
-        metadata = self.get_file_metadata(relpath)
+        try:
+            metadata = self.get_file_metadata(relpath)
+        except exceptions.FileNotFound:
+            return WorkspaceFileStatus.INVALID
 
         # check if file has been released once we can do that
         if metadata and metadata.content_hash in self.released_files:
