@@ -533,10 +533,10 @@ class Workspace:
         root = self.root()
         path = root / relpath
         try:
-            path.resolve().relative_to(root)
-        except ValueError:
+            path.resolve(strict=True).relative_to(root)
+            return True
+        except (ValueError, OSError, RuntimeError):
             return False
-        return path.is_file() if key in self.workspace_files else path.is_dir()
 
 
 @dataclass(frozen=True)
