@@ -498,19 +498,14 @@ class Workspace:
     def abspath(self, relpath):
         """Get absolute path for file
 
-        Protects against traversal, and ensures the path is a valid workspace path."""
+        is_valid_tree_path Protects against traversal, and ensures the path is a valid workspace path."""
         root = self.root()
 
         # validate relpath according to current manifest and state of the metadata directory
         if not self.is_valid_tree_path(relpath):
             raise exceptions.FileNotFound(relpath)
 
-        path = root / relpath
-
-        # protect against traversal
-        path.resolve().relative_to(root)
-
-        return path
+        return root / relpath
 
     def request_filetype(self, relpath: UrlPath) -> None:
         return None
