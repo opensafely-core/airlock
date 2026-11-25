@@ -337,7 +337,7 @@ def workspace_view(request, workspace_name: str, path: str = ""):
             workspace,
             path,
             request,
-            f"Path '{path}' has been removed on the disk for this workspace.",
+            f"Path '{path}' not found on disk.",
         )
 
     is_directory_url = path.endswith("/") or path == ""

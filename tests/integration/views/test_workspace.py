@@ -412,7 +412,7 @@ def test_workspace_view_missing_output_redirects_to_nearest_parent(
     assert len(all_messages) == 1
     message = all_messages[0]
     assert message.level == messages.ERROR
-    assert f"Path '{relpath}' has been removed on the disk" in message.message
+    assert f"Path '{relpath}' not found on disk." in message.message
 
 
 def test_workspace_view_redirects_to_directory(airlock_client):
