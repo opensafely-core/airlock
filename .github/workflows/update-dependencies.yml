@@ -15,13 +15,13 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: "opensafely-core/setup-action@1f93a08c6e31a75b0908fcac5d25c2cf729c31f2" # v1.8.0
+    - uses: "opensafely-core/setup-action@fc0f6e03d1a6fe8c53ff686b310dd08be072b8c8" # v1.9.0
       with:
         install-just: true
         install-uv: true
         cache: uv
 
-    - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+    - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
       id: generate-token
       with:
         app-id: ${{ vars.CREATE_PR_APP_ID }}
