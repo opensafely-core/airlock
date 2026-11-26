@@ -200,8 +200,8 @@ FROM airlock-base AS airlock-prod
 # Adjust this metadata to fit project. Note that the base-docker image does set
 # some basic metadata.
 LABEL org.opencontainers.image.title="airlock" \
-      org.opencontainers.image.description="OpenSAFELY airlock" \
-      org.opencontainers.image.source="https://github.com/opensafely-core/airlock"
+    org.opencontainers.image.description="OpenSAFELY airlock" \
+    org.opencontainers.image.source="https://github.com/opensafely-core/airlock"
 
 # Expose the port
 EXPOSE 8000
@@ -235,7 +235,7 @@ ARG GROUPID=10000
 # this can be used for prod-like tests, but persistent storage should be 
 # mounted for actual production
 RUN mkdir /workdir \
- && chown ${USERID}:${GROUPID} /workdir
+    && chown ${USERID}:${GROUPID} /workdir
 
 USER ${USERID}:${GROUPID}
 
@@ -262,7 +262,9 @@ RUN --mount=type=cache,target=/root/.cache \
 # Install playwright chromium dependencies. This needs to be done AFTER 
 # the python playwright package is installed. Although we don't use the default playwright
 # chromium browser, this gets us the system dependencies
-RUN playwright install-deps chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN playwright install --with-deps chromium \
+    && chmod -R a+rX /opt/playwright
 
 # Override ENTRYPOINT rather than CMD so we can pass arbitrary commands to the entrypoint script
 ENTRYPOINT ["/app/docker/entrypoints/dev.sh"]
