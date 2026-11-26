@@ -148,7 +148,7 @@ def test_request_file_group_context_and_comments_modal(live_server, context, pag
 
     # Close the modal
     top_right_close_button = (
-        page.locator(".group_modal")
+        page.locator("#group_card")
         .get_by_role("button", name="Close")
         .and_(page.locator("button:not(.action-button)"))
     )

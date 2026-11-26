@@ -54,14 +54,15 @@
 {% endfragment %}
 
 {% fragment as closebutton %}
-  <button type="cancel">
-    {% icon_x_outline class="h-4 w-4" %}
-    <span class="sr-only">Close</span>
-  </button>
+  {% if path_item.type.name.lower == "file" %}
+    <button type="cancel">
+      {% icon_x_outline class="h-4 w-4" %}
+      <span class="sr-only">Close</span>
+    </button>
+  {% endif %}
 {% endfragment %}
 
-{% #card title=group.title container=True class="group_modal" custom_button=buttons top_right_button=closebutton %}
-
+{% #card title=group.title container=True id="group_card" custom_button=buttons top_right_button=closebutton %}
   <div data-testid="c3">
     <form
       action="{{ group.c2_edit_url }}"
