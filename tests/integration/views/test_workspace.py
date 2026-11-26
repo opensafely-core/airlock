@@ -383,6 +383,38 @@ def test_workspace_view_with_invalid_path_redirects_to_nearest_parent(airlock_cl
     )
 
 
+@pytest.mark.parametrize("htmx", [False, True], ids=["normal", "htmx"])
+def test_workspace_view_missing_output_redirects_to_nearest_parent(
+    airlock_client, htmx
+):
+    airlock_client.login(output_checker=True)
+    workspace = factories.create_workspace("workspace")
+    factories.write_workspace_file(workspace, "subdir/file.txt")
+    workspace = factories.refresh_workspace("workspace")
+    relpath = UrlPath("subdir/file.txt")
+
+    assert str(relpath) in workspace.workspace_files
+    (workspace.root() / relpath).unlink()
+    assert str(relpath) in workspace.workspace_files
+    assert not workspace.is_valid_tree_path(relpath)
+
+    headers = (
+        {"HX-Request": "true", "manifest-hash": workspace.manifest_hash} if htmx else {}
+    )
+    response = airlock_client.get(
+        workspace.get_url(relpath),
+        headers=headers,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/workspaces/view/workspace/subdir"
+    all_messages = list(get_messages(response.wsgi_request))
+    assert len(all_messages) == 1
+    message = all_messages[0]
+    assert message.level == messages.ERROR
+    assert f"Path '{relpath}' not found on disk." in message.message
+
+
 def test_workspace_view_redirects_to_directory(airlock_client):
     airlock_client.login(output_checker=True)
     workspace = factories.create_workspace("workspace")
